@@ -89,20 +89,7 @@ export default function Agents() {
 
       if (error) throw error;
 
-      // If no agents exist, seed with demo data
-      if (!data || data.length === 0) {
-        await seedDemoAgents();
-        // Fetch again after seeding
-        const { data: newData, error: fetchError } = await supabase
-          .from('agents')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (fetchError) throw fetchError;
-        setAgents((newData || []) as Agent[]);
-      } else {
-        setAgents(data as Agent[]);
-      }
+      setAgents((data || []) as Agent[]);
     } catch (error) {
       console.error('Error fetching agents:', error);
       toast({
@@ -112,84 +99,6 @@ export default function Agents() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const seedDemoAgents = async () => {
-    try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Use a default customer ID for demo purposes if no user is authenticated
-      const demoCustomerId = user?.id || '00000000-0000-0000-0000-000000000001';
-
-      const demoAgents = [
-        {
-          name: 'Demo Agent Alpha',
-          customer_id: demoCustomerId,
-          agent_type: 'general',
-          status: 'running',
-          version: '1.2.3',
-          os: 'ubuntu',
-          region: 'us-east-1',
-          ip_address: '192.168.1.100',
-          last_seen: new Date().toISOString(),
-          uptime_seconds: 86400, // 1 day
-          cpu_usage: 15.5,
-          memory_usage: 85.2, // Memory usage in MB
-          tasks_completed: 42,
-          auto_updates_enabled: true,
-          certificate_fingerprint: 'sha256:1234567890abcdef',
-          signature_key_version: 1
-        },
-        {
-          name: 'Demo Agent Beta',
-          customer_id: demoCustomerId,
-          agent_type: 'data_processor',
-          status: 'idle',
-          version: '1.2.1',
-          os: 'debian',
-          region: 'us-west-2',
-          ip_address: '192.168.1.101',
-          last_seen: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
-          uptime_seconds: 172800, // 2 days
-          cpu_usage: 8.2,
-          memory_usage: 64.8, // Memory usage in MB
-          tasks_completed: 128,
-          auto_updates_enabled: false,
-          certificate_fingerprint: 'sha256:fedcba0987654321',
-          signature_key_version: 1
-        }
-      ];
-
-      console.log('Attempting to create demo agents with customer_id:', demoCustomerId);
-
-      const { data, error } = await supabase
-        .from('agents')
-        .insert(demoAgents)
-        .select();
-
-      if (error) {
-        console.error('Error seeding demo agents:', error);
-        toast({
-          title: 'Demo Setup Issue',
-          description: `Database error: ${error.message}`,
-          variant: 'destructive',
-        });
-      } else {
-        console.log('Demo agents seeded successfully:', data);
-        toast({
-          title: 'Demo Agents Created',
-          description: 'Two demo agents have been added for testing purposes',
-        });
-      }
-    } catch (error) {
-      console.error('Error in seedDemoAgents:', error);
-      toast({
-        title: 'Demo Setup Error',
-        description: 'Failed to create demo agents - check console for details',
-        variant: 'destructive',
-      });
     }
   };
 
