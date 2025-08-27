@@ -50,6 +50,17 @@ const useKPIData = () => {
     }
   });
 
+  const confirmCommands = useQuery({
+    queryKey: ['confirmCommands'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('command_policies')
+        .select('*', { count: 'exact', head: true })
+        .eq('mode', 'confirm');
+      return count || 0;
+    }
+  });
+
   const totalScripts = useQuery({
     queryKey: ['totalScripts'],
     queryFn: async () => {
@@ -74,7 +85,7 @@ const useKPIData = () => {
     }
   });
 
-  return { activeCommands, totalScripts, highRiskCommands, successRate };
+  return { activeCommands, confirmCommands, totalScripts, highRiskCommands, successRate };
 };
 
 export default function CommandPolicies() {
@@ -84,7 +95,7 @@ export default function CommandPolicies() {
   const [editingPolicy, setEditingPolicy] = useState<CommandPolicy | null>(null);
   const [policies, setPolicies] = useState<CommandPolicy[]>([]);
   const [loading, setLoading] = useState(true);
-  const { activeCommands, totalScripts, highRiskCommands, successRate } = useKPIData();
+  const { activeCommands, confirmCommands, totalScripts, highRiskCommands, successRate } = useKPIData();
 
   // Fetch policies from Supabase
   useEffect(() => {
@@ -307,6 +318,7 @@ export default function CommandPolicies() {
       
       // Invalidate KPI queries to update the cards
       queryClient.invalidateQueries({ queryKey: ['activeCommands'] });
+      queryClient.invalidateQueries({ queryKey: ['confirmCommands'] });
       queryClient.invalidateQueries({ queryKey: ['highRiskCommands'] });
       
       toast({
@@ -357,7 +369,7 @@ export default function CommandPolicies() {
           <Card className="bg-gradient-card border-card-border shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Active Commands
+                Total Commands
               </CardTitle>
               <Activity className="h-4 w-4 text-primary" />
             </CardHeader>
@@ -368,7 +380,26 @@ export default function CommandPolicies() {
                 <div className="text-2xl font-bold text-foreground">{activeCommands.data}</div>
               )}
               <p className="text-xs text-muted-foreground">
-                Currently enabled
+                All policies
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card border-card-border shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Confirm Required
+              </CardTitle>
+              <CheckSquare className="h-4 w-4 text-warning" />
+            </CardHeader>
+            <CardContent>
+              {confirmCommands.isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className="text-2xl font-bold text-foreground">{confirmCommands.data}</div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Need confirmation
               </p>
             </CardContent>
           </Card>
@@ -407,33 +438,6 @@ export default function CommandPolicies() {
               )}
               <p className="text-xs text-muted-foreground">
                 High risk commands
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-card border-card-border shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                Success Rate
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground/60" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Last 30 days</p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <CheckSquare className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              {successRate.isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold text-foreground">{successRate.data}%</div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Task success rate
               </p>
             </CardContent>
           </Card>
