@@ -87,7 +87,7 @@ export function TopBar() {
             <span className="animate-fade-in leading-none">3</span>
           </Badge>
           {/* Notification indicator dot */}
-          <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full opacity-75"></div>
+          <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-white rounded-full"></div>
         </Button>
 
         {/* User Menu */}
