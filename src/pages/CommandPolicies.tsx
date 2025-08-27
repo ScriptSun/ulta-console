@@ -503,8 +503,8 @@ export default function CommandPolicies() {
             <DataTable
               columns={columns}
               data={getFilteredPolicies('auto')}
-              searchKey="policy_name"
-              searchPlaceholder="Search auto policies..."
+              searchKeys={['policy_name', 'match_value']}
+              searchPlaceholder="Search policies or commands..."
               defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
             />
           )}
@@ -519,8 +519,8 @@ export default function CommandPolicies() {
             <DataTable
               columns={columns}
               data={getFilteredPolicies('confirm')}
-              searchKey="policy_name"
-              searchPlaceholder="Search confirm policies..."
+              searchKeys={['policy_name', 'match_value']}
+              searchPlaceholder="Search policies or commands..."
               defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
             />
           )}
@@ -535,8 +535,8 @@ export default function CommandPolicies() {
             <DataTable
               columns={columns}
               data={getFilteredPolicies('forbid')}
-              searchKey="policy_name"
-              searchPlaceholder="Search forbid policies..."
+              searchKeys={['policy_name', 'match_value']}
+              searchPlaceholder="Search policies or commands..."
               defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
             />
           )}

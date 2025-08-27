@@ -33,6 +33,7 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   searchKey?: string
+  searchKeys?: string[]
   searchPlaceholder?: string
   defaultHiddenColumns?: string[]
 }
@@ -41,11 +42,13 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   searchKey,
+  searchKeys,
   searchPlaceholder = "Search...",
   defaultHiddenColumns = [],
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [globalFilter, setGlobalFilter] = React.useState("")
   
   // Create initial column visibility state with hidden columns
   const initialColumnVisibility = React.useMemo(() => {
@@ -58,6 +61,17 @@ export function DataTable<TData, TValue>({
   
   const [columnVisibility, setColumnVisibility] = React.useState(initialColumnVisibility)
 
+  // Custom filter function for multiple search keys
+  const globalFilterFn = React.useCallback((row: any, columnId: string, value: string) => {
+    if (!searchKeys || searchKeys.length === 0) return true
+    
+    const searchValue = value.toLowerCase()
+    return searchKeys.some(key => {
+      const cellValue = row.getValue(key)
+      return cellValue?.toString().toLowerCase().includes(searchValue)
+    })
+  }, [searchKeys])
+
   const table = useReactTable({
     data,
     columns,
@@ -68,23 +82,34 @@ export function DataTable<TData, TValue>({
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: searchKeys ? globalFilterFn : undefined,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
+      globalFilter: searchKeys ? globalFilter : undefined,
     },
   })
 
   return (
     <div className="w-full">
       <div className="flex items-center py-4 gap-4">
-        {searchKey && (
+        {(searchKey || searchKeys) && (
           <Input
             placeholder={searchPlaceholder}
-            value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn(searchKey)?.setFilterValue(event.target.value)
+            value={
+              searchKeys 
+                ? globalFilter 
+                : (table.getColumn(searchKey!)?.getFilterValue() as string) ?? ""
             }
+            onChange={(event) => {
+              if (searchKeys) {
+                setGlobalFilter(event.target.value)
+              } else {
+                table.getColumn(searchKey!)?.setFilterValue(event.target.value)
+              }
+            }}
             className="max-w-sm"
           />
         )}
