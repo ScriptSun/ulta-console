@@ -1,202 +1,191 @@
-import { useState } from "react"
-import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Plus, Copy, Play } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { DataTable } from "@/components/ui/data-table"
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { Input } from '@/components/ui/input';
+import { ColumnDef } from '@tanstack/react-table';
+import { MoreHorizontal, Eye, Plus, Upload, ArrowUpDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import { Textarea } from "@/components/ui/textarea"
+} from '@/components/ui/dropdown-menu';
+import { NewScriptDialog } from '@/components/scripts/NewScriptDialog';
+import { UploadScriptDialog } from '@/components/scripts/UploadScriptDialog';
+import { SHABadge } from '@/components/scripts/SHABadge';
+import { Badge } from '@/components/ui/badge';
 
-interface ScriptTemplate {
-  id: string
-  name: string
-  description: string
-  category: string
-  language: "bash" | "python" | "powershell"
-  createdAt: string
-  usageCount: number
+// Script data structure
+interface Script {
+  id: string;
+  name: string;
+  latestVersion: number;
+  latestSHA: string;
+  updated: string;
+  status: 'draft' | 'published';
 }
 
-const mockData: ScriptTemplate[] = [
+const columns: ColumnDef<Script>[] = [
   {
-    id: "1",
-    name: "System Health Check",
-    description: "Comprehensive system monitoring script",
-    category: "monitoring",
-    language: "bash",
-    createdAt: "2024-01-10",
-    usageCount: 42
-  },
-  {
-    id: "2",
-    name: "Log Cleanup",
-    description: "Automated log rotation and cleanup",
-    category: "maintenance", 
-    language: "python",
-    createdAt: "2024-01-12",
-    usageCount: 28
-  }
-]
-
-const columns: ColumnDef<ScriptTemplate>[] = [
-  {
-    accessorKey: "name",
-    header: "Template Name",
-  },
-  {
-    accessorKey: "description",
-    header: "Description",
-  },
-  {
-    accessorKey: "category",
-    header: "Category",
-    cell: ({ row }) => (
-      <Badge variant="secondary" className="capitalize">
-        {row.getValue("category")}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "language",
-    header: "Language",
-    cell: ({ row }) => (
-      <Badge variant="outline">
-        {row.getValue("language")}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "usageCount",
-    header: "Usage Count",
-  },
-  {
-    accessorKey: "createdAt",
-    header: "Created",
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      const template = row.original
-      
+    accessorKey: 'name',
+    header: ({ column }) => {
       return (
-        <Sheet>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <SheetTrigger asChild>
-                <DropdownMenuItem>View template</DropdownMenuItem>
-              </SheetTrigger>
-              <DropdownMenuItem>
-                <Copy className="mr-2 h-4 w-4" />
-                Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Play className="mr-2 h-4 w-4" />
-                Execute
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Edit</DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
-                Delete template
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <SheetContent className="w-[600px] sm:w-[600px]">
-            <SheetHeader>
-              <SheetTitle>Template: {template.name}</SheetTitle>
-              <SheetDescription>
-                {template.description}
-              </SheetDescription>
-            </SheetHeader>
-            
-            <div className="mt-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium">Category</h4>
-                  <Badge variant="secondary" className="capitalize mt-1">
-                    {template.category}
-                  </Badge>
-                </div>
-                <div>
-                  <h4 className="font-medium">Language</h4>
-                  <Badge variant="outline" className="mt-1">
-                    {template.language}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-2">Script Content</h4>
-                <Textarea 
-                  readOnly
-                  value="#!/bin/bash\n\n# System Health Check Script\necho 'Starting system health check...'\n\n# Check disk usage\ndf -h\n\n# Check memory usage\nfree -h\n\n# Check CPU load\nuptime"
-                  className="font-mono text-sm h-48"
-                />
-              </div>
-              
-              <div className="flex gap-2 pt-4">
-                <Button className="flex items-center gap-2">
-                  <Play className="h-4 w-4" />
-                  Execute Template
-                </Button>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Copy className="h-4 w-4" />
-                  Copy Template
-                </Button>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-      )
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          className="h-auto p-0 hover:bg-transparent"
+        >
+          Script Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => (
+      <Link
+        to={`/scripts/templates/${row.original.id}`}
+        className="font-medium hover:text-primary transition-smooth"
+      >
+        {row.getValue('name')}
+      </Link>
+    ),
+  },
+  {
+    accessorKey: 'latestVersion',
+    header: 'Latest Version',
+    cell: ({ row }) => (
+      <Badge variant="outline">v{row.getValue('latestVersion')}</Badge>
+    ),
+  },
+  {
+    accessorKey: 'latestSHA',
+    header: 'Latest SHA',
+    cell: ({ row }) => (
+      <SHABadge sha256={row.getValue('latestSHA')} />
+    ),
+  },
+  {
+    accessorKey: 'updated',
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          className="h-auto p-0 hover:bg-transparent"
+        >
+          Updated
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => (
+      <div className="text-muted-foreground">
+        {new Date(row.getValue('updated')).toLocaleDateString()}
+      </div>
+    ),
+  },
+  {
+    id: 'actions',
+    cell: ({ row }) => {
+      const script = row.original;
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link to={`/scripts/templates/${script.id}`}>
+                <Eye className="mr-2 h-4 w-4" />
+                Open Script Detail
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
     },
   },
-]
+];
 
 export default function ScriptsTemplates() {
-  const [data] = useState<ScriptTemplate[]>(mockData)
+  const [scripts, setScripts] = useState<Script[]>([
+    {
+      id: '1',
+      name: 'System Update Script',
+      latestVersion: 3,
+      latestSHA: 'a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456',
+      updated: '2024-01-15T10:30:00Z',
+      status: 'published',
+    },
+    {
+      id: '2',
+      name: 'Database Backup',
+      latestVersion: 2,
+      latestSHA: 'b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456a1',
+      updated: '2024-01-10T14:45:00Z',
+      status: 'published',
+    },
+    {
+      id: '3',
+      name: 'Log Rotation',
+      latestVersion: 1,
+      latestSHA: 'c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456a1b2',
+      updated: '2024-01-05T09:15:00Z',
+      status: 'draft',
+    },
+  ]);
+
+  const [newScriptOpen, setNewScriptOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+
+  const handleScriptCreated = () => {
+    // Refresh scripts list
+    // TODO: Implement proper data fetching
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Script Templates</h1>
+          <h1 className="text-3xl font-bold">Script Templates</h1>
           <p className="text-muted-foreground">
-            Reusable script templates and blueprints
+            Manage and organize your script templates
           </p>
         </div>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          New Template
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setUploadOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload
+          </Button>
+          <Button onClick={() => setNewScriptOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Script
+          </Button>
+        </div>
       </div>
 
-      <DataTable 
-        columns={columns} 
-        data={data}
+      <DataTable
+        columns={columns}
+        data={scripts}
         searchKey="name"
-        searchPlaceholder="Search templates..."
+        searchPlaceholder="Search scripts..."
+      />
+
+      <NewScriptDialog
+        open={newScriptOpen}
+        onOpenChange={setNewScriptOpen}
+        onSuccess={handleScriptCreated}
+      />
+
+      <UploadScriptDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        onSuccess={handleScriptCreated}
       />
     </div>
-  )
+  );
 }

@@ -16,6 +16,7 @@ import AssertionCheck from "./pages/AssertionCheck";
 import Scripts from "./pages/Scripts";
 import ScriptsAllowlist from "./pages/ScriptsAllowlist";
 import ScriptsTemplates from "./pages/ScriptsTemplates";
+import ScriptDetail from "./pages/ScriptDetail";
 import ScriptsBatches from "./pages/ScriptsBatches";
 import ScriptsSettings from "./pages/ScriptsSettings";
 import NotFound from "./pages/NotFound";
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/scripts" element={<Scripts />} />
             <Route path="/scripts/allowlist" element={<ScriptsAllowlist />} />
             <Route path="/scripts/templates" element={<ScriptsTemplates />} />
+            <Route path="/scripts/templates/:id" element={<ScriptDetail />} />
             <Route path="/scripts/batches" element={<ScriptsBatches />} />
             <Route path="/scripts/settings" element={<ScriptsSettings />} />
             <Route path="*" element={<NotFound />} />
