@@ -24,3 +24,9 @@ verify_jwt = false
 
 [functions.classify-command]
 verify_jwt = false
+
+[functions.command-confirmations]
+verify_jwt = false
+
+[functions.cleanup-expired-confirmations]
+verify_jwt = false
