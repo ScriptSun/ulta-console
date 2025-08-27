@@ -22,6 +22,7 @@ import {
 interface Agent {
   id: string;
   name: string;
+  hostname?: string;
   agent_type: string;
   status: 'running' | 'idle' | 'error' | 'offline';
   version?: string;
@@ -124,9 +125,9 @@ export function AgentsTable({
             >
               <TableCell className="font-medium">
                 <div>
-                  <div className="font-semibold">{agent.name}</div>
-                  <div className="text-sm text-muted-foreground capitalize">
-                    {agent.agent_type} Agent
+                  <div className="font-semibold">{agent.hostname || agent.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {agent.name}
                   </div>
                 </div>
               </TableCell>
