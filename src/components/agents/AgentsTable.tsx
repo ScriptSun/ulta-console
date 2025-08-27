@@ -137,7 +137,7 @@ export function AgentsTable({
             >
               <TableCell className="font-medium">
                 <div>
-                  <div className="font-semibold">{agent.id.slice(0, 5).toUpperCase()}@SRVULTA.COM</div>
+                  <div className="font-semibold">{agent.id.slice(0, 5).toLowerCase()}@srvulta.com</div>
                   <div className="text-sm text-muted-foreground">
                     {agent.name}
                   </div>
