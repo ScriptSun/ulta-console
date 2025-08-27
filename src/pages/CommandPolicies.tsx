@@ -83,8 +83,25 @@ const useKPIData = () => {
   const successRate = useQuery({
     queryKey: ['successRate'],
     queryFn: async () => {
-      const { data } = await supabase.from('view_success_rate_30d').select('percentage').single();
-      return data?.percentage || 0;
+      // Get successful auto/confirm executions (approved status)
+      const { count: successCount } = await supabase
+        .from('command_confirmations')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['approved', 'executed'])
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+      
+      // Get blocked forbid commands (rejected status)
+      const { count: blockCount } = await supabase
+        .from('command_confirmations')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'rejected')
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+      
+      const totalExecutions = (successCount || 0) + (blockCount || 0);
+      
+      if (totalExecutions === 0) return 0;
+      
+      return Math.round((successCount || 0) / totalExecutions * 100);
     }
   });
 
@@ -409,19 +426,27 @@ export default function CommandPolicies() {
 
           <Card className="bg-gradient-card border-card-border shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Scripts
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                Success Rate
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground/60" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Last 30 days: Auto/Confirm executions vs Forbid blocks</p>
+                  </TooltipContent>
+                </Tooltip>
               </CardTitle>
               <Bot className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              {totalScripts.isLoading ? (
+              {successRate.isLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <div className="text-2xl font-bold text-foreground">{totalScripts.data}</div>
+                <div className="text-2xl font-bold text-foreground">{successRate.data}%</div>
               )}
               <p className="text-xs text-muted-foreground">
-                Available scripts
+                Command success rate
               </p>
             </CardContent>
           </Card>
