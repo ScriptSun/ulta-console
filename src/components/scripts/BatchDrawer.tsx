@@ -378,7 +378,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
               <h3 className="text-lg font-semibold">Basic Information</h3>
               
               {/* Batch Name, Timeout, and Risk Level in same div as 3 divs */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-[2fr_1fr_1fr] gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Batch Name *</Label>
                   <Input
