@@ -177,12 +177,12 @@ export function ManageRolesDialog({ open, onOpenChange, team }: ManageRolesDialo
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Badge className={ROLE_COLORS[member.role as keyof typeof ROLE_COLORS]}>
-                      {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                    <Badge className={ROLE_COLORS[(member.role || 'guest') as keyof typeof ROLE_COLORS]}>
+                      {member.role ? member.role.charAt(0).toUpperCase() + member.role.slice(1) : 'Guest'}
                     </Badge>
 
                     <Select
-                      value={member.role}
+                      value={member.role || 'guest'}
                        onValueChange={(newRole: typeof ROLES[number]) => handleRoleChange(member.id, newRole)}
                      >
                       <SelectTrigger className="w-32">
