@@ -136,7 +136,7 @@ export default function Agents() {
           last_seen: new Date().toISOString(),
           uptime_seconds: 86400, // 1 day
           cpu_usage: 15.5,
-          memory_usage: 2048.0,
+          memory_usage: 85.2, // Memory usage in MB
           tasks_completed: 42,
           auto_updates_enabled: true,
           certificate_fingerprint: 'sha256:1234567890abcdef',
@@ -154,7 +154,7 @@ export default function Agents() {
           last_seen: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
           uptime_seconds: 172800, // 2 days
           cpu_usage: 8.2,
-          memory_usage: 1536.0,
+          memory_usage: 64.8, // Memory usage in MB
           tasks_completed: 128,
           auto_updates_enabled: false,
           certificate_fingerprint: 'sha256:fedcba0987654321',
