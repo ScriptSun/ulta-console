@@ -32,7 +32,6 @@ const mainItems = [
   { title: 'Agents', url: '/agents', icon: Bot },
   { title: 'Batches', url: '/scripts/batches', icon: Package },
   { title: 'Tasks', url: '/tasks', icon: CheckSquare },
-  { title: 'API Keys', url: '/api-keys', icon: Key },
 ]
 
 const monitoringItems = [
@@ -43,6 +42,7 @@ const monitoringItems = [
 const securityItems = [
   { title: 'Command Policies', url: '/security/command-policies', icon: Shield },
   { title: 'Security Center', url: '/security', icon: Shield },
+  { title: 'API Keys', url: '/api-keys', icon: Key },
 ]
 
 const toolsItems = [
