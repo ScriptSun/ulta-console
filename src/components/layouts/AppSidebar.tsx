@@ -9,7 +9,8 @@ import {
   Puzzle,
   TestTube,
   Settings,
-  Users
+  Users,
+  Package
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import {
@@ -28,6 +29,7 @@ import { cn } from '@/lib/utils'
 const mainItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Agents', url: '/agents', icon: Bot },
+  { title: 'Batches', url: '/scripts/batches', icon: Package },
   { title: 'Tasks', url: '/tasks', icon: CheckSquare },
   { title: 'API Keys', url: '/api-keys', icon: Key },
 ]
