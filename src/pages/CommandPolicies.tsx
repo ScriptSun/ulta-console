@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Edit, Power, History, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PolicyDrawer } from '@/components/policies/PolicyDrawer';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 interface CommandPolicy {
   id: string;
@@ -30,40 +32,55 @@ interface CommandPolicy {
   updated_at: string;
 }
 
-const mockPolicies: CommandPolicy[] = [
-  {
-    id: '1',
-    policy_name: 'System Update Policy',
-    mode: 'confirm',
-    match_type: 'regex',
-    match_value: '^(apt|yum|dnf) (update|upgrade)',
-    os_whitelist: ['ubuntu', 'debian', 'centos', 'rhel'],
-    risk: 'medium',
-    timeout_sec: 600,
-    param_schema: { type: 'object', properties: {} },
-    confirm_message: 'This will update system packages. Continue?',
-    active: true,
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    policy_name: 'Network Config Block',
-    mode: 'forbid',
-    match_type: 'wildcard',
-    match_value: 'iptables *',
-    os_whitelist: null,
-    risk: 'high',
-    timeout_sec: null,
-    param_schema: null,
-    confirm_message: null,
-    active: true,
-    updated_at: new Date().toISOString(),
-  },
-];
+const mockPolicies: CommandPolicy[] = [];
 
 export default function CommandPolicies() {
+  const { toast } = useToast();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<CommandPolicy | null>(null);
+  const [policies, setPolicies] = useState<CommandPolicy[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch policies from Supabase
+  useEffect(() => {
+    fetchPolicies();
+  }, []);
+
+  const fetchPolicies = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('command_policies')
+        .select('*')
+        .order('policy_name');
+
+      if (error) {
+        console.error('Error fetching policies:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load command policies",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setPolicies(data?.map(policy => ({
+        ...policy,
+        mode: policy.mode as 'auto' | 'confirm' | 'forbid',
+        match_type: policy.match_type as 'exact' | 'regex' | 'wildcard',
+        risk: policy.risk as 'low' | 'medium' | 'high' | 'critical'
+      })) || []);
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load command policies",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getModeColor = (mode: string) => {
     switch (mode) {
@@ -221,8 +238,39 @@ export default function CommandPolicies() {
     setIsDrawerOpen(true);
   };
 
-  const handleToggleActive = (policy: CommandPolicy) => {
-    console.log('Toggle active for policy:', policy);
+  const handleToggleActive = async (policy: CommandPolicy) => {
+    try {
+      const { error } = await supabase
+        .from('command_policies')
+        .update({ 
+          active: !policy.active,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', policy.id);
+
+      if (error) {
+        console.error('Error toggling policy:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update policy status",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await fetchPolicies();
+      toast({
+        title: "Success",
+        description: `Policy ${policy.active ? 'disabled' : 'enabled'} successfully`,
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update policy status",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleHistory = (policy: CommandPolicy) => {
@@ -235,7 +283,7 @@ export default function CommandPolicies() {
   };
 
   const getFilteredPolicies = (mode: string) => {
-    return mockPolicies.filter(policy => policy.mode === mode);
+    return policies.filter(policy => policy.mode === mode);
   };
 
   return (
@@ -277,30 +325,48 @@ export default function CommandPolicies() {
         </TabsList>
 
         <TabsContent value="auto" className="space-y-4">
-          <DataTable
-            columns={columns}
-            data={getFilteredPolicies('auto')}
-            searchKey="policy_name"
-            searchPlaceholder="Search auto policies..."
-          />
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-muted-foreground">Loading policies...</div>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={getFilteredPolicies('auto')}
+              searchKey="policy_name"
+              searchPlaceholder="Search auto policies..."
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="confirm" className="space-y-4">
-          <DataTable
-            columns={columns}
-            data={getFilteredPolicies('confirm')}
-            searchKey="policy_name"
-            searchPlaceholder="Search confirm policies..."
-          />
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-muted-foreground">Loading policies...</div>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={getFilteredPolicies('confirm')}
+              searchKey="policy_name"
+              searchPlaceholder="Search confirm policies..."
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="forbid" className="space-y-4">
-          <DataTable
-            columns={columns}
-            data={getFilteredPolicies('forbid')}
-            searchKey="policy_name"
-            searchPlaceholder="Search forbid policies..."
-          />
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-muted-foreground">Loading policies...</div>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={getFilteredPolicies('forbid')}
+              searchKey="policy_name"
+              searchPlaceholder="Search forbid policies..."
+            />
+          )}
         </TabsContent>
       </Tabs>
 
@@ -308,6 +374,7 @@ export default function CommandPolicies() {
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
         policy={editingPolicy}
+        onSave={fetchPolicies}
       />
     </div>
   );

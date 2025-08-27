@@ -51,6 +51,7 @@ interface PolicyDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   policy?: CommandPolicy | null;
+  onSave?: () => void;
 }
 
 const defaultFormData: PolicyFormData = {
@@ -75,7 +76,7 @@ const osOptions = [
   { value: 'macos', label: 'macOS' },
 ];
 
-export function PolicyDrawer({ open, onOpenChange, policy }: PolicyDrawerProps) {
+export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawerProps) {
   const [formData, setFormData] = useState<PolicyFormData>(defaultFormData);
   const [schemaPreview, setSchemaPreview] = useState<any>(null);
   const [schemaError, setSchemaError] = useState<string>('');
@@ -127,6 +128,9 @@ export function PolicyDrawer({ open, onOpenChange, policy }: PolicyDrawerProps) 
   const handleSave = () => {
     console.log('Saving policy:', formData);
     onOpenChange(false);
+    if (onSave) {
+      onSave();
+    }
   };
 
   const isFormValid = () => {
