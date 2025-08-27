@@ -29,7 +29,8 @@ import {
   Activity,
   AlertTriangle,
   Key,
-  RotateCcw
+  RotateCcw,
+  ListTodo
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -402,11 +403,50 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                     </Card>
                   </div>
 
-                  {/* Tasks */}
+                  {/* Logs */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Activity className="h-4 w-4" />
+                        Recent Logs
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-64">
+                        <div className="space-y-2">
+                          {logs.map((log) => (
+                            <div key={log.id} className="flex items-start gap-2 text-sm border rounded p-3">
+                              <Badge 
+                                variant="secondary" 
+                                className={cn(
+                                  "text-xs px-2 py-0 h-5",
+                                  logLevelConfig[log.level].color,
+                                  logLevelConfig[log.level].bgColor
+                                )}
+                              >
+                                {log.level}
+                              </Badge>
+                              <div className="flex-1 min-w-0">
+                                <p className="break-words font-mono text-sm">{log.message}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(log.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          {logs.length === 0 && (
+                            <p className="text-center text-muted-foreground py-8">No logs found</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+
+                  {/* Recent Tasks */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ListTodo className="h-4 w-4" />
                         Recent Tasks
                       </CardTitle>
                     </CardHeader>
@@ -444,45 +484,6 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                           })}
                           {tasks.length === 0 && (
                             <p className="text-center text-muted-foreground py-8">No tasks found</p>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-
-                  {/* Logs */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-4 w-4" />
-                        Recent Logs
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="h-64">
-                        <div className="space-y-2">
-                          {logs.map((log) => (
-                            <div key={log.id} className="flex items-start gap-2 text-sm border rounded p-3">
-                              <Badge 
-                                variant="secondary" 
-                                className={cn(
-                                  "text-xs px-2 py-0 h-5",
-                                  logLevelConfig[log.level].color,
-                                  logLevelConfig[log.level].bgColor
-                                )}
-                              >
-                                {log.level}
-                              </Badge>
-                              <div className="flex-1 min-w-0">
-                                <p className="break-words font-mono text-sm">{log.message}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(log.timestamp).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                          {logs.length === 0 && (
-                            <p className="text-center text-muted-foreground py-8">No logs found</p>
                           )}
                         </div>
                       </ScrollArea>
