@@ -147,7 +147,7 @@ export default function CommandPolicies() {
       header: 'Risk',
       cell: ({ row }) => (
         <Badge className={getRiskColor(row.getValue('risk'))}>
-          {row.getValue('risk')}
+          {String(row.getValue('risk')).charAt(0).toUpperCase() + String(row.getValue('risk')).slice(1)}
         </Badge>
       ),
     },
