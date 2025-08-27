@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.56.0";
+import { Logger } from "../_shared/logger.ts";
+import { corsHeaders, handleCors, jsonResponse, errorResponse } from "../_shared/cors.ts";
+import { createCAClient } from "../_shared/ca-client.ts";
 
 // Environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://lfsdqyvvboapsyeauchm.supabase.co';
@@ -9,53 +12,8 @@ const CA_PRIVATE_KEY_PATH = Deno.env.get('CA_PRIVATE_KEY_PATH') || '';
 // Initialize Supabase client with service role
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// Structured JSON logger
-class Logger {
-  static info(message: string, meta?: any) {
-    console.log(JSON.stringify({
-      level: 'info',
-      message,
-      timestamp: new Date().toISOString(),
-      ...meta
-    }));
-  }
-
-  static error(message: string, error?: any, meta?: any) {
-    console.error(JSON.stringify({
-      level: 'error',
-      message,
-      error: error?.message || error,
-      stack: error?.stack,
-      timestamp: new Date().toISOString(),
-      ...meta
-    }));
-  }
-
-  static warn(message: string, meta?: any) {
-    console.warn(JSON.stringify({
-      level: 'warn',
-      message,
-      timestamp: new Date().toISOString(),
-      ...meta
-    }));
-  }
-
-  static debug(message: string, meta?: any) {
-    console.debug(JSON.stringify({
-      level: 'debug',
-      message,
-      timestamp: new Date().toISOString(),
-      ...meta
-    }));
-  }
-}
-
-// CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-};
+// Initialize CA client
+const caClient = createCAClient();
 
 // Routes handler
 const handleRoutes = async (req: Request): Promise<Response> => {
@@ -66,9 +24,8 @@ const handleRoutes = async (req: Request): Promise<Response> => {
   Logger.info('Request received', { method, path, userAgent: req.headers.get('user-agent') });
 
   // Handle CORS preflight
-  if (method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   // Health endpoint
   if (path === '/health' && method === 'GET') {
@@ -119,11 +76,10 @@ const handleApiRoutes = async (req: Request, path: string): Promise<Response> =>
         return handleQuotas(req, method);
       case '/security':
         return handleSecurity(req, method);
+      case '/certificates':
+        return handleCertificates(req, method);
       default:
-        return new Response(JSON.stringify({ error: 'API endpoint not found' }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return errorResponse('API endpoint not found', 404);
     }
   } catch (error) {
     Logger.error('API route error', error, { path, method });
@@ -183,37 +139,109 @@ const handleWebSocket = (req: Request): Response => {
 // Placeholder API handlers - implement as needed
 const handleAgents = async (req: Request, method: string): Promise<Response> => {
   // Implement agent management logic
-  return new Response(JSON.stringify({ message: 'Agents endpoint', method }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
+  return jsonResponse({ message: 'Agents endpoint', method });
 };
 
 const handleTasks = async (req: Request, method: string): Promise<Response> => {
   // Implement task management logic
-  return new Response(JSON.stringify({ message: 'Tasks endpoint', method }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
+  return jsonResponse({ message: 'Tasks endpoint', method });
 };
 
 const handleApiKeys = async (req: Request, method: string): Promise<Response> => {
   // Implement API key management logic
-  return new Response(JSON.stringify({ message: 'API Keys endpoint', method }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
+  return jsonResponse({ message: 'API Keys endpoint', method });
 };
 
 const handleQuotas = async (req: Request, method: string): Promise<Response> => {
   // Implement quota management logic
-  return new Response(JSON.stringify({ message: 'Quotas endpoint', method }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
+  return jsonResponse({ message: 'Quotas endpoint', method });
 };
 
 const handleSecurity = async (req: Request, method: string): Promise<Response> => {
   // Implement security monitoring logic
-  return new Response(JSON.stringify({ message: 'Security endpoint', method }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
+  return jsonResponse({ message: 'Security endpoint', method });
+};
+
+// Certificate management handler
+const handleCertificates = async (req: Request, method: string): Promise<Response> => {
+  try {
+    if (method === 'POST') {
+      const body = await req.json();
+      const { action, agent_id, certificate_id, reason, revoked_by } = body;
+
+      switch (action) {
+        case 'issue': {
+          if (!agent_id) {
+            return errorResponse('agent_id is required', 400);
+          }
+          const cert = await caClient.issueClientCert(agent_id);
+          return jsonResponse({
+            success: true,
+            message: 'Certificate issued successfully',
+            data: cert
+          });
+        }
+
+        case 'revoke': {
+          if (!certificate_id) {
+            return errorResponse('certificate_id is required', 400);
+          }
+          await caClient.revokeCertificate(certificate_id, reason, revoked_by);
+          return jsonResponse({
+            success: true,
+            message: 'Certificate revoked successfully'
+          });
+        }
+
+        default:
+          return errorResponse('Invalid action', 400);
+      }
+    }
+
+    if (method === 'GET') {
+      // Get certificates or CRL
+      const url = new URL(req.url);
+      const type = url.searchParams.get('type');
+
+      if (type === 'crl') {
+        const crl = await caClient.getCRL();
+        return jsonResponse({
+          success: true,
+          data: crl
+        });
+      }
+
+      if (type === 'ca') {
+        const ca = await caClient.getCACert();
+        return jsonResponse({
+          success: true,
+          data: ca
+        });
+      }
+
+      // Default: get all certificates
+      const { data: certificates, error } = await supabase
+        .from('certificates')
+        .select('id, agent_id, fingerprint_sha256, issued_at, expires_at, revoked_at')
+        .order('issued_at', { ascending: false });
+
+      if (error) {
+        Logger.error('Failed to fetch certificates', error);
+        return errorResponse('Failed to fetch certificates', 500);
+      }
+
+      return jsonResponse({
+        success: true,
+        data: certificates || []
+      });
+    }
+
+    return errorResponse('Method not allowed', 405);
+    
+  } catch (error) {
+    Logger.error('Certificate handler error', error);
+    return errorResponse('Internal server error', 500);
+  }
 };
 
 // Start the server
@@ -222,10 +250,7 @@ serve(async (req) => {
     return await handleRoutes(req);
   } catch (error) {
     Logger.error('Server error', error);
-    return new Response(JSON.stringify({ error: 'Server error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return errorResponse('Server error', 500);
   }
 });
 
