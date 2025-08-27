@@ -69,7 +69,7 @@ export default function ScriptsBatches() {
   const [selectedBatch, setSelectedBatch] = useState<ScriptBatch | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
-  const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('viewer');
+  const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('admin');
   
   const { toast } = useToast();
 
