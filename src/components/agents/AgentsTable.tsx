@@ -53,19 +53,19 @@ const getStatusBadge = (status: string) => {
   const statusConfig = {
     running: { 
       color: 'bg-gradient-to-r from-emerald-400/10 via-green-500/10 to-emerald-600/10 text-emerald-300 border border-emerald-400/40 backdrop-blur-sm', 
-      dot: 'bg-gradient-to-r from-emerald-400 to-green-500 shadow-emerald-400/50 shadow-lg' 
+      dot: 'bg-gradient-to-r from-emerald-400 to-green-500' 
     },
     idle: { 
       color: 'bg-gradient-to-r from-slate-400/10 via-gray-500/10 to-slate-600/10 text-slate-300 border border-slate-400/40 backdrop-blur-sm', 
-      dot: 'bg-gradient-to-r from-slate-400 to-gray-500 shadow-slate-400/50 shadow-lg' 
+      dot: 'bg-gradient-to-r from-slate-400 to-gray-500' 
     },
     error: { 
       color: 'bg-gradient-to-r from-amber-400/10 via-orange-500/10 to-red-500/10 text-amber-300 border border-amber-400/40 backdrop-blur-sm', 
-      dot: 'bg-gradient-to-r from-amber-400 to-orange-500 shadow-amber-400/50 shadow-lg' 
+      dot: 'bg-gradient-to-r from-amber-400 to-orange-500' 
     },
     offline: { 
-      color: 'bg-gradient-to-r from-red-500/15 via-rose-600/15 to-red-700/15 text-red-300 border border-red-500/50 backdrop-blur-sm shadow-red-500/20 shadow-lg', 
-      dot: 'bg-gradient-to-r from-red-500 to-rose-600 shadow-red-500/60 shadow-xl animate-pulse' 
+      color: 'bg-gradient-to-r from-red-500/15 via-rose-600/15 to-red-700/15 text-red-300 border border-red-500/50 backdrop-blur-sm', 
+      dot: 'bg-gradient-to-r from-red-500 to-rose-600 animate-pulse' 
     },
   };
 
