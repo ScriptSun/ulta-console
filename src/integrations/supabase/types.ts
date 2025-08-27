@@ -14,7 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ca_config: {
+        Row: {
+          ca_fingerprint_sha256: string
+          ca_key_pem: string
+          ca_pem: string
+          created_at: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          ca_fingerprint_sha256: string
+          ca_key_pem: string
+          ca_pem: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          ca_fingerprint_sha256?: string
+          ca_key_pem?: string
+          ca_pem?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      certificate_revocation_list: {
+        Row: {
+          certificate_id: string
+          created_at: string
+          fingerprint_sha256: string
+          id: string
+          reason: string | null
+          revoked_at: string
+          revoked_by: string | null
+        }
+        Insert: {
+          certificate_id: string
+          created_at?: string
+          fingerprint_sha256: string
+          id?: string
+          reason?: string | null
+          revoked_at?: string
+          revoked_by?: string | null
+        }
+        Update: {
+          certificate_id?: string
+          created_at?: string
+          fingerprint_sha256?: string
+          id?: string
+          reason?: string | null
+          revoked_at?: string
+          revoked_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificate_revocation_list_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      certificates: {
+        Row: {
+          agent_id: string
+          cert_pem: string
+          created_at: string
+          expires_at: string
+          fingerprint_sha256: string
+          id: string
+          issued_at: string
+          key_pem: string
+          revoked_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          cert_pem: string
+          created_at?: string
+          expires_at: string
+          fingerprint_sha256: string
+          id?: string
+          issued_at?: string
+          key_pem: string
+          revoked_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          cert_pem?: string
+          created_at?: string
+          expires_at?: string
+          fingerprint_sha256?: string
+          id?: string
+          issued_at?: string
+          key_pem?: string
+          revoked_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
