@@ -8,7 +8,6 @@ import {
   Shield,
   Puzzle,
   TestTube,
-  FileText,
   Settings,
   Users
 } from 'lucide-react'
@@ -36,11 +35,6 @@ const mainItems = [
 const monitoringItems = [
   { title: 'Quotas & Usage', url: '/quotas', icon: BarChart3 },
   { title: 'Plans', url: '/plans', icon: CreditCard },
-]
-
-const scriptItems = [
-  { title: 'Scripts', url: '/scripts/allowlist/batches', icon: FileText },
-  { title: 'Batches', url: '/scripts/batches', icon: FileText },
 ]
 
 const securityItems = [
@@ -120,20 +114,6 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {monitoringItems.map((item) => (
-                <NavItem key={item.title} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Scripts */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {!collapsed && 'Scripts'}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {scriptItems.map((item) => (
                 <NavItem key={item.title} item={item} />
               ))}
             </SidebarMenu>
