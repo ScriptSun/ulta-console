@@ -1,3 +1,4 @@
+
 import { 
   LayoutDashboard, 
   Bot, 
@@ -8,7 +9,7 @@ import {
   Shield,
   Puzzle,
   TestTube,
-  Settings,
+  FileText,
   Users,
   Package
 } from 'lucide-react'
@@ -85,7 +86,7 @@ export function AppSidebar() {
         {/* Logo */}
         <div className="flex items-center gap-2 px-3 py-4 mb-6">
           <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <Settings className="h-4 w-4 text-white" />
+            <FileText className="h-4 w-4 text-white" />
           </div>
           {!collapsed && (
             <div className="flex flex-col">
