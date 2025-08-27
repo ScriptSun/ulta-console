@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { BatchDrawer } from '@/components/scripts/BatchDrawer';
+import { BatchDetailDrawer } from '@/components/scripts/BatchDetailDrawer';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -42,6 +43,8 @@ interface ScriptBatch {
   created_at: string;
   updated_at: string;
   customer_id: string;
+  created_by: string;
+  updated_by: string;
   latest_version?: {
     version: number;
     sha256: string;
@@ -65,6 +68,7 @@ export default function ScriptsBatches() {
   const [riskFilter, setRiskFilter] = useState<string>('all');
   const [selectedBatch, setSelectedBatch] = useState<ScriptBatch | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('viewer');
   
   const { toast } = useToast();
@@ -189,6 +193,11 @@ export default function ScriptsBatches() {
   const handleNewBatch = () => {
     setSelectedBatch(null);
     setDrawerOpen(true);
+  };
+
+  const handleViewBatch = (batch: ScriptBatch) => {
+    setSelectedBatch(batch);
+    setDetailDrawerOpen(true);
   };
 
   const handleEditBatch = (batch: ScriptBatch) => {
@@ -468,7 +477,7 @@ export default function ScriptsBatches() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-background border shadow-lg z-50">
-                          <DropdownMenuItem onClick={() => handleEditBatch(batch)}>
+                          <DropdownMenuItem onClick={() => handleViewBatch(batch)}>
                             View
                           </DropdownMenuItem>
                           {canEdit && (
@@ -486,7 +495,7 @@ export default function ScriptsBatches() {
                               {batch.active_version ? 'Deactivate' : 'Activate'}
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewBatch(batch)}>
                             History
                           </DropdownMenuItem>
                           {canActivate && (
@@ -534,11 +543,19 @@ export default function ScriptsBatches() {
         </Card>
       )}
 
-      {/* Batch Drawer */}
+      {/* Batch Drawers */}
       <BatchDrawer
         batch={selectedBatch}
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+        onSuccess={fetchBatches}
+        userRole={userRole}
+      />
+
+      <BatchDetailDrawer
+        batch={selectedBatch}
+        isOpen={detailDrawerOpen}
+        onClose={() => setDetailDrawerOpen(false)}
         onSuccess={fetchBatches}
         userRole={userRole}
       />
