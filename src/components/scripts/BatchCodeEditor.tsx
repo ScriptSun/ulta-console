@@ -136,7 +136,7 @@ export function BatchCodeEditor({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             {validation.isValid ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
             ) : (
               <AlertTriangle className="h-4 w-4 text-red-600" />
             )}
@@ -211,9 +211,9 @@ export function BatchCodeEditor({
 
           {/* Success */}
           {validation.isValid && validation.errors.length === 0 && validation.warnings.length === 0 && (
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="bg-gradient-to-r from-emerald-500/10 to-green-500/10 border border-emerald-500/30 shadow-lg shadow-emerald-500/20 backdrop-blur-sm">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              <AlertDescription className="text-emerald-200">
                 Script validation passed! No issues found.
               </AlertDescription>
             </Alert>
