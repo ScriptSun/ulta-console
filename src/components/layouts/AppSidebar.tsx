@@ -38,7 +38,7 @@ const monitoringItems = [
 ]
 
 const scriptItems = [
-  { title: 'Scripts', url: '/scripts', icon: FileText },
+  { title: 'Scripts', url: '/scripts/allowlist/batches', icon: FileText },
 ]
 
 const securityItems = [
