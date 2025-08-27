@@ -84,20 +84,20 @@ export default function CommandPolicies() {
 
   const getModeColor = (mode: string) => {
     switch (mode) {
-      case 'auto': return 'bg-green-500/20 text-green-700 border-green-500/30';
-      case 'confirm': return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30';
-      case 'forbid': return 'bg-red-500/20 text-red-700 border-red-500/30';
-      default: return 'bg-gray-500/20 text-gray-700 border-gray-500/30';
+      case 'auto': return 'bg-green-100 text-green-800 border-green-200';
+      case 'confirm': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'forbid': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
-      case 'low': return 'bg-blue-500/20 text-blue-700 border-blue-500/30';
-      case 'medium': return 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30';
-      case 'high': return 'bg-orange-500/20 text-orange-700 border-orange-500/30';
-      case 'critical': return 'bg-red-500/20 text-red-700 border-red-500/30';
-      default: return 'bg-gray-500/20 text-gray-700 border-gray-500/30';
+      case 'low': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'critical': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
