@@ -44,9 +44,8 @@ const useKPIData = () => {
     queryKey: ['activeCommands'],
     queryFn: async () => {
       const { count } = await supabase
-        .from('command_confirmations')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
+        .from('command_policies')
+        .select('*', { count: 'exact', head: true });
       return count || 0;
     }
   });
