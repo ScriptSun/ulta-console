@@ -323,6 +323,71 @@ export type Database = {
         }
         Relationships: []
       }
+      command_confirmations: {
+        Row: {
+          agent_id: string
+          approved_at: string | null
+          approved_by: string | null
+          command_id: string
+          command_text: string
+          created_at: string
+          customer_id: string
+          expires_at: string
+          id: string
+          params: Json | null
+          policy_id: string
+          rejection_reason: string | null
+          requested_at: string
+          requested_by: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          approved_at?: string | null
+          approved_by?: string | null
+          command_id: string
+          command_text: string
+          created_at?: string
+          customer_id: string
+          expires_at?: string
+          id?: string
+          params?: Json | null
+          policy_id: string
+          rejection_reason?: string | null
+          requested_at?: string
+          requested_by: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          command_id?: string
+          command_text?: string
+          created_at?: string
+          customer_id?: string
+          expires_at?: string
+          id?: string
+          params?: Json | null
+          policy_id?: string
+          rejection_reason?: string | null
+          requested_at?: string
+          requested_by?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "command_confirmations_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "command_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       command_policies: {
         Row: {
           active: boolean
