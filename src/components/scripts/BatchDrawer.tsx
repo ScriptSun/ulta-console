@@ -27,7 +27,11 @@ import {
   CheckCircle2, 
   FileCode, 
   Play,
-  AlertTriangle
+  AlertTriangle,
+  Monitor,
+  Server,
+  HardDrive,
+  Cpu
 } from 'lucide-react';
 import { getOSOptions, getRiskOptions, type ValidationResult } from '@/utils/scriptValidation';
 import { supabase } from '@/integrations/supabase/client';
@@ -359,6 +363,19 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   const riskOptions = getRiskOptions();
   const osOptions = getOSOptions();
 
+  // OS Icons mapping
+  const getOSIcon = (osValue: string) => {
+    const iconMap = {
+      ubuntu: Monitor,
+      debian: Monitor,
+      almalinux: Server,
+      windows: HardDrive,
+      centos: Cpu,
+      rhel: Server,
+    };
+    return iconMap[osValue as keyof typeof iconMap] || Monitor;
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="sm:max-w-4xl">
@@ -431,22 +448,26 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
               <div className="space-y-2">
                 <Label>OS Targets</Label>
                 <div className="flex flex-wrap gap-2">
-                  {osOptions.map((os) => (
-                    <button
-                      key={os.value}
-                      type="button"
-                      onClick={() => handleOSTargetToggle(os.value)}
-                      disabled={!canEdit}
-                      className={cn(
-                        "px-3 py-1 rounded-md border text-sm transition-colors",
-                        formData.os_targets.includes(os.value)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background border-border hover:bg-muted"
-                      )}
-                    >
-                      {os.label}
-                    </button>
-                  ))}
+                  {osOptions.map((os) => {
+                    const OSIcon = getOSIcon(os.value);
+                    return (
+                      <button
+                        key={os.value}
+                        type="button"
+                        onClick={() => handleOSTargetToggle(os.value)}
+                        disabled={!canEdit}
+                        className={cn(
+                          "px-3 py-1 rounded-md border text-sm transition-colors flex items-center gap-2",
+                          formData.os_targets.includes(os.value)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border hover:bg-muted"
+                        )}
+                      >
+                        <OSIcon className="h-4 w-4" />
+                        {os.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
