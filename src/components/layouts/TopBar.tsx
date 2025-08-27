@@ -83,7 +83,7 @@ export function TopBar() {
           className="relative hover-scale group transition-all duration-300 hover:bg-accent hover:shadow-glow rounded-xl p-2"
         >
           <Bell className="h-5 w-5 transition-all duration-300 group-hover:rotate-12 group-hover:text-primary" />
-          <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center p-0 text-[10px] font-bold bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg animate-pulse border-2 border-card min-w-[20px]">
+          <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center p-0 text-[10px] font-bold bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg border-2 border-card min-w-[20px]">
             <span className="animate-fade-in leading-none">3</span>
           </Badge>
           {/* Notification indicator dot */}
