@@ -11,6 +11,7 @@ import ApiKeys from "./pages/ApiKeys";
 import Quotas from "./pages/Quotas";
 import Plans from "./pages/Plans";
 import Security from "./pages/Security";
+import Audit from "./pages/Audit";
 import Integrations from "./pages/Integrations";
 import AssertionCheck from "./pages/AssertionCheck";
 import Scripts from "./pages/Scripts";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/quotas" element={<Quotas />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/security" element={<Security />} />
+            <Route path="/security/audit" element={<Audit />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/assertion-check" element={<AssertionCheck />} />
             <Route path="/scripts" element={<Scripts />} />

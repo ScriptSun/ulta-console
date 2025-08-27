@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { NewCommandDrawer } from '@/components/commands/NewCommandDrawer';
 import { SHABadge } from '@/components/scripts/SHABadge';
+import { HistorySlider } from '@/components/audit/HistorySlider';
 import { useToast } from '@/hooks/use-toast';
 
 interface AllowlistCommand {
@@ -95,6 +96,8 @@ export default function AllowlistCommands() {
   const [commands, setCommands] = useState<AllowlistCommand[]>(mockCommands);
   const [newCommandOpen, setNewCommandOpen] = useState(false);
   const [editingCommand, setEditingCommand] = useState<AllowlistCommand | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyTarget, setHistoryTarget] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [osFilter, setOsFilter] = useState<string>('all');
@@ -127,6 +130,11 @@ export default function AllowlistCommands() {
   const handleEdit = (command: AllowlistCommand) => {
     setEditingCommand(command);
     setNewCommandOpen(true);
+  };
+
+  const handleHistory = (command: AllowlistCommand) => {
+    setHistoryTarget(command.commandName);
+    setHistoryOpen(true);
   };
 
   const handleCloseDrawer = () => {
@@ -296,7 +304,7 @@ export default function AllowlistCommands() {
                 {command.active ? 'Disable' : 'Enable'}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => console.log('History for:', command)}>
+              <DropdownMenuItem onClick={() => handleHistory(command)}>
                 <History className="mr-2 h-4 w-4" />
                 History
               </DropdownMenuItem>
@@ -407,6 +415,13 @@ export default function AllowlistCommands() {
         onOpenChange={handleCloseDrawer}
         onSuccess={handleSuccess}
         editCommand={editingCommand}
+      />
+
+      <HistorySlider
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        target={historyTarget}
+        title={historyTarget}
       />
     </div>
   );

@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NewBatchDrawer } from '@/components/batches/NewBatchDrawer';
+import { HistorySlider } from '@/components/audit/HistorySlider';
 import { useToast } from '@/hooks/use-toast';
 
 interface AllowlistBatch {
@@ -77,6 +78,8 @@ export default function AllowlistBatches() {
   const [batches, setBatches] = useState<AllowlistBatch[]>(mockBatches);
   const [newBatchOpen, setNewBatchOpen] = useState(false);
   const [editingBatch, setEditingBatch] = useState<AllowlistBatch | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyTarget, setHistoryTarget] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
@@ -106,6 +109,11 @@ export default function AllowlistBatches() {
   const handleEdit = (batch: AllowlistBatch) => {
     setEditingBatch(batch);
     setNewBatchOpen(true);
+  };
+
+  const handleHistory = (batch: AllowlistBatch) => {
+    setHistoryTarget(batch.batchName);
+    setHistoryOpen(true);
   };
 
   const handleExecute = (batch: AllowlistBatch) => {
@@ -225,7 +233,7 @@ export default function AllowlistBatches() {
                 <Power className="mr-2 h-4 w-4" />
                 {batch.active ? 'Disable' : 'Enable'}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => console.log('History for:', batch)}>
+              <DropdownMenuItem onClick={() => handleHistory(batch)}>
                 <History className="mr-2 h-4 w-4" />
                 History
               </DropdownMenuItem>
@@ -285,6 +293,13 @@ export default function AllowlistBatches() {
         onOpenChange={handleCloseDrawer}
         onSuccess={handleSuccess}
         editBatch={editingBatch}
+      />
+
+      <HistorySlider
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        target={historyTarget}
+        title={historyTarget}
       />
     </div>
   );
