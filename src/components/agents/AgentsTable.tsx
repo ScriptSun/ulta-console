@@ -52,9 +52,10 @@ interface AgentsTableProps {
 const getStatusBadge = (status: string) => {
   const statusConfig = {
     running: { color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300', dot: 'bg-green-500' },
-    idle: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300', dot: 'bg-yellow-500' },
+    idle: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300', dot: 'bg-gray-500' },
+    suspended: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300', dot: 'bg-gray-500' },
     error: { color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300', dot: 'bg-red-500' },
-    offline: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300', dot: 'bg-gray-500' },
+    offline: { color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300', dot: 'bg-red-500' },
   };
 
   const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
