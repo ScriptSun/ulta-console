@@ -235,8 +235,8 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="sm:max-w-3xl">
-        <SheetHeader>
+      <SheetContent className="sm:max-w-3xl flex flex-col">
+        <SheetHeader className="flex-shrink-0">
           <div className="flex items-center gap-3">
             <div>
               <SheetTitle className="text-xl">{agent.name}</SheetTitle>
@@ -254,297 +254,303 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
           </div>
         </SheetHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
+        <div className="flex-1 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6 h-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            {/* System Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Monitor className="h-4 w-4" />
-                  System Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Operating System</Label>
-                  <p className="text-sm font-medium">{agent.os || 'Unknown'}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Version</Label>
-                  <p className="text-sm font-medium">{agent.version || 'Unknown'}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Region</Label>
-                  <p className="text-sm font-medium flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {agent.region || 'Unknown'}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">IP Address</Label>
-                  <p className="text-sm font-medium flex items-center gap-1">
-                    <Globe className="h-3 w-3" />
-                    {agent.ip_address || 'Unknown'}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Last Heartbeat</Label>
-                  <p className="text-sm font-medium">
-                    {agent.last_seen 
-                      ? new Date(agent.last_seen).toLocaleString()
-                      : 'Never'
-                    }
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Registered</Label>
-                  <p className="text-sm font-medium">
-                    {new Date(agent.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <TabsContent value="overview" className="space-y-6 p-1">
+                  {/* System Information */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Monitor className="h-4 w-4" />
+                        System Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Operating System</Label>
+                        <p className="text-sm font-medium">{agent.os || 'Unknown'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Version</Label>
+                        <p className="text-sm font-medium">{agent.version || 'Unknown'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Region</Label>
+                        <p className="text-sm font-medium flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {agent.region || 'Unknown'}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">IP Address</Label>
+                        <p className="text-sm font-medium flex items-center gap-1">
+                          <Globe className="h-3 w-3" />
+                          {agent.ip_address || 'Unknown'}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Last Heartbeat</Label>
+                        <p className="text-sm font-medium">
+                          {agent.last_seen 
+                            ? new Date(agent.last_seen).toLocaleString()
+                            : 'Never'
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Registered</Label>
+                        <p className="text-sm font-medium">
+                          {new Date(agent.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-            {/* Security Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  Security Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Certificate Status</Label>
-                    <p className="text-sm font-medium flex items-center gap-2">
-                      {agent.certificate_fingerprint ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          Active
-                        </>
-                      ) : (
-                        <>
-                          <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                          Not Configured
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Signature Key Version</Label>
-                    <p className="text-sm font-medium flex items-center gap-2">
-                      <Key className="h-4 w-4" />
-                      v{agent.signature_key_version}
-                    </p>
-                  </div>
-                </div>
-                
-                {agent.certificate_fingerprint && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Certificate Fingerprint</Label>
-                    <p className="text-xs font-mono bg-muted p-2 rounded mt-1 break-all">
-                      {agent.certificate_fingerprint}
-                    </p>
-                  </div>
-                )}
-                
-                {agent.last_cert_rotation && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Last Certificate Rotation</Label>
-                    <p className="text-sm font-medium flex items-center gap-2">
-                      <RotateCcw className="h-4 w-4" />
-                      {new Date(agent.last_cert_rotation).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="monitoring" className="space-y-6">
-            {/* Performance Metrics */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Cpu className="h-4 w-4" />
-                    CPU Usage
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{agent.cpu_usage}%</div>
-                  <Progress value={agent.cpu_usage} className="mt-2" />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <HardDrive className="h-4 w-4" />
-                    Memory Usage
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{agent.memory_usage}%</div>
-                  <Progress value={agent.memory_usage} className="mt-2" />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Tasks */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Recent Tasks
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-64">
-                  <div className="space-y-2">
-                    {tasks.map((task) => {
-                      const TaskIcon = taskStatusConfig[task.status].icon;
-                      return (
-                        <div key={task.id} className="border rounded p-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <TaskIcon className={cn("h-4 w-4", taskStatusConfig[task.status].color)} />
-                                <span className="font-medium">{task.task_name}</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Started: {task.started_at ? new Date(task.started_at).toLocaleString() : 'Not started'}
-                              </p>
-                              {task.completed_at && (
-                                <p className="text-xs text-muted-foreground">
-                                  Completed: {new Date(task.completed_at).toLocaleString()}
-                                </p>
-                              )}
-                              {task.error_message && (
-                                <p className="text-xs text-red-600 mt-1">{task.error_message}</p>
-                              )}
-                            </div>
-                            <Badge variant="outline" className="ml-2">
-                              {task.status}
-                            </Badge>
-                          </div>
+                  {/* Security Status */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Security Status
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Certificate Status</Label>
+                          <p className="text-sm font-medium flex items-center gap-2">
+                            {agent.certificate_fingerprint ? (
+                              <>
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                Active
+                              </>
+                            ) : (
+                              <>
+                                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                                Not Configured
+                              </>
+                            )}
+                          </p>
                         </div>
-                      );
-                    })}
-                    {tasks.length === 0 && (
-                      <p className="text-center text-muted-foreground py-8">No tasks found</p>
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-
-            {/* Logs */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Recent Logs
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-64">
-                  <div className="space-y-2">
-                    {logs.map((log) => (
-                      <div key={log.id} className="flex items-start gap-2 text-sm border rounded p-3">
-                        <Badge 
-                          variant="secondary" 
-                          className={cn(
-                            "text-xs px-2 py-0 h-5",
-                            logLevelConfig[log.level].color,
-                            logLevelConfig[log.level].bgColor
-                          )}
-                        >
-                          {log.level}
-                        </Badge>
-                        <div className="flex-1 min-w-0">
-                          <p className="break-words font-mono text-sm">{log.message}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(log.timestamp).toLocaleString()}
+                        
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Signature Key Version</Label>
+                          <p className="text-sm font-medium flex items-center gap-2">
+                            <Key className="h-4 w-4" />
+                            v{agent.signature_key_version}
                           </p>
                         </div>
                       </div>
-                    ))}
-                    {logs.length === 0 && (
-                      <p className="text-center text-muted-foreground py-8">No logs found</p>
-                    )}
+                      
+                      {agent.certificate_fingerprint && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Certificate Fingerprint</Label>
+                          <p className="text-xs font-mono bg-muted p-2 rounded mt-1 break-all">
+                            {agent.certificate_fingerprint}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {agent.last_cert_rotation && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Last Certificate Rotation</Label>
+                          <p className="text-sm font-medium flex items-center gap-2">
+                            <RotateCcw className="h-4 w-4" />
+                            {new Date(agent.last_cert_rotation).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="monitoring" className="space-y-6 p-1">
+                  {/* Performance Metrics */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <Cpu className="h-4 w-4" />
+                          CPU Usage
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{agent.cpu_usage}%</div>
+                        <Progress value={agent.cpu_usage} className="mt-2" />
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <HardDrive className="h-4 w-4" />
+                          Memory Usage
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{agent.memory_usage}%</div>
+                        <Progress value={agent.memory_usage} className="mt-2" />
+                      </CardContent>
+                    </Card>
                   </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="settings" className="space-y-4">
-            {canManage ? (
-              <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
-                      Agent Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Auto-updates</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Automatically update agent when new versions are available
+                  {/* Tasks */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-4 w-4" />
+                        Recent Tasks
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-64">
+                        <div className="space-y-2">
+                          {tasks.map((task) => {
+                            const TaskIcon = taskStatusConfig[task.status].icon;
+                            return (
+                              <div key={task.id} className="border rounded p-3">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <TaskIcon className={cn("h-4 w-4", taskStatusConfig[task.status].color)} />
+                                      <span className="font-medium">{task.task_name}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Started: {task.started_at ? new Date(task.started_at).toLocaleString() : 'Not started'}
+                                    </p>
+                                    {task.completed_at && (
+                                      <p className="text-xs text-muted-foreground">
+                                        Completed: {new Date(task.completed_at).toLocaleString()}
+                                      </p>
+                                    )}
+                                    {task.error_message && (
+                                      <p className="text-xs text-red-600 mt-1">{task.error_message}</p>
+                                    )}
+                                  </div>
+                                  <Badge variant="outline" className="ml-2">
+                                    {task.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {tasks.length === 0 && (
+                            <p className="text-center text-muted-foreground py-8">No tasks found</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+
+                  {/* Logs */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-4 w-4" />
+                        Recent Logs
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-64">
+                        <div className="space-y-2">
+                          {logs.map((log) => (
+                            <div key={log.id} className="flex items-start gap-2 text-sm border rounded p-3">
+                              <Badge 
+                                variant="secondary" 
+                                className={cn(
+                                  "text-xs px-2 py-0 h-5",
+                                  logLevelConfig[log.level].color,
+                                  logLevelConfig[log.level].bgColor
+                                )}
+                              >
+                                {log.level}
+                              </Badge>
+                              <div className="flex-1 min-w-0">
+                                <p className="break-words font-mono text-sm">{log.message}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(log.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          {logs.length === 0 && (
+                            <p className="text-center text-muted-foreground py-8">No logs found</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="settings" className="space-y-4 p-1">
+                  {canManage ? (
+                    <>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Settings className="h-4 w-4" />
+                            Agent Settings
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label>Auto-updates</Label>
+                              <p className="text-xs text-muted-foreground">
+                                Automatically update agent when new versions are available
+                              </p>
+                            </div>
+                            <Switch
+                              checked={agent.auto_updates_enabled}
+                              onCheckedChange={handleAutoUpdatesToggle}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">
+                              Deregistering an agent will permanently remove it from your account.
+                              This action cannot be undone.
+                            </p>
+                            <Button 
+                              variant="destructive" 
+                              onClick={handleDeregisterAgent}
+                              className="w-full"
+                            >
+                              Deregister Agent
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </>
+                  ) : (
+                    <Card>
+                      <CardContent className="pt-6">
+                        <p className="text-center text-muted-foreground">
+                          You don't have permission to modify agent settings.
                         </p>
-                      </div>
-                      <Switch
-                        checked={agent.auto_updates_enabled}
-                        onCheckedChange={handleAutoUpdatesToggle}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">
-                        Deregistering an agent will permanently remove it from your account.
-                        This action cannot be undone.
-                      </p>
-                      <Button 
-                        variant="destructive" 
-                        onClick={handleDeregisterAgent}
-                        className="w-full"
-                      >
-                        Deregister Agent
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            ) : (
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-center text-muted-foreground">
-                    You don't have permission to modify agent settings.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+              </ScrollArea>
+            </div>
+          </Tabs>
+        </div>
       </SheetContent>
     </Sheet>
   );
