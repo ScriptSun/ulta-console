@@ -82,10 +82,22 @@ interface AgentDetailsDrawerProps {
 }
 
 const statusConfig = {
-  running: { color: 'bg-green-500', textColor: 'text-green-700', bgColor: 'bg-green-50' },
-  idle: { color: 'bg-yellow-500', textColor: 'text-yellow-700', bgColor: 'bg-yellow-50' },
-  error: { color: 'bg-red-500', textColor: 'text-red-700', bgColor: 'bg-red-50' },
-  offline: { color: 'bg-gray-500', textColor: 'text-gray-700', bgColor: 'bg-gray-50' }
+  running: { 
+    color: 'bg-gradient-to-r from-emerald-500/5 to-green-500/5 text-emerald-200 border-0 ring-1 ring-emerald-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
+    dot: 'bg-emerald-400 ring-2 ring-emerald-400/20 ring-offset-1 ring-offset-transparent' 
+  },
+  idle: { 
+    color: 'bg-gradient-to-r from-yellow-500/5 to-amber-500/5 text-yellow-200 border-0 ring-1 ring-yellow-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
+    dot: 'bg-yellow-400 ring-2 ring-yellow-400/20 ring-offset-1 ring-offset-transparent' 
+  },
+  error: { 
+    color: 'bg-gradient-to-r from-red-500/8 via-red-500/6 to-red-500/8 text-red-200 border-0 ring-1 ring-red-400/40 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
+    dot: 'bg-gradient-to-r from-red-400 to-red-500 ring-2 ring-red-400/30 ring-offset-1 ring-offset-transparent' 
+  },
+  offline: { 
+    color: 'bg-gradient-to-r from-slate-500/5 to-gray-500/5 text-gray-200 border-0 ring-1 ring-slate-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
+    dot: 'bg-slate-400 ring-2 ring-slate-400/20 ring-offset-1 ring-offset-transparent' 
+  },
 };
 
 const taskStatusConfig = {
@@ -227,19 +239,15 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
           <div className="flex items-center gap-3">
             <div>
               <SheetTitle className="text-xl">{agent.name}</SheetTitle>
-              <SheetDescription className="flex items-center gap-2 mt-1">
+              <SheetDescription className="flex items-center gap-2 mt-3">
                 <Badge 
                   variant="secondary"
-                  className={cn(
-                    "text-xs font-medium border-0",
-                    config.textColor,
-                    config.bgColor
-                  )}
+                  className={`${config.color} gap-1`}
                 >
-                  <div className={cn("w-2 h-2 rounded-full mr-1.5", config.color)} />
-                  {agent.status}
+                  <div className={`w-2 h-2 rounded-full ${config.dot}`} />
+                  <span className="ml-1">{agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}</span>
                 </Badge>
-                <span>{agent.agent_type.replace('_', ' ')}</span>
+                <span>{agent.agent_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
               </SheetDescription>
             </div>
           </div>
