@@ -89,7 +89,20 @@ export default function Agents() {
 
       if (error) throw error;
 
-      setAgents((data || []) as Agent[]);
+      // If no agents exist, seed with demo data
+      if (!data || data.length === 0) {
+        await seedDemoAgents();
+        // Fetch again after seeding
+        const { data: newData, error: fetchError } = await supabase
+          .from('agents')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (fetchError) throw fetchError;
+        setAgents((newData || []) as Agent[]);
+      } else {
+        setAgents(data as Agent[]);
+      }
     } catch (error) {
       console.error('Error fetching agents:', error);
       toast({
@@ -99,6 +112,72 @@ export default function Agents() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const seedDemoAgents = async () => {
+    try {
+      // Get user's customer IDs
+      const { data: customerIds, error: customerError } = await supabase
+        .rpc('get_user_customer_ids');
+      
+      if (customerError || !customerIds || customerIds.length === 0) {
+        console.warn('No customer IDs found for user, skipping demo agent seeding');
+        return;
+      }
+
+      const customerId = customerIds[0]; // Use first customer ID
+
+      const demoAgents = [
+        {
+          name: 'Demo Agent Alpha',
+          customer_id: customerId,
+          agent_type: 'general',
+          status: 'running',
+          version: '1.2.3',
+          os: 'ubuntu',
+          region: 'us-east-1',
+          ip_address: '192.168.1.100',
+          last_seen: new Date().toISOString(),
+          uptime_seconds: 86400, // 1 day
+          cpu_usage: 15.5,
+          memory_usage: 2048.0,
+          tasks_completed: 42,
+          auto_updates_enabled: true,
+          certificate_fingerprint: 'sha256:1234567890abcdef',
+          signature_key_version: 1
+        },
+        {
+          name: 'Demo Agent Beta',
+          customer_id: customerId,
+          agent_type: 'data_processor',
+          status: 'idle',
+          version: '1.2.1',
+          os: 'debian',
+          region: 'us-west-2',
+          ip_address: '192.168.1.101',
+          last_seen: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
+          uptime_seconds: 172800, // 2 days
+          cpu_usage: 8.2,
+          memory_usage: 1536.0,
+          tasks_completed: 128,
+          auto_updates_enabled: false,
+          certificate_fingerprint: 'sha256:fedcba0987654321',
+          signature_key_version: 1
+        }
+      ];
+
+      const { error } = await supabase
+        .from('agents')
+        .insert(demoAgents);
+
+      if (error) {
+        console.error('Error seeding demo agents:', error);
+      } else {
+        console.log('Demo agents seeded successfully');
+      }
+    } catch (error) {
+      console.error('Error in seedDemoAgents:', error);
     }
   };
 
