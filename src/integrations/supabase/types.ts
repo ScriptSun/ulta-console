@@ -14,6 +14,211 @@ export type Database = {
   }
   public: {
     Tables: {
+      allowlist_batch_steps: {
+        Row: {
+          batch_id: string
+          command_id: string
+          created_at: string
+          id: string
+          params_template: Json | null
+          step_index: number
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          command_id: string
+          created_at?: string
+          id?: string
+          params_template?: Json | null
+          step_index: number
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          command_id?: string
+          created_at?: string
+          id?: string
+          params_template?: Json | null
+          step_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allowlist_batch_steps_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "allowlist_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allowlist_batch_steps_command_id_fkey"
+            columns: ["command_id"]
+            isOneToOne: false
+            referencedRelation: "allowlist_commands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      allowlist_batches: {
+        Row: {
+          active: boolean
+          batch_name: string
+          created_at: string
+          customer_id: string
+          id: string
+          inputs_schema: Json | null
+          preflight: Json | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          active?: boolean
+          batch_name: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          inputs_schema?: Json | null
+          preflight?: Json | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          active?: boolean
+          batch_name?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          inputs_schema?: Json | null
+          preflight?: Json | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
+      allowlist_command_params: {
+        Row: {
+          command_id: string
+          created_at: string
+          defaults: Json | null
+          id: string
+          json_schema: Json | null
+          updated_at: string
+        }
+        Insert: {
+          command_id: string
+          created_at?: string
+          defaults?: Json | null
+          id?: string
+          json_schema?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          command_id?: string
+          created_at?: string
+          defaults?: Json | null
+          id?: string
+          json_schema?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allowlist_command_params_command_id_fkey"
+            columns: ["command_id"]
+            isOneToOne: false
+            referencedRelation: "allowlist_commands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      allowlist_commands: {
+        Row: {
+          active: boolean
+          command_name: string
+          created_at: string
+          customer_id: string
+          expected_sha256: string
+          id: string
+          min_agent_version: string | null
+          os_whitelist: string[] | null
+          risk: string
+          script_id: string
+          script_version: number
+          timeout_sec: number | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          active?: boolean
+          command_name: string
+          created_at?: string
+          customer_id: string
+          expected_sha256: string
+          id?: string
+          min_agent_version?: string | null
+          os_whitelist?: string[] | null
+          risk?: string
+          script_id: string
+          script_version: number
+          timeout_sec?: number | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          active?: boolean
+          command_name?: string
+          created_at?: string
+          customer_id?: string
+          expected_sha256?: string
+          id?: string
+          min_agent_version?: string | null
+          os_whitelist?: string[] | null
+          risk?: string
+          script_id?: string
+          script_version?: number
+          timeout_sec?: number | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allowlist_commands_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "scripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor: string
+          created_at: string
+          customer_id: string
+          id: string
+          meta: Json | null
+          target: string
+        }
+        Insert: {
+          action: string
+          actor: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          meta?: Json | null
+          target: string
+        }
+        Update: {
+          action?: string
+          actor?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          meta?: Json | null
+          target?: string
+        }
+        Relationships: []
+      }
       ca_config: {
         Row: {
           ca_fingerprint_sha256: string
@@ -118,15 +323,131 @@ export type Database = {
         }
         Relationships: []
       }
+      script_versions: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          script_id: string
+          sha256: string
+          size_bytes: number
+          source: string
+          status: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          script_id: string
+          sha256: string
+          size_bytes: number
+          source: string
+          status?: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          script_id?: string
+          sha256?: string
+          size_bytes?: number
+          source?: string
+          status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "script_versions_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "scripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scripts: {
+        Row: {
+          created_at: string
+          customer_id: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_activate_in_customer: {
+        Args: { _customer_id: string }
+        Returns: boolean
+      }
+      get_user_customer_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      get_user_role_in_customer: {
+        Args: {
+          _customer_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "editor" | "approver" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -253,6 +574,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "editor", "approver", "viewer"],
+    },
   },
 } as const
