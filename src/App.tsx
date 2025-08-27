@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 import RootLayout from "./components/layouts/RootLayout";
 import Dashboard from "./pages/Dashboard";
 import Agents from "./pages/Agents";
@@ -20,6 +22,7 @@ import ScriptDetail from "./pages/ScriptDetail";
 import ScriptsBatches from "./pages/ScriptsBatches";
 import ScriptsSettings from "./pages/ScriptsSettings";
 import CommandPolicies from "./pages/CommandPolicies";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,32 +30,138 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <RootLayout>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/agents" element={<Agents />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/api-keys" element={<ApiKeys />} />
-            <Route path="/quotas" element={<Quotas />} />
-            <Route path="/plans" element={<Plans />} />
-            <Route path="/security" element={<Security />} />
-            <Route path="/security/audit" element={<Audit />} />
-            <Route path="/integrations" element={<Integrations />} />
-            <Route path="/assertion-check" element={<AssertionCheck />} />
-            <Route path="/scripts" element={<Scripts />} />
-            <Route path="/security/command-policies" element={<CommandPolicies />} />
-            <Route path="/scripts/templates" element={<ScriptsTemplates />} />
-            <Route path="/scripts/templates/:id" element={<ScriptDetail />} />
-            <Route path="/scripts/batches" element={<ScriptsBatches />} />
-            <Route path="/scripts/settings" element={<ScriptsSettings />} />
+            {/* Public route */}
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Protected routes */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Dashboard />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Dashboard />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/agents" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Agents />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/tasks" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Tasks />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/api-keys" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <ApiKeys />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/quotas" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Quotas />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/plans" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Plans />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/security" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Security />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/security/audit" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Audit />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/integrations" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Integrations />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/assertion-check" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <AssertionCheck />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/scripts" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Scripts />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/security/command-policies" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <CommandPolicies />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/scripts/templates" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <ScriptsTemplates />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/scripts/templates/:id" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <ScriptDetail />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/scripts/batches" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <ScriptsBatches />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/scripts/settings" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <ScriptsSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </RootLayout>
-      </BrowserRouter>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
