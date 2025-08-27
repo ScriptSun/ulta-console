@@ -116,8 +116,20 @@ export function getOSOptions() {
 
 export function getRiskOptions() {
   return [
-    { value: 'low', label: 'Low', color: 'text-green-600 bg-green-50' },
-    { value: 'medium', label: 'Medium', color: 'text-yellow-600 bg-yellow-50' },
-    { value: 'high', label: 'High', color: 'text-red-600 bg-red-50' }
+    { 
+      value: 'low', 
+      label: 'Low', 
+      color: 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/20 backdrop-blur-sm rounded-full px-2 py-1' 
+    },
+    { 
+      value: 'medium', 
+      label: 'Medium', 
+      color: 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/20 backdrop-blur-sm rounded-full px-2 py-1' 
+    },
+    { 
+      value: 'high', 
+      label: 'High', 
+      color: 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-400 border border-red-500/30 shadow-lg shadow-red-500/20 backdrop-blur-sm rounded-full px-2 py-1' 
+    }
   ];
 }

@@ -416,11 +416,11 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                   <SelectContent>
                     {riskOptions.map((risk) => (
                       <SelectItem key={risk.value} value={risk.value}>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className={cn("text-xs", risk.color)}>
-                            {risk.label}
-                          </Badge>
-                        </div>
+                         <div className="flex items-center gap-2">
+                           <Badge variant="secondary" className={cn("text-xs font-medium", risk.color)}>
+                             {risk.label}
+                           </Badge>
+                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
