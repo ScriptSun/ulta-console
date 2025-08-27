@@ -13,7 +13,8 @@ import {
   History,
   ArrowUpDown,
   Play,
-  Settings
+  Settings,
+  Trash2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -36,6 +37,7 @@ interface AllowlistBatch {
   updatedBy: string;
   inputsSchema: any;
   preflight: any;
+  confirmationRequired: boolean;
 }
 
 const mockBatches: AllowlistBatch[] = [
@@ -49,6 +51,7 @@ const mockBatches: AllowlistBatch[] = [
     updatedBy: 'admin@example.com',
     inputsSchema: {},
     preflight: {},
+    confirmationRequired: true,
   },
   {
     id: '2',
@@ -60,6 +63,7 @@ const mockBatches: AllowlistBatch[] = [
     updatedBy: 'dba@example.com',
     inputsSchema: {},
     preflight: {},
+    confirmationRequired: false,
   },
   {
     id: '3',
@@ -71,6 +75,7 @@ const mockBatches: AllowlistBatch[] = [
     updatedBy: 'security@example.com',
     inputsSchema: {},
     preflight: {},
+    confirmationRequired: true,
   },
 ];
 
@@ -124,6 +129,26 @@ export default function AllowlistBatches() {
     });
   };
 
+  const handleDelete = async (batch: AllowlistBatch) => {
+    if (window.confirm(`Are you sure you want to delete "${batch.batchName}"? This action cannot be undone.`)) {
+      try {
+        // TODO: Implement API call to delete batch
+        setBatches(prev => prev.filter(b => b.id !== batch.id));
+        
+        toast({
+          title: 'Success',
+          description: `Batch "${batch.batchName}" deleted successfully`,
+        });
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to delete batch',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
   const handleCloseDrawer = () => {
     setNewBatchOpen(false);
     setEditingBatch(null);
@@ -175,10 +200,19 @@ export default function AllowlistBatches() {
     },
     {
       accessorKey: 'active',
-      header: 'Active',
+      header: 'Status',
       cell: ({ row }) => (
         <Badge variant={row.getValue('active') ? 'default' : 'secondary'}>
           {row.getValue('active') ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: 'confirmationRequired',
+      header: 'Confirmation',
+      cell: ({ row }) => (
+        <Badge variant={row.getValue('confirmationRequired') ? 'outline' : 'secondary'}>
+          {row.getValue('confirmationRequired') ? 'Required' : 'Auto Install'}
         </Badge>
       ),
     },
@@ -237,6 +271,14 @@ export default function AllowlistBatches() {
                 <History className="mr-2 h-4 w-4" />
                 History
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => handleDelete(batch)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -253,9 +295,9 @@ export default function AllowlistBatches() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Allowlist Batches</h1>
+          <h1 className="text-3xl font-bold">Script Templates</h1>
           <p className="text-muted-foreground">
-            Manage command batch workflows and execution sequences
+            Manage script templates with batch execution, confirmation settings, and activation status
           </p>
         </div>
         <Button onClick={() => setNewBatchOpen(true)}>

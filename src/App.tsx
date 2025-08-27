@@ -52,7 +52,7 @@ const App = () => (
             <Route path="/scripts/allowlist/commands" element={<AllowlistCommands />} />
             <Route path="/scripts/allowlist/batches" element={<AllowlistBatches />} />
             <Route path="/security/allowlist/command-policies" element={<CommandPolicies />} />
-            <Route path="/scripts/templates" element={<ScriptsTemplates />} />
+            <Route path="/scripts/templates" element={<AllowlistBatches />} />
             <Route path="/scripts/templates/:id" element={<ScriptDetail />} />
             <Route path="/scripts/batches" element={<ScriptsBatches />} />
             <Route path="/scripts/settings" element={<ScriptsSettings />} />

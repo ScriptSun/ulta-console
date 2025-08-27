@@ -7,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const scriptSections = [
   {
     title: "Templates", 
-    description: "Script templates and blueprints",
+    description: "Script templates with batch management",
     icon: FileText,
-    url: "/scripts/templates",
+    url: "/scripts/allowlist/batches",
     color: "bg-green-500/10 text-green-600"
   },
   {
