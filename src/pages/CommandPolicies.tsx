@@ -69,11 +69,14 @@ const useKPIData = () => {
     }
   });
 
-  const highRiskCommands = useQuery({
-    queryKey: ['highRiskCommands'],
+  const forbidCommands = useQuery({
+    queryKey: ['forbidCommands'],
     queryFn: async () => {
-      const { data } = await supabase.from('view_high_risk_commands').select('count').single();
-      return data?.count || 0;
+      const { count } = await supabase
+        .from('command_policies')
+        .select('*', { count: 'exact', head: true })
+        .eq('mode', 'forbid');
+      return count || 0;
     }
   });
 
@@ -85,7 +88,7 @@ const useKPIData = () => {
     }
   });
 
-  return { activeCommands, confirmCommands, totalScripts, highRiskCommands, successRate };
+  return { activeCommands, confirmCommands, totalScripts, forbidCommands, successRate };
 };
 
 export default function CommandPolicies() {
@@ -95,7 +98,7 @@ export default function CommandPolicies() {
   const [editingPolicy, setEditingPolicy] = useState<CommandPolicy | null>(null);
   const [policies, setPolicies] = useState<CommandPolicy[]>([]);
   const [loading, setLoading] = useState(true);
-  const { activeCommands, confirmCommands, totalScripts, highRiskCommands, successRate } = useKPIData();
+  const { activeCommands, confirmCommands, totalScripts, forbidCommands, successRate } = useKPIData();
 
   // Fetch policies from Supabase
   useEffect(() => {
@@ -319,7 +322,7 @@ export default function CommandPolicies() {
       // Invalidate KPI queries to update the cards
       queryClient.invalidateQueries({ queryKey: ['activeCommands'] });
       queryClient.invalidateQueries({ queryKey: ['confirmCommands'] });
-      queryClient.invalidateQueries({ queryKey: ['highRiskCommands'] });
+      queryClient.invalidateQueries({ queryKey: ['forbidCommands'] });
       
       toast({
         title: "Success",
@@ -426,18 +429,18 @@ export default function CommandPolicies() {
           <Card className="bg-gradient-card border-card-border shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                High Risk
+                Forbid Policies
               </CardTitle>
               <Shield className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              {highRiskCommands.isLoading ? (
+              {forbidCommands.isLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <div className="text-2xl font-bold text-foreground">{highRiskCommands.data}</div>
+                <div className="text-2xl font-bold text-foreground">{forbidCommands.data}</div>
               )}
               <p className="text-xs text-muted-foreground">
-                High risk commands
+                Blocked commands
               </p>
             </CardContent>
           </Card>
