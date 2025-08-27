@@ -21,7 +21,6 @@ import {
 
 interface Agent {
   id: string;
-  name: string;
   hostname?: string;
   agent_type: string;
   status: 'running' | 'idle' | 'error' | 'offline';
@@ -136,12 +135,7 @@ export function AgentsTable({
               onClick={() => onAgentClick(agent)}
             >
               <TableCell className="font-medium">
-                <div>
-                  <div className="font-semibold">{agent.id.slice(0, 5).toLowerCase()}@srvulta.com</div>
-                  <div className="text-sm text-muted-foreground">
-                    {agent.name}
-                  </div>
-                </div>
+                <div className="font-semibold">{agent.hostname || 'Unknown hostname'}</div>
               </TableCell>
               <TableCell>
                 <code className="text-xs bg-muted px-1 py-0.5 rounded">

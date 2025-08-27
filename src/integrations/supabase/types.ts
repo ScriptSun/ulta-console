@@ -195,7 +195,6 @@ export type Database = {
           last_cert_rotation: string | null
           last_seen: string | null
           memory_usage: number | null
-          name: string
           os: string | null
           region: string | null
           signature_key_version: number | null
@@ -219,7 +218,6 @@ export type Database = {
           last_cert_rotation?: string | null
           last_seen?: string | null
           memory_usage?: number | null
-          name: string
           os?: string | null
           region?: string | null
           signature_key_version?: number | null
@@ -243,7 +241,6 @@ export type Database = {
           last_cert_rotation?: string | null
           last_seen?: string | null
           memory_usage?: number | null
-          name?: string
           os?: string | null
           region?: string | null
           signature_key_version?: number | null

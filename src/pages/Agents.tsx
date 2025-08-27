@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Agent {
   id: string;
-  name: string;
+  hostname?: string;
   agent_type: string;
   status: 'running' | 'idle' | 'error' | 'offline';
   version?: string;
@@ -110,7 +110,7 @@ export default function Agents() {
     // Search filter
     if (searchQuery) {
       filtered = filtered.filter(agent =>
-        agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        agent.hostname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         agent.agent_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
         agent.region?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         agent.ip_address?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -191,12 +191,12 @@ export default function Agents() {
     // This could trigger an update through the API
     toast({
       title: 'Update Triggered',
-      description: `Update initiated for ${agent.name}`,
+      description: `Update initiated for ${agent.hostname || agent.id}`,
     });
   };
 
   const handleRemoveAgent = async (agent: Agent) => {
-    if (!confirm(`Are you sure you want to remove "${agent.name}"? This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to remove "${agent.hostname || agent.id}"? This action cannot be undone.`)) {
       return;
     }
 
@@ -207,7 +207,7 @@ export default function Agents() {
         actor: 'elin@ultahost.com', // Should be from user context
         action: 'agent_remove',
         target: `agent:${agent.id}`,
-        meta: { agent_id: agent.id, agent_name: agent.name }
+        meta: { agent_id: agent.id, agent_hostname: agent.hostname }
       });
 
       const { error } = await supabase
@@ -219,7 +219,7 @@ export default function Agents() {
 
       toast({
         title: 'Agent Removed',
-        description: `${agent.name} has been removed successfully`,
+        description: `${agent.hostname || agent.id} has been removed successfully`,
       });
 
       fetchAgents();
@@ -317,7 +317,7 @@ export default function Agents() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by agent name, hostname, or IP..."
+            placeholder="Search by hostname, agent type, region, or IP..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
