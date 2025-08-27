@@ -1,190 +1,136 @@
-import { useState } from "react"
-import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Plus, Shield, AlertTriangle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { DataTable } from "@/components/ui/data-table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Shield, 
+  FileText, 
+  Users, 
+  Settings,
+  ArrowRight
+} from 'lucide-react';
 
-interface AllowlistEntry {
-  id: string
-  scriptName: string
-  hash: string
-  status: "approved" | "pending" | "blocked"
-  risk: "low" | "medium" | "high"
-  createdAt: string
-  lastUsed: string
-}
-
-const mockData: AllowlistEntry[] = [
+const allowlistSections = [
   {
-    id: "1",
-    scriptName: "system_monitor.sh",
-    hash: "sha256:abc123...",
-    status: "approved",
-    risk: "low",
-    createdAt: "2024-01-15",
-    lastUsed: "2024-01-20"
+    title: 'Commands',
+    description: 'Manage approved commands and their configurations',
+    icon: FileText,
+    url: '/scripts/allowlist/commands',
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-500/10',
   },
   {
-    id: "2", 
-    scriptName: "network_config.py",
-    hash: "sha256:def456...",
-    status: "pending",
-    risk: "medium",
-    createdAt: "2024-01-16",
-    lastUsed: "Never"
-  }
-]
-
-const columns: ColumnDef<AllowlistEntry>[] = [
-  {
-    accessorKey: "scriptName",
-    header: "Script Name",
+    title: 'Batches', 
+    description: 'Configure command batches and workflows',
+    icon: Users,
+    url: '/scripts/allowlist/batches',
+    color: 'text-green-500',
+    bgColor: 'bg-green-500/10',
   },
   {
-    accessorKey: "hash",
-    header: "Hash",
-    cell: ({ row }) => (
-      <code className="text-xs bg-muted px-2 py-1 rounded">
-        {row.getValue("hash")}
-      </code>
-    ),
+    title: 'Settings',
+    description: 'Allowlist policies and security configurations',
+    icon: Settings,
+    url: '/scripts/allowlist/settings',
+    color: 'text-purple-500',
+    bgColor: 'bg-purple-500/10',
   },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string
-      return (
-        <Badge variant={
-          status === "approved" ? "default" : 
-          status === "pending" ? "secondary" : "destructive"
-        }>
-          {status}
-        </Badge>
-      )
-    },
-  },
-  {
-    accessorKey: "risk",
-    header: "Risk Level",
-    cell: ({ row }) => {
-      const risk = row.getValue("risk") as string
-      const icon = risk === "high" ? AlertTriangle : Shield
-      return (
-        <div className="flex items-center gap-2">
-          {risk === "high" && <AlertTriangle className="h-4 w-4 text-red-500" />}
-          {risk === "medium" && <Shield className="h-4 w-4 text-yellow-500" />}
-          {risk === "low" && <Shield className="h-4 w-4 text-green-500" />}
-          <span className="capitalize">{risk}</span>
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: "lastUsed",
-    header: "Last Used",
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      const entry = row.original
-      
-      return (
-        <Sheet>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <SheetTrigger asChild>
-                <DropdownMenuItem>View details</DropdownMenuItem>
-              </SheetTrigger>
-              <DropdownMenuItem>Edit permissions</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
-                Remove from allowlist
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>Script Details</SheetTitle>
-              <SheetDescription>
-                View and manage allowlist entry for {entry.scriptName}
-              </SheetDescription>
-            </SheetHeader>
-            
-            <div className="mt-6 space-y-4">
-              <div>
-                <h4 className="font-medium">Script Name</h4>
-                <p className="text-sm text-muted-foreground">{entry.scriptName}</p>
-              </div>
-              <div>
-                <h4 className="font-medium">Hash</h4>
-                <code className="text-xs bg-muted px-2 py-1 rounded block mt-1">
-                  {entry.hash}
-                </code>
-              </div>
-              <div>
-                <h4 className="font-medium">Risk Assessment</h4>
-                <div className="flex items-center gap-2 mt-1">
-                  <Shield className="h-4 w-4" />
-                  <span className="capitalize text-sm">{entry.risk} risk</span>
-                </div>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-      )
-    },
-  },
-]
+];
 
 export default function ScriptsAllowlist() {
-  const [data] = useState<AllowlistEntry[]>(mockData)
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Script Allowlist</h1>
-          <p className="text-muted-foreground">
-            Manage approved scripts and security policies
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Shield className="h-8 w-8 text-primary" />
+            Scripts Allowlist
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Manage approved scripts, commands, and security policies
           </p>
         </div>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Script
-        </Button>
       </div>
 
-      <DataTable 
-        columns={columns} 
-        data={data}
-        searchKey="scriptName"
-        searchPlaceholder="Search scripts..."
-      />
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {allowlistSections.map((section) => {
+          const Icon = section.icon;
+          return (
+            <Card key={section.title} className="group hover:shadow-md transition-smooth">
+              <CardHeader className="pb-4">
+                <div className={`w-12 h-12 rounded-lg ${section.bgColor} flex items-center justify-center mb-4`}>
+                  <Icon className={`h-6 w-6 ${section.color}`} />
+                </div>
+                <CardTitle className="flex items-center justify-between">
+                  {section.title}
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-smooth" />
+                </CardTitle>
+                <CardDescription>
+                  {section.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="outline" className="w-full">
+                  <Link to={section.url}>
+                    Manage {section.title}
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Commands</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">24</div>
+            <p className="text-xs text-muted-foreground">
+              +2 from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Scripts</CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">12</div>
+            <p className="text-xs text-muted-foreground">
+              Across all commands
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">High Risk</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">3</div>
+            <p className="text-xs text-muted-foreground">
+              Require approval
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <Settings className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">98.2%</div>
+            <p className="text-xs text-muted-foreground">
+              Last 30 days
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  )
+  );
 }
