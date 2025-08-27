@@ -12,12 +12,12 @@ import { AddMemberDialog } from '@/components/teams/AddMemberDialog';
 import { ManageRolesDialog } from '@/components/teams/ManageRolesDialog';
 
 const ROLE_COLORS = {
-  owner: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  admin: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  approver: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  editor: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  viewer: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  guest: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
+  owner: 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm',
+  admin: 'bg-gradient-to-r from-red-600/10 to-pink-600/10 text-red-100 border border-red-500/30 shadow-lg shadow-red-500/20 backdrop-blur-sm',
+  approver: 'bg-gradient-to-r from-blue-600/10 to-cyan-600/10 text-blue-100 border border-blue-500/30 shadow-lg shadow-blue-500/20 backdrop-blur-sm',
+  editor: 'bg-gradient-to-r from-green-600/10 to-emerald-600/10 text-green-100 border border-green-500/30 shadow-lg shadow-green-500/20 backdrop-blur-sm',
+  viewer: 'bg-gradient-to-r from-amber-600/10 to-yellow-600/10 text-amber-100 border border-amber-500/30 shadow-lg shadow-amber-500/20 backdrop-blur-sm',
+  guest: 'bg-gradient-to-r from-slate-600/10 to-gray-600/10 text-slate-100 border border-slate-500/30 shadow-lg shadow-slate-500/20 backdrop-blur-sm',
 };
 
 const ROLE_DESCRIPTIONS = {
@@ -126,11 +126,11 @@ export default function TeamManagement() {
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(ROLE_DESCRIPTIONS).map(([role, description]) => (
-              <div key={role} className="flex items-start gap-3 p-3 rounded-lg border">
-                <Badge className={ROLE_COLORS[role as keyof typeof ROLE_COLORS]}>
+              <div key={role} className="flex items-start gap-2 p-2 rounded-lg border border-border/50 bg-card/30 backdrop-blur-sm">
+                <Badge className={`px-2 py-1 text-xs font-medium rounded-full ${ROLE_COLORS[role as keyof typeof ROLE_COLORS]}`}>
                   {role.charAt(0).toUpperCase() + role.slice(1)}
                 </Badge>
-                <p className="text-sm text-muted-foreground flex-1">{description}</p>
+                <p className="text-xs text-muted-foreground flex-1 leading-relaxed">{description}</p>
               </div>
             ))}
           </div>
@@ -168,7 +168,7 @@ export default function TeamManagement() {
                       <Badge 
                         key={role} 
                         variant="outline" 
-                        className={`text-xs ${ROLE_COLORS[role as keyof typeof ROLE_COLORS]}`}
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[role as keyof typeof ROLE_COLORS]}`}
                       >
                         {role}: {count}
                       </Badge>
