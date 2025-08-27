@@ -377,7 +377,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Basic Information</h3>
               
-              <div className="grid grid-cols-2 gap-4">
+              {/* Batch Name, Timeout, and Risk Level in same div as 3 divs */}
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Batch Name *</Label>
                   <Input
@@ -401,30 +402,30 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                     disabled={!canEdit}
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Risk Level</Label>
-                <Select
-                  value={formData.risk}
-                  onValueChange={(value) => handleFormChange('risk', value)}
-                  disabled={!canEdit}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {riskOptions.map((risk) => (
-                      <SelectItem key={risk.value} value={risk.value}>
-                         <div className="flex items-center gap-2">
-                           <Badge variant="secondary" className={cn("text-xs font-medium", risk.color)}>
-                             {risk.label}
-                           </Badge>
-                         </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label>Risk Level</Label>
+                  <Select
+                    value={formData.risk}
+                    onValueChange={(value) => handleFormChange('risk', value)}
+                    disabled={!canEdit}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {riskOptions.map((risk) => (
+                        <SelectItem key={risk.value} value={risk.value}>
+                           <div className="flex items-center gap-2">
+                             <Badge variant="secondary" className={cn("text-xs font-medium", risk.color)}>
+                               {risk.label}
+                             </Badge>
+                           </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
