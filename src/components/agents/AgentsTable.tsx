@@ -192,7 +192,7 @@ export function AgentsTable({
                           }}
                           disabled={agent.status === 'running'}
                         >
-                          <Play className="mr-2 h-4 w-4" />
+                          <Play className="mr-2 h-4 w-4 text-green-500" />
                           Start
                         </DropdownMenuItem>
                         <DropdownMenuItem 
@@ -202,7 +202,7 @@ export function AgentsTable({
                           }}
                           disabled={agent.status !== 'running'}
                         >
-                          <Pause className="mr-2 h-4 w-4" />
+                          <Pause className="mr-2 h-4 w-4 text-yellow-500" />
                           Pause
                         </DropdownMenuItem>
                         <DropdownMenuItem 
@@ -212,7 +212,7 @@ export function AgentsTable({
                           }}
                           disabled={agent.status === 'offline'}
                         >
-                          <Square className="mr-2 h-4 w-4" />
+                          <Square className="mr-2 h-4 w-4 text-red-500" />
                           Stop
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
