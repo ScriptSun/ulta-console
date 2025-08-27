@@ -43,7 +43,7 @@ const scriptItems = [
 
 const securityItems = [
   { title: 'Allow List', url: '/security/allowlist', icon: Shield },
-  { title: 'Threats Report', url: '/security', icon: Shield },
+  { title: 'Security Center', url: '/security', icon: Shield },
 ]
 
 const toolsItems = [
