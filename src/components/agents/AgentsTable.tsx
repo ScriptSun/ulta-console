@@ -74,7 +74,7 @@ const getStatusBadge = (status: string) => {
   return (
     <Badge variant="secondary" className={`${config.color} gap-1`}>
       <div className={`w-2 h-2 rounded-full ${config.dot}`} />
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      <span className="ml-1">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
     </Badge>
   );
 };
