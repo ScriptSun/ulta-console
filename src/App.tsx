@@ -15,6 +15,7 @@ import Plans from "./pages/Plans";
 import Security from "./pages/Security";
 import Audit from "./pages/Audit";
 import Integrations from "./pages/Integrations";
+import TeamManagement from "./pages/TeamManagement";
 import AssertionCheck from "./pages/AssertionCheck";
 import Scripts from "./pages/Scripts";
 import ScriptsTemplates from "./pages/ScriptsTemplates";
@@ -106,6 +107,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <Integrations />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/team-management" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <TeamManagement />
                 </RootLayout>
               </ProtectedRoute>
             } />

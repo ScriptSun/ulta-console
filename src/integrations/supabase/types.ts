@@ -912,6 +912,63 @@ export type Database = {
         }
         Relationships: []
       }
+      team_members: {
+        Row: {
+          id: string
+          invited_by: string
+          joined_at: string
+          role: Database["public"]["Enums"]["app_role"]
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_by?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_by?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      teams: {
+        Row: {
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
