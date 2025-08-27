@@ -190,6 +190,7 @@ export type Database = {
           created_at: string
           created_by: string
           customer_id: string
+          hostname: string | null
           id: string
           ip_address: unknown | null
           last_cert_rotation: string | null
@@ -213,6 +214,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_id: string
+          hostname?: string | null
           id?: string
           ip_address?: unknown | null
           last_cert_rotation?: string | null
@@ -236,6 +238,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_id?: string
+          hostname?: string | null
           id?: string
           ip_address?: unknown | null
           last_cert_rotation?: string | null
