@@ -8,6 +8,7 @@ import {
   Shield,
   Puzzle,
   TestTube,
+  FileText,
   Settings
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
@@ -35,6 +36,10 @@ const monitoringItems = [
   { title: 'Quotas & Usage', url: '/quotas', icon: BarChart3 },
   { title: 'Plans', url: '/plans', icon: CreditCard },
   { title: 'Security Events', url: '/security', icon: Shield },
+]
+
+const scriptItems = [
+  { title: 'Scripts', url: '/scripts', icon: FileText },
 ]
 
 const toolsItems = [
@@ -108,6 +113,20 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {monitoringItems.map((item) => (
+                <NavItem key={item.title} item={item} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Scripts */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            {!collapsed && 'Scripts'}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu className="space-y-1">
+              {scriptItems.map((item) => (
                 <NavItem key={item.title} item={item} />
               ))}
             </SidebarMenu>
