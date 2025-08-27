@@ -580,7 +580,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      view_active_commands: {
+        Row: {
+          count: number | null
+        }
+        Relationships: []
+      }
+      view_high_risk_commands: {
+        Row: {
+          count: number | null
+        }
+        Relationships: []
+      }
+      view_success_rate_30d: {
+        Row: {
+          percentage: number | null
+        }
+        Relationships: []
+      }
+      view_total_scripts: {
+        Row: {
+          count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_activate_in_customer: {
