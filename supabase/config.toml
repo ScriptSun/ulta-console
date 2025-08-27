@@ -1,7 +1,23 @@
 project_id = "lfsdqyvvboapsyeauchm"
 
-[functions.ultaai-backend]
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[functions.validate-command]
+verify_jwt = false
+
+[functions.validate-batch]
 verify_jwt = false
 
 [functions.ca-helper]
+verify_jwt = false
+
+[functions.health]
+verify_jwt = false
+
+[functions.ultaai-backend]
 verify_jwt = false

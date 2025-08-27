@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -21,8 +22,9 @@ import {
 } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import { SHABadge } from '@/components/scripts/SHABadge';
-import { X } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Shield } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Script {
   id: string;
@@ -79,6 +81,8 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
   const [jsonSchema, setJsonSchema] = useState('{\n  "type": "object",\n  "properties": {\n    "example": {\n      "type": "string",\n      "description": "Example parameter"\n    }\n  },\n  "required": ["example"]\n}');
   const [defaults, setDefaults] = useState('{\n  "example": "default_value"\n}');
   const [loading, setLoading] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<{status: 'ok' | 'error', message: string} | null>(null);
   const { toast } = useToast();
 
   // Auto-fill SHA when script/version changes
@@ -168,6 +172,67 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
     }
     
     return null;
+  };
+
+  const handleValidate = async () => {
+    if (!commandName.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Command name is required for validation',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setValidating(true);
+    setValidationResult(null);
+
+    try {
+      // Sample agent snapshot for validation
+      const agentSnapshot = {
+        os: osWhitelist.length > 0 ? osWhitelist[0] : 'linux',
+        agent_version: '1.0.0',
+        ram_mb: 2048,
+        disk_free_gb: 20,
+        open_ports: [22, 80, 443]
+      };
+
+      // Sample parameters based on defaults
+      let sampleParams = {};
+      try {
+        sampleParams = JSON.parse(defaults);
+      } catch (error) {
+        sampleParams = { example: 'test_value' };
+      }
+
+      const { data, error } = await supabase.functions.invoke('validate-command', {
+        body: {
+          command_name: commandName,
+          params: sampleParams,
+          agent_snapshot: agentSnapshot
+        }
+      });
+
+      if (error) {
+        setValidationResult({
+          status: 'error',
+          message: `Validation failed: ${error.message}`
+        });
+      } else if (data) {
+        setValidationResult({
+          status: data.status,
+          message: data.status === 'ok' ? data.message : data.reason
+        });
+      }
+    } catch (error) {
+      console.error('Validation error:', error);
+      setValidationResult({
+        status: 'error',
+        message: 'Network error during validation'
+      });
+    } finally {
+      setValidating(false);
+    }
   };
 
   const handleSave = async () => {
@@ -369,6 +434,37 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
                 onCheckedChange={setActive}
               />
               <Label htmlFor="active">Active</Label>
+            </div>
+
+            {/* Validation Section */}
+            <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Command Validation</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleValidate}
+                  disabled={validating || !commandName.trim()}
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  {validating ? 'Validating...' : 'Validate'}
+                </Button>
+              </div>
+              
+              {validationResult && (
+                <Alert className={validationResult.status === 'ok' ? 'border-success' : 'border-destructive'}>
+                  <div className="flex items-center gap-2">
+                    {validationResult.status === 'ok' ? (
+                      <CheckCircle className="h-4 w-4 text-success" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                    )}
+                    <AlertDescription>
+                      {validationResult.message}
+                    </AlertDescription>
+                  </div>
+                </Alert>
+              )}
             </div>
           </div>
 

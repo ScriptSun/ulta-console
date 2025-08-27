@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Sheet,
   SheetContent,
@@ -14,13 +15,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { BatchStepEditor, BatchStep } from './BatchStepEditor';
-import { Eye, Play } from 'lucide-react';
+import { Eye, Play, Shield, CheckCircle, AlertCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NewBatchDrawerProps {
   open: boolean;
@@ -37,6 +39,8 @@ export function NewBatchDrawer({ open, onOpenChange, onSuccess, editBatch }: New
   const [steps, setSteps] = useState<BatchStep[]>([]);
   const [loading, setLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<{status: 'ok' | 'error', message: string} | null>(null);
   const { toast } = useToast();
 
   const resetForm = () => {
@@ -118,6 +122,80 @@ export function NewBatchDrawer({ open, onOpenChange, onSuccess, editBatch }: New
       );
     } catch (error) {
       return <div className="text-sm text-destructive">Invalid preflight JSON</div>;
+    }
+  };
+
+  const handleValidate = async () => {
+    if (!batchName.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Batch name is required for validation',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!validateJson(inputsSchema, 'Inputs schema')) return;
+
+    setValidating(true);
+    setValidationResult(null);
+
+    try {
+      // Sample agent snapshot for validation
+      const agentSnapshot = {
+        os: 'linux',
+        agent_version: '1.0.0',
+        ram_mb: 4096,
+        disk_free_gb: 50,
+        open_ports: [22, 80, 443, 5432]
+      };
+
+      // Sample inputs based on schema
+      let sampleInputs = {};
+      try {
+        const schema = JSON.parse(inputsSchema);
+        if (schema.properties) {
+          Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
+            if (prop.default !== undefined) {
+              sampleInputs[key] = prop.default;
+            } else if (prop.type === 'string') {
+              sampleInputs[key] = `sample_${key}`;
+            } else if (prop.type === 'number') {
+              sampleInputs[key] = 123;
+            }
+          });
+        }
+      } catch (error) {
+        sampleInputs = { example: 'test_value' };
+      }
+
+      const { data, error } = await supabase.functions.invoke('validate-batch', {
+        body: {
+          batch_name: batchName,
+          inputs: sampleInputs,
+          agent_snapshot: agentSnapshot
+        }
+      });
+
+      if (error) {
+        setValidationResult({
+          status: 'error',
+          message: `Validation failed: ${error.message}`
+        });
+      } else if (data) {
+        setValidationResult({
+          status: data.status,
+          message: data.status === 'ok' ? data.message : data.reason
+        });
+      }
+    } catch (error) {
+      console.error('Validation error:', error);
+      setValidationResult({
+        status: 'error',
+        message: 'Network error during validation'
+      });
+    } finally {
+      setValidating(false);
     }
   };
 
@@ -224,6 +302,37 @@ export function NewBatchDrawer({ open, onOpenChange, onSuccess, editBatch }: New
                   onCheckedChange={setActive}
                 />
                 <Label htmlFor="active">Active</Label>
+              </div>
+
+              {/* Validation Section */}
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Batch Validation</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleValidate}
+                    disabled={validating || !batchName.trim()}
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    {validating ? 'Validating...' : 'Validate'}
+                  </Button>
+                </div>
+                
+                {validationResult && (
+                  <Alert className={validationResult.status === 'ok' ? 'border-success' : 'border-destructive'}>
+                    <div className="flex items-center gap-2">
+                      {validationResult.status === 'ok' ? (
+                        <CheckCircle className="h-4 w-4 text-success" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                      )}
+                      <AlertDescription>
+                        {validationResult.message}
+                      </AlertDescription>
+                    </div>
+                  </Alert>
+                )}
               </div>
             </div>
 
