@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Eye, Edit, Power, History, Info } from 'lucide-react';
+import { Plus, Eye, Edit, Power, History, Info, Activity, Bot, CheckSquare, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +19,7 @@ import { PolicyDrawer } from '@/components/policies/PolicyDrawer';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface CommandPolicy {
   id: string;
@@ -34,12 +38,51 @@ interface CommandPolicy {
 
 const mockPolicies: CommandPolicy[] = [];
 
+// KPI hooks
+const useKPIData = () => {
+  const activeCommands = useQuery({
+    queryKey: ['activeCommands'],
+    queryFn: async () => {
+      const { data } = await supabase.from('view_active_commands').select('count').single();
+      return data?.count || 0;
+    }
+  });
+
+  const totalScripts = useQuery({
+    queryKey: ['totalScripts'],
+    queryFn: async () => {
+      const { data } = await supabase.from('view_total_scripts').select('count').single();
+      return data?.count || 0;
+    }
+  });
+
+  const highRiskCommands = useQuery({
+    queryKey: ['highRiskCommands'],
+    queryFn: async () => {
+      const { data } = await supabase.from('view_high_risk_commands').select('count').single();
+      return data?.count || 0;
+    }
+  });
+
+  const successRate = useQuery({
+    queryKey: ['successRate'],
+    queryFn: async () => {
+      const { data } = await supabase.from('view_success_rate_30d').select('percentage').single();
+      return data?.percentage || 0;
+    }
+  });
+
+  return { activeCommands, totalScripts, highRiskCommands, successRate };
+};
+
 export default function CommandPolicies() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<CommandPolicy | null>(null);
   const [policies, setPolicies] = useState<CommandPolicy[]>([]);
   const [loading, setLoading] = useState(true);
+  const { activeCommands, totalScripts, highRiskCommands, successRate } = useKPIData();
 
   // Fetch policies from Supabase
   useEffect(() => {
@@ -259,6 +302,11 @@ export default function CommandPolicies() {
       }
 
       await fetchPolicies();
+      
+      // Invalidate KPI queries to update the cards
+      queryClient.invalidateQueries({ queryKey: ['activeCommands'] });
+      queryClient.invalidateQueries({ queryKey: ['highRiskCommands'] });
+      
       toast({
         title: "Success",
         description: `Policy ${policy.active ? 'disabled' : 'enabled'} successfully`,
@@ -287,19 +335,107 @@ export default function CommandPolicies() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Command Policies</h1>
-          <p className="text-muted-foreground">
-            Manage automated command execution policies
-          </p>
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Command Policies</h1>
+            <p className="text-muted-foreground">
+              Manage automated command execution policies
+            </p>
+          </div>
+          <Button onClick={handleAddNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Policy
+          </Button>
         </div>
-        <Button onClick={handleAddNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Policy
-        </Button>
-      </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-gradient-card border-card-border shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Active Commands
+              </CardTitle>
+              <Activity className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              {activeCommands.isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className="text-2xl font-bold text-foreground">{activeCommands.data}</div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Currently enabled
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card border-card-border shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Scripts
+              </CardTitle>
+              <Bot className="h-4 w-4 text-success" />
+            </CardHeader>
+            <CardContent>
+              {totalScripts.isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className="text-2xl font-bold text-foreground">{totalScripts.data}</div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Available scripts
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card border-card-border shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                High Risk
+              </CardTitle>
+              <Shield className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              {highRiskCommands.isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className="text-2xl font-bold text-foreground">{highRiskCommands.data}</div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                High risk commands
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card border-card-border shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                Success Rate
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground/60" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Last 30 days</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+              <CheckSquare className="h-4 w-4 text-warning" />
+            </CardHeader>
+            <CardContent>
+              {successRate.isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className="text-2xl font-bold text-foreground">{successRate.data}%</div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Task success rate
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
       <Alert>
         <Info className="h-4 w-4" />
@@ -379,6 +515,7 @@ export default function CommandPolicies() {
         policy={editingPolicy}
         onSave={fetchPolicies}
       />
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
