@@ -1,1 +1,4 @@
 project_id = "lfsdqyvvboapsyeauchm"
+
+[functions.ultaai-backend]
+verify_jwt = false
