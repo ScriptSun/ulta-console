@@ -46,6 +46,7 @@ const App = () => (
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/assertion-check" element={<AssertionCheck />} />
             <Route path="/scripts" element={<Scripts />} />
+            <Route path="/security/allowlist" element={<ScriptsAllowlist />} />
             <Route path="/scripts/allowlist" element={<ScriptsAllowlist />} />
             <Route path="/scripts/allowlist/commands" element={<AllowlistCommands />} />
             <Route path="/scripts/allowlist/batches" element={<AllowlistBatches />} />

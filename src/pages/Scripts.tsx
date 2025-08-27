@@ -6,13 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const scriptSections = [
   {
-    title: "Allowlist",
-    description: "Manage allowed scripts and permissions",
-    icon: List,
-    url: "/scripts/allowlist",
-    color: "bg-blue-500/10 text-blue-600"
-  },
-  {
     title: "Templates", 
     description: "Script templates and blueprints",
     icon: FileText,

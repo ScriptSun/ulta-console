@@ -42,6 +42,10 @@ const scriptItems = [
   { title: 'Scripts', url: '/scripts', icon: FileText },
 ]
 
+const securityItems = [
+  { title: 'Allow List', url: '/security/allowlist', icon: Shield },
+]
+
 const toolsItems = [
   { title: 'Integrations', url: '/integrations', icon: Puzzle },
   { title: 'Assertion Check', url: '/assertion-check', icon: TestTube },
@@ -127,6 +131,20 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {scriptItems.map((item) => (
+                <NavItem key={item.title} item={item} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Security */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            {!collapsed && 'Security'}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu className="space-y-1">
+              {securityItems.map((item) => (
                 <NavItem key={item.title} item={item} />
               ))}
             </SidebarMenu>
