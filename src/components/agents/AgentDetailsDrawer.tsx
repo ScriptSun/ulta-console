@@ -222,7 +222,7 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="sm:max-w-2xl">
+      <SheetContent className="sm:max-w-3xl">
         <SheetHeader>
           <div className="flex items-center gap-3">
             <div>
@@ -246,16 +246,14 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
         </SheetHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-            <TabsTrigger value="metrics">Metrics</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
+          <TabsContent value="overview" className="space-y-6">
+            {/* System Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -303,158 +301,8 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="tasks" className="space-y-4">
-            <ScrollArea className="h-96">
-              <div className="space-y-2">
-                {tasks.map((task) => {
-                  const TaskIcon = taskStatusConfig[task.status].icon;
-                  return (
-                    <Card key={task.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <TaskIcon className={cn("h-4 w-4", taskStatusConfig[task.status].color)} />
-                              <span className="font-medium">{task.task_name}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Started: {task.started_at ? new Date(task.started_at).toLocaleString() : 'Not started'}
-                            </p>
-                            {task.completed_at && (
-                              <p className="text-xs text-muted-foreground">
-                                Completed: {new Date(task.completed_at).toLocaleString()}
-                              </p>
-                            )}
-                            {task.error_message && (
-                              <p className="text-xs text-red-600 mt-1">{task.error_message}</p>
-                            )}
-                          </div>
-                          <Badge variant="outline" className="ml-2">
-                            {task.status}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-                {tasks.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">No tasks found</p>
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="metrics" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Cpu className="h-4 w-4" />
-                    CPU Usage
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{agent.cpu_usage}%</div>
-                  <Progress value={agent.cpu_usage} className="mt-2" />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <HardDrive className="h-4 w-4" />
-                    Memory Usage
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{agent.memory_usage}%</div>
-                  <Progress value={agent.memory_usage} className="mt-2" />
-                </CardContent>
-              </Card>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Recent Logs
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-48">
-                  <div className="space-y-2">
-                    {logs.slice(0, 20).map((log) => (
-                      <div key={log.id} className="flex items-start gap-2 text-sm">
-                        <Badge 
-                          variant="secondary" 
-                          className={cn(
-                            "text-xs px-2 py-0 h-5",
-                            logLevelConfig[log.level].color,
-                            logLevelConfig[log.level].bgColor
-                          )}
-                        >
-                          {log.level}
-                        </Badge>
-                        <div className="flex-1 min-w-0">
-                          <p className="break-words">{log.message}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(log.timestamp).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    {logs.length === 0 && (
-                      <p className="text-center text-muted-foreground py-4">No logs found</p>
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="logs" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Agent Logs (Real-time)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-96">
-                  <div className="space-y-2">
-                    {logs.map((log) => (
-                      <div key={log.id} className="flex items-start gap-2 text-sm border rounded p-3">
-                        <Badge 
-                          variant="secondary" 
-                          className={cn(
-                            "text-xs px-2 py-0 h-5",
-                            logLevelConfig[log.level].color,
-                            logLevelConfig[log.level].bgColor
-                          )}
-                        >
-                          {log.level}
-                        </Badge>
-                        <div className="flex-1 min-w-0">
-                          <p className="break-words font-mono text-sm">{log.message}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(log.timestamp).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    {logs.length === 0 && (
-                      <p className="text-center text-muted-foreground py-8">No logs found</p>
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="security" className="space-y-4">
+            {/* Security Status */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -508,6 +356,124 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                     </p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="monitoring" className="space-y-6">
+            {/* Performance Metrics */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Cpu className="h-4 w-4" />
+                    CPU Usage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{agent.cpu_usage}%</div>
+                  <Progress value={agent.cpu_usage} className="mt-2" />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <HardDrive className="h-4 w-4" />
+                    Memory Usage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{agent.memory_usage}%</div>
+                  <Progress value={agent.memory_usage} className="mt-2" />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Tasks */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Recent Tasks
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-64">
+                  <div className="space-y-2">
+                    {tasks.map((task) => {
+                      const TaskIcon = taskStatusConfig[task.status].icon;
+                      return (
+                        <div key={task.id} className="border rounded p-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <TaskIcon className={cn("h-4 w-4", taskStatusConfig[task.status].color)} />
+                                <span className="font-medium">{task.task_name}</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Started: {task.started_at ? new Date(task.started_at).toLocaleString() : 'Not started'}
+                              </p>
+                              {task.completed_at && (
+                                <p className="text-xs text-muted-foreground">
+                                  Completed: {new Date(task.completed_at).toLocaleString()}
+                                </p>
+                              )}
+                              {task.error_message && (
+                                <p className="text-xs text-red-600 mt-1">{task.error_message}</p>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="ml-2">
+                              {task.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {tasks.length === 0 && (
+                      <p className="text-center text-muted-foreground py-8">No tasks found</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            {/* Logs */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Recent Logs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-64">
+                  <div className="space-y-2">
+                    {logs.map((log) => (
+                      <div key={log.id} className="flex items-start gap-2 text-sm border rounded p-3">
+                        <Badge 
+                          variant="secondary" 
+                          className={cn(
+                            "text-xs px-2 py-0 h-5",
+                            logLevelConfig[log.level].color,
+                            logLevelConfig[log.level].bgColor
+                          )}
+                        >
+                          {log.level}
+                        </Badge>
+                        <div className="flex-1 min-w-0">
+                          <p className="break-words font-mono text-sm">{log.message}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(log.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {logs.length === 0 && (
+                      <p className="text-center text-muted-foreground py-8">No logs found</p>
+                    )}
+                  </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </TabsContent>
