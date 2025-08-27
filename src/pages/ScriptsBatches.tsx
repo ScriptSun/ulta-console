@@ -114,71 +114,49 @@ export default function ScriptsBatches() {
 
   const fetchBatches = async () => {
     try {
-      // Fetch batches with their latest version info
-      const { data: batchData, error: batchError } = await supabase
+      // First, fetch batches without requiring versions
+      let { data: batchData, error: batchError } = await supabase
         .from('script_batches')
-        .select(`
-          *,
-          script_batch_versions!inner (
-            version,
-            sha256,
-            status
-          )
-        `)
+        .select('*')
         .order('updated_at', { ascending: false });
 
       if (batchError) throw batchError;
 
       // If no batches exist, seed with demo data
       if (!batchData || batchData.length === 0) {
+        console.log('No batches found, creating demo batches...');
         await seedDemoBatches();
+        
         // Fetch again after seeding
         const { data: newBatchData, error: fetchError } = await supabase
           .from('script_batches')
-          .select(`
-            *,
-            script_batch_versions!inner (
-              version,
-              sha256,
-              status
-            )
-          `)
+          .select('*')
           .order('updated_at', { ascending: false });
         
         if (fetchError) throw fetchError;
-        
-        // Process the new data
-        const processedBatches = newBatchData?.map(batch => {
-          const versions = batch.script_batch_versions || [];
-          const latestVersion = versions.reduce((latest: any, current: any) => {
-            return (!latest || current.version > latest.version) ? current : latest;
-          }, null);
-
-          return {
-            ...batch,
-            latest_version: latestVersion,
-            script_batch_versions: undefined
-          };
-        }) || [];
-
-        setBatches(processedBatches as ScriptBatch[]);
-      } else {
-        // Process the existing data
-        const processedBatches = batchData?.map(batch => {
-          const versions = batch.script_batch_versions || [];
-          const latestVersion = versions.reduce((latest: any, current: any) => {
-            return (!latest || current.version > latest.version) ? current : latest;
-          }, null);
-
-          return {
-            ...batch,
-            latest_version: latestVersion,
-            script_batch_versions: undefined // Remove the nested data
-          };
-        }) || [];
-
-        setBatches(processedBatches as ScriptBatch[]);
+        batchData = newBatchData;
       }
+
+      // Now fetch version information for each batch
+      const processedBatches: ScriptBatch[] = [];
+      
+      for (const batch of batchData || []) {
+        const { data: versions } = await supabase
+          .from('script_batch_versions')
+          .select('version, sha256, status')
+          .eq('batch_id', batch.id)
+          .order('version', { ascending: false });
+
+        const latestVersion = versions?.[0] || null;
+        
+        processedBatches.push({
+          ...batch,
+          risk: batch.risk as 'low' | 'medium' | 'high',
+          latest_version: latestVersion
+        });
+      }
+
+      setBatches(processedBatches);
     } catch (error) {
       console.error('Error fetching batches:', error);
       toast({
@@ -197,8 +175,15 @@ export default function ScriptsBatches() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.warn('No authenticated user found');
+        toast({
+          title: 'Authentication Required',
+          description: 'Please make sure you are logged in',
+          variant: 'destructive',
+        });
         return;
       }
+
+      console.log('Creating demo batches for user:', user.id);
 
       // Use the user's ID as the customer_id for demo purposes
       const demoCustomerId = user.id;
@@ -208,7 +193,7 @@ export default function ScriptsBatches() {
           name: 'System Health Check',
           customer_id: demoCustomerId,
           os_targets: ['ubuntu', 'debian'],
-          risk: 'low',
+          risk: 'low' as const,
           max_timeout_sec: 300,
           auto_version: true,
           created_by: user.id,
@@ -218,15 +203,13 @@ export default function ScriptsBatches() {
           name: 'Security Audit Script',
           customer_id: demoCustomerId,
           os_targets: ['ubuntu', 'debian', 'almalinux'],
-          risk: 'medium',
+          risk: 'medium' as const,
           max_timeout_sec: 600,
           auto_version: false,
           created_by: user.id,
           updated_by: user.id
         }
       ];
-
-      console.log('Attempting to create demo batches with customer_id:', demoCustomerId);
 
       // Create the batches
       const { data: createdBatches, error: batchError } = await supabase
@@ -237,8 +220,18 @@ export default function ScriptsBatches() {
       if (batchError) {
         console.error('Error creating demo batches:', batchError);
         toast({
-          title: 'Demo Setup Issue',
-          description: `Database error: ${batchError.message}`,
+          title: 'Database Error',
+          description: `Failed to create batches: ${batchError.message}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!createdBatches || createdBatches.length === 0) {
+        console.error('No batches were created');
+        toast({
+          title: 'Creation Failed',
+          description: 'Batches were not created successfully',
           variant: 'destructive',
         });
         return;
@@ -249,12 +242,9 @@ export default function ScriptsBatches() {
       // Create demo versions for each batch
       const demoScripts = [
         {
-          // System Health Check script
           source: `#!/bin/bash
 
 # System Health Check Script
-# Performs basic system health monitoring
-
 echo "=== System Health Check ==="
 echo "Timestamp: $(date)"
 echo
@@ -266,7 +256,7 @@ echo
 
 # Check disk usage
 echo "Disk Usage:"
-df -h | head -n 5
+df -h
 echo
 
 # Check memory usage
@@ -274,62 +264,34 @@ echo "Memory Usage:"
 free -h
 echo
 
-# Check CPU load
-echo "CPU Load Average:"
-cat /proc/loadavg
-echo
-
-# Check running processes
-echo "Top Processes by CPU:"
-ps aux --sort=-%cpu | head -n 6
-echo
-
 echo "=== Health Check Complete ==="`,
-          notes: 'Initial version of system health monitoring script'
+          notes: 'System health monitoring script'
         },
         {
-          // Security Audit script
           source: `#!/bin/bash
 
 # Security Audit Script
-# Performs basic security checks on the system
-
 echo "=== Security Audit Started ==="
 echo "Timestamp: $(date)"
 echo
 
-# Check for unauthorized users
+# Check user accounts
 echo "Checking user accounts:"
-awk -F: '$3 >= 1000 {print $1}' /etc/passwd
+cat /etc/passwd | grep -E ":[0-9]{4}:" | wc -l
 echo
 
-# Check SSH configuration
-echo "SSH Configuration Check:"
-if [ -f /etc/ssh/sshd_config ]; then
-    echo "SSH config file exists"
-    grep -E "^(PasswordAuthentication|PermitRootLogin)" /etc/ssh/sshd_config || echo "Default SSH settings"
-else
-    echo "SSH config not found"
-fi
+# Check SSH status
+echo "SSH Service Status:"
+systemctl is-active ssh 2>/dev/null || echo "SSH status unknown"
 echo
 
-# Check for failed login attempts
-echo "Recent Failed Login Attempts:"
-grep "Failed password" /var/log/auth.log 2>/dev/null | tail -n 5 || echo "No recent failed attempts found"
-echo
-
-# Check running services
-echo "Active Network Services:"
-ss -tuln | head -n 10
-echo
-
-# Check file permissions on sensitive files
-echo "Checking critical file permissions:"
-ls -l /etc/passwd /etc/shadow /etc/group 2>/dev/null || echo "Some files not accessible"
+# Check open ports
+echo "Open Network Ports:"
+ss -tuln | head -5
 echo
 
 echo "=== Security Audit Complete ==="`,
-          notes: 'Basic security audit with login and configuration checks'
+          notes: 'Basic security audit script'
         }
       ];
 
@@ -338,38 +300,52 @@ echo "=== Security Audit Complete ==="`,
         const batch = createdBatches[i];
         const script = demoScripts[i];
         
-        // Calculate SHA256 (simplified for demo)
-        const sha256 = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(script.source));
-        const hashArray = Array.from(new Uint8Array(sha256));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        
-        const { error: versionError } = await supabase
-          .from('script_batch_versions')
-          .insert({
-            batch_id: batch.id,
-            version: 1,
-            sha256: hashHex,
-            size_bytes: new TextEncoder().encode(script.source).length,
-            source: script.source,
-            notes: script.notes,
-            status: 'active',
-            created_by: user.id
-          });
+        try {
+          // Calculate SHA256
+          const encoder = new TextEncoder();
+          const data = encoder.encode(script.source);
+          const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          
+          const { data: versionData, error: versionError } = await supabase
+            .from('script_batch_versions')
+            .insert({
+              batch_id: batch.id,
+              version: 1,
+              sha256: hashHex,
+              size_bytes: data.length,
+              source: script.source,
+              notes: script.notes,
+              status: 'active',
+              created_by: user.id
+            })
+            .select();
 
-        if (versionError) {
-          console.error('Error creating demo version:', versionError);
+          if (versionError) {
+            console.error('Error creating demo version for batch', batch.name, ':', versionError);
+            continue;
+          }
+
+          console.log('Created version for batch', batch.name, ':', versionData);
+
+          // Update batch to set active_version
+          const { error: updateError } = await supabase
+            .from('script_batches')
+            .update({ active_version: 1 })
+            .eq('id', batch.id);
+
+          if (updateError) {
+            console.error('Error updating active_version for batch', batch.name, ':', updateError);
+          }
+        } catch (error) {
+          console.error('Error processing batch', batch.name, ':', error);
         }
-
-        // Update batch to set active_version
-        await supabase
-          .from('script_batches')
-          .update({ active_version: 1 })
-          .eq('id', batch.id);
       }
 
       toast({
         title: 'Demo Batches Created',
-        description: 'Two demo script batches have been added for testing purposes',
+        description: 'Two demo script batches have been added successfully',
       });
 
     } catch (error) {
