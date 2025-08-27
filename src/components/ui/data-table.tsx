@@ -34,6 +34,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   searchKey?: string
   searchPlaceholder?: string
+  defaultHiddenColumns?: string[]
 }
 
 export function DataTable<TData, TValue>({
@@ -41,10 +42,21 @@ export function DataTable<TData, TValue>({
   data,
   searchKey,
   searchPlaceholder = "Search...",
+  defaultHiddenColumns = [],
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState({})
+  
+  // Create initial column visibility state with hidden columns
+  const initialColumnVisibility = React.useMemo(() => {
+    const visibility: Record<string, boolean> = {}
+    defaultHiddenColumns.forEach(columnId => {
+      visibility[columnId] = false
+    })
+    return visibility
+  }, [defaultHiddenColumns])
+  
+  const [columnVisibility, setColumnVisibility] = React.useState(initialColumnVisibility)
 
   const table = useReactTable({
     data,

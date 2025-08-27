@@ -335,6 +335,7 @@ export default function CommandPolicies() {
               data={getFilteredPolicies('auto')}
               searchKey="policy_name"
               searchPlaceholder="Search auto policies..."
+              defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
             />
           )}
         </TabsContent>
@@ -350,6 +351,7 @@ export default function CommandPolicies() {
               data={getFilteredPolicies('confirm')}
               searchKey="policy_name"
               searchPlaceholder="Search confirm policies..."
+              defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
             />
           )}
         </TabsContent>
@@ -365,6 +367,7 @@ export default function CommandPolicies() {
               data={getFilteredPolicies('forbid')}
               searchKey="policy_name"
               searchPlaceholder="Search forbid policies..."
+              defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
             />
           )}
         </TabsContent>
