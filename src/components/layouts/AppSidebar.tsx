@@ -48,6 +48,7 @@ const toolsItems = [
   { title: 'Assertion Check', url: '/assertion-check', icon: TestTube },
 ]
 
+// AppSidebar Component - Navigation menu without Scripts section
 export function AppSidebar() {
   const { state } = useSidebar()
   const location = useLocation()
