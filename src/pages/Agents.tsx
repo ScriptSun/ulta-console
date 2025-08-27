@@ -119,13 +119,9 @@ export default function Agents() {
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.warn('No authenticated user found');
-        return;
-      }
-
-      // Use the user's ID as the customer_id for demo purposes
-      const demoCustomerId = user.id;
+      
+      // Use a default customer ID for demo purposes if no user is authenticated
+      const demoCustomerId = user?.id || '00000000-0000-0000-0000-000000000001';
 
       const demoAgents = [
         {
