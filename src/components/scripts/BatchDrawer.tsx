@@ -374,7 +374,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
         <ScrollArea className="h-[calc(100vh-120px)] mt-6">
           <div className="space-y-6">
             {/* Basic Information */}
-            <div className="space-y-4">
+            <div className="space-y-4 p-4 bg-card/30 rounded-lg border">
               <h3 className="text-lg font-semibold">Basic Information</h3>
               
               {/* Batch Name, Timeout, and Risk Level in same div as 3 divs */}
