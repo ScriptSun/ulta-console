@@ -135,7 +135,7 @@ export function AgentsTable({
               onClick={() => onAgentClick(agent)}
             >
               <TableCell className="font-medium">
-                <div className="font-semibold">{agent.hostname || 'Unknown hostname'}</div>
+                <div className="font-semibold">{agent.id.slice(0, 5).toLowerCase()}@srvultahost.com</div>
               </TableCell>
               <TableCell>
                 <code className="text-xs bg-muted px-1 py-0.5 rounded">

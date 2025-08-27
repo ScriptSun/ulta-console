@@ -38,7 +38,7 @@ import { cn } from '@/lib/utils';
 
 interface Agent {
   id: string;
-  name: string;
+  hostname?: string;
   agent_type: string;
   status: 'running' | 'idle' | 'error' | 'offline';
   version?: string;
@@ -240,7 +240,7 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
         <SheetHeader className="flex-shrink-0">
           <div className="flex items-center gap-3">
             <div>
-              <SheetTitle className="text-xl">{agent.name}</SheetTitle>
+              <SheetTitle className="text-xl">{agent.id.slice(0, 5).toLowerCase()}@srvultahost.com</SheetTitle>
               <SheetDescription className="flex items-center gap-2 mt-3">
                 <Badge 
                   variant="secondary"
