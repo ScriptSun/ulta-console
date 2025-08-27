@@ -53,9 +53,9 @@ interface ScriptBatch {
 }
 
 const riskColors = {
-  low: 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-400 border border-emerald-500/30 shadow-emerald-500/10 shadow-lg',
-  medium: 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 shadow-amber-500/10 shadow-lg',
-  high: 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-400 border border-red-500/30 shadow-red-500/10 shadow-lg'
+  low: 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-400 border border-emerald-500/30 shadow-emerald-500/4 shadow-md',
+  medium: 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border border-amber-500/30 shadow-amber-500/4 shadow-md',
+  high: 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-400 border border-red-500/30 shadow-red-500/4 shadow-md'
 };
 
 export default function ScriptsBatches() {
