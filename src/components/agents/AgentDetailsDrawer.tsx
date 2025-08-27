@@ -116,17 +116,18 @@ const logLevelConfig = {
 };
 
 export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultTab = 'overview' }: AgentDetailsDrawerProps) {
-  const [activeTab, setActiveTab] = useState(defaultTab);
+  const [activeTab, setActiveTab] = useState('overview');
   const [tasks, setTasks] = useState<AgentTask[]>([]);
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (defaultTab) {
-      setActiveTab(defaultTab);
+    // Always set to overview when drawer opens
+    if (isOpen) {
+      setActiveTab('overview');
     }
-  }, [defaultTab]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (agent && isOpen) {
