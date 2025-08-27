@@ -117,21 +117,20 @@ export default function Agents() {
 
   const seedDemoAgents = async () => {
     try {
-      // Get user's customer IDs
-      const { data: customerIds, error: customerError } = await supabase
-        .rpc('get_user_customer_ids');
-      
-      if (customerError || !customerIds || customerIds.length === 0) {
-        console.warn('No customer IDs found for user, skipping demo agent seeding');
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('No authenticated user found');
         return;
       }
 
-      const customerId = customerIds[0]; // Use first customer ID
+      // Use the user's ID as the customer_id for demo purposes
+      const demoCustomerId = user.id;
 
       const demoAgents = [
         {
           name: 'Demo Agent Alpha',
-          customer_id: customerId,
+          customer_id: demoCustomerId,
           agent_type: 'general',
           status: 'running',
           version: '1.2.3',
@@ -149,7 +148,7 @@ export default function Agents() {
         },
         {
           name: 'Demo Agent Beta',
-          customer_id: customerId,
+          customer_id: demoCustomerId,
           agent_type: 'data_processor',
           status: 'idle',
           version: '1.2.1',
@@ -167,17 +166,34 @@ export default function Agents() {
         }
       ];
 
-      const { error } = await supabase
+      console.log('Attempting to create demo agents with customer_id:', demoCustomerId);
+
+      const { data, error } = await supabase
         .from('agents')
-        .insert(demoAgents);
+        .insert(demoAgents)
+        .select();
 
       if (error) {
         console.error('Error seeding demo agents:', error);
+        toast({
+          title: 'Demo Setup Issue',
+          description: `Database error: ${error.message}`,
+          variant: 'destructive',
+        });
       } else {
-        console.log('Demo agents seeded successfully');
+        console.log('Demo agents seeded successfully:', data);
+        toast({
+          title: 'Demo Agents Created',
+          description: 'Two demo agents have been added for testing purposes',
+        });
       }
     } catch (error) {
       console.error('Error in seedDemoAgents:', error);
+      toast({
+        title: 'Demo Setup Error',
+        description: 'Failed to create demo agents - check console for details',
+        variant: 'destructive',
+      });
     }
   };
 
