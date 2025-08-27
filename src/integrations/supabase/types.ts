@@ -14,6 +14,248 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_deployment_tokens: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          created_by: string
+          customer_id: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          expires_at?: string
+          id?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_deployment_tokens_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_heartbeats: {
+        Row: {
+          agent_id: string
+          cpu_usage: number
+          disk_usage: number | null
+          id: string
+          memory_usage: number
+          network_io_in: number | null
+          network_io_out: number | null
+          open_ports: number[] | null
+          timestamp: string
+          uptime_seconds: number
+        }
+        Insert: {
+          agent_id: string
+          cpu_usage: number
+          disk_usage?: number | null
+          id?: string
+          memory_usage: number
+          network_io_in?: number | null
+          network_io_out?: number | null
+          open_ports?: number[] | null
+          timestamp?: string
+          uptime_seconds: number
+        }
+        Update: {
+          agent_id?: string
+          cpu_usage?: number
+          disk_usage?: number | null
+          id?: string
+          memory_usage?: number
+          network_io_in?: number | null
+          network_io_out?: number | null
+          open_ports?: number[] | null
+          timestamp?: string
+          uptime_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_heartbeats_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_logs: {
+        Row: {
+          agent_id: string
+          id: string
+          level: string
+          message: string
+          metadata: Json | null
+          timestamp: string
+        }
+        Insert: {
+          agent_id: string
+          id?: string
+          level?: string
+          message: string
+          metadata?: Json | null
+          timestamp?: string
+        }
+        Update: {
+          agent_id?: string
+          id?: string
+          level?: string
+          message?: string
+          metadata?: Json | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_logs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_tasks: {
+        Row: {
+          agent_id: string
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          started_at: string | null
+          status: string
+          task_name: string
+        }
+        Insert: {
+          agent_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string
+          task_name: string
+        }
+        Update: {
+          agent_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string
+          task_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_tasks_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agents: {
+        Row: {
+          agent_type: string
+          auto_updates_enabled: boolean | null
+          certificate_fingerprint: string | null
+          cpu_usage: number | null
+          created_at: string
+          created_by: string
+          customer_id: string
+          id: string
+          ip_address: unknown | null
+          last_cert_rotation: string | null
+          last_seen: string | null
+          memory_usage: number | null
+          name: string
+          os: string | null
+          region: string | null
+          signature_key_version: number | null
+          status: string
+          tasks_completed: number | null
+          updated_at: string
+          updated_by: string
+          uptime_seconds: number | null
+          version: string | null
+        }
+        Insert: {
+          agent_type?: string
+          auto_updates_enabled?: boolean | null
+          certificate_fingerprint?: string | null
+          cpu_usage?: number | null
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          id?: string
+          ip_address?: unknown | null
+          last_cert_rotation?: string | null
+          last_seen?: string | null
+          memory_usage?: number | null
+          name: string
+          os?: string | null
+          region?: string | null
+          signature_key_version?: number | null
+          status?: string
+          tasks_completed?: number | null
+          updated_at?: string
+          updated_by?: string
+          uptime_seconds?: number | null
+          version?: string | null
+        }
+        Update: {
+          agent_type?: string
+          auto_updates_enabled?: boolean | null
+          certificate_fingerprint?: string | null
+          cpu_usage?: number | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          id?: string
+          ip_address?: unknown | null
+          last_cert_rotation?: string | null
+          last_seen?: string | null
+          memory_usage?: number | null
+          name?: string
+          os?: string | null
+          region?: string | null
+          signature_key_version?: number | null
+          status?: string
+          tasks_completed?: number | null
+          updated_at?: string
+          updated_by?: string
+          uptime_seconds?: number | null
+          version?: string | null
+        }
+        Relationships: []
+      }
       allowlist_batch_steps: {
         Row: {
           batch_id: string
