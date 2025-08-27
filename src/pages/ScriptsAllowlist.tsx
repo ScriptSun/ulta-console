@@ -51,35 +51,6 @@ export default function ScriptsAllowlist() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {allowlistSections.map((section) => {
-          const Icon = section.icon;
-          return (
-            <Card key={section.title} className="group hover:shadow-md transition-smooth">
-              <CardHeader className="pb-4">
-                <div className={`w-12 h-12 rounded-lg ${section.bgColor} flex items-center justify-center mb-4`}>
-                  <Icon className={`h-6 w-6 ${section.color}`} />
-                </div>
-                <CardTitle className="flex items-center justify-between">
-                  {section.title}
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-smooth" />
-                </CardTitle>
-                <CardDescription>
-                  {section.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button asChild variant="outline" className="w-full">
-                  <Link to={section.url}>
-                    Manage {section.title}
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -130,6 +101,35 @@ export default function ScriptsAllowlist() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {allowlistSections.map((section) => {
+          const Icon = section.icon;
+          return (
+            <Card key={section.title} className="group hover:shadow-md transition-smooth">
+              <CardHeader className="pb-4">
+                <div className={`w-12 h-12 rounded-lg ${section.bgColor} flex items-center justify-center mb-4`}>
+                  <Icon className={`h-6 w-6 ${section.color}`} />
+                </div>
+                <CardTitle className="flex items-center justify-between">
+                  {section.title}
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-smooth" />
+                </CardTitle>
+                <CardDescription>
+                  {section.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="outline" className="w-full">
+                  <Link to={section.url}>
+                    Manage {section.title}
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
