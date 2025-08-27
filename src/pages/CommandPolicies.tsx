@@ -426,6 +426,25 @@ export default function CommandPolicies() {
 
           <Card className="bg-gradient-card border-card-border shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Forbid Policies
+              </CardTitle>
+              <Shield className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              {forbidCommands.isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className="text-2xl font-bold text-foreground">{forbidCommands.data}</div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Blocked commands
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card border-card-border shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                 Success Rate
                 <Tooltip>
@@ -447,25 +466,6 @@ export default function CommandPolicies() {
               )}
               <p className="text-xs text-muted-foreground">
                 Command success rate
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-card border-card-border shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Forbid Policies
-              </CardTitle>
-              <Shield className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              {forbidCommands.isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold text-foreground">{forbidCommands.data}</div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Blocked commands
               </p>
             </CardContent>
           </Card>
