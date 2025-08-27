@@ -35,7 +35,6 @@ const mainItems = [
 const monitoringItems = [
   { title: 'Quotas & Usage', url: '/quotas', icon: BarChart3 },
   { title: 'Plans', url: '/plans', icon: CreditCard },
-  { title: 'Security Events', url: '/security', icon: Shield },
 ]
 
 const scriptItems = [
@@ -44,6 +43,7 @@ const scriptItems = [
 
 const securityItems = [
   { title: 'Allow List', url: '/security/allowlist', icon: Shield },
+  { title: 'Threats Report', url: '/security', icon: Shield },
 ]
 
 const toolsItems = [
