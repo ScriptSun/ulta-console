@@ -323,6 +323,98 @@ export type Database = {
         }
         Relationships: []
       }
+      command_policies: {
+        Row: {
+          active: boolean
+          confirm_message: string | null
+          created_at: string
+          created_by: string
+          customer_id: string
+          id: string
+          match_type: string
+          match_value: string
+          mode: string
+          os_whitelist: string[] | null
+          param_schema: Json | null
+          policy_name: string
+          risk: string
+          timeout_sec: number | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          active?: boolean
+          confirm_message?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          id?: string
+          match_type: string
+          match_value: string
+          mode: string
+          os_whitelist?: string[] | null
+          param_schema?: Json | null
+          policy_name: string
+          risk?: string
+          timeout_sec?: number | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          active?: boolean
+          confirm_message?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          id?: string
+          match_type?: string
+          match_value?: string
+          mode?: string
+          os_whitelist?: string[] | null
+          param_schema?: Json | null
+          policy_name?: string
+          risk?: string
+          timeout_sec?: number | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
+      policy_history: {
+        Row: {
+          action: string
+          actor_id: string
+          changes: Json | null
+          created_at: string
+          id: string
+          policy_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string
+          changes?: Json | null
+          created_at?: string
+          id?: string
+          policy_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          changes?: Json | null
+          created_at?: string
+          id?: string
+          policy_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_history_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "command_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       script_versions: {
         Row: {
           created_at: string

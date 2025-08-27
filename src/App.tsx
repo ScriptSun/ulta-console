@@ -22,6 +22,7 @@ import ScriptsTemplates from "./pages/ScriptsTemplates";
 import ScriptDetail from "./pages/ScriptDetail";
 import ScriptsBatches from "./pages/ScriptsBatches";
 import ScriptsSettings from "./pages/ScriptsSettings";
+import CommandPolicies from "./pages/CommandPolicies";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/scripts/allowlist" element={<ScriptsAllowlist />} />
             <Route path="/scripts/allowlist/commands" element={<AllowlistCommands />} />
             <Route path="/scripts/allowlist/batches" element={<AllowlistBatches />} />
+            <Route path="/security/allowlist/command-policies" element={<CommandPolicies />} />
             <Route path="/scripts/templates" element={<ScriptsTemplates />} />
             <Route path="/scripts/templates/:id" element={<ScriptDetail />} />
             <Route path="/scripts/batches" element={<ScriptsBatches />} />
