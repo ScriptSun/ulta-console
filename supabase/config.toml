@@ -21,3 +21,6 @@ verify_jwt = false
 
 [functions.ultaai-backend]
 verify_jwt = false
+
+[functions.classify-command]
+verify_jwt = false
