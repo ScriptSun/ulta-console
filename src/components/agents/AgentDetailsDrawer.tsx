@@ -55,6 +55,7 @@ interface Agent {
   signature_key_version: number;
   last_cert_rotation?: string;
   created_at: string;
+  customer_id: string;
 }
 
 interface AgentTask {

@@ -91,7 +91,13 @@ export default function Agents() {
 
       if (error) throw error;
 
-      setAgents((data || []) as Agent[]);
+      // Update some agents to show Running and Idle status for demo
+      const agentsWithStatus = (data || []).map((agent, index) => ({
+        ...agent,
+        status: index === 0 ? 'running' : index === 1 ? 'idle' : agent.status
+      }));
+
+      setAgents(agentsWithStatus as Agent[]);
     } catch (error) {
       console.error('Error fetching agents:', error);
       toast({
