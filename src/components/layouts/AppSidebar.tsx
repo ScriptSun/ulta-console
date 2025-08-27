@@ -42,8 +42,7 @@ const scriptItems = [
 ]
 
 const securityItems = [
-  { title: 'Allow List', url: '/security/allowlist', icon: Shield },
-  { title: 'Command Policies', url: '/security/allowlist/command-policies', icon: Shield },
+  { title: 'Command Policies', url: '/security/command-policies', icon: Shield },
   { title: 'Security Center', url: '/security', icon: Shield },
 ]
 
