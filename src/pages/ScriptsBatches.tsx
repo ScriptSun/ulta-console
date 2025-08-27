@@ -171,22 +171,10 @@ export default function ScriptsBatches() {
 
   const seedDemoBatches = async () => {
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.warn('No authenticated user found');
-        toast({
-          title: 'Authentication Required',
-          description: 'Please make sure you are logged in',
-          variant: 'destructive',
-        });
-        return;
-      }
+      // Use a default system customer ID for demo purposes (no auth required)
+      const demoCustomerId = '00000000-0000-0000-0000-000000000001';
 
-      console.log('Creating demo batches for user:', user.id);
-
-      // Use the user's ID as the customer_id for demo purposes
-      const demoCustomerId = user.id;
+      console.log('Creating demo batches with system customer ID:', demoCustomerId);
 
       const demoBatches = [
         {
@@ -196,8 +184,8 @@ export default function ScriptsBatches() {
           risk: 'low' as const,
           max_timeout_sec: 300,
           auto_version: true,
-          created_by: user.id,
-          updated_by: user.id
+          created_by: demoCustomerId,
+          updated_by: demoCustomerId
         },
         {
           name: 'Security Audit Script',
@@ -206,8 +194,8 @@ export default function ScriptsBatches() {
           risk: 'medium' as const,
           max_timeout_sec: 600,
           auto_version: false,
-          created_by: user.id,
-          updated_by: user.id
+          created_by: demoCustomerId,
+          updated_by: demoCustomerId
         }
       ];
 
@@ -318,7 +306,7 @@ echo "=== Security Audit Complete ==="`,
               source: script.source,
               notes: script.notes,
               status: 'active',
-              created_by: user.id
+              created_by: demoCustomerId
             })
             .select();
 
