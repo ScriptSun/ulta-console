@@ -51,11 +51,22 @@ interface AgentsTableProps {
 
 const getStatusBadge = (status: string) => {
   const statusConfig = {
-    running: { color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300', dot: 'bg-green-500' },
-    idle: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300', dot: 'bg-gray-500' },
-    suspended: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300', dot: 'bg-gray-500' },
-    error: { color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300', dot: 'bg-red-500' },
-    offline: { color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300', dot: 'bg-red-500' },
+    running: { 
+      color: 'bg-gradient-to-r from-emerald-400/10 via-green-500/10 to-emerald-600/10 text-emerald-300 border border-emerald-400/40 backdrop-blur-sm', 
+      dot: 'bg-gradient-to-r from-emerald-400 to-green-500 shadow-emerald-400/50 shadow-lg' 
+    },
+    idle: { 
+      color: 'bg-gradient-to-r from-slate-400/10 via-gray-500/10 to-slate-600/10 text-slate-300 border border-slate-400/40 backdrop-blur-sm', 
+      dot: 'bg-gradient-to-r from-slate-400 to-gray-500 shadow-slate-400/50 shadow-lg' 
+    },
+    error: { 
+      color: 'bg-gradient-to-r from-amber-400/10 via-orange-500/10 to-red-500/10 text-amber-300 border border-amber-400/40 backdrop-blur-sm', 
+      dot: 'bg-gradient-to-r from-amber-400 to-orange-500 shadow-amber-400/50 shadow-lg' 
+    },
+    offline: { 
+      color: 'bg-gradient-to-r from-red-500/15 via-rose-600/15 to-red-700/15 text-red-300 border border-red-500/50 backdrop-blur-sm shadow-red-500/20 shadow-lg', 
+      dot: 'bg-gradient-to-r from-red-500 to-rose-600 shadow-red-500/60 shadow-xl animate-pulse' 
+    },
   };
 
   const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
