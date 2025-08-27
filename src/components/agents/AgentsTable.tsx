@@ -52,20 +52,20 @@ interface AgentsTableProps {
 const getStatusBadge = (status: string) => {
   const statusConfig = {
     running: { 
-      color: 'bg-gradient-to-r from-emerald-500/5 to-cyan-500/5 text-emerald-200 border-0 ring-1 ring-emerald-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
+      color: 'bg-gradient-to-r from-emerald-500/5 to-green-500/5 text-emerald-200 border-0 ring-1 ring-emerald-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
       dot: 'bg-emerald-400 ring-2 ring-emerald-400/20 ring-offset-1 ring-offset-transparent' 
     },
     idle: { 
-      color: 'bg-gradient-to-r from-slate-500/5 to-zinc-500/5 text-slate-200 border-0 ring-1 ring-slate-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
-      dot: 'bg-slate-400 ring-2 ring-slate-400/20 ring-offset-1 ring-offset-transparent' 
+      color: 'bg-gradient-to-r from-yellow-500/5 to-amber-500/5 text-yellow-200 border-0 ring-1 ring-yellow-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
+      dot: 'bg-yellow-400 ring-2 ring-yellow-400/20 ring-offset-1 ring-offset-transparent' 
     },
     error: { 
-      color: 'bg-gradient-to-r from-orange-500/5 to-yellow-500/5 text-orange-200 border-0 ring-1 ring-orange-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
-      dot: 'bg-orange-400 ring-2 ring-orange-400/20 ring-offset-1 ring-offset-transparent' 
+      color: 'bg-gradient-to-r from-red-500/8 via-red-500/6 to-red-500/8 text-red-200 border-0 ring-1 ring-red-400/40 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
+      dot: 'bg-gradient-to-r from-red-400 to-red-500 ring-2 ring-red-400/30 ring-offset-1 ring-offset-transparent' 
     },
     offline: { 
-      color: 'bg-gradient-to-r from-red-500/8 via-rose-500/6 to-pink-500/8 text-red-200 border-0 ring-1 ring-red-400/40 ring-inset backdrop-blur-xl rounded-full px-3 py-1 shadow-inner', 
-      dot: 'bg-gradient-to-r from-red-400 to-rose-500 ring-2 ring-red-400/30 ring-offset-1 ring-offset-transparent' 
+      color: 'bg-gradient-to-r from-slate-500/5 to-gray-500/5 text-gray-200 border-0 ring-1 ring-slate-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
+      dot: 'bg-slate-400 ring-2 ring-slate-400/20 ring-offset-1 ring-offset-transparent' 
     },
   };
 
