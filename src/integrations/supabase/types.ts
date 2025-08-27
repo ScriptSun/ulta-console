@@ -722,6 +722,98 @@ export type Database = {
           },
         ]
       }
+      script_batch_versions: {
+        Row: {
+          batch_id: string
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          sha256: string
+          size_bytes: number
+          source: string
+          status: string
+          version: number
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          sha256: string
+          size_bytes: number
+          source: string
+          status?: string
+          version: number
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          sha256?: string
+          size_bytes?: number
+          source?: string
+          status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "script_batch_versions_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "script_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      script_batches: {
+        Row: {
+          active_version: number | null
+          auto_version: boolean
+          created_at: string
+          created_by: string
+          customer_id: string
+          id: string
+          max_timeout_sec: number
+          name: string
+          os_targets: string[]
+          risk: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          active_version?: number | null
+          auto_version?: boolean
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          id?: string
+          max_timeout_sec?: number
+          name: string
+          os_targets?: string[]
+          risk?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          active_version?: number | null
+          auto_version?: boolean
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          id?: string
+          max_timeout_sec?: number
+          name?: string
+          os_targets?: string[]
+          risk?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
       script_versions: {
         Row: {
           created_at: string
@@ -848,9 +940,17 @@ export type Database = {
       }
     }
     Functions: {
+      activate_batch_version: {
+        Args: { _batch_id: string; _user_id: string; _version: number }
+        Returns: boolean
+      }
       can_activate_in_customer: {
         Args: { _customer_id: string }
         Returns: boolean
+      }
+      get_next_batch_version: {
+        Args: { _batch_id: string }
+        Returns: number
       }
       get_user_customer_ids: {
         Args: Record<PropertyKey, never>
