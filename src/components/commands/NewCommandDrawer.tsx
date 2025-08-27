@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -22,7 +24,7 @@ import {
 } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import { SHABadge } from '@/components/scripts/SHABadge';
-import { X, CheckCircle, AlertCircle, Shield } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Shield, Info, Eye } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -68,11 +70,25 @@ const mockScripts: Script[] = [
 const osOptions = ['windows', 'linux', 'macos', 'ubuntu', 'debian', 'centos', 'rhel'];
 const riskLevels = ['low', 'medium', 'high'];
 
+const allowedBinaries = {
+  windows: ['cmd', 'powershell', 'wmic', 'sc', 'net', 'reg', 'tasklist', 'taskkill'],
+  linux: ['apt', 'apt-get', 'yum', 'dnf', 'systemctl', 'service', 'ps', 'kill', 'grep', 'awk', 'sed'],
+  ubuntu: ['apt', 'apt-get', 'systemctl', 'service', 'ps', 'kill', 'grep', 'awk', 'sed'],
+  debian: ['apt', 'apt-get', 'systemctl', 'service', 'ps', 'kill', 'grep', 'awk', 'sed'],
+  centos: ['yum', 'dnf', 'systemctl', 'service', 'ps', 'kill', 'grep', 'awk', 'sed'],
+  rhel: ['yum', 'dnf', 'systemctl', 'service', 'ps', 'kill', 'grep', 'awk', 'sed'],
+  macos: ['brew', 'launchctl', 'ps', 'kill', 'grep', 'awk', 'sed']
+};
+
+const forbiddenChars = [';', '|', '`', '$()'];
+
 export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }: NewCommandDrawerProps) {
+  const [execType, setExecType] = useState<'script' | 'command'>('script');
   const [commandName, setCommandName] = useState('');
   const [selectedScript, setSelectedScript] = useState('');
   const [selectedVersion, setSelectedVersion] = useState('');
   const [expectedSHA, setExpectedSHA] = useState('');
+  const [cmdTemplate, setCmdTemplate] = useState('');
   const [osWhitelist, setOsWhitelist] = useState<string[]>([]);
   const [minAgentVersion, setMinAgentVersion] = useState('');
   const [timeoutSec, setTimeoutSec] = useState(300);
@@ -83,6 +99,7 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{status: 'ok' | 'error', message: string} | null>(null);
+  const [templatePreview, setTemplatePreview] = useState('');
   const { toast } = useToast();
 
   // Auto-fill SHA when script/version changes
@@ -99,10 +116,12 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
   // Reset form or populate for editing
   useEffect(() => {
     if (editCommand) {
+      setExecType(editCommand.execType || 'script');
       setCommandName(editCommand.commandName);
       setSelectedScript(editCommand.scriptId);
-      setSelectedVersion(editCommand.scriptVersion.toString());
+      setSelectedVersion(editCommand.scriptVersion?.toString());
       setExpectedSHA(editCommand.expectedSHA);
+      setCmdTemplate(editCommand.cmdTemplate || '');
       setOsWhitelist(editCommand.osWhitelist || []);
       setMinAgentVersion(editCommand.minAgentVersion || '');
       setTimeoutSec(editCommand.timeoutSec || 300);
@@ -115,10 +134,12 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
   }, [editCommand, open]);
 
   const resetForm = () => {
+    setExecType('script');
     setCommandName('');
     setSelectedScript('');
     setSelectedVersion('');
     setExpectedSHA('');
+    setCmdTemplate('');
     setOsWhitelist([]);
     setMinAgentVersion('');
     setTimeoutSec(300);
@@ -126,16 +147,73 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
     setActive(true);
     setJsonSchema('{\n  "type": "object",\n  "properties": {\n    "example": {\n      "type": "string",\n      "description": "Example parameter"\n    }\n  },\n  "required": ["example"]\n}');
     setDefaults('{\n  "example": "default_value"\n}');
+    setTemplatePreview('');
   };
 
   const handleOsAdd = (os: string) => {
     if (!osWhitelist.includes(os)) {
-      setOsWhitelist([...osWhitelist, os]);
+      const newOsList = [...osWhitelist, os];
+      setOsWhitelist(newOsList);
+      
+      // Auto-set default command template for Command Line mode
+      if (execType === 'command' && !cmdTemplate && (os === 'ubuntu' || os === 'debian')) {
+        setCmdTemplate('apt update && apt upgrade -y');
+      }
     }
   };
 
   const handleOsRemove = (os: string) => {
     setOsWhitelist(osWhitelist.filter(o => o !== os));
+  };
+
+  const validateCmdTemplate = (template: string) => {
+    if (!template.trim()) return { isValid: false, error: 'Template is required' };
+    
+    // Check for forbidden characters
+    const hasForbidden = forbiddenChars.some(char => {
+      if (char === '$()') {
+        return template.includes('$(') || template.includes('`');
+      }
+      return template.includes(char);
+    });
+    
+    if (hasForbidden) {
+      return { isValid: false, error: 'Template contains forbidden characters: ; | ` $() > < newlines' };
+    }
+    
+    // Check for newlines
+    if (template.includes('\n')) {
+      return { isValid: false, error: 'Template must be a single line' };
+    }
+    
+    // Check first token is allowed binary
+    const firstToken = template.trim().split(' ')[0];
+    const allowedForOS = osWhitelist.length > 0 
+      ? osWhitelist.flatMap(os => allowedBinaries[os] || [])
+      : Object.values(allowedBinaries).flat();
+    
+    if (!allowedForOS.includes(firstToken)) {
+      return { isValid: false, error: `First binary '${firstToken}' not allowed for selected OS` };
+    }
+    
+    return { isValid: true, error: '' };
+  };
+
+  const handleTemplatePreview = () => {
+    try {
+      const params = JSON.parse(defaults);
+      let preview = cmdTemplate;
+      
+      // Replace ${param} placeholders with values
+      Object.entries(params).forEach(([key, value]) => {
+        const regex = new RegExp(`\\$\\{${key}\\}`, 'g');
+        preview = preview.replace(regex, String(value));
+      });
+      
+      setTemplatePreview(preview);
+    } catch (error) {
+      setTemplatePreview('Invalid JSON in defaults - cannot preview');
+    }
   };
 
   const renderPreviewForm = () => {
@@ -236,10 +314,45 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
   };
 
   const handleSave = async () => {
-    if (!commandName.trim() || !selectedScript || !selectedVersion) {
+    // Validation based on exec type
+    if (execType === 'script') {
+      if (!commandName.trim() || !selectedScript || !selectedVersion) {
+        toast({
+          title: 'Validation Error',
+          description: 'Command name, script, and version are required for Script mode',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else if (execType === 'command') {
+      if (!commandName.trim() || !cmdTemplate.trim()) {
+        toast({
+          title: 'Validation Error',
+          description: 'Command name and template are required for Command Line mode',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      const templateValidation = validateCmdTemplate(cmdTemplate);
+      if (!templateValidation.isValid) {
+        toast({
+          title: 'Validation Error',
+          description: templateValidation.error,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
+    // Validate JSON schema
+    try {
+      JSON.parse(jsonSchema);
+      JSON.parse(defaults);
+    } catch (error) {
       toast({
         title: 'Validation Error',
-        description: 'Command name, script, and version are required',
+        description: 'Parameter Schema and Defaults must be valid JSON',
         variant: 'destructive',
       });
       return;
@@ -248,22 +361,30 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
     setLoading(true);
     try {
       // TODO: Implement API calls to create/update allowlist_commands and allowlist_command_params
-      // const commandData = {
-      //   commandName,
-      //   scriptId: selectedScript,
-      //   scriptVersion: parseInt(selectedVersion),
-      //   expectedSHA,
-      //   osWhitelist: osWhitelist.length > 0 ? osWhitelist : null,
-      //   minAgentVersion: minAgentVersion || null,
-      //   timeoutSec,
-      //   risk,
-      //   active,
-      // };
+      const commandData = {
+        commandName,
+        execType,
+        ...(execType === 'script' ? {
+          scriptId: selectedScript,
+          scriptVersion: parseInt(selectedVersion),
+          expectedSHA,
+        } : {
+          cmdTemplate,
+        }),
+        osWhitelist: osWhitelist.length > 0 ? osWhitelist : null,
+        minAgentVersion: minAgentVersion || null,
+        timeoutSec,
+        risk,
+        active,
+      };
 
-      // const paramsData = {
-      //   jsonSchema: JSON.parse(jsonSchema),
-      //   defaults: JSON.parse(defaults),
-      // };
+      const paramsData = {
+        jsonSchema: JSON.parse(jsonSchema),
+        defaults: JSON.parse(defaults),
+      };
+
+      console.log('Command data:', commandData);
+      console.log('Params data:', paramsData);
 
       toast({
         title: 'Success',
@@ -309,52 +430,139 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Script</Label>
-                <Select value={selectedScript} onValueChange={setSelectedScript}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select script" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockScripts.map((script) => (
-                      <SelectItem key={script.id} value={script.id}>
-                        {script.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Execution Type */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Label>Execution Type</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Command Line is a locked one line template with strict validation for security</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-
-              <div className="space-y-2">
-                <Label>Version</Label>
-                <Select 
-                  value={selectedVersion} 
-                  onValueChange={setSelectedVersion}
-                  disabled={!selectedScript}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select version" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedScript && mockScripts
-                      .find(s => s.id === selectedScript)
-                      ?.versions.map((version) => (
-                        <SelectItem key={version.version} value={version.version.toString()}>
-                          v{version.version} ({version.status})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <RadioGroup value={execType} onValueChange={(value: 'script' | 'command') => setExecType(value)}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="script" id="script" />
+                  <Label htmlFor="script">Script</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="command" id="command" />
+                  <Label htmlFor="command">Command Line</Label>
+                </div>
+              </RadioGroup>
             </div>
 
-            {expectedSHA && (
-              <div className="space-y-2">
-                <Label>Expected SHA256</Label>
-                <div>
-                  <SHABadge sha256={expectedSHA} />
+            {/* Script Fields - Only show if execType is 'script' */}
+            {execType === 'script' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Script</Label>
+                    <Select value={selectedScript} onValueChange={setSelectedScript}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select script" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockScripts.map((script) => (
+                          <SelectItem key={script.id} value={script.id}>
+                            {script.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Version</Label>
+                    <Select 
+                      value={selectedVersion} 
+                      onValueChange={setSelectedVersion}
+                      disabled={!selectedScript}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select version" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedScript && mockScripts
+                          .find(s => s.id === selectedScript)
+                          ?.versions.map((version) => (
+                            <SelectItem key={version.version} value={version.version.toString()}>
+                              v{version.version} ({version.status})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
+                {expectedSHA && (
+                  <div className="space-y-2">
+                    <Label>Expected SHA256</Label>
+                    <div>
+                      <SHABadge sha256={expectedSHA} />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Command Line Fields - Only show if execType is 'command' */}
+            {execType === 'command' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Command Template</Label>
+                  <Textarea
+                    value={cmdTemplate}
+                    onChange={(e) => setCmdTemplate(e.target.value)}
+                    className="font-mono text-sm"
+                    placeholder="apt update && apt upgrade -y"
+                    rows={3}
+                  />
+                  {(() => {
+                    const validation = validateCmdTemplate(cmdTemplate);
+                    return !validation.isValid && cmdTemplate && (
+                      <div className="text-sm text-destructive">{validation.error}</div>
+                    );
+                  })()}
+                </div>
+                
+                <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                  <h4 className="text-sm font-medium">Validation Rules</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Forbidden characters: ; | ` $() &gt; &lt; newlines</li>
+                    <li>• First binary must be approved for selected OS</li>
+                    <li>• Single line only</li>
+                    <li>• Use ${'{param}'} for parameter substitution</li>
+                  </ul>
+                </div>
+
+                {cmdTemplate && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTemplatePreview}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </Button>
+                  </div>
+                )}
+
+                {templatePreview && (
+                  <div className="space-y-2">
+                    <Label>Preview with Sample Params</Label>
+                    <div className="p-3 bg-muted font-mono text-sm rounded">
+                      {templatePreview}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -514,7 +722,7 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
             </Button>
             <Button
               onClick={handleSave}
-              disabled={loading}
+              disabled={loading || (execType === 'script' && (!commandName.trim() || !selectedScript || !selectedVersion)) || (execType === 'command' && (!commandName.trim() || !cmdTemplate.trim() || !validateCmdTemplate(cmdTemplate).isValid))}
             >
               {loading ? 'Saving...' : editCommand ? 'Update Command' : 'Create Command'}
             </Button>

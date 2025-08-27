@@ -46,6 +46,8 @@ interface AllowlistCommand {
   active: boolean;
   updated: string;
   updatedBy: string;
+  execType: 'script' | 'command';
+  cmdTemplate?: string;
 }
 
 const mockCommands: AllowlistCommand[] = [
@@ -62,6 +64,7 @@ const mockCommands: AllowlistCommand[] = [
     active: true,
     updated: '2024-01-15T10:30:00Z',
     updatedBy: 'user@example.com',
+    execType: 'script',
   },
   {
     id: '2',
@@ -75,6 +78,7 @@ const mockCommands: AllowlistCommand[] = [
     active: true,
     updated: '2024-01-10T14:45:00Z',
     updatedBy: 'admin@example.com',
+    execType: 'script',
   },
   {
     id: '3',
@@ -89,6 +93,8 @@ const mockCommands: AllowlistCommand[] = [
     active: false,
     updated: '2024-01-05T09:15:00Z',
     updatedBy: 'user@example.com',
+    execType: 'command',
+    cmdTemplate: 'apt-get update && apt-get upgrade -y',
   },
 ];
 
@@ -178,23 +184,44 @@ export default function AllowlistCommands() {
       ),
     },
     {
+      accessorKey: 'execType',
+      header: 'Exec Type',
+      cell: ({ row }) => (
+        <Badge variant={row.original.execType === 'script' ? 'default' : 'secondary'}>
+          {row.original.execType === 'script' ? 'Script' : 'Command'}
+        </Badge>
+      ),
+    },
+    {
       accessorKey: 'scriptName',
       header: 'Script & Version',
-      cell: ({ row }) => (
-        <div className="space-y-1">
-          <div className="font-medium">{row.original.scriptName}</div>
-          <Badge variant="outline" className="text-xs">
-            v{row.original.scriptVersion}
-          </Badge>
-        </div>
-      ),
+      cell: ({ row }) => {
+        if (row.original.execType === 'command') {
+          return (
+            <div className="text-sm text-muted-foreground font-mono">
+              {row.original.cmdTemplate?.slice(0, 30)}...
+            </div>
+          );
+        }
+        return (
+          <div className="space-y-1">
+            <div className="font-medium">{row.original.scriptName}</div>
+            <Badge variant="outline" className="text-xs">
+              v{row.original.scriptVersion}
+            </Badge>
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'expectedSHA',
       header: 'Expected SHA',
-      cell: ({ row }) => (
-        <SHABadge sha256={row.getValue('expectedSHA')} />
-      ),
+      cell: ({ row }) => {
+        if (row.original.execType === 'command') {
+          return <span className="text-sm text-muted-foreground">N/A</span>;
+        }
+        return <SHABadge sha256={row.getValue('expectedSHA')} />;
+      },
     },
     {
       accessorKey: 'osWhitelist',
