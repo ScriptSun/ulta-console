@@ -12,7 +12,7 @@ import {
   Eye,
   Hash
 } from 'lucide-react';
-import { validateScript, calculateSHA256, formatBytes, type ValidationResult } from '@/utils/scriptValidation';
+import { validateScript, formatBytes, type ValidationResult } from '@/utils/scriptValidation';
 import { cn } from '@/lib/utils';
 
 interface BatchCodeEditorProps {
@@ -38,8 +38,8 @@ export function BatchCodeEditor({
   });
   const [showLineNumbers, setShowLineNumbers] = useState(true);
 
-  const validateContent = useCallback((content: string) => {
-    const result = validateScript({ content });
+  const validateContent = useCallback(async (content: string) => {
+    const result = await validateScript({ content });
     setValidation(result);
     onValidationChange?.(result);
   }, [onValidationChange]);

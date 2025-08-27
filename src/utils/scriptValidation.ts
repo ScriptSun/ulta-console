@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { computeSHA256 } from './sha256';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -26,7 +26,7 @@ const WARNING_PATTERNS = [
   /\$\([^)]*\)/g,                // Command substitution
 ];
 
-export function validateScript(script: ScriptContent): ValidationResult {
+export async function validateScript(script: ScriptContent): Promise<ValidationResult> {
   const { content } = script;
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -77,7 +77,7 @@ export function validateScript(script: ScriptContent): ValidationResult {
   // Calculate SHA256
   let sha256: string | undefined;
   try {
-    sha256 = createHash('sha256').update(content, 'utf8').digest('hex');
+    sha256 = await computeSHA256(content);
   } catch (error) {
     warnings.push('Could not calculate SHA256 hash');
   }
@@ -91,8 +91,8 @@ export function validateScript(script: ScriptContent): ValidationResult {
   };
 }
 
-export function calculateSHA256(content: string): string {
-  return createHash('sha256').update(content, 'utf8').digest('hex');
+export async function calculateSHA256(content: string): Promise<string> {
+  return await computeSHA256(content);
 }
 
 export function formatBytes(bytes: number): string {
