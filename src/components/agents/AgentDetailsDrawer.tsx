@@ -78,6 +78,7 @@ interface AgentDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   canManage: boolean;
+  defaultTab?: string;
 }
 
 const statusConfig = {
@@ -102,11 +103,18 @@ const logLevelConfig = {
   error: { color: 'text-red-600', bgColor: 'bg-red-100' }
 };
 
-export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage }: AgentDetailsDrawerProps) {
+export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultTab = 'overview' }: AgentDetailsDrawerProps) {
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [tasks, setTasks] = useState<AgentTask[]>([]);
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
 
   useEffect(() => {
     if (agent && isOpen) {
@@ -237,11 +245,12 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage }: AgentD
           </div>
         </SheetHeader>
 
-        <Tabs defaultValue="overview" className="mt-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="metrics">Metrics</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -398,6 +407,46 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage }: AgentD
                     ))}
                     {logs.length === 0 && (
                       <p className="text-center text-muted-foreground py-4">No logs found</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="logs" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Agent Logs (Real-time)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-96">
+                  <div className="space-y-2">
+                    {logs.map((log) => (
+                      <div key={log.id} className="flex items-start gap-2 text-sm border rounded p-3">
+                        <Badge 
+                          variant="secondary" 
+                          className={cn(
+                            "text-xs px-2 py-0 h-5",
+                            logLevelConfig[log.level].color,
+                            logLevelConfig[log.level].bgColor
+                          )}
+                        >
+                          {log.level}
+                        </Badge>
+                        <div className="flex-1 min-w-0">
+                          <p className="break-words font-mono text-sm">{log.message}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(log.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {logs.length === 0 && (
+                      <p className="text-center text-muted-foreground py-8">No logs found</p>
                     )}
                   </div>
                 </ScrollArea>

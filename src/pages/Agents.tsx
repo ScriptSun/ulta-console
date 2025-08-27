@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Users } from 'lucide-react';
+import { Plus, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { AgentCard } from '@/components/agents/AgentCard';
+import { AgentsTable } from '@/components/agents/AgentsTable';
 import { AgentDetailsDrawer } from '@/components/agents/AgentDetailsDrawer';
 import { DeployAgentModal } from '@/components/agents/DeployAgentModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,11 +45,13 @@ export default function Agents() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [osFilter, setOsFilter] = useState<string>('all');
+  const [regionFilter, setRegionFilter] = useState<string>('all');
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [deployModalOpen, setDeployModalOpen] = useState(false);
-  const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('viewer');
+  const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('admin');
+  const [defaultTab, setDefaultTab] = useState<string>('overview');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -78,7 +80,7 @@ export default function Agents() {
 
   useEffect(() => {
     filterAgents();
-  }, [agents, searchQuery, statusFilter, typeFilter]);
+  }, [agents, searchQuery, statusFilter, osFilter, regionFilter]);
 
   const fetchAgents = async () => {
     try {
@@ -110,7 +112,8 @@ export default function Agents() {
       filtered = filtered.filter(agent =>
         agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         agent.agent_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        agent.region?.toLowerCase().includes(searchQuery.toLowerCase())
+        agent.region?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        agent.ip_address?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -119,16 +122,30 @@ export default function Agents() {
       filtered = filtered.filter(agent => agent.status === statusFilter);
     }
 
-    // Type filter
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(agent => agent.agent_type === typeFilter);
+    // OS filter
+    if (osFilter !== 'all') {
+      filtered = filtered.filter(agent => agent.os === osFilter);
+    }
+
+    // Region filter
+    if (regionFilter !== 'all') {
+      filtered = filtered.filter(agent => agent.region === regionFilter);
     }
 
     setFilteredAgents(filtered);
   };
 
-  const handleAgentAction = async (agentId: string, action: 'start' | 'pause') => {
+  const handleAgentAction = async (agentId: string, action: 'start' | 'pause' | 'stop') => {
     try {
+      // Log the action to audit trail
+      await supabase.from('audit_logs').insert({
+        customer_id: '22222222-2222-2222-2222-222222222222',
+        actor: 'elin@ultahost.com', // Should be from user context
+        action: `agent_${action}`,
+        target: `agent:${agentId}`,
+        meta: { agent_id: agentId, action }
+      });
+
       const { error } = await supabase.functions.invoke('agent-control', {
         body: { agent_id: agentId, action }
       });
@@ -137,7 +154,7 @@ export default function Agents() {
 
       toast({
         title: 'Success',
-        description: `Agent ${action === 'start' ? 'started' : 'paused'} successfully`,
+        description: `Agent ${action}ed successfully`,
       });
 
       // Refresh agents
@@ -153,15 +170,20 @@ export default function Agents() {
   };
 
   const handleViewLogs = async (agent: Agent) => {
-    // This could open a separate logs modal/drawer
-    toast({
-      title: 'Logs',
-      description: `Opening logs for ${agent.name}`,
-    });
+    setSelectedAgent(agent);
+    setDefaultTab('logs');
+    setDetailsOpen(true);
   };
 
   const handleAgentDetails = (agent: Agent) => {
     setSelectedAgent(agent);
+    setDefaultTab('overview');
+    setDetailsOpen(true);
+  };
+
+  const handleAgentClick = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setDefaultTab('overview');
     setDetailsOpen(true);
   };
 
@@ -173,12 +195,21 @@ export default function Agents() {
     });
   };
 
-  const handleDeleteAgent = async (agent: Agent) => {
-    if (!confirm(`Are you sure you want to delete "${agent.name}"? This action cannot be undone.`)) {
+  const handleRemoveAgent = async (agent: Agent) => {
+    if (!confirm(`Are you sure you want to remove "${agent.name}"? This action cannot be undone.`)) {
       return;
     }
 
     try {
+      // Log the action to audit trail
+      await supabase.from('audit_logs').insert({
+        customer_id: '22222222-2222-2222-2222-222222222222',
+        actor: 'elin@ultahost.com', // Should be from user context
+        action: 'agent_remove',
+        target: `agent:${agent.id}`,
+        meta: { agent_id: agent.id, agent_name: agent.name }
+      });
+
       const { error } = await supabase
         .from('agents')
         .delete()
@@ -187,16 +218,16 @@ export default function Agents() {
       if (error) throw error;
 
       toast({
-        title: 'Agent Deleted',
-        description: `${agent.name} has been deleted successfully`,
+        title: 'Agent Removed',
+        description: `${agent.name} has been removed successfully`,
       });
 
       fetchAgents();
     } catch (error) {
-      console.error('Error deleting agent:', error);
+      console.error('Error removing agent:', error);
       toast({
         title: 'Error',
-        description: 'Failed to delete agent',
+        description: 'Failed to remove agent',
         variant: 'destructive',
       });
     }
@@ -210,6 +241,10 @@ export default function Agents() {
   };
 
   const canManage = userRole === 'approver' || userRole === 'admin';
+
+  // Get unique values for filters
+  const uniqueOSValues = [...new Set(agents.map(agent => agent.os).filter(Boolean))];
+  const uniqueRegionValues = [...new Set(agents.map(agent => agent.region).filter(Boolean))];
 
   if (loading) {
     return (
@@ -277,62 +312,75 @@ export default function Agents() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      {/* Toolbar with Filters */}
+      <div className="flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search agents..."
+            placeholder="Search by agent name, hostname, or IP..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
         
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="running">Running</SelectItem>
-            <SelectItem value="idle">Idle</SelectItem>
-            <SelectItem value="error">Error</SelectItem>
-            <SelectItem value="offline">Offline</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="running">Running</SelectItem>
+              <SelectItem value="idle">Idle</SelectItem>
+              <SelectItem value="error">Error</SelectItem>
+              <SelectItem value="offline">Offline</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="general">General</SelectItem>
-            <SelectItem value="data_processor">Data Processor</SelectItem>
-            <SelectItem value="monitor">Monitor</SelectItem>
-            <SelectItem value="backup">Backup</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select value={osFilter} onValueChange={setOsFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All OS" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All OS</SelectItem>
+              {uniqueOSValues.map((os) => (
+                <SelectItem key={os} value={os} className="capitalize">
+                  {os}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={regionFilter} onValueChange={setRegionFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Regions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Regions</SelectItem>
+              {uniqueRegionValues.map((region) => (
+                <SelectItem key={region} value={region} className="capitalize">
+                  {region}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Agents Grid */}
+      {/* Agents Table */}
       {filteredAgents.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredAgents.map((agent) => (
-            <AgentCard
-              key={agent.id}
-              agent={agent}
-              onStart={(agent) => handleAgentAction(agent.id, 'start')}
-              onPause={(agent) => handleAgentAction(agent.id, 'pause')}
-              onLogs={handleViewLogs}
-              onDetails={handleAgentDetails}
-              onUpdate={handleUpdateAgent}
-              onDelete={handleDeleteAgent}
-              canManage={canManage}
-            />
-          ))}
-        </div>
+        <AgentsTable
+          agents={filteredAgents}
+          onAgentClick={handleAgentClick}
+          onStart={(agent) => handleAgentAction(agent.id, 'start')}
+          onPause={(agent) => handleAgentAction(agent.id, 'pause')}
+          onStop={(agent) => handleAgentAction(agent.id, 'stop')}
+          onRemove={handleRemoveAgent}
+          onLogs={handleViewLogs}
+          onDetails={handleAgentDetails}
+          canManage={canManage}
+        />
       ) : (
         <Card>
           <CardContent className="py-12">
@@ -362,8 +410,12 @@ export default function Agents() {
       <AgentDetailsDrawer
         agent={selectedAgent}
         isOpen={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
+        onClose={() => {
+          setDetailsOpen(false);
+          setDefaultTab('overview');
+        }}
         canManage={canManage}
+        defaultTab={defaultTab}
       />
 
       <DeployAgentModal
