@@ -6,7 +6,7 @@ import { ExternalLink, CheckCircle, XCircle, Clock, Play, BarChart3, AlertCircle
 import { useNavigate } from 'react-router-dom';
 
 interface TaskStatusCardProps {
-  type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done';
+  type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done' | 'input_error';
   intent: string;
   runId?: string;
   batchId?: string;
@@ -92,6 +92,14 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
           badgeColor: 'bg-green-100 text-green-800',
           title: 'Done',
           description: 'Task workflow completed'
+        };
+      case 'input_error':
+        return {
+          icon: AlertCircle,
+          color: 'bg-orange-50 border-orange-200 text-orange-800',
+          badgeColor: 'bg-orange-100 text-orange-800',
+          title: 'Input Error',
+          description: error || summary || 'Please correct the input errors and try again.'
         };
       default:
         return {

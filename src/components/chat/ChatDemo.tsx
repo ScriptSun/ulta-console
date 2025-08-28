@@ -31,7 +31,7 @@ interface Message {
   pending?: boolean;
   collapsed?: boolean;
   taskStatus?: {
-    type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done';
+    type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done' | 'input_error';
     intent: string;
     runId?: string;
     batchId?: string;
@@ -85,6 +85,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
   const [playSound, setPlaySound] = useState(false);
   const [compactDensity, setCompactDensity] = useState(false);
   const [isDemoEnabled, setIsDemoEnabled] = useState(true);
+  const [enableRealTime, setEnableRealTime] = useState(true);
+  const [autoClear, setAutoClear] = useState(false);
+  const [showUnreadBadge, setShowUnreadBadge] = useState(true);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -441,6 +444,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
           assistantMessage.taskStatus.error = data.error;
         } else if (data.state === 'task_started') {
           assistantMessage.content = '🔄 WordPress installation is now running...';
+        } else if (data.state === 'input_error') {
+          assistantMessage.content = data.message || 'Please correct the following errors and try again.';
+          assistantMessage.inputErrors = data.errors || [];
         }
       } else if (data.event_type && ['task_queued', 'task_started', 'task_succeeded', 'task_failed'].includes(data.event_type)) {
         assistantMessage.taskStatus = {
@@ -596,6 +602,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
   return (
     <>
+      {/* Backdrop Overlay */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={() => setIsOpen(false)} />
+      )}
+
       {/* Floating Launcher */}
       <div className="fixed bottom-6 right-6 z-50">
         <Button
@@ -615,10 +626,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         </Button>
       </div>
 
-      {/* Chat Window */}
+      {/* Center Chat Popup */}
       {isOpen && (
-        <div className="fixed bottom-20 right-6 z-50 w-full max-w-[420px] h-[560px] md:w-[420px] md:h-[560px] lg:relative lg:bottom-0 lg:right-0 lg:max-w-none">
-          <Card className="w-full h-full flex flex-col bg-background border shadow-2xl">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-3xl h-[80vh] flex flex-col bg-background border shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center gap-3">
@@ -668,10 +679,24 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                           />
                         </div>
                         <div className="flex items-center justify-between">
-                          <label className="text-sm">Enable unread badge</label>
+                          <label className="text-sm">Real-time Updates</label>
                           <Switch
-                            checked={enableBadge}
-                            onCheckedChange={setEnableBadge}
+                            checked={enableRealTime}
+                            onCheckedChange={setEnableRealTime}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm">Auto Clear</label>
+                          <Switch
+                            checked={autoClear}
+                            onCheckedChange={setAutoClear}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm">Show Unread Badge</label>
+                          <Switch
+                            checked={showUnreadBadge}
+                            onCheckedChange={setShowUnreadBadge}
                           />
                         </div>
                         <div className="flex items-center justify-between">
@@ -799,7 +824,22 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                     </div>
                   )}
                   
-                  {/* Input Form */}
+                   {/* Input Errors Display */}
+                   {message.inputErrors && Object.keys(message.inputErrors).length > 0 && (
+                     <div className="mt-2 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                       <h4 className="text-sm font-medium text-orange-800 dark:text-orange-200 mb-2">Please correct the following:</h4>
+                       <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-1">
+                         {Object.entries(message.inputErrors).map(([field, error]) => (
+                           <li key={field} className="flex items-start gap-2">
+                             <span className="font-medium">{field}:</span>
+                             <span>{error}</span>
+                           </li>
+                         ))}
+                       </ul>
+                     </div>
+                   )}
+                   
+                   {/* Input Form */}
                   {message.needsInputs && (
                     <div className="mt-2 ml-8">
                       <InputForm
