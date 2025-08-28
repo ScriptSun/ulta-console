@@ -164,16 +164,22 @@ export function InputFieldBuilder({
       }
     });
 
-    setValidationErrors(errors);
-    const valid = errors.length === 0;
-    setIsValid(valid);
-    return valid;
+    // Don't set state inside the validation function - return the values instead
+    return {
+      errors,
+      isValid: errors.length === 0
+    };
   }, []);
 
   useEffect(() => {
-    const isFormValid = validateFields(fields);
+    console.log('useEffect running - fields changed:', fields.length);
+    const validation = validateFields(fields);
     
-    if (isFormValid && fields.length > 0) {
+    // Set validation state
+    setValidationErrors(validation.errors);
+    setIsValid(validation.isValid);
+    
+    if (validation.isValid && fields.length > 0) {
       const { schema, defaults } = buildSchemaFromFields(fields);
       setGeneratedSchema(schema);
       setGeneratedDefaults(defaults);
@@ -186,8 +192,8 @@ export function InputFieldBuilder({
       onDefaultsChange?.(null);
     }
 
-    onValidationChange?.(isFormValid, validationErrors);
-  }, [fields, buildSchemaFromFields, validateFields, validationErrors, onSchemaChange, onDefaultsChange, onValidationChange]);
+    onValidationChange?.(validation.isValid, validation.errors);
+  }, [fields, buildSchemaFromFields, validateFields, onSchemaChange, onDefaultsChange, onValidationChange]);
 
   const handleFieldsChange = (newFields: BuilderField[]) => {
     if (canEdit) {
