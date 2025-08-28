@@ -28,6 +28,7 @@ import AgentTasks from "./pages/AgentTasks";
 import ChatInbox from "./pages/ChatInbox";
 import WidgetGuide from "./pages/WidgetGuide";
 import SecurityDashboard from "./pages/SecurityDashboard";
+import RouterDemo from "./pages/_demo/Router";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -195,6 +196,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <SecurityDashboard />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/_demo/router" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <RouterDemo />
                 </RootLayout>
               </ProtectedRoute>
             } />

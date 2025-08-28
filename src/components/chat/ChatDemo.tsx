@@ -10,6 +10,8 @@ import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp } 
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
+import { TaskStatusCard } from './TaskStatusCard';
+import { QuickInputChips } from './QuickInputChips';
 
 interface Agent {
   id: string;
@@ -26,11 +28,15 @@ interface Message {
   timestamp: Date;
   pending?: boolean;
   collapsed?: boolean;
-}
-
-interface ChatEvent {
-  type: 'task_queued' | 'task_started' | 'task_succeeded' | 'task_failed';
-  payload: any;
+  taskStatus?: {
+    type: 'task_queued' | 'task_started' | 'task_succeeded' | 'task_failed';
+    intent: string;
+    runId?: string;
+    batchId?: string;
+    error?: string;
+    duration?: number;
+  };
+  quickInputs?: string[];
 }
 
 interface ChatDemoProps {
@@ -59,13 +65,14 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
   const [enableBadge, setEnableBadge] = useState(true);
   const [playSound, setPlaySound] = useState(false);
   const [compactDensity, setCompactDensity] = useState(false);
+  const [isDemoEnabled, setIsDemoEnabled] = useState(true);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sessionStartTime = useRef(Date.now());
 
   // Check if current route should show chat demo
-  const shouldShowDemo = !currentRoute.includes('/admin') && !currentRoute.includes('/settings');
+  const shouldShowDemo = isDemoEnabled && !currentRoute.includes('/admin') && !currentRoute.includes('/settings');
 
   // Load settings from localStorage
   useEffect(() => {
@@ -75,6 +82,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       setEnableBadge(settings.enableBadge ?? true);
       setPlaySound(settings.playSound ?? false);
       setCompactDensity(settings.compactDensity ?? false);
+      setIsDemoEnabled(settings.isDemoEnabled ?? true);
     }
 
     const savedAgent = localStorage.getItem('chatDemoSelectedAgent');
@@ -93,9 +101,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     localStorage.setItem('chatDemoSettings', JSON.stringify({
       enableBadge,
       playSound,
-      compactDensity
+      compactDensity,
+      isDemoEnabled
     }));
-  }, [enableBadge, playSound, compactDensity]);
+  }, [enableBadge, playSound, compactDensity, isDemoEnabled]);
 
   useEffect(() => {
     saveSettings();
@@ -118,6 +127,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
             const demoAgent = data.find(a => a.hostname?.includes('Demo') || a.agent_type === 'demo') || data[0];
             setSelectedAgent(demoAgent.id);
           }
+        } else {
+          // Seed demo agent if none exists (dev mode only)
+          if (import.meta.env.DEV) {
+            await seedDemoAgent();
+          }
         }
       } catch (error) {
         console.error('Error loading agents:', error);
@@ -133,6 +147,45 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       loadAgents();
     }
   }, [shouldShowDemo, selectedAgent, toast]);
+
+  // Seed demo agent for development
+  const seedDemoAgent = async () => {
+    try {
+      const { data: customerRoles } = await supabase
+        .from('user_roles')
+        .select('customer_id')
+        .limit(1);
+
+      if (customerRoles && customerRoles.length > 0) {
+        const customerId = customerRoles[0].customer_id;
+        
+        const { data: demoAgent, error } = await supabase
+          .from('agents')
+          .insert({
+            customer_id: customerId,
+            hostname: 'Demo Server',
+            agent_type: 'demo',
+            os: 'linux',
+            status: 'online',
+            version: '1.0.0-demo'
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setAgents([demoAgent]);
+        setSelectedAgent(demoAgent.id);
+        
+        toast({
+          title: "Demo Agent Created",
+          description: "A demo agent has been created for testing",
+        });
+      }
+    } catch (error) {
+      console.error('Error seeding demo agent:', error);
+    }
+  };
 
   // Keyboard shortcut handler
   useEffect(() => {
@@ -166,7 +219,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     setMessages([]);
   };
 
-  // Bootstrap chat session
+  // Bootstrap chat session with dashboard authentication
   const bootstrapChat = async () => {
     if (!selectedAgent) return;
 
@@ -179,10 +232,17 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         return conversationId;
       }
 
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Authentication required');
+      }
+
       const { data, error } = await supabase.functions.invoke('chat-api', {
         body: {
-          action: 'start',
           agent_id: selectedAgent
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -204,7 +264,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     }
   };
 
-  // Send message
+  // Send message using demo endpoints
   const sendMessage = async (content: string, isAction = false) => {
     if (!content.trim() || !selectedAgent) return;
 
@@ -225,12 +285,19 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     setIsTyping(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Authentication required');
+      }
+
       const { data, error } = await supabase.functions.invoke('chat-api', {
         body: {
-          action: 'message',
           conversation_id: currentConversationId,
           content: content.trim(),
           is_action: isAction
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -245,32 +312,22 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         pending: false
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Handle special responses
-      if (data.needs_inputs && data.inputs) {
-        // Add input chips for quick responses
-        const inputsMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          role: 'assistant',
-          content: `I need some additional information. Please provide: ${data.inputs.join(', ')}`,
-          timestamp: new Date(),
-          pending: false
-        };
-        setMessages(prev => [...prev, inputsMessage]);
-      }
-
       // Handle task events
       if (data.event_type && ['task_queued', 'task_started', 'task_succeeded', 'task_failed'].includes(data.event_type)) {
-        const statusMessage: Message = {
-          id: (Date.now() + 3).toString(),
-          role: 'assistant',
-          content: `Task ${data.event_type.replace('task_', '')}: ${data.message || 'Processing...'}`,
-          timestamp: new Date(),
-          pending: false
+        assistantMessage.taskStatus = {
+          type: data.event_type,
+          intent: data.intent || 'unknown',
+          runId: data.run_id,
+          batchId: data.batch_id
         };
-        setMessages(prev => [...prev, statusMessage]);
       }
+
+      // Handle needs inputs
+      if (data.needs_inputs && data.missing_param) {
+        assistantMessage.quickInputs = getQuickInputsForParam(data.missing_param);
+      }
+
+      setMessages(prev => [...prev, assistantMessage]);
 
       // Show unread badge if window is closed
       if (!isOpen && enableBadge) {
@@ -289,9 +346,40 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         description: "Failed to send message",
         variant: "destructive",
       });
+      
+      // Add error message
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+        pending: false
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }
+  };
+
+  // Get quick input suggestions for parameters
+  const getQuickInputsForParam = (param: string): string[] => {
+    switch (param) {
+      case 'domain':
+        return ['example.com', 'mysite.org', 'demo.app'];
+      case 'admin_email':
+        return ['admin@example.com', 'webmaster@mysite.org'];
+      case 'service_name':
+        return ['nginx', 'apache2', 'mysql', 'php-fpm'];
+      case 'database_name':
+        return ['wordpress', 'app_db', 'main_database'];
+      default:
+        return [];
+    }
+  };
+
+  // Handle quick input selection
+  const handleQuickInput = (input: string) => {
+    sendMessage(input);
   };
 
   // Handle textarea input
@@ -320,6 +408,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     setMessages(prev => prev.map(msg => 
       msg.id === messageId ? { ...msg, collapsed: !msg.collapsed } : msg
     ));
+  };
+
+  // Handle task view
+  const handleViewTask = (runId: string) => {
+    window.open(`/tasks?run_id=${runId}`, '_blank');
   };
 
   if (!shouldShowDemo) {
@@ -395,6 +488,13 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                       <h4 className="font-medium">Demo Settings</h4>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
+                          <label className="text-sm">Enable Chat Demo</label>
+                          <Switch
+                            checked={isDemoEnabled}
+                            onCheckedChange={setIsDemoEnabled}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
                           <label className="text-sm">Enable unread badge</label>
                           <Switch
                             checked={enableBadge}
@@ -432,66 +532,95 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.length === 0 && (
+                <div className="text-center text-muted-foreground">
+                  <p className="mb-2">👋 Welcome to Chat Demo!</p>
+                  <p className="text-sm">Try asking me to install WordPress, check system resources, or manage services.</p>
+                </div>
+              )}
+              
               {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`group flex gap-3 ${
+                <div key={message.id}>
+                  <div className={`group flex gap-3 ${
                     message.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
+                  }`}>
+                    <div className={`max-w-[80%] rounded-lg p-3 ${
                       message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
-                    } ${compactDensity ? 'p-2 text-sm' : ''}`}
-                  >
-                    {message.content.split('\n').length > 10 && !message.collapsed ? (
-                      <div>
-                        <div className="whitespace-pre-wrap">
-                          {message.content.split('\n').slice(0, 10).join('\n')}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 h-6 px-2 text-xs"
-                          onClick={() => toggleMessageCollapse(message.id)}
-                        >
-                          <ChevronDown className="w-3 h-3 mr-1" />
-                          Show more
-                        </Button>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="whitespace-pre-wrap">{message.content}</div>
-                        {message.content.split('\n').length > 10 && (
+                    } ${compactDensity ? 'p-2 text-sm' : ''}`}>
+                      {message.content.split('\n').length > 10 && !message.collapsed ? (
+                        <div>
+                          <div className="whitespace-pre-wrap">
+                            {message.content.split('\n').slice(0, 10).join('\n')}
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="mt-2 h-6 px-2 text-xs"
                             onClick={() => toggleMessageCollapse(message.id)}
                           >
-                            <ChevronUp className="w-3 h-3 mr-1" />
-                            Show less
+                            <ChevronDown className="w-3 h-3 mr-1" />
+                            Show more
                           </Button>
-                        )}
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="whitespace-pre-wrap">{message.content}</div>
+                          {message.content.split('\n').length > 10 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2 h-6 px-2 text-xs"
+                              onClick={() => toggleMessageCollapse(message.id)}
+                            >
+                              <ChevronUp className="w-3 h-3 mr-1" />
+                              Show less
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs opacity-70">
+                          {message.timestamp.toLocaleTimeString()}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0"
+                          onClick={() => copyMessage(message.content)}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
                       </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs opacity-70">
-                        {message.timestamp.toLocaleTimeString()}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0"
-                        onClick={() => copyMessage(message.content)}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
                     </div>
                   </div>
+                  
+                  {/* Task Status Card */}
+                  {message.taskStatus && (
+                    <div className="mt-2 ml-8">
+                      <TaskStatusCard
+                        type={message.taskStatus.type}
+                        intent={message.taskStatus.intent}
+                        runId={message.taskStatus.runId}
+                        batchId={message.taskStatus.batchId}
+                        error={message.taskStatus.error}
+                        duration={message.taskStatus.duration}
+                        onViewTask={handleViewTask}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Quick Input Chips */}
+                  {message.quickInputs && (
+                    <div className="mt-2 ml-8">
+                      <QuickInputChips
+                        inputs={message.quickInputs}
+                        onInputSelect={handleQuickInput}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
               
