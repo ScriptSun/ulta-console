@@ -1200,7 +1200,7 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
   // Find the batch for this intent
   const { data: batch, error: batchError } = await supabase
     .from('script_batches')
-    .select('id, name, active_version')
+    .select('id, name, active_version, preflight')
     .eq('customer_id', tenantId)
     .eq('name', intentDef.batchName)
     .neq('active_version', null)
@@ -1213,6 +1213,35 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
       action: 'no_batch',
       intent: result.intent
     };
+  }
+
+  // Run preflight checks if configured
+  if (batch.preflight) {
+    console.log('Running preflight checks:', batch.preflight);
+    const preflightResult = await runPreflightChecks(supabase, agentId, batch.preflight);
+    
+    if (!preflightResult.passed) {
+      // Log preflight blocked event
+      await supabase.from('chat_events').insert({
+        conversation_id: conversationId,
+        type: 'preflight_blocked',
+        agent_id: agentId,
+        payload: {
+          intent: result.intent,
+          batch_name: intentDef.batchName,
+          batch_id: batch.id,
+          failed_checks: preflightResult.details
+        }
+      });
+
+      return {
+        response: `I can't start the ${result.intent.replace('_', ' ')} task right now due to preflight check failures. Please address the issues and try again.`,
+        action: 'preflight_blocked',
+        intent: result.intent,
+        state: 'preflight_block',
+        details: preflightResult.details
+      };
+    }
   }
 
   // Start batch run for this specific agent
@@ -2076,51 +2105,220 @@ function getParameterDefinition(param: string): any {
   }
 }
 
-// Continue processing with validated inputs
-async function continueWithValidatedInputs(
-  supabase: any, 
-  conversationId: string, 
-  conversation: any, 
-  updatedContext: any,
-  validatedInputs: Record<string, any>
-): Promise<any> {
-  const pendingIntent = updatedContext.pending_intent;
-  const intentDef = INTENT_DEFINITIONS.find(i => i.name === pendingIntent);
+// Run preflight checks against agent snapshot
+async function runPreflightChecks(supabase: any, agentId: string, preflightConfig: any): Promise<{ passed: boolean; details: any[] }> {
+  const details: any[] = [];
   
-  if (!intentDef) {
-    return {
-      response: 'Sorry, I lost track of what we were doing. Could you please start over?',
-      action: 'error',
-      intent: pendingIntent
-    };
+  if (!preflightConfig || !preflightConfig.checks) {
+    return { passed: true, details: [] };
   }
   
-  // Create result object with all validated inputs
-  const result = {
-    intent: pendingIntent,
-    intentDef,
-    params: validatedInputs,
-    confidence: 1.0
-  };
+  // Get latest agent snapshot (heartbeat data)
+  const { data: agent } = await supabase
+    .from('agents')
+    .select('*')
+    .eq('id', agentId)
+    .single();
+    
+  if (!agent) {
+    details.push({
+      check: 'agent_availability',
+      status: 'not_found',
+      message: 'Agent not found or offline'
+    });
+    return { passed: false, details };
+  }
   
-  // Clear pending state and update with validated inputs
-  const finalContext = { ...updatedContext };
-  delete finalContext.pending_intent;
-  delete finalContext.pending_params;
-  delete finalContext.missing_params;
-  delete finalContext.inputs_schema;
-  delete finalContext.inputs_defaults;
-  delete finalContext.validated_inputs;
+  // Get latest heartbeat data
+  const { data: heartbeat } = await supabase
+    .from('agent_heartbeats')
+    .select('*')
+    .eq('agent_id', agentId)
+    .order('timestamp', { ascending: false })
+    .limit(1)
+    .single();
   
-  await supabase
-    .from('chat_conversations')
-    .update({
-      meta: finalContext,
-      last_action: 'processing',
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', conversationId);
+  if (!heartbeat) {
+    details.push({
+      check: 'agent_heartbeat',
+      status: 'no_data',
+      message: 'No recent heartbeat data available'
+    });
+    return { passed: false, details };
+  }
   
-  // Continue with intent processing using validated inputs
-  return await processIntentWithParams(supabase, conversationId, conversation, result, finalContext);
+  // Check if heartbeat is recent (within last 5 minutes)
+  const heartbeatAge = Date.now() - new Date(heartbeat.timestamp).getTime();
+  if (heartbeatAge > 5 * 60 * 1000) {
+    details.push({
+      check: 'agent_heartbeat',
+      status: 'stale',
+      message: 'Agent heartbeat data is stale',
+      age_minutes: Math.round(heartbeatAge / (60 * 1000))
+    });
+    return { passed: false, details };
+  }
+  
+  // Run each preflight check
+  for (const check of preflightConfig.checks) {
+    const result = await evaluatePreflightCheck(check, agent, heartbeat);
+    if (!result.passed) {
+      details.push(result.detail);
+    }
+  }
+  
+  return { passed: details.length === 0, details };
+}
+
+// Evaluate individual preflight check
+async function evaluatePreflightCheck(check: any, agent: any, heartbeat: any): Promise<{ passed: boolean; detail?: any }> {
+  switch (check.type) {
+    case 'min_disk':
+      const diskUsage = heartbeat.disk_usage || 0;
+      const diskFree = 100 - diskUsage;
+      const diskRequiredPct = check.min_free_gb ? (check.min_free_gb / 100) * 100 : check.min_free_percent || 10;
+      
+      if (diskFree < diskRequiredPct) {
+        return {
+          passed: false,
+          detail: {
+            check: 'min_disk',
+            mount: check.mount || '/',
+            need_gb: check.min_free_gb || Math.round(diskRequiredPct),
+            have_gb: Math.round(diskFree),
+            status: 'insufficient_space'
+          }
+        };
+      }
+      break;
+      
+    case 'max_cpu':
+      const cpuUsage = heartbeat.cpu_usage || 0;
+      const maxCpu = check.max_percent || 80;
+      
+      if (cpuUsage > maxCpu) {
+        return {
+          passed: false,
+          detail: {
+            check: 'max_cpu',
+            max_percent: maxCpu,
+            current_percent: Math.round(cpuUsage),
+            status: 'high_cpu_usage'
+          }
+        };
+      }
+      break;
+      
+    case 'max_memory':
+      const memoryUsage = heartbeat.memory_usage || 0;
+      const maxMemory = check.max_percent || 90;
+      
+      if (memoryUsage > maxMemory) {
+        return {
+          passed: false,
+          detail: {
+            check: 'max_memory',
+            max_percent: maxMemory,
+            current_percent: Math.round(memoryUsage),
+            status: 'high_memory_usage'
+          }
+        };
+      }
+      break;
+      
+    case 'require_open_ports_free':
+      const openPorts = heartbeat.open_ports || [];
+      const requiredPort = check.port;
+      
+      if (openPorts.includes(requiredPort)) {
+        return {
+          passed: false,
+          detail: {
+            check: 'require_open_ports_free',
+            port: requiredPort,
+            state: 'in_use',
+            status: 'port_conflict'
+          }
+        };
+      }
+      break;
+      
+    case 'require_ports_open':
+      const availablePorts = heartbeat.open_ports || [];
+      const neededPort = check.port;
+      
+      if (!availablePorts.includes(neededPort)) {
+        return {
+          passed: false,
+          detail: {
+            check: 'require_ports_open',
+            port: neededPort,
+            state: 'closed',
+            status: 'port_unavailable'
+          }
+        };
+      }
+      break;
+      
+    case 'min_uptime':
+      const uptime = heartbeat.uptime_seconds || 0;
+      const minUptime = check.min_seconds || 300; // 5 minutes default
+      
+      if (uptime < minUptime) {
+        return {
+          passed: false,
+          detail: {
+            check: 'min_uptime',
+            need_seconds: minUptime,
+            have_seconds: uptime,
+            status: 'insufficient_uptime'
+          }
+        };
+      }
+      break;
+      
+    case 'os_version':
+      const agentOs = agent.os || '';
+      const requiredOs = check.os || '';
+      const requiredVersion = check.version || '';
+      
+      if (requiredOs && !agentOs.toLowerCase().includes(requiredOs.toLowerCase())) {
+        return {
+          passed: false,
+          detail: {
+            check: 'os_version',
+            required_os: requiredOs,
+            current_os: agentOs,
+            status: 'os_mismatch'
+          }
+        };
+      }
+      
+      // Simple version check (this could be more sophisticated)
+      if (requiredVersion && agent.version && agent.version < requiredVersion) {
+        return {
+          passed: false,
+          detail: {
+            check: 'os_version',
+            required_version: requiredVersion,
+            current_version: agent.version,
+            status: 'version_too_old'
+          }
+        };
+      }
+      break;
+      
+    default:
+      console.warn('Unknown preflight check type:', check.type);
+      return {
+        passed: false,
+        detail: {
+          check: check.type,
+          status: 'unknown_check_type',
+          message: `Unknown preflight check type: ${check.type}`
+        }
+      };
+  }
+  
+  return { passed: true };
 }

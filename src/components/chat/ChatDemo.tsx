@@ -13,6 +13,7 @@ import { useTheme } from 'next-themes';
 import { TaskStatusCard } from './TaskStatusCard';
 import { QuickInputChips } from './QuickInputChips';
 import { InputForm } from './InputForm';
+import { PreflightBlockCard } from './PreflightBlockCard';
 
 interface Agent {
   id: string;
@@ -44,6 +45,14 @@ interface Message {
     missingParams: string[];
   };
   inputErrors?: Record<string, string>;
+  preflightBlocked?: {
+    details: Array<{
+      check: string;
+      status?: string;
+      message?: string;
+      [key: string]: any;
+    }>;
+  };
 }
 
 interface ChatDemoProps {
@@ -344,6 +353,14 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         };
       }
 
+      // Handle preflight blocks
+      if (data.state === 'preflight_block' && data.details) {
+        assistantMessage.preflightBlocked = {
+          details: data.details
+        };
+        assistantMessage.content = data.response || 'Preflight checks failed. Please address the issues and try again.';
+      }
+
       // Handle needs inputs
       if (data.needs_inputs && data.inputs_schema) {
         assistantMessage.needsInputs = {
@@ -442,6 +459,15 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     setMessages(prev => prev.map(msg => 
       msg.id === messageId ? { ...msg, collapsed: !msg.collapsed } : msg
     ));
+  };
+
+  // Handle preflight retry
+  const handlePreflightRetry = () => {
+    // Get the last user message that triggered the preflight failure
+    const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+    if (lastUserMessage) {
+      sendMessage(lastUserMessage.content);
+    }
   };
 
   // Handle input form submission
@@ -649,6 +675,17 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                         error={message.taskStatus.error}
                         duration={message.taskStatus.duration}
                         onViewTask={handleViewTask}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Preflight Block Card */}
+                  {message.preflightBlocked && (
+                    <div className="mt-2 ml-8">
+                      <PreflightBlockCard
+                        details={message.preflightBlocked.details}
+                        onRetry={handlePreflightRetry}
+                        loading={isTyping}
                       />
                     </div>
                   )}
