@@ -1595,7 +1595,7 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
   let actualMissingParams = [];
   
   // Find the actual batch configuration from database
-  const { data: batches, error: batchError } = await supabase
+  const { data: batches, error: batchSearchError } = await supabase
     .from('script_batches')
     .select('id, name, inputs_schema, preflight, customer_id')
     .or(`customer_id.eq.${tenantId},customer_id.eq.00000000-0000-0000-0000-000000000001`)
@@ -1603,7 +1603,7 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     .neq('active_version', null);
 
   console.log('Searching for batches with tenant_id:', tenantId, 'and intent:', result.intent);
-  console.log('Batch search result:', batches, 'Error:', batchError);
+  console.log('Batch search result:', batches, 'Error:', batchSearchError);
 
   if (batches && batches.length > 0) {
     const batch = batches[0];
@@ -1719,7 +1719,7 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
   }
 
   // Find the batch for this intent
-  const { data: batch, error: batchError } = await supabase
+  const { data: batch, error: batchFindError } = await supabase
     .from('script_batches')
     .select('id, name, active_version, preflight')
     .eq('customer_id', tenantId)
@@ -1727,7 +1727,7 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     .neq('active_version', null)
     .single();
 
-  if (batchError || !batch) {
+  if (batchFindError || !batch) {
     console.error('No active batch found for intent:', { intent: result.intent, batchName: intentDef.batchName });
     return {
       response: `I'd like to help you ${result.intent.replace('_', ' ')}, but the automation for this task isn't configured yet. Please contact your administrator.`,
