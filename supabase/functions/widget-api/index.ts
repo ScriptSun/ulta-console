@@ -554,24 +554,18 @@ async function handleWebSocketChatMessage(supabase: any, client: ConnectedClient
       return;
     }
 
-    // Process the message through the chat API logic
-    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/chat-api/chat/message`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-      },
-      body: JSON.stringify({
+    // Process the message through the chat API logic using Supabase functions
+    const { data: result, error } = await supabase.functions.invoke('chat-api', {
+      body: {
+        path: '/chat/message',
         conversation_id: client.conversationId,
         role,
         content
-      })
+      }
     });
 
-    const result = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(result.error || 'Chat processing failed');
+    if (error) {
+      throw new Error(error.message || 'Chat processing failed');
     }
 
     // Send response back via WebSocket
