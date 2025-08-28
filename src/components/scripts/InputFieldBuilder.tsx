@@ -414,13 +414,9 @@ export function InputFieldBuilder({
 
   return (
     <div className="space-y-6">
-      {/* Validation Summary */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Badge variant={isValid ? "default" : "destructive"} className="flex items-center gap-1">
-            {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-            {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
-          </Badge>
           {canEdit && (
             <Button variant="outline" size="sm" onClick={handleLoadExample}>
               Load WordPress Example
