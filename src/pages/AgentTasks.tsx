@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, CheckCircle2, XCircle, AlertCircle, PlayCircle } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle2, XCircle, AlertCircle, PlayCircle, Download, FileText, FileSpreadsheet, FileImage } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
 
 interface AgentTask {
   id: string;
@@ -162,20 +171,180 @@ export default function AgentTasks() {
     return `${hours}h ${minutes % 60}m`;
   };
 
+  const downloadAsText = () => {
+    const content = `Agent Tasks Report
+Agent: ${agent?.hostname || agent?.id} (${agent?.agent_type})
+Generated: ${new Date().toLocaleString()}
+Total Tasks: ${tasks.length}
+
+${'='.repeat(80)}
+
+${tasks.map(task => `
+Task: ${task.task_name}
+Status: ${task.status.toUpperCase()}
+Created: ${new Date(task.created_at).toLocaleString()}
+Started: ${task.started_at ? new Date(task.started_at).toLocaleString() : 'Not started'}
+Completed: ${task.completed_at ? new Date(task.completed_at).toLocaleString() : 'Not completed'}
+Duration: ${formatDuration(task.started_at, task.completed_at)}
+${task.error_message ? `Error: ${task.error_message}` : ''}
+${task.metadata ? `Metadata: ${JSON.stringify(task.metadata, null, 2)}` : ''}
+${'-'.repeat(40)}
+`).join('')}`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `agent-tasks-${agent?.hostname || agentId}-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: 'Download Complete',
+      description: 'Tasks exported as text file',
+    });
+  };
+
+  const downloadAsExcel = () => {
+    const worksheetData = tasks.map(task => ({
+      'Task Name': task.task_name,
+      'Status': task.status.charAt(0).toUpperCase() + task.status.slice(1),
+      'Created': new Date(task.created_at).toLocaleString(),
+      'Started': task.started_at ? new Date(task.started_at).toLocaleString() : 'Not started',
+      'Completed': task.completed_at ? new Date(task.completed_at).toLocaleString() : 'Not completed',
+      'Duration': formatDuration(task.started_at, task.completed_at),
+      'Error Message': task.error_message || '',
+      'Metadata': task.metadata ? JSON.stringify(task.metadata) : ''
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Agent Tasks');
+    
+    // Auto-size columns
+    const colWidths = Object.keys(worksheetData[0] || {}).map(key => ({
+      wch: Math.max(key.length, 15)
+    }));
+    worksheet['!cols'] = colWidths;
+
+    XLSX.writeFile(workbook, `agent-tasks-${agent?.hostname || agentId}-${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({
+      title: 'Download Complete',
+      description: 'Tasks exported as Excel file',
+    });
+  };
+
+  const downloadAsPDF = () => {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    let yPosition = margin;
+
+    // Header
+    pdf.setFontSize(16);
+    pdf.text('Agent Tasks Report', margin, yPosition);
+    yPosition += 10;
+    
+    pdf.setFontSize(12);
+    pdf.text(`Agent: ${agent?.hostname || agent?.id} (${agent?.agent_type})`, margin, yPosition);
+    yPosition += 7;
+    pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, yPosition);
+    yPosition += 7;
+    pdf.text(`Total Tasks: ${tasks.length}`, margin, yPosition);
+    yPosition += 15;
+
+    // Tasks
+    pdf.setFontSize(10);
+    tasks.forEach((task, index) => {
+      // Check if we need a new page
+      if (yPosition > pageHeight - 50) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+
+      pdf.setFontSize(12);
+      pdf.text(`${index + 1}. ${task.task_name}`, margin, yPosition);
+      yPosition += 7;
+      
+      pdf.setFontSize(10);
+      pdf.text(`Status: ${task.status.toUpperCase()}`, margin + 5, yPosition);
+      yPosition += 5;
+      pdf.text(`Created: ${new Date(task.created_at).toLocaleString()}`, margin + 5, yPosition);
+      yPosition += 5;
+      
+      if (task.started_at) {
+        pdf.text(`Started: ${new Date(task.started_at).toLocaleString()}`, margin + 5, yPosition);
+        yPosition += 5;
+      }
+      
+      if (task.completed_at) {
+        pdf.text(`Completed: ${new Date(task.completed_at).toLocaleString()}`, margin + 5, yPosition);
+        yPosition += 5;
+      }
+      
+      pdf.text(`Duration: ${formatDuration(task.started_at, task.completed_at)}`, margin + 5, yPosition);
+      yPosition += 5;
+      
+      if (task.error_message) {
+        pdf.text(`Error: ${task.error_message.substring(0, 80)}${task.error_message.length > 80 ? '...' : ''}`, margin + 5, yPosition);
+        yPosition += 5;
+      }
+      
+      yPosition += 5; // Extra space between tasks
+    });
+
+    pdf.save(`agent-tasks-${agent?.hostname || agentId}-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: 'Download Complete',
+      description: 'Tasks exported as PDF file',
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate('/agents')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Agents
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Agent Tasks</h1>
-          <p className="text-muted-foreground">
-            Tasks for {agent.hostname || agent.id} ({agent.agent_type})
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate('/agents')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Agents
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Agent Tasks</h1>
+            <p className="text-muted-foreground">
+              Tasks for {agent.hostname || agent.id} ({agent.agent_type})
+            </p>
+          </div>
         </div>
+        
+        {/* Download Dropdown */}
+        {tasks.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export Tasks
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={downloadAsText}>
+                <FileText className="h-4 w-4 mr-2" />
+                Download as TXT
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadAsExcel}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Download as Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadAsPDF}>
+                <FileImage className="h-4 w-4 mr-2" />
+                Download as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Tasks List */}
