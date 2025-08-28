@@ -164,9 +164,15 @@ export function ConversationViewer({
       conversation_started: Info,
       conversation_closed: X,
       message_received: MessageSquare,
+      inputs_requested: MessageSquare,
       task_queued: Clock,
-      task_completed: CheckCircle,
+      task_started: Activity,
+      task_succeeded: CheckCircle,
       task_failed: AlertCircle,
+      task_done: CheckCircle,
+      preflight_blocked: AlertCircle,
+      policy_blocked: AlertCircle,
+      security_blocked: AlertCircle,
     };
     
     const IconComponent = icons[type] || Activity;
@@ -178,9 +184,15 @@ export function ConversationViewer({
       conversation_started: "text-blue-500",
       conversation_closed: "text-gray-500",
       message_received: "text-green-500",
+      inputs_requested: "text-orange-500",
       task_queued: "text-yellow-500",
-      task_completed: "text-green-600",
+      task_started: "text-blue-600",
+      task_succeeded: "text-green-600",
       task_failed: "text-red-500",
+      task_done: "text-green-700",
+      preflight_blocked: "text-red-600",
+      policy_blocked: "text-red-600",
+      security_blocked: "text-red-700",
     };
     
     return colors[type] || "text-gray-500";
@@ -379,23 +391,34 @@ export function ConversationViewer({
                         <div className={`p-2 rounded-full bg-gray-100 ${getEventColor((item as Event).type)}`}>
                           {getEventIcon((item as Event).type)}
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium">
-                              {(item as Event).type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
-                            </span>
-                          </div>
-                          {(item as Event).payload && (
-                            <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded">
-                              <pre className="whitespace-pre-wrap">
-                                {JSON.stringify((item as Event).payload, null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
+                         <div className="flex-1">
+                           <div className="flex items-center gap-2 mb-1">
+                             <span className="font-medium">
+                               {(item as Event).type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                             </span>
+                             <span className="text-xs text-muted-foreground">
+                               {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                             </span>
+                             {/* Show run_id link for task events */}
+                             {(item as Event).ref_id && (item as Event).type.startsWith('task_') && (
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 className="h-6 px-2 text-xs"
+                                 onClick={() => window.open(`/scripts/batches/runs/${(item as Event).ref_id}?from=conversation`, '_blank')}
+                               >
+                                 Run {(item as Event).ref_id?.slice(0, 8)}...
+                               </Button>
+                             )}
+                           </div>
+                           {(item as Event).payload && (
+                             <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded">
+                               <pre className="whitespace-pre-wrap">
+                                 {JSON.stringify((item as Event).payload, null, 2)}
+                               </pre>
+                             </div>
+                           )}
+                         </div>
                       </>
                     )}
                   </div>

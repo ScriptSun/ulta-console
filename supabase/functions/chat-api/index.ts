@@ -642,26 +642,28 @@ async function handleChatMessage(req: Request, supabase: any, body?: any) {
           throw messageError;
         }
         
-        // Continue with intent processing using validated inputs
-        const routerResult = await continueWithValidatedInputs(
-          supabase, 
-          conversation_id, 
-          conversation, 
-          updatedContext,
-          mergedInputs
-        );
-        
-        return new Response(JSON.stringify({
-          message,
-          state: 'processing',
-          router_response: routerResult?.response,
-          router_action: routerResult?.action,
-          run_id: routerResult?.run_id,
-          batch_id: routerResult?.batch_id,
-          validated_inputs: mergedInputs
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+  // Continue with intent processing using validated inputs after preflight
+  const routerResult = await continueWithValidatedInputs(
+    supabase, 
+    conversation_id, 
+    conversation, 
+    updatedContext,
+    mergedInputs
+  );
+  
+  return new Response(JSON.stringify({
+    message,
+    state: routerResult?.state || 'processing',
+    router_response: routerResult?.response,
+    router_action: routerResult?.action,
+    run_id: routerResult?.run_id,
+    batch_id: routerResult?.batch_id,
+    summary: routerResult?.summary,
+    details: routerResult?.details,
+    validated_inputs: mergedInputs
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
       }
     }
 
@@ -1467,6 +1469,22 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
   const tenantId = conversation.tenant_id;
   const missingParams = intentDef.requiredParams.filter(param => !result.params[param]);
 
+  // LOG AUDIT: Router decision
+  await supabase.from('audit_logs').insert({
+    customer_id: tenantId,
+    actor: 'chat_router',
+    action: 'router_decision',
+    target: `conversation:${conversationId}`,
+    meta: {
+      intent: result.intent,
+      confidence: result.confidence,
+      extracted_params: result.params,
+      missing_params: missingParams,
+      agent_id: agentId,
+      batch_name: intentDef.batchName
+    }
+  });
+
   // Check if we have all required parameters
   if (missingParams.length > 0) {
     // Generate inputs schema for missing parameters
@@ -1492,6 +1510,32 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
         updated_at: new Date().toISOString()
       })
       .eq('id', conversationId);
+
+    // LOG AUDIT: Inputs requested
+    await supabase.from('audit_logs').insert({
+      customer_id: tenantId,
+      actor: 'chat_router',
+      action: 'inputs_requested',
+      target: `conversation:${conversationId}`,
+      meta: {
+        intent: result.intent,
+        missing_params: missingParams,
+        agent_id: agentId,
+        inputs_schema: inputsSchema
+      }
+    });
+
+    // LOG CHAT EVENT: Inputs needed
+    await supabase.from('chat_events').insert({
+      conversation_id: conversationId,
+      type: 'inputs_requested',
+      agent_id: agentId,
+      payload: {
+        intent: result.intent,
+        missing_params: missingParams,
+        inputs_schema: inputsSchema
+      }
+    });
 
     return {
       response: `I need some additional information to proceed with ${result.intent.replace('_', ' ')}:`,
@@ -1561,6 +1605,21 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     const preflightResult = await runPreflightChecks(supabase, agentId, batch.preflight);
     
     if (!preflightResult.passed) {
+      // LOG AUDIT: Preflight blocked
+      await supabase.from('audit_logs').insert({
+        customer_id: tenantId,
+        actor: 'preflight_system',
+        action: 'preflight_block',
+        target: `batch:${batch.id}`,
+        meta: {
+          intent: result.intent,
+          agent_id: agentId,
+          failed_checks: preflightResult.details,
+          conversation_id: conversationId,
+          params: result.params
+        }
+      });
+
       // Log preflight blocked event
       await supabase.from('chat_events').insert({
         conversation_id: conversationId,
@@ -1592,19 +1651,17 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
       agent_id: agentId,
       tenant_id: tenantId,
       status: 'queued',
-      created_by: auth.uid(),
-      // Store inputs and conversation link in a metadata field if needed
-      // or add these as separate columns
+      created_by: '22222222-2222-2222-2222-222222222222', // System user for chat runs
     })
     .select()
     .single();
 
-  if (runError || !batchRun) {
+  if (insertError || !batchRun) {
     console.error('Failed to create batch run:', insertError);
     
     await supabase.from('chat_events').insert({
       conversation_id: conversationId,
-      type: 'fail',
+      type: 'task_failed',
       agent_id: agentId,
       payload: {
         intent: result.intent,
@@ -1624,6 +1681,22 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
   const runId = batchRun.id;
   console.log('Created batch run:', runId);
 
+  // LOG AUDIT: Run queued
+  await supabase.from('audit_logs').insert({
+    customer_id: tenantId,
+    actor: 'batch_system',
+    action: 'run_queued',
+    target: `batch_run:${runId}`,
+    meta: {
+      batch_id: batch.id,
+      batch_name: batch.name,
+      agent_id: agentId,
+      conversation_id: conversationId,
+      intent: result.intent,
+      params: result.params
+    }
+  });
+
   // Link batch run to conversation
   await supabase
     .from('chat_conversations')
@@ -1641,7 +1714,7 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     })
     .eq('id', conversationId);
 
-  // Log task queued event
+  // LOG CHAT EVENT: Task queued with full traceability
   await supabase.from('chat_events').insert({
     conversation_id: conversationId,
     type: 'task_queued',
@@ -1656,8 +1729,7 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     }
   });
 
-  // Send task to agent (this would typically be done via a queue or webhook)
-  // For now, we'll simulate this by updating the batch run status
+  // Simulate task start (in real implementation, this would be triggered by agent)
   await supabase
     .from('batch_runs')
     .update({ 
@@ -1666,7 +1738,22 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     })
     .eq('id', runId);
 
-  // Log task started event
+  // LOG AUDIT: Run started
+  await supabase.from('audit_logs').insert({
+    customer_id: tenantId,
+    actor: 'batch_system',
+    action: 'run_started',
+    target: `batch_run:${runId}`,
+    meta: {
+      batch_id: batch.id,
+      batch_name: batch.name,
+      agent_id: agentId,
+      conversation_id: conversationId,
+      started_at: new Date().toISOString()
+    }
+  });
+
+  // LOG CHAT EVENT: Task started
   await supabase.from('chat_events').insert({
     conversation_id: conversationId,
     type: 'task_started',
@@ -1693,107 +1780,6 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     batch_id: batch.id,
     agent_id: agentId,
     summary: taskSummary
-  };
-
-  if (runError || !runResult || runResult.length === 0) {
-    console.error('Failed to start batch run:', runError);
-    
-    // Log fail event
-    await supabase.from('chat_events').insert({
-      conversation_id: conversationId,
-      type: 'fail',
-      agent_id: agentId,
-      payload: {
-        intent: result.intent,
-        batch_name: intentDef.batchName,
-        error: runError?.message || 'Failed to start batch run',
-        params: result.params
-      }
-    });
-
-    return {
-      response: `I encountered an issue starting the ${result.intent.replace('_', ' ')} task. ${runError?.message || 'Please try again later.'}`,
-      action: 'error',
-      intent: result.intent
-    };
-  }
-
-  const runInfo = runResult[0];
-  console.log('Agent-bound batch run result:', runInfo);
-
-  if (runInfo.status === 'blocked') {
-    // Log blocked event
-    await supabase.from('chat_events').insert({
-      conversation_id: conversationId,
-      type: 'task_blocked',
-      agent_id: agentId,
-      payload: {
-        intent: result.intent,
-        batch_name: intentDef.batchName,
-        reason: runInfo.message
-      }
-    });
-
-    return {
-      response: `I can't start the ${result.intent.replace('_', ' ')} task right now: ${runInfo.message}`,
-      action: 'blocked',
-      intent: result.intent
-    };
-  }
-
-  // Task queued - log the event
-  await supabase.from('chat_events').insert({
-    conversation_id: conversationId,
-    type: 'task_queued',
-    agent_id: agentId,
-    ref_id: runInfo.run_id,
-    payload: {
-      intent: result.intent,
-      batch_name: intentDef.batchName,
-      batch_id: batch.id,
-      run_id: runInfo.run_id,
-      params: result.params
-    }
-  });
-
-  // Task started - log the event (immediately after queuing for this agent)
-  await supabase.from('chat_events').insert({
-    conversation_id: conversationId,
-    type: 'task_started',
-    agent_id: agentId,
-    ref_id: runInfo.run_id,
-    payload: {
-      intent: result.intent,
-      batch_name: intentDef.batchName,
-      batch_id: batch.id,
-      run_id: runInfo.run_id,
-      params: result.params,
-      started_at: new Date().toISOString()
-    }
-  });
-
-  // Update conversation with agent-bound action
-  await supabase
-    .from('chat_conversations')
-    .update({
-      last_intent: result.intent,
-      last_action: `agent_task_started:${batch.name}`,
-      meta: { ...conversationContext, last_run_id: runInfo.run_id, bound_agent: agentId },
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', conversationId);
-
-  const paramsText = Object.keys(result.params).length > 0 
-    ? ` with parameters: ${Object.entries(result.params).map(([k, v]) => `${k}=${v}`).join(', ')}`
-    : '';
-
-  return {
-    response: `Great! I've started the ${result.intent.replace('_', ' ')} task${paramsText} on this agent. I'll let you know once it's complete.`,
-    action: 'task_started',
-    intent: result.intent,
-    run_id: runInfo.run_id,
-    batch_id: batch.id,
-    agent_id: agentId
   };
 }
 
@@ -1903,7 +1889,7 @@ function generateTaskSummary(intent: string, params: Record<string, any>): strin
   }
 }
 
-// Webhook handler for batch run completion events
+// Webhook handler for batch run completion events with comprehensive audit logging
 async function handleBatchCompletion(req: Request, supabase: any) {
   const body = await req.json();
   console.log('Batch completion webhook:', body);
@@ -1918,6 +1904,38 @@ async function handleBatchCompletion(req: Request, supabase: any) {
   }
 
   try {
+    // Get batch run details for tenant_id
+    const { data: batchRun } = await supabase
+      .from('batch_runs')
+      .select('tenant_id, batch_id')
+      .eq('id', run_id)
+      .single();
+
+    if (!batchRun) {
+      console.error('Batch run not found:', run_id);
+      return new Response(JSON.stringify({ error: 'Batch run not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // LOG AUDIT: Run finished
+    await supabase.from('audit_logs').insert({
+      customer_id: batchRun.tenant_id,
+      actor: 'batch_system',
+      action: 'run_finished',
+      target: `batch_run:${run_id}`,
+      meta: {
+        batch_id: batch_id || batchRun.batch_id,
+        agent_id,
+        status,
+        error_message,
+        duration_sec,
+        contract: contract ? JSON.stringify(contract) : null,
+        completed_at: new Date().toISOString()
+      }
+    });
+
     // Find conversations that are waiting for this batch run
     const { data: events, error: eventsError } = await supabase
       .from('chat_events')
@@ -1942,8 +1960,8 @@ async function handleBatchCompletion(req: Request, supabase: any) {
       const conversationId = event.conversation_id;
       const payload = event.payload || {};
 
-      // Log completion event with agent-bound event types
-      const eventType = status === 'success' ? 'success' : 'fail';
+      // LOG CHAT EVENT: Task completion with full details
+      const eventType = status === 'success' ? 'task_succeeded' : 'task_failed';
       
       await supabase.from('chat_events').insert({
         conversation_id: conversationId,
@@ -1956,6 +1974,20 @@ async function handleBatchCompletion(req: Request, supabase: any) {
           duration_sec,
           error_message,
           contract: contract ? JSON.stringify(contract) : null,
+          completed_at: new Date().toISOString()
+        }
+      });
+
+      // LOG CHAT EVENT: Done state
+      await supabase.from('chat_events').insert({
+        conversation_id: conversationId,
+        type: 'task_done',
+        agent_id,
+        ref_id: run_id,
+        payload: {
+          ...payload,
+          final_status: status,
+          workflow_completed: true,
           completed_at: new Date().toISOString()
         }
       });
@@ -1998,6 +2030,30 @@ async function handleBatchCompletion(req: Request, supabase: any) {
               role: 'assistant',
               content: completionMessage,
               created_at: message.created_at
+            }
+          }));
+
+          // Send task status updates
+          client.socket.send(JSON.stringify({
+            type: 'task_update',
+            data: {
+              state: eventType,
+              run_id,
+              summary: payload.intent?.replace('_', ' ') || 'task',
+              progress: status === 'success' ? 100 : undefined,
+              contract,
+              error: status === 'failed' ? error_message : undefined,
+              duration: duration_sec
+            }
+          }));
+
+          // Send final done status
+          client.socket.send(JSON.stringify({
+            type: 'task_update',
+            data: {
+              state: 'done',
+              run_id,
+              summary: 'Workflow completed'
             }
           }));
         }

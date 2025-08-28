@@ -546,9 +546,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     sendMessage(syntheticMessage);
   };
 
-  // Handle task view
+  // Handle task view - navigate to batch run detail page
   const handleViewTask = (runId: string) => {
-    window.open(`/tasks?run_id=${runId}`, '_blank');
+    // Navigate to batch run detail page with conversation context
+    window.open(`/scripts/batches/runs/${runId}?from=conversation`, '_blank');
   };
 
   if (!shouldShowDemo) {
