@@ -237,25 +237,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         throw new Error('Authentication required');
       }
 
-      // Call the demo start endpoint with proper authentication
-      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/chat-api/demo/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk'
-        },
-        body: JSON.stringify({
+      // Call the demo start endpoint using Supabase functions.invoke
+      const { data, error } = await supabase.functions.invoke('chat-api', {
+        body: {
+          path: '/demo/start',
           agent_id: selectedAgent
-        })
+        },
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
+      if (error) throw error;
       const newConversationId = data.conversation_id;
       setConversationId(newConversationId);
       sessionStartTime.current = Date.now();
@@ -310,27 +303,20 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         throw new Error('Authentication required');
       }
 
-      // Call the demo message endpoint
-      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/chat-api/demo/message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk'
-        },
-        body: JSON.stringify({
+      // Call the demo message endpoint using Supabase functions.invoke
+      const { data, error } = await supabase.functions.invoke('chat-api', {
+        body: {
+          path: '/demo/message',
           conversation_id: currentConversationId,
           content: content.trim(),
           is_action: isAction
-        })
+        },
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
+      if (error) throw error;
 
       // Add assistant message
       const assistantMessage: Message = {

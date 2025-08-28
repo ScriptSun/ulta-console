@@ -69,16 +69,19 @@ serve(async (req) => {
 
     // Route requests
     if (req.method === 'POST') {
-      if (path.endsWith('/chat/start')) {
-        return await handleChatStart(req, supabase);
-      } else if (path.endsWith('/chat/message')) {
-        return await handleChatMessage(req, supabase);
-      } else if (path.endsWith('/chat/close')) {
-        return await handleChatClose(req, supabase);
-      } else if (path.endsWith('/demo/start')) {
-        return await handleDemoStart(req, supabase);
-      } else if (path.endsWith('/demo/message')) {
-        return await handleDemoMessage(req, supabase);
+      const body = await req.json();
+      const routePath = body.path || path;
+      
+      if (routePath.endsWith('/chat/start')) {
+        return await handleChatStart(req, supabase, body);
+      } else if (routePath.endsWith('/chat/message')) {
+        return await handleChatMessage(req, supabase, body);
+      } else if (routePath.endsWith('/chat/close')) {
+        return await handleChatClose(req, supabase, body);
+      } else if (routePath.endsWith('/demo/start')) {
+        return await handleDemoStart(req, supabase, body);
+      } else if (routePath.endsWith('/demo/message')) {
+        return await handleDemoMessage(req, supabase, body);
       } else if (path.endsWith('/webhook/batch-completion')) {
         return await handleBatchCompletion(req, supabase);
       }
@@ -384,11 +387,11 @@ async function validateAgentAccess(supabase: any, agentId: string, tenantId: str
   return { valid: true };
 }
 
-async function handleChatStart(req: Request, supabase: any) {
-  const body: ChatStartRequest = await req.json();
-  const { tenant_id, agent_id, user_id, session_id, source = 'website' } = body;
+async function handleChatStart(req: Request, supabase: any, body?: any) {
+  const requestBody: ChatStartRequest = body || await req.json();
+  const { tenant_id, agent_id, user_id, session_id, source = 'website' } = requestBody;
 
-  console.log('Starting chat:', body);
+  console.log('Starting chat:', requestBody);
 
   // Validate required fields
   if (!tenant_id || !agent_id) {
@@ -487,9 +490,9 @@ async function handleChatStart(req: Request, supabase: any) {
   }
 }
 
-async function handleChatMessage(req: Request, supabase: any) {
-  const body: ChatMessageRequest = await req.json();
-  const { conversation_id, role, content } = body;
+async function handleChatMessage(req: Request, supabase: any, body?: any) {
+  const requestBody: ChatMessageRequest = body || await req.json();
+  const { conversation_id, role, content } = requestBody;
 
   console.log('Handling chat message:', { conversation_id, role, content_length: content?.length });
 
@@ -691,9 +694,9 @@ async function handleChatMessage(req: Request, supabase: any) {
   }
 }
 
-async function handleChatClose(req: Request, supabase: any) {
-  const body: ChatCloseRequest = await req.json();
-  const { conversation_id } = body;
+async function handleChatClose(req: Request, supabase: any, body?: any) {
+  const requestBody: ChatCloseRequest = body || await req.json();
+  const { conversation_id } = requestBody;
 
   console.log('Closing chat:', { conversation_id });
 
@@ -1425,7 +1428,7 @@ async function handleBatchCompletion(req: Request, supabase: any) {
 }
 
 // Dashboard demo handlers with Supabase auth
-async function handleDemoStart(req: Request, supabase: any) {
+async function handleDemoStart(req: Request, supabase: any, body?: any) {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
@@ -1444,8 +1447,8 @@ async function handleDemoStart(req: Request, supabase: any) {
     });
   }
 
-  const body = await req.json();
-  const { agent_id } = body;
+  const requestBody = body || await req.json();
+  const { agent_id } = requestBody;
 
   if (!agent_id) {
     return new Response(JSON.stringify({ error: 'agent_id is required' }), {
@@ -1553,7 +1556,7 @@ async function handleDemoStart(req: Request, supabase: any) {
   }
 }
 
-async function handleDemoMessage(req: Request, supabase: any) {
+async function handleDemoMessage(req: Request, supabase: any, body?: any) {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
@@ -1572,8 +1575,8 @@ async function handleDemoMessage(req: Request, supabase: any) {
     });
   }
 
-  const body = await req.json();
-  const { conversation_id, content, is_action = false } = body;
+  const requestBody = body || await req.json();
+  const { conversation_id, content, is_action = false } = requestBody;
 
   if (!conversation_id || !content) {
     return new Response(JSON.stringify({ error: 'conversation_id and content are required' }), {
