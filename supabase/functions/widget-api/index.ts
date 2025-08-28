@@ -27,12 +27,126 @@ interface Database {
           used_at?: string | null
           created_at?: string
         }
+        Update: {
+          used_at?: string
+        }
+      }
+      widget_sessions: {
+        Row: {
+          id: string
+          tenant_id: string
+          user_id: string | null
+          agent_id: string
+          conversation_id: string | null
+          csrf: string
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          user_id?: string | null
+          agent_id: string
+          conversation_id?: string | null
+          csrf: string
+          expires_at?: string
+          created_at?: string
+        }
+        Update: {
+          csrf?: string
+          expires_at?: string
+        }
       }
       agents: {
         Row: {
           id: string
           customer_id: string
           status: string
+          agent_type: string
+        }
+      }
+      chat_conversations: {
+        Row: {
+          id: string
+          tenant_id: string
+          agent_id: string
+          user_id: string | null
+          session_id: string | null
+          source: string
+          status: string
+          meta: any
+          started_at: string
+          closed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          agent_id: string
+          user_id?: string | null
+          session_id?: string | null
+          source?: string
+          status?: string
+          meta?: any
+          started_at?: string
+          closed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: string
+          meta?: any
+          closed_at?: string
+          updated_at?: string
+        }
+      }
+      chat_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          role: string
+          content: string
+          tokens: number | null
+          redacted: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          role: string
+          content: string
+          tokens?: number | null
+          redacted?: boolean
+          created_at?: string
+        }
+      }
+      chat_events: {
+        Row: {
+          id: string
+          conversation_id: string
+          agent_id: string
+          type: string
+          payload: any
+          ref_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          agent_id: string
+          type: string
+          payload?: any
+          ref_id?: string | null
+          created_at?: string
+        }
+      }
+      script_batches: {
+        Row: {
+          id: string
+          name: string
+          customer_id: string
+          active_version: number | null
         }
       }
     }
@@ -41,8 +155,85 @@ interface Database {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-csrf',
+  'Access-Control-Allow-Credentials': 'true'
 }
+
+// Rate limiting storage
+const rateLimits = new Map<string, { count: number; resetTime: number }>()
+
+const RATE_LIMIT_WINDOW = 60000 // 1 minute
+const RATE_LIMIT_MAX = 60 // 60 requests per minute per key
+
+// Intent definitions for chat router
+interface IntentDefinition {
+  name: string;
+  keywords: string[];
+  requiredParams: string[];
+  batchName?: string;
+  clarifyingQuestions: Record<string, string>;
+}
+
+const INTENT_DEFINITIONS: IntentDefinition[] = [
+  {
+    name: 'install_wordpress',
+    keywords: ['install', 'wordpress', 'wp', 'create', 'setup', 'new site'],
+    requiredParams: ['domain', 'admin_email'],
+    batchName: 'wordpress-installer',
+    clarifyingQuestions: {
+      domain: 'What domain would you like to install WordPress on? (e.g., example.com)',
+      admin_email: 'What email address should be used for the WordPress admin account?'
+    }
+  },
+  {
+    name: 'check_cpu',
+    keywords: ['cpu', 'processor', 'load', 'performance', 'usage'],
+    requiredParams: [],
+    batchName: 'system-monitor',
+    clarifyingQuestions: {}
+  },
+  {
+    name: 'check_disk',
+    keywords: ['disk', 'storage', 'space', 'drive', 'filesystem'],
+    requiredParams: [],
+    batchName: 'system-monitor',
+    clarifyingQuestions: {}
+  },
+  {
+    name: 'restart_service',
+    keywords: ['restart', 'reboot', 'service', 'daemon'],
+    requiredParams: ['service_name'],
+    batchName: 'service-manager',
+    clarifyingQuestions: {
+      service_name: 'Which service would you like me to restart? (e.g., apache2, nginx, mysql)'
+    }
+  },
+  {
+    name: 'setup_ssl',
+    keywords: ['ssl', 'https', 'certificate', 'secure', 'letsencrypt'],
+    requiredParams: ['domain'],
+    batchName: 'ssl-manager',
+    clarifyingQuestions: {
+      domain: 'Which domain do you want to secure with SSL? (e.g., example.com)'
+    }
+  },
+  {
+    name: 'backup_database',
+    keywords: ['backup', 'database', 'mysql', 'export', 'dump'],
+    requiredParams: ['database_name'],
+    batchName: 'backup-manager',
+    clarifyingQuestions: {
+      database_name: 'Which database would you like to backup?'
+    }
+  },
+  {
+    name: 'update_system',
+    keywords: ['update', 'upgrade', 'packages', 'system', 'security'],
+    requiredParams: [],
+    batchName: 'system-updater',
+    clarifyingQuestions: {}
+  }
+];
 
 serve(async (req) => {
   console.log(`Widget API: ${req.method} ${req.url}`)
@@ -61,8 +252,15 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey)
 
+    // Route requests
     if (path === '/widget/tickets' && req.method === 'POST') {
       return await handleCreateTicket(req, supabase)
+    } else if (path === '/widget/bootstrap' && req.method === 'GET') {
+      return await handleBootstrap(req, supabase)
+    } else if (path === '/chat/message' && req.method === 'POST') {
+      return await handleWidgetMessage(req, supabase)
+    } else if (path === '/chat/close' && req.method === 'POST') {
+      return await handleWidgetClose(req, supabase)
     }
 
     return new Response(
@@ -83,6 +281,49 @@ serve(async (req) => {
     )
   }
 })
+
+// Helper function to parse cookies
+function parseCookies(cookieHeader: string | null): Record<string, string> {
+  const cookies: Record<string, string> = {}
+  if (!cookieHeader) return cookies
+  
+  cookieHeader.split(';').forEach(cookie => {
+    const [name, ...rest] = cookie.split('=')
+    if (name && rest.length > 0) {
+      cookies[name.trim()] = rest.join('=').trim()
+    }
+  })
+  
+  return cookies
+}
+
+// Helper function to generate random string
+function generateRandomString(length: number = 32): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let result = ''
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
+
+// Rate limiting helper
+function checkRateLimit(key: string): boolean {
+  const now = Date.now()
+  const limit = rateLimits.get(key)
+  
+  if (!limit || now > limit.resetTime) {
+    rateLimits.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW })
+    return true
+  }
+  
+  if (limit.count >= RATE_LIMIT_MAX) {
+    return false
+  }
+  
+  limit.count++
+  return true
+}
 
 async function handleCreateTicket(req: Request, supabase: any) {
   try {
@@ -175,6 +416,716 @@ async function handleCreateTicket(req: Request, supabase: any) {
     )
   } catch (error) {
     console.error('Error in handleCreateTicket:', error)
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  }
+}
+
+async function handleBootstrap(req: Request, supabase: any) {
+  try {
+    // Read cookies
+    const cookieHeader = req.headers.get('cookie')
+    const cookies = parseCookies(cookieHeader)
+    const ticketId = cookies['ultaai_ticket']
+    
+    if (!ticketId) {
+      return new Response(
+        JSON.stringify({ error: 'Ticket cookie not found' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Validate Origin and Referer
+    const origin = req.headers.get('origin')
+    const referer = req.headers.get('referer')
+    
+    if (!origin && !referer) {
+      return new Response(
+        JSON.stringify({ error: 'Missing origin or referer header' }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Get and validate ticket
+    const { data: ticket, error: ticketError } = await supabase
+      .from('widget_tickets')
+      .select('*')
+      .eq('id', ticketId)
+      .is('used_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .single()
+
+    if (ticketError || !ticket) {
+      console.log('Ticket validation error:', ticketError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired ticket' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Validate origin matches ticket
+    const requestOrigin = origin || new URL(referer!).origin
+    if (!requestOrigin.includes(ticket.origin)) {
+      console.log('Origin mismatch:', { requestOrigin, ticketOrigin: ticket.origin })
+      return new Response(
+        JSON.stringify({ error: 'Origin not allowed' }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Validate User-Agent hash
+    const userAgent = req.headers.get('user-agent') || ''
+    const encoder = new TextEncoder()
+    const data = encoder.encode(userAgent)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const ua_hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    
+    if (ticket.ua_hash && ticket.ua_hash !== ua_hash) {
+      console.log('UA hash mismatch')
+      return new Response(
+        JSON.stringify({ error: 'User agent validation failed' }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Mark ticket as used (one-time consumption)
+    const { error: updateError } = await supabase
+      .from('widget_tickets')
+      .update({ used_at: new Date().toISOString() })
+      .eq('id', ticketId)
+
+    if (updateError) {
+      console.error('Error marking ticket as used:', updateError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to consume ticket' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Get agent details
+    const { data: agent, error: agentError } = await supabase
+      .from('agents')
+      .select('id, customer_id, agent_type')
+      .eq('id', ticket.agent_id)
+      .single()
+
+    if (agentError || !agent) {
+      return new Response(
+        JSON.stringify({ error: 'Agent not found' }),
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Create or get existing conversation
+    let conversationId: string
+    const { data: existingConversation } = await supabase
+      .from('chat_conversations')
+      .select('id')
+      .eq('tenant_id', ticket.tenant_id)
+      .eq('agent_id', ticket.agent_id)
+      .eq('user_id', ticket.user_id || '')
+      .eq('source', 'widget')
+      .eq('status', 'open')
+      .maybeSingle()
+
+    if (existingConversation) {
+      conversationId = existingConversation.id
+    } else {
+      const { data: newConversation, error: conversationError } = await supabase
+        .from('chat_conversations')
+        .insert({
+          tenant_id: ticket.tenant_id,
+          agent_id: ticket.agent_id,
+          user_id: ticket.user_id,
+          session_id: null,
+          source: 'widget',
+          status: 'open',
+          meta: {}
+        })
+        .select('id')
+        .single()
+
+      if (conversationError || !newConversation) {
+        console.error('Error creating conversation:', conversationError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to create conversation' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+
+      conversationId = newConversation.id
+    }
+
+    // Generate CSRF token and session
+    const csrfToken = generateRandomString(32)
+    const sessionId = generateRandomString(32)
+    
+    // Create widget session with 30-minute expiry
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString()
+    
+    const { data: session, error: sessionError } = await supabase
+      .from('widget_sessions')
+      .insert({
+        id: sessionId,
+        tenant_id: ticket.tenant_id,
+        user_id: ticket.user_id,
+        agent_id: ticket.agent_id,
+        conversation_id: conversationId,
+        csrf: csrfToken,
+        expires_at: expiresAt
+      })
+      .select('id')
+      .single()
+
+    if (sessionError) {
+      console.error('Error creating session:', sessionError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to create session' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Set session cookie
+    const cookieOptions = 'HttpOnly; Secure; SameSite=None; Path=/; Max-Age=1800'
+    
+    const responseData = {
+      conversation_id: conversationId,
+      agent_display: agent.agent_type,
+      caps: ['text_chat', 'task_execution'],
+      csrf: csrfToken
+    }
+
+    console.log(`Bootstrap successful for conversation ${conversationId}`)
+
+    return new Response(
+      JSON.stringify(responseData),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Set-Cookie': `ultaai_sid=${sessionId}; ${cookieOptions}`
+        } 
+      }
+    )
+  } catch (error) {
+    console.error('Error in handleBootstrap:', error)
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  }
+}
+
+// Intent classification and parameter extraction
+function classifyIntentAndExtractParams(message: string, conversationContext: any = {}) {
+  const lowerMessage = message.toLowerCase();
+  
+  let bestMatch = null;
+  let maxScore = 0;
+
+  for (const intent of INTENT_DEFINITIONS) {
+    const keywordMatches = intent.keywords.filter(keyword => 
+      lowerMessage.includes(keyword.toLowerCase())
+    ).length;
+    
+    if (keywordMatches > maxScore) {
+      maxScore = keywordMatches;
+      bestMatch = intent;
+    }
+  }
+
+  if (!bestMatch) {
+    return {
+      intent: 'general_inquiry',
+      params: {},
+      confidence: 0
+    };
+  }
+
+  // Extract parameters from message
+  const extractedParams: Record<string, string> = {};
+  
+  // Extract domain names
+  const domainRegex = /(?:domain|site|website)?\s*(?:is|:|at)?\s*([a-zA-Z0-9-]+\.(?:[a-zA-Z]{2,})+)/gi;
+  const domainMatch = domainRegex.exec(message);
+  if (domainMatch && bestMatch.requiredParams.includes('domain')) {
+    extractedParams.domain = domainMatch[1];
+  }
+
+  // Extract email addresses
+  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+  const emailMatch = emailRegex.exec(message);
+  if (emailMatch && bestMatch.requiredParams.includes('admin_email')) {
+    extractedParams.admin_email = emailMatch[0];
+  }
+
+  // Extract service names
+  const serviceRegex = /(?:service|restart|stop|start)\s+([a-zA-Z0-9_-]+)/gi;
+  const serviceMatch = serviceRegex.exec(message);
+  if (serviceMatch && bestMatch.requiredParams.includes('service_name')) {
+    extractedParams.service_name = serviceMatch[1];
+  }
+
+  return {
+    intent: bestMatch.name,
+    intentDef: bestMatch,
+    params: extractedParams,
+    confidence: maxScore / bestMatch.keywords.length
+  };
+}
+
+async function handleWidgetMessage(req: Request, supabase: any) {
+  try {
+    // Validate session cookie and CSRF
+    const cookieHeader = req.headers.get('cookie')
+    const cookies = parseCookies(cookieHeader)
+    const sessionId = cookies['ultaai_sid']
+    const csrfHeader = req.headers.get('x-csrf')
+    
+    if (!sessionId || !csrfHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing session or CSRF token' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Get and validate session
+    const { data: session, error: sessionError } = await supabase
+      .from('widget_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('csrf', csrfHeader)
+      .gt('expires_at', new Date().toISOString())
+      .single()
+
+    if (sessionError || !session) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid session or CSRF token' }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Rate limiting
+    const rateLimitKey = `${session.tenant_id}:${session.agent_id}:${sessionId}`
+    if (!checkRateLimit(rateLimitKey)) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded' }),
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    const body = await req.json()
+    const { content } = body
+    
+    if (!content || typeof content !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Message content is required' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Store user message
+    const { error: messageError } = await supabase
+      .from('chat_messages')
+      .insert({
+        conversation_id: session.conversation_id,
+        role: 'user',
+        content: content
+      })
+
+    if (messageError) {
+      console.error('Error storing message:', messageError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to store message' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Get conversation for context
+    const { data: conversation } = await supabase
+      .from('chat_conversations')
+      .select('*')
+      .eq('id', session.conversation_id)
+      .single()
+
+    // Process message through router
+    const routerResult = await processChatRouter(supabase, session.conversation_id!, content, conversation, session.agent_id, session.tenant_id)
+
+    // Store assistant response
+    const { error: responseError } = await supabase
+      .from('chat_messages')
+      .insert({
+        conversation_id: session.conversation_id,
+        role: 'assistant',
+        content: routerResult.response
+      })
+
+    if (responseError) {
+      console.error('Error storing response:', responseError)
+    }
+
+    return new Response(
+      JSON.stringify({
+        message: routerResult.response,
+        action: routerResult.action,
+        intent: routerResult.intent
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  } catch (error) {
+    console.error('Error in handleWidgetMessage:', error)
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  }
+}
+
+// Chat router for intent processing
+async function processChatRouter(supabase: any, conversationId: string, message: string, conversation: any, agentId: string, tenantId: string) {
+  console.log('Processing chat router for widget:', { conversationId, message });
+
+  const conversationContext = conversation?.meta || {};
+  
+  // Check if we're waiting for a parameter
+  if (conversationContext.pending_intent && conversationContext.awaiting_param) {
+    const pendingIntent = INTENT_DEFINITIONS.find(i => i.name === conversationContext.pending_intent);
+    if (pendingIntent) {
+      const awaitingParam = conversationContext.awaiting_param;
+      const pendingParams = conversationContext.pending_params || {};
+      
+      let paramValue = message.trim();
+      
+      // Store the parameter
+      pendingParams[awaitingParam] = paramValue;
+      
+      // Check if we have all required parameters
+      const missingParams = pendingIntent.requiredParams.filter(param => !pendingParams[param]);
+      
+      if (missingParams.length > 0) {
+        // Still missing parameters, ask for next one
+        const nextParam = missingParams[0];
+        
+        // Update conversation context
+        await supabase
+          .from('chat_conversations')
+          .update({
+            meta: {
+              ...conversationContext,
+              pending_params: pendingParams,
+              awaiting_param: nextParam
+            }
+          })
+          .eq('id', conversationId);
+        
+        return {
+          response: pendingIntent.clarifyingQuestions[nextParam] || `Please provide ${nextParam}:`,
+          action: 'clarify',
+          intent: conversationContext.pending_intent,
+          missing_param: nextParam
+        };
+      } else {
+        // All parameters collected, execute the batch
+        if (pendingIntent.batchName) {
+          const executeResult = await executeBatch(supabase, pendingIntent.batchName, pendingParams, agentId, tenantId, conversationId);
+          
+          // Clear pending intent
+          await supabase
+            .from('chat_conversations')
+            .update({
+              meta: {
+                ...conversationContext,
+                pending_intent: null,
+                pending_params: null,
+                awaiting_param: null
+              }
+            })
+            .eq('id', conversationId);
+          
+          return executeResult;
+        }
+      }
+    }
+  }
+
+  // Classify new intent
+  const classification = classifyIntentAndExtractParams(message, conversationContext);
+  
+  if (classification.intent === 'general_inquiry') {
+    return {
+      response: "I can help you with system tasks like installing WordPress, checking system status, restarting services, and more. What would you like me to do?",
+      action: 'general_response',
+      intent: 'general_inquiry'
+    };
+  }
+
+  const intent = classification.intentDef;
+  if (!intent) {
+    return {
+      response: "I'm not sure how to help with that. Can you be more specific?",
+      action: 'general_response',
+      intent: 'unknown'
+    };
+  }
+
+  // Check if we have all required parameters
+  const missingParams = intent.requiredParams.filter(param => !classification.params[param]);
+  
+  if (missingParams.length > 0) {
+    // Store intent and ask for missing parameter
+    const nextParam = missingParams[0];
+    
+    await supabase
+      .from('chat_conversations')
+      .update({
+        meta: {
+          ...conversationContext,
+          pending_intent: intent.name,
+          pending_params: classification.params,
+          awaiting_param: nextParam
+        }
+      })
+      .eq('id', conversationId);
+    
+    return {
+      response: intent.clarifyingQuestions[nextParam] || `To proceed, I need to know: ${nextParam}`,
+      action: 'clarify',
+      intent: intent.name,
+      missing_param: nextParam
+    };
+  }
+
+  // Execute batch if we have all parameters
+  if (intent.batchName) {
+    return await executeBatch(supabase, intent.batchName, classification.params, agentId, tenantId, conversationId);
+  }
+
+  return {
+    response: `I understand you want to ${intent.name}, but I don't have a handler for that yet.`,
+    action: 'not_implemented',
+    intent: intent.name
+  };
+}
+
+async function executeBatch(supabase: any, batchName: string, params: Record<string, string>, agentId: string, tenantId: string, conversationId: string) {
+  try {
+    // Get the batch
+    const { data: batch, error: batchError } = await supabase
+      .from('script_batches')
+      .select('id, name, active_version')
+      .eq('name', batchName)
+      .eq('customer_id', tenantId)
+      .single();
+
+    if (batchError || !batch || !batch.active_version) {
+      console.error('Batch not found or inactive:', batchError);
+      return {
+        response: `Sorry, the ${batchName} functionality is not available right now.`,
+        action: 'error',
+        intent: batchName
+      };
+    }
+
+    // Start batch run using existing function
+    const { data: runResult, error: runError } = await supabase
+      .rpc('start_batch_run', {
+        _batch_id: batch.id,
+        _agent_id: agentId
+      });
+
+    if (runError) {
+      console.error('Error starting batch run:', runError);
+      return {
+        response: "I'm having trouble starting that task right now. Please try again later.",
+        action: 'error',
+        intent: batchName
+      };
+    }
+
+    if (runResult && runResult.length > 0) {
+      const result = runResult[0];
+      
+      if (result.status === 'started') {
+        // Log task queued event
+        await supabase
+          .from('chat_events')
+          .insert({
+            conversation_id: conversationId,
+            agent_id: agentId,
+            type: 'task_queued',
+            payload: {
+              batch_name: batchName,
+              batch_id: batch.id,
+              run_id: result.run_id,
+              params: params
+            },
+            ref_id: result.run_id
+          });
+
+        return {
+          response: `I've started the ${batchName} task for you. I'll let you know when it's complete.`,
+          action: 'task_started',
+          intent: batchName,
+          run_id: result.run_id
+        };
+      } else {
+        return {
+          response: `Unable to start the task: ${result.message}`,
+          action: 'blocked',
+          intent: batchName
+        };
+      }
+    }
+
+    return {
+      response: "Task submitted successfully.",
+      action: 'task_started',
+      intent: batchName
+    };
+  } catch (error) {
+    console.error('Error in executeBatch:', error);
+    return {
+      response: "There was an error processing your request. Please try again.",
+      action: 'error',
+      intent: batchName
+    };
+  }
+}
+
+async function handleWidgetClose(req: Request, supabase: any) {
+  try {
+    // Validate session cookie and CSRF
+    const cookieHeader = req.headers.get('cookie')
+    const cookies = parseCookies(cookieHeader)
+    const sessionId = cookies['ultaai_sid']
+    const csrfHeader = req.headers.get('x-csrf')
+    
+    if (!sessionId || !csrfHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing session or CSRF token' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Get and validate session
+    const { data: session, error: sessionError } = await supabase
+      .from('widget_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('csrf', csrfHeader)
+      .single()
+
+    if (sessionError || !session) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid session or CSRF token' }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Close conversation
+    const { error: closeError } = await supabase
+      .from('chat_conversations')
+      .update({
+        status: 'closed',
+        closed_at: new Date().toISOString()
+      })
+      .eq('id', session.conversation_id)
+
+    if (closeError) {
+      console.error('Error closing conversation:', closeError)
+    }
+
+    // Rotate session (generate new CSRF token and extend expiry)
+    const newCsrfToken = generateRandomString(32)
+    const newExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString()
+    
+    const { error: rotateError } = await supabase
+      .from('widget_sessions')
+      .update({
+        csrf: newCsrfToken,
+        expires_at: newExpiresAt
+      })
+      .eq('id', sessionId)
+
+    if (rotateError) {
+      console.error('Error rotating session:', rotateError)
+    }
+
+    console.log(`Closed conversation ${session.conversation_id} and rotated session`)
+
+    return new Response(
+      JSON.stringify({ 
+        message: 'Conversation closed successfully',
+        csrf: newCsrfToken
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  } catch (error) {
+    console.error('Error in handleWidgetClose:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { 
