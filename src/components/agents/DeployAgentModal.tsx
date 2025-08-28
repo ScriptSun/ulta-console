@@ -242,7 +242,35 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {timeLeft <= 0 && (
+                  {timeLeft > 0 ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-3 bg-muted rounded-lg border">
+                        <Terminal className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        <input
+                          type="text"
+                          value={installCommand}
+                          readOnly
+                          className="flex-1 bg-transparent border-none outline-none text-sm font-mono"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(installCommand)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {copied ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        This token will expire in {formatTime(timeLeft)}. 
+                        Generate a new one if needed.
+                      </p>
+                    </div>
+                  ) : (
                     <div className="text-center py-4">
                       <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
                       <p className="text-sm text-destructive mb-3">Token has expired</p>
