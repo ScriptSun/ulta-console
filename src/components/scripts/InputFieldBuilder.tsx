@@ -62,6 +62,8 @@ export function InputFieldBuilder({
   const [generatedSchema, setGeneratedSchema] = useState<any>(null);
   const [generatedDefaults, setGeneratedDefaults] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [lastInitialFieldsLength, setLastInitialFieldsLength] = useState(initialFields.length);
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -172,7 +174,16 @@ export function InputFieldBuilder({
   }, []);
 
   useEffect(() => {
-    console.log('InputFieldBuilder useEffect - initialFields:', initialFields.length, 'current fields:', fields.length);
+    console.log('InputFieldBuilder useEffect - initialFields:', initialFields.length, 'current fields:', fields.length, 'isInitializing:', isInitializing);
+    
+    // Track if this is a significant change in initial fields
+    const significantChange = initialFields.length !== lastInitialFieldsLength;
+    
+    if (significantChange) {
+      console.log('InputFieldBuilder: Significant change detected, entering initialization mode');
+      setIsInitializing(true);
+      setLastInitialFieldsLength(initialFields.length);
+    }
     
     // Create a deep comparison function for fields
     const fieldsEqual = (fields1: BuilderField[], fields2: BuilderField[]) => {
@@ -198,11 +209,21 @@ export function InputFieldBuilder({
       setFields([...initialFields]);
     } else {
       console.log('InputFieldBuilder: Fields are identical, skipping update');
+      // If fields are identical but we were initializing, we can stop initializing
+      if (isInitializing) {
+        setTimeout(() => setIsInitializing(false), 100);
+      }
     }
-  }, [initialFields]);
+  }, [initialFields, lastInitialFieldsLength, isInitializing]);
 
   useEffect(() => {
-    console.log('InputFieldBuilder main useEffect - fields changed:', fields.length);
+    console.log('InputFieldBuilder main useEffect - fields changed:', fields.length, 'isInitializing:', isInitializing);
+    
+    // Don't trigger callbacks during initialization
+    if (isInitializing) {
+      console.log('InputFieldBuilder: Skipping callbacks during initialization');
+      return;
+    }
     
     // Debounce this effect to prevent rapid updates
     const timeoutId = setTimeout(() => {
@@ -221,14 +242,18 @@ export function InputFieldBuilder({
         
         // Only update if schema/defaults actually changed
         if (JSON.stringify(schema) !== JSON.stringify(generatedSchema)) {
+          console.log('InputFieldBuilder: Updating schema');
           setGeneratedSchema(schema);
           onSchemaChange?.(schema);
         }
         if (JSON.stringify(defaults) !== JSON.stringify(generatedDefaults)) {
+          console.log('InputFieldBuilder: Updating defaults');
           setGeneratedDefaults(defaults);
           onDefaultsChange?.(defaults);
         }
-      } else if (generatedSchema !== null || generatedDefaults !== null) {
+      } else if (fields.length === 0 && (generatedSchema !== null || generatedDefaults !== null)) {
+        // Only clear schema/defaults if we had them before
+        console.log('InputFieldBuilder: Clearing schema/defaults');
         setGeneratedSchema(null);
         setGeneratedDefaults(null);
         onSchemaChange?.(null);
@@ -239,11 +264,13 @@ export function InputFieldBuilder({
     }, 100); // 100ms debounce
     
     return () => clearTimeout(timeoutId);
-  }, [fields, buildSchemaFromFields, validateFields]);
+  }, [fields, buildSchemaFromFields, validateFields, isInitializing]);
 
   const handleFieldsChange = (newFields: BuilderField[]) => {
     if (canEdit) {
+      console.log('InputFieldBuilder: User changed fields, exiting initialization mode');
       setFields(newFields);
+      setIsInitializing(false); // User interaction, no longer initializing
     }
   };
 
@@ -266,6 +293,7 @@ export function InputFieldBuilder({
   };
 
   const handleSaveField = (field: BuilderField) => {
+    console.log('InputFieldBuilder: User saved field, exiting initialization mode');
     if (isCreatingNew) {
       setFields(prev => [...prev, field]);
     } else {
@@ -274,6 +302,7 @@ export function InputFieldBuilder({
     setEditingField(null);
     setIsCreatingNew(false);
     setIsModalOpen(false);
+    setIsInitializing(false); // User interaction, no longer initializing
   };
 
   const handleCancelEdit = () => {
@@ -284,6 +313,7 @@ export function InputFieldBuilder({
 
   const handleLoadExample = () => {
     if (canEdit) {
+      console.log('InputFieldBuilder: User loaded example, exiting initialization mode');
       const exampleFields: BuilderField[] = EXAMPLE_WORDPRESS_FIELDS.map(example => ({
         id: crypto.randomUUID(),
         key: example.key,
@@ -295,6 +325,7 @@ export function InputFieldBuilder({
         options: example.options
       }));
       setFields(exampleFields);
+      setIsInitializing(false); // User interaction, no longer initializing
     }
   };
 
