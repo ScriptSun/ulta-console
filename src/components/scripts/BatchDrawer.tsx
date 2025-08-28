@@ -25,6 +25,8 @@ import { Separator } from '@/components/ui/separator';
 import { BatchCodeEditor } from './BatchCodeEditor';
 import { BatchDependenciesTab } from './BatchDependenciesTab';
 import { BatchInputsTab } from './BatchInputsTab';
+import { BatchVariantSwitcher, BatchVariant } from './BatchVariantSwitcher';
+import { BatchVariantsList } from './BatchVariantsList';
 import { 
   Save, 
   CheckCircle2, 
@@ -94,6 +96,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   const [activeTab, setActiveTab] = useState('general');
   const [inputsValid, setInputsValid] = useState(true);
   const [inputsErrors, setInputsErrors] = useState<string[]>([]);
+  const [variants, setVariants] = useState<BatchVariant[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
   
   const { toast } = useToast();
   const isEditing = !!batch?.id;
@@ -103,9 +107,9 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   useEffect(() => {
     if (batch) {
       setFormData(batch);
-      // Load the active version content if editing
-      if (batch.id && batch.active_version) {
-        loadBatchVersion(batch.id, batch.active_version);
+      // Load variants for existing batch
+      if (batch.id) {
+        loadBatchVariants(batch.id);
       }
     } else {
       setFormData({
@@ -117,6 +121,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       });
       setScriptContent(DEFAULT_SCRIPT);
       setNotes('');
+      setVariants([]);
     }
   }, [batch]);
 
@@ -155,29 +160,155 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     }
   }, [isOpen, formData.name, batch]);
 
-  const loadBatchVersion = async (batchId: string, version: number) => {
+  const loadBatchVariants = async (batchId: string) => {
+    setLoadingVariants(true);
     try {
-      const { data, error } = await supabase
-        .from('script_batch_versions')
-        .select('source, notes')
-        .eq('batch_id', batchId)
-        .eq('version', version)
-        .single();
+      const response = await fetch(
+        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batchId}/variants`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      if (error) throw error;
-
-      if (data) {
-        setScriptContent(data.source);
-        setNotes(data.notes || '');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      setVariants(data?.variants || []);
     } catch (error) {
-      console.error('Error loading batch version:', error);
+      console.error('Error loading variants:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load batch version',
+        description: 'Failed to load batch variants',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingVariants(false);
+    }
+  };
+
+  const handleVariantChange = async (os: string, source: string, notes?: string) => {
+    if (!batch?.id) return;
+
+    try {
+      const response = await fetch(
+        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch.id}/variants`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ os, source, notes }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Reload variants to get updated list
+      await loadBatchVariants(batch.id);
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.error('Error updating variant:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update variant',
         variant: 'destructive',
       });
     }
+  };
+
+  const handleCreateVariantVersion = async (os: string) => {
+    if (!batch?.id) return;
+
+    try {
+      const response = await fetch(
+        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch.id}/variants/${os}/versions`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await loadBatchVariants(batch.id);
+      toast({
+        title: 'Success',
+        description: `Created new version for ${os}`,
+      });
+    } catch (error) {
+      console.error('Error creating variant version:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create variant version',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleActivateVariantVersion = async (os: string, version: number) => {
+    if (!batch?.id) return;
+
+    try {
+      const response = await fetch(
+        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch.id}/variants/${os}/activate`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ version }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await loadBatchVariants(batch.id);
+      toast({
+        title: 'Success',
+        description: `Activated ${os} v${version}`,
+      });
+    } catch (error) {
+      console.error('Error activating version:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to activate version',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAddVariant = async (os: string, sourceFromOs?: string) => {
+    if (!batch?.id) return;
+
+    let source = DEFAULT_SCRIPT;
+    
+    // If duplicating from another OS, get its source
+    if (sourceFromOs) {
+      const sourceVariant = variants.find(v => v.os === sourceFromOs && v.active);
+      if (sourceVariant) {
+        source = sourceVariant.source;
+      }
+    }
+
+    await handleVariantChange(os, source, `Initial ${os} variant`);
   };
 
   const handleSaveDraft = async () => {
@@ -551,57 +682,50 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
             </TabsContent>
 
             <TabsContent value="script" className="space-y-6 mt-6">
-              <Separator />
-
-            {/* Code Editor */}
-            <BatchCodeEditor
-              content={scriptContent}
-              onChange={setScriptContent}
-              onValidationChange={setValidation}
-              readOnly={!canEdit}
-            />
-
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              
-              {canEdit && (
+              {formData.os_targets.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
+                  <p>Please select OS targets in the General tab first</p>
+                </div>
+              ) : (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={handleSaveDraft}
-                    disabled={loading || !validation?.isValid || !inputsValid}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Draft
-                  </Button>
-                  
-                  {!formData.auto_version && (
-                    <Button
-                      variant="outline"
-                      onClick={handleCreateVersion}
-                      disabled={loading || !validation?.isValid || !inputsValid}
-                    >
-                      <FileCode className="h-4 w-4 mr-2" />
-                      Create Version
-                    </Button>
+                  {batch?.id ? (
+                    <BatchVariantSwitcher
+                      batchId={batch.id}
+                      osTargets={formData.os_targets}
+                      variants={variants}
+                      onVariantChange={handleVariantChange}
+                      onCreateVersion={handleCreateVariantVersion}
+                      onActivateVersion={handleActivateVariantVersion}
+                      onAddVariant={handleAddVariant}
+                      canEdit={canEdit}
+                      canActivate={canActivate}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Monitor className="h-8 w-8 mx-auto mb-2" />
+                      <p>Save the batch first to enable variant management</p>
+                    </div>
+                  )}
+
+                  {batch?.id && (
+                    <BatchVariantsList
+                      variants={variants}
+                      osTargets={formData.os_targets}
+                      onViewHistory={(os) => {
+                        // TODO: Implement history view
+                        toast({ title: 'Coming Soon', description: 'History view will be available soon' });
+                      }}
+                      onViewDiff={(os) => {
+                        // TODO: Implement diff view
+                        toast({ title: 'Coming Soon', description: 'Diff view will be available soon' });
+                      }}
+                      onActivateVersion={handleActivateVariantVersion}
+                      canActivate={canActivate}
+                    />
                   )}
                 </>
               )}
-              
-              {canActivate && (
-                <Button
-                  onClick={handleActivateVersion}
-                  disabled={loading || !validation?.isValid || !inputsValid}
-                  className="bg-gradient-primary hover:bg-primary-dark"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Activate Version
-                </Button>
-              )}
-            </div>
             </TabsContent>
           </Tabs>
         </ScrollArea>
