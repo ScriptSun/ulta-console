@@ -338,7 +338,7 @@ export function BatchInputsForm({
       {/* Header with validation status */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge variant={isValid ? "default" : "destructive"} className="flex items-center gap-1">
+          <Badge variant={isValid ? "outline" : "destructive"} className={`flex items-center gap-1 ${isValid ? 'border-green-500 text-green-600 bg-green-50' : ''}`}>
             {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
             {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
           </Badge>
