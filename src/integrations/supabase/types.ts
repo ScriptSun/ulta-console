@@ -572,6 +572,13 @@ export type Database = {
             referencedRelation: "certificates"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "certificate_revocation_list_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_metadata"
+            referencedColumns: ["id"]
+          },
         ]
       }
       certificates: {
@@ -1118,6 +1125,42 @@ export type Database = {
       }
     }
     Views: {
+      certificates_metadata: {
+        Row: {
+          agent_id: string | null
+          cert_pem: string | null
+          created_at: string | null
+          expires_at: string | null
+          fingerprint_sha256: string | null
+          id: string | null
+          issued_at: string | null
+          revoked_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          cert_pem?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          fingerprint_sha256?: string | null
+          id?: string | null
+          issued_at?: string | null
+          revoked_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          cert_pem?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          fingerprint_sha256?: string | null
+          id?: string | null
+          issued_at?: string | null
+          revoked_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       v_batch_variants_active: {
         Row: {
           batch_id: string | null
