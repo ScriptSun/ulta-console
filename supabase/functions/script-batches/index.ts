@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0'
 import { corsHeaders, cors } from '../_shared/cors.ts'
-import { logger } from '../_shared/logger.ts'
+import { Logger } from '../_shared/logger.ts'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const { pathname, searchParams } = new URL(req.url)
     const pathParts = pathname.split('/').filter(Boolean)
     
-    logger.info('Script batches request', { 
+    Logger.info('Script batches request', { 
       method: req.method, 
       fullUrl: req.url, 
       pathname, 
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     // The pathname should be like: /batchId/variants or /batchId/variants/os/action
     if (req.method === 'GET' && pathParts.length === 1 && pathParts[0] === 'health') {
       // Health check endpoint: GET /health
-      logger.info('Health check requested')
+      Logger.info('Health check requested')
       return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -51,36 +51,36 @@ Deno.serve(async (req) => {
     } else if (req.method === 'GET' && pathParts.length === 2 && pathParts[1] === 'variants') {
       // Get batch variants: GET /batchId/variants
       const batchId = pathParts[0]
-      logger.info('Handling GET variants', { batchId })
+      Logger.info('Handling GET variants', { batchId })
       return await handleGetVariants(req, batchId)
     } else if (req.method === 'POST' && pathParts.length === 2 && pathParts[1] === 'variants') {
       // Create or update variant: POST /batchId/variants
       const batchId = pathParts[0]
-      logger.info('Handling POST variants', { batchId })
+      Logger.info('Handling POST variants', { batchId })
       return await handleCreateVariant(req, batchId)
     } else if (req.method === 'POST' && pathParts.length === 4 && pathParts[1] === 'variants' && pathParts[3] === 'versions') {
       // Create version for OS variant: POST /batchId/variants/os/versions
       const batchId = pathParts[0]
       const os = pathParts[2]
-      logger.info('Handling POST variant version', { batchId, os })
+      Logger.info('Handling POST variant version', { batchId, os })
       return await handleCreateVariantVersion(req, batchId, os)
     } else if (req.method === 'POST' && pathParts.length === 4 && pathParts[1] === 'variants' && pathParts[3] === 'activate') {
       // Activate variant version: POST /batchId/variants/os/activate
       const batchId = pathParts[0]
       const os = pathParts[2]
-      logger.info('Handling POST activate variant', { batchId, os })
+      Logger.info('Handling POST activate variant', { batchId, os })
       return await handleActivateVariant(req, batchId, os)
     } else if (req.method === 'POST' && pathParts.length === 2 && pathParts[1] === 'quick-run') {
       // Quick run batch: POST /batchId/quick-run
       const batchId = pathParts[0]
-      logger.info('Handling POST quick run', { batchId })
+      Logger.info('Handling POST quick run', { batchId })
       return await handleQuickRun(req, batchId)
     }
     
-    logger.warn('No matching route found', { method: req.method, pathParts })
+    Logger.warn('No matching route found', { method: req.method, pathParts })
     return new Response('Not found', { status: 404, headers: corsHeaders })
   } catch (error) {
-    logger.error('Script batches error', { error: error.message })
+    Logger.error('Script batches error', { error: error.message })
     return new Response('Internal server error', { status: 500, headers: corsHeaders })
   }
 })
@@ -101,7 +101,7 @@ async function handleGetVariants(req: Request, batchId: string) {
       .order('version', { ascending: false })
 
     if (error) {
-      logger.error('Failed to get variants', { error, batchId })
+      Logger.error('Failed to get variants', { error, batchId })
       return new Response('Failed to get variants', { status: 500, headers: corsHeaders })
     }
 
@@ -110,7 +110,7 @@ async function handleGetVariants(req: Request, batchId: string) {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    logger.error('Get variants error', { error: error.message, batchId })
+    Logger.error('Get variants error', { error: error.message, batchId })
     return new Response('Internal server error', { status: 500, headers: corsHeaders })
   }
 }
@@ -143,7 +143,7 @@ async function handleCreateVariant(req: Request, batchId: string) {
       .rpc('get_next_variant_version', { _batch_id: batchId, _os: os })
 
     if (versionError) {
-      logger.error('Failed to get next version', { error: versionError, batchId, os })
+      Logger.error('Failed to get next version', { error: versionError, batchId, os })
       return new Response('Failed to get next version', { status: 500, headers: corsHeaders })
     }
 
@@ -167,7 +167,7 @@ async function handleCreateVariant(req: Request, batchId: string) {
       .single()
 
     if (error) {
-      logger.error('Failed to create variant', { error, batchId, os })
+      Logger.error('Failed to create variant', { error, batchId, os })
       return new Response('Failed to create variant', { status: 500, headers: corsHeaders })
     }
 
@@ -176,7 +176,7 @@ async function handleCreateVariant(req: Request, batchId: string) {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    logger.error('Create variant error', { error: error.message, batchId })
+    Logger.error('Create variant error', { error: error.message, batchId })
     return new Response('Internal server error', { status: 500, headers: corsHeaders })
   }
 }
@@ -209,7 +209,7 @@ async function handleCreateVariantVersion(req: Request, batchId: string, os: str
       .rpc('get_next_variant_version', { _batch_id: batchId, _os: os })
 
     if (versionError) {
-      logger.error('Failed to get next version', { error: versionError, batchId, os })
+      Logger.error('Failed to get next version', { error: versionError, batchId, os })
       return new Response('Failed to get next version', { status: 500, headers: corsHeaders })
     }
 
@@ -233,7 +233,7 @@ async function handleCreateVariantVersion(req: Request, batchId: string, os: str
       .single()
 
     if (error) {
-      logger.error('Failed to create variant version', { error, batchId, os })
+      Logger.error('Failed to create variant version', { error, batchId, os })
       return new Response('Failed to create variant version', { status: 500, headers: corsHeaders })
     }
 
@@ -242,7 +242,7 @@ async function handleCreateVariantVersion(req: Request, batchId: string, os: str
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    logger.error('Create variant version error', { error: error.message, batchId, os })
+    Logger.error('Create variant version error', { error: error.message, batchId, os })
     return new Response('Internal server error', { status: 500, headers: corsHeaders })
   }
 }
@@ -285,7 +285,7 @@ async function handleActivateVariant(req: Request, batchId: string, os: string) 
       })
 
     if (error) {
-      logger.error('Failed to activate variant', { error, batchId, os, version })
+      Logger.error('Failed to activate variant', { error, batchId, os, version })
       return new Response('Failed to activate variant', { status: 500, headers: corsHeaders })
     }
 
@@ -298,7 +298,7 @@ async function handleActivateVariant(req: Request, batchId: string, os: string) 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    logger.error('Activate variant error', { error: error.message, batchId, os })
+    Logger.error('Activate variant error', { error: error.message, batchId, os })
     return new Response('Internal server error', { status: 500, headers: corsHeaders })
   }
 }
@@ -321,7 +321,7 @@ async function handleQuickRun(req: Request, batchId: string) {
       .single()
 
     if (batchError || !batch) {
-      logger.error('Batch not found', { error: batchError, batchId })
+      Logger.error('Batch not found', { error: batchError, batchId })
       return new Response('Batch not found', { status: 404, headers: corsHeaders })
     }
 
@@ -335,7 +335,7 @@ async function handleQuickRun(req: Request, batchId: string) {
       .single()
 
     if (variantError || !activeVariant) {
-      logger.error('No active variant found for OS', { error: variantError, batchId, agentOs })
+      Logger.error('No active variant found for OS', { error: variantError, batchId, agentOs })
       return new Response(`No active ${agentOs} variant available`, { status: 400, headers: corsHeaders })
     }
 
@@ -412,7 +412,7 @@ async function handleQuickRun(req: Request, batchId: string) {
       env_vars: envVars
     }
 
-    logger.info('Quick run prepared', { 
+    Logger.info('Quick run prepared', { 
       batchId, 
       agentOs, 
       variant: `${activeVariant.os} v${activeVariant.version}` 
@@ -428,7 +428,7 @@ async function handleQuickRun(req: Request, batchId: string) {
     })
 
   } catch (error) {
-    logger.error('Quick run error', { error: error.message, batchId })
+    Logger.error('Quick run error', { error: error.message, batchId })
     return new Response('Internal server error', { status: 500, headers: corsHeaders })
   }
 }
