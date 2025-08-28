@@ -5,6 +5,7 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetFooter,
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -595,7 +596,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-120px)] mt-6">
+        <ScrollArea className="h-[calc(100vh-180px)] mt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="general">General</TabsTrigger>
@@ -857,6 +858,44 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
             </TabsContent>
           </Tabs>
         </ScrollArea>
+
+        <SheetFooter className="border-t pt-4 mt-4">
+          <div className="flex justify-between items-center w-full">
+            <div className="text-sm text-muted-foreground">
+              {hasUnsavedChanges && <span>• Unsaved changes</span>}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              {canEdit && (
+                <Button
+                  onClick={handleSaveDraft}
+                  disabled={loading || !validation?.isValid || !inputsValid}
+                  className="flex items-center gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  {loading ? 'Saving...' : 'Save Draft'}
+                </Button>
+              )}
+              {canEdit && isEditing && (
+                <Button
+                  onClick={handleCreateVersion}
+                  disabled={loading || !validation?.isValid || !inputsValid}
+                  variant="default"
+                  className="flex items-center gap-2"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {loading ? 'Creating...' : 'Create Version'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );
