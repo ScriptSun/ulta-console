@@ -166,22 +166,11 @@ export function BatchInputsTab({
   onDefaultsChange,
   onValidationChange
 }: BatchInputsTabProps) {
-  // Add a stable key to prevent unnecessary re-renders
-  const stableKey = useMemo(() => {
-    const schemaKeys = inputsSchema?.properties ? Object.keys(inputsSchema.properties).sort().join(',') : '';
-    const defaultKeys = inputsDefaults ? Object.keys(inputsDefaults).sort().join(',') : '';
-    return `${schemaKeys}-${defaultKeys}`;
-  }, [inputsSchema, inputsDefaults]);
-
-  console.log('BatchInputsTab render - inputsSchema:', !!inputsSchema, 'inputsDefaults:', !!inputsDefaults, 'key:', stableKey);
-
-  // Memoize the converted fields to prevent unnecessary re-renders
-  const convertedFields = useMemo(() => {
-    const result = convertSchemaToFields(inputsSchema, inputsDefaults);
-    console.log('BatchInputsTab: Memoized convertedFields:', result.length);
-    return result;
-  }, [inputsSchema, inputsDefaults]);
-
+  // State for the visual builder
+  const [convertedFields, setConvertedFields] = useState<BuilderField[]>([]);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  
+  // State for JSON editor
   const [schemaText, setSchemaText] = useState('');
   const [defaultsText, setDefaultsText] = useState('');
   const [formValues, setFormValues] = useState<Record<string, any>>({});
@@ -197,21 +186,44 @@ export function BatchInputsTab({
   const ajv = new Ajv({ allErrors: true, strict: false });
   addFormats(ajv);
 
-  useEffect(() => {
-    if (inputsSchema) {
-      setSchemaText(JSON.stringify(inputsSchema, null, 2));
-    } else {
-      setSchemaText(JSON.stringify(DEFAULT_SCHEMA, null, 2));
-    }
-  }, [inputsSchema]);
+  console.log('BatchInputsTab render - hasInitialized:', hasInitialized, 'inputsSchema:', !!inputsSchema, 'inputsDefaults:', !!inputsDefaults);
 
+  // Initialize from props only once
   useEffect(() => {
-    if (inputsDefaults) {
-      setDefaultsText(JSON.stringify(inputsDefaults, null, 2));
-    } else {
-      setDefaultsText(JSON.stringify({}, null, 2));
+    if (!hasInitialized) {
+      console.log('BatchInputsTab: Initializing from props');
+      
+      // Convert schema to fields for visual builder
+      const fields = convertSchemaToFields(inputsSchema, inputsDefaults);
+      setConvertedFields(fields);
+      
+      // Set JSON text for editor
+      if (inputsSchema) {
+        setSchemaText(JSON.stringify(inputsSchema, null, 2));
+      } else {
+        setSchemaText(JSON.stringify(DEFAULT_SCHEMA, null, 2));
+      }
+      
+      if (inputsDefaults) {
+        setDefaultsText(JSON.stringify(inputsDefaults, null, 2));
+      } else {
+        setDefaultsText(JSON.stringify({}, null, 2));
+      }
+      
+      setHasInitialized(true);
     }
-  }, [inputsDefaults]);
+  }, [inputsSchema, inputsDefaults, hasInitialized]);
+
+  // Reset initialization when props change significantly
+  useEffect(() => {
+    const schemaKeys = inputsSchema?.properties ? Object.keys(inputsSchema.properties).sort().join(',') : '';
+    const currentFields = convertedFields.map(f => f.key).sort().join(',');
+    
+    if (hasInitialized && schemaKeys !== currentFields) {
+      console.log('BatchInputsTab: Schema changed significantly, re-initializing');
+      setHasInitialized(false);
+    }
+  }, [inputsSchema, convertedFields, hasInitialized]);
 
   const validateSchema = useCallback((schemaStr: string) => {
     try {
@@ -310,7 +322,69 @@ export function BatchInputsTab({
     return { isValid, errors };
   }, [ajv]);
 
+  // Handle visual builder changes (user-initiated)
+  const handleBuilderSchemaChange = useCallback((schema: any) => {
+    console.log('BatchInputsTab: Builder schema change');
+    if (schema) {
+      setSchemaText(JSON.stringify(schema, null, 2));
+    }
+    onSchemaChange?.(schema);
+  }, [onSchemaChange]);
+
+  const handleBuilderDefaultsChange = useCallback((defaults: any) => {
+    console.log('BatchInputsTab: Builder defaults change');
+    if (defaults) {
+      setDefaultsText(JSON.stringify(defaults, null, 2));
+    }
+    onDefaultsChange?.(defaults);
+  }, [onDefaultsChange]);
+
+  const handleBuilderValidationChange = useCallback((isValid: boolean, errors: string[]) => {
+    console.log('BatchInputsTab: Builder validation change');
+    setValidationErrors(errors);
+    setIsValid(isValid);
+    onValidationChange?.(isValid, errors);
+  }, [onValidationChange]);
+
+  // Remove the problematic useEffect that was causing the loop
+  // Now validation only happens for display purposes
+
+  // Handle JSON editor changes (user-initiated)
+  const handleSchemaTextChange = useCallback((value: string) => {
+    if (!canEdit) return;
+    
+    console.log('BatchInputsTab: User changed schema text');
+    setSchemaText(value);
+    
+    // Validate and notify parent
+    const validation = validateSchema(value);
+    if (validation.isValid) {
+      onSchemaChange?.(validation.schema);
+    } else {
+      onSchemaChange?.(null);
+    }
+  }, [canEdit, onSchemaChange, validateSchema]);
+
+  const handleDefaultsTextChange = useCallback((value: string) => {
+    if (!canEdit) return;
+    
+    console.log('BatchInputsTab: User changed defaults text');
+    setDefaultsText(value);
+    
+    // Validate and notify parent
+    const schemaValidation = validateSchema(schemaText);
+    const defaultsValidation = validateDefaults(value, schemaValidation.schema);
+    if (defaultsValidation.isValid) {
+      onDefaultsChange?.(defaultsValidation.defaults);
+    } else {
+      onDefaultsChange?.(null);
+    }
+  }, [canEdit, onDefaultsChange, schemaText, validateSchema, validateDefaults]);
+
+  // Validate current state for display
   useEffect(() => {
+    if (!hasInitialized) return;
+    
     const schemaValidation = validateSchema(schemaText);
     const defaultsValidation = validateDefaults(defaultsText, schemaValidation.schema);
     
@@ -336,30 +410,9 @@ export function BatchInputsTab({
       setFormFields([]);
     }
 
-    // Only update state if values actually changed
-    if (JSON.stringify(newValidationErrors) !== JSON.stringify(validationErrors)) {
-      setValidationErrors(newValidationErrors);
-    }
-    if (newIsValid !== isValid) {
-      setIsValid(newIsValid);
-    }
-
-    onSchemaChange?.(schemaValidation.schema);
-    onDefaultsChange?.(defaultsValidation.defaults);
-    onValidationChange?.(newIsValid, newValidationErrors);
-  }, [schemaText, defaultsText, validateSchema, validateDefaults, generateFormFields, validateFormValues, onSchemaChange, onDefaultsChange, onValidationChange]);
-
-  const handleSchemaChange = (value: string) => {
-    if (canEdit) {
-      setSchemaText(value);
-    }
-  };
-
-  const handleDefaultsChange = (value: string) => {
-    if (canEdit) {
-      setDefaultsText(value);
-    }
-  };
+    setValidationErrors(newValidationErrors);
+    setIsValid(newIsValid);
+  }, [schemaText, defaultsText, hasInitialized, validateSchema, validateDefaults, generateFormFields, validateFormValues]);
 
   const handleFormValueChange = (key: string, value: any) => {
     const newValues = { ...formValues, [key]: value };
@@ -544,15 +597,13 @@ export function BatchInputsTab({
       </TabsList>
 
       <TabsContent value="builder" className="space-y-0">
-        <div key={stableKey}>
-          <InputFieldBuilder
-            initialFields={convertedFields}
-            canEdit={canEdit}
-            onSchemaChange={onSchemaChange}
-            onDefaultsChange={onDefaultsChange}
-            onValidationChange={onValidationChange}
-          />
-        </div>
+        <InputFieldBuilder
+          initialFields={convertedFields}
+          canEdit={canEdit}
+          onSchemaChange={handleBuilderSchemaChange}
+          onDefaultsChange={handleBuilderDefaultsChange}
+          onValidationChange={handleBuilderValidationChange}
+        />
       </TabsContent>
 
       <TabsContent value="json" className="space-y-6">
@@ -603,7 +654,7 @@ export function BatchInputsTab({
             <CardContent>
               <Textarea
                 value={schemaText}
-                onChange={(e) => handleSchemaChange(e.target.value)}
+                onChange={(e) => handleSchemaTextChange(e.target.value)}
                 placeholder="Enter JSON schema..."
                 rows={12}
                 className="font-mono text-xs"
@@ -620,7 +671,7 @@ export function BatchInputsTab({
             <CardContent>
               <Textarea
                 value={defaultsText}
-                onChange={(e) => handleDefaultsChange(e.target.value)}
+                onChange={(e) => handleDefaultsTextChange(e.target.value)}
                 placeholder="Enter default values..."
                 rows={12}
                 className="font-mono text-xs"
