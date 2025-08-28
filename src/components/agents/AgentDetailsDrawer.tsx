@@ -509,7 +509,7 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {[
                           { name: 'nodejs', cpu: 15.2, memory: 8.3, pid: '1234' },
                           { name: 'nginx', cpu: 8.7, memory: 2.1, pid: '5678' },
@@ -517,18 +517,18 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                           { name: 'redis-server', cpu: 3.1, memory: 4.2, pid: '3456' },
                           { name: 'docker', cpu: 6.8, memory: 11.9, pid: '7890' }
                         ].map((app, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 border rounded">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
+                          <div key={index} className="flex items-center justify-between p-2 border rounded text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-primary/10 rounded flex items-center justify-center">
                                 <span className="text-xs font-mono">{index + 1}</span>
                               </div>
                               <div>
-                                <p className="font-medium font-mono">{app.name}</p>
+                                <p className="font-medium font-mono text-sm">{app.name}</p>
                                 <p className="text-xs text-muted-foreground">PID: {app.pid}</p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-medium">CPU: {app.cpu}%</p>
+                              <p className="text-xs font-medium">CPU: {app.cpu}%</p>
                               <p className="text-xs text-muted-foreground">RAM: {app.memory}%</p>
                             </div>
                           </div>
