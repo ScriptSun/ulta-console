@@ -338,7 +338,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     }
   };
 
-  // Send message using demo endpoints
+  // Send message using chat API
   const sendMessage = async (content: string, isAction = false) => {
     if (!content.trim() || !selectedAgent) return;
 
@@ -364,13 +364,13 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         throw new Error('Authentication required');
       }
 
-      // Call the demo message endpoint using Supabase functions.invoke
+      // Call the chat message endpoint
       const { data, error } = await supabase.functions.invoke('chat-api', {
         body: {
-          path: '/demo/message',
+          path: '/chat/message',
           conversation_id: currentConversationId,
-          content: content.trim(),
-          is_action: isAction
+          message: content.trim(),
+          agent_id: selectedAgent
         },
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -400,6 +400,12 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
           contract: data.contract,
           error: data.error
         };
+        
+        // Handle "done" state with simple check message
+        if (data.state === 'done') {
+          assistantMessage.content = '✅ Task completed successfully';
+          assistantMessage.taskStatus = undefined; // Don't show task card for done state
+        }
       } else if (data.event_type && ['task_queued', 'task_started', 'task_succeeded', 'task_failed'].includes(data.event_type)) {
         assistantMessage.taskStatus = {
           type: data.event_type,
@@ -418,12 +424,13 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       }
 
       // Handle needs inputs
-      if (data.needs_inputs && data.inputs_schema) {
+      if (data.state === 'needs_inputs' && data.inputs_schema) {
         assistantMessage.needsInputs = {
           schema: data.inputs_schema,
           defaults: data.inputs_defaults || {},
           missingParams: data.missing_params || []
         };
+        assistantMessage.content = data.message || 'Please provide the required information to continue.';
       } else if (data.needs_inputs && data.missing_param) {
         assistantMessage.quickInputs = getQuickInputsForParam(data.missing_param);
       }
@@ -475,10 +482,16 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         return ['example.com', 'mysite.org', 'demo.app'];
       case 'admin_email':
         return ['admin@example.com', 'webmaster@mysite.org'];
+      case 'db_name':
+        return ['wordpress', 'wp_blog', 'site_db'];
+      case 'db_user':
+        return ['wpuser', 'dbadmin', 'webapp'];
+      case 'db_pass':
+        return ['Generate secure password'];
+      case 'php_version':
+        return ['8.1', '8.2', '8.3'];
       case 'service_name':
         return ['nginx', 'apache2', 'mysql', 'php-fpm'];
-      case 'database_name':
-        return ['wordpress', 'app_db', 'main_database'];
       default:
         return [];
     }
