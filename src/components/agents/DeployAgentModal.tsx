@@ -457,10 +457,28 @@ MIIEpAIBAAKCAQEA...
                   
                   {token && timeLeft > 0 && (
                     <>
-                      <div className="bg-muted rounded-lg p-4">
-                        <code className="text-sm font-mono break-all text-foreground">
-                          {installCommand}
-                        </code>
+                      <div className="relative">
+                        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg border">
+                          <Terminal className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          <input
+                            type="text"
+                            value={installCommand}
+                            readOnly
+                            className="flex-1 bg-transparent border-none outline-none text-sm font-mono"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(installCommand)}
+                            className="h-8 w-8 p-0"
+                          >
+                            {copied ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                       <p className="text-sm text-muted-foreground">
                         This token is unique to your VPS and expires in {formatTime(timeLeft)}.
