@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { MoreHorizontal, Play, Pause, Square, Trash2, FileText, Settings, AlertTriangle } from 'lucide-react';
+import { MoreHorizontal, Play, Pause, Square, Trash2, FileText, Settings, AlertTriangle, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,6 +45,7 @@ interface AgentsTableProps {
   onRemove: (agent: Agent) => void;
   onLogs: (agent: Agent) => void;
   onDetails: (agent: Agent) => void;
+  onRecentTasks?: (agent: Agent) => void;
   canManage: boolean;
 }
 
@@ -106,6 +107,7 @@ export function AgentsTable({
   onRemove,
   onLogs,
   onDetails,
+  onRecentTasks,
   canManage
 }: AgentsTableProps) {
   return (
@@ -230,6 +232,17 @@ export function AgentsTable({
                       <Settings className="mr-2 h-4 w-4" />
                       Details
                     </DropdownMenuItem>
+                    {onRecentTasks && (
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRecentTasks(agent);
+                        }}
+                      >
+                        <Clock className="mr-2 h-4 w-4" />
+                        Recent Tasks
+                      </DropdownMenuItem>
+                    )}
                     {canManage && (
                       <>
                         <DropdownMenuSeparator />
