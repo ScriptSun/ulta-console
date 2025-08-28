@@ -163,19 +163,27 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   const loadBatchVariants = async (batchId: string) => {
     setLoadingVariants(true);
     try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
       const response = await fetch(
         `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batchId}/variants`,
         {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         }
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
@@ -196,12 +204,19 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     if (!batch?.id) return;
 
     try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
       const response = await fetch(
         `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch.id}/variants`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ os, source, notes }),
@@ -209,7 +224,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       // Reload variants to get updated list
@@ -229,12 +245,19 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     if (!batch?.id) return;
 
     try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
       const response = await fetch(
         `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch.id}/variants/${os}/versions`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({}),
@@ -242,7 +265,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       await loadBatchVariants(batch.id);
@@ -264,12 +288,19 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     if (!batch?.id) return;
 
     try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
       const response = await fetch(
         `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch.id}/variants/${os}/activate`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ version }),
@@ -277,7 +308,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       await loadBatchVariants(batch.id);
