@@ -214,10 +214,9 @@ function SortableFieldItem({
             <h4 className="text-sm font-medium">Editing Field</h4>
             <div className="flex items-center gap-2">
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 size="sm" 
                 onClick={handleSave}
-                className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300 hover:text-green-800 shadow-sm transition-all duration-200"
               >
                 <Check className="h-3 w-3 text-green-600" />
               </Button>
