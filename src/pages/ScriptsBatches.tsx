@@ -290,38 +290,30 @@ export default function ScriptsBatches() {
     const newStatus = batch.active_version ? null : batch.latest_version?.version;
     
     try {
-      if (newStatus) {
-        // Activate the latest version
-        const { error } = await supabase.functions.invoke('script-batches', {
-          body: {
-            action: 'activate',
-            batch_id: batch.id,
-            version: newStatus
-          }
-        });
+      // Both activation and deactivation now use direct database updates
+      const { error } = await supabase
+        .from('script_batches')
+        .update({ 
+          active_version: newStatus,
+          updated_by: (await supabase.auth.getUser()).data.user?.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', batch.id);
 
-        if (error) throw error;
-      } else {
-        // Deactivate by setting active_version to null
-        const { error } = await supabase
-          .from('script_batches')
-          .update({ active_version: null })
-          .eq('id', batch.id);
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: newStatus ? 'Batch Activated' : 'Batch Deactivated',
         description: `${batch.name} has been ${newStatus ? 'activated' : 'deactivated'}`,
       });
 
+      // Refresh the data to show updated status
       fetchBatches();
     } catch (error) {
       console.error('Error toggling batch status:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update batch status',
+        description: `Failed to ${newStatus ? 'activate' : 'deactivate'} batch: ${error.message}`,
         variant: 'destructive',
       });
     }
