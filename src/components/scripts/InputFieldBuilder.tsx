@@ -172,6 +172,10 @@ export function InputFieldBuilder({
   }, []);
 
   useEffect(() => {
+    setFields(initialFields);
+  }, [initialFields]);
+
+  useEffect(() => {
     console.log('useEffect running - fields changed:', fields.length);
     const validation = validateFields(fields);
     

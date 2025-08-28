@@ -37,6 +37,7 @@ import addFormats from 'ajv-formats';
 import { useToast } from '@/hooks/use-toast';
 import { InputFieldBuilder } from './InputFieldBuilder';
 import { BuilderField } from './FieldEditor';
+import { FIELD_PRESETS } from './FieldPresets';
 
 interface BatchInputsTabProps {
   inputsSchema?: any;
@@ -104,6 +105,53 @@ const EXAMPLE_DEFAULTS = {
   port: 443,
   environment: 'production',
   enable_ssl: true
+};
+
+// Convert JSON schema back to BuilderField objects
+const convertSchemaToFields = (schema?: any, defaults?: any): BuilderField[] => {
+  if (!schema?.properties) return [];
+  
+  return Object.entries(schema.properties).map(([key, property]: [string, any]) => {
+    // Find matching preset based on type and constraints
+    let preset = 'text'; // default
+    
+    if (property.type === 'string') {
+      if (property.enum) {
+        preset = 'select';
+      } else if (property.format === 'email') {
+        preset = 'email';
+      } else if (property.format === 'uri') {
+        preset = 'url';
+      } else if (property.pattern) {
+        preset = 'text'; // Could be domain, but we'll default to text
+      } else {
+        preset = 'text';
+      }
+    } else if (property.type === 'integer' || property.type === 'number') {
+      preset = 'number';
+    } else if (property.type === 'boolean') {
+      preset = 'boolean';
+    }
+
+    const field: BuilderField = {
+      id: crypto.randomUUID(),
+      key,
+      label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+      preset,
+      required: schema.required?.includes(key) || false,
+      helpText: property.description,
+      defaultValue: defaults?.[key]
+    };
+
+    // Add specific constraints
+    if (property.minimum !== undefined) field.minValue = property.minimum;
+    if (property.maximum !== undefined) field.maxValue = property.maximum;
+    if (property.minLength !== undefined) field.minLength = property.minLength;
+    if (property.maxLength !== undefined) field.maxLength = property.maxLength;
+    if (property.enum) field.options = property.enum;
+
+    return field;
+  });
 };
 
 export function BatchInputsTab({
@@ -466,6 +514,7 @@ export function BatchInputsTab({
 
       <TabsContent value="builder" className="space-y-0">
         <InputFieldBuilder
+          initialFields={convertSchemaToFields(inputsSchema, inputsDefaults)}
           canEdit={canEdit}
           onSchemaChange={onSchemaChange}
           onDefaultsChange={onDefaultsChange}
