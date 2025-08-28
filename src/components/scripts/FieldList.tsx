@@ -364,11 +364,11 @@ function SortableFieldItem({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="font-medium text-sm truncate">{field.label}</span>
-                {field.required && (
-                  <Badge variant="destructive" className="text-xs py-0 px-1 flex-shrink-0">
-                    Required
-                  </Badge>
-                )}
+                 {field.required && (
+                   <Badge variant="destructive" className="text-xs py-1 px-2 flex-shrink-0">
+                     Required
+                   </Badge>
+                 )}
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                 <span className="font-mono bg-muted px-1 rounded flex-shrink-0">{field.key}</span>
