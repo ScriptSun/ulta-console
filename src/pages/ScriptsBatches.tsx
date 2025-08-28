@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, FileText, Copy, MoreVertical } from 'lucide-react';
+import { Plus, Search, Filter, FileText, Copy, MoreVertical, Link } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,6 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { BatchDrawer } from '@/components/scripts/BatchDrawer';
 import { BatchDetailDrawer } from '@/components/scripts/BatchDetailDrawer';
+import { BatchQuickRunModal } from '@/components/scripts/BatchQuickRunModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -50,6 +52,8 @@ interface ScriptBatch {
     sha256: string;
     status: string;
   };
+  dependencies_count?: number;
+  dependencies_preview?: string;
 }
 
 const riskColors = {
@@ -69,6 +73,7 @@ export default function ScriptsBatches() {
   const [selectedBatch, setSelectedBatch] = useState<ScriptBatch | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [quickRunModalOpen, setQuickRunModalOpen] = useState(false);
   const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('admin');
   
   const { toast } = useToast();
@@ -122,7 +127,7 @@ export default function ScriptsBatches() {
 
       if (batchError) throw batchError;
 
-      // Now fetch version information for each batch
+      // Now fetch version information and dependencies for each batch
       const processedBatches: ScriptBatch[] = [];
       
       for (const batch of batchData || []) {
@@ -132,12 +137,28 @@ export default function ScriptsBatches() {
           .eq('batch_id', batch.id)
           .order('version', { ascending: false });
 
+        // Fetch dependencies count and preview
+        const { data: dependencies } = await supabase
+          .from('batch_dependencies')
+          .select(`
+            min_version,
+            dependency_batch:script_batches!depends_on_batch_id (name)
+          `)
+          .eq('batch_id', batch.id)
+          .limit(3);
+
         const latestVersion = versions?.[0] || null;
+        const dependenciesCount = dependencies?.length || 0;
+        const dependenciesPreview = dependencies?.map(dep => 
+          `${dep.dependency_batch.name} v${dep.min_version}+`
+        ).join(', ') || '';
         
         processedBatches.push({
           ...batch,
           risk: batch.risk as 'low' | 'medium' | 'high',
-          latest_version: latestVersion
+          latest_version: latestVersion,
+          dependencies_count: dependenciesCount,
+          dependencies_preview: dependenciesPreview
         });
       }
 
@@ -300,6 +321,11 @@ export default function ScriptsBatches() {
     }
   };
 
+  const handleQuickRun = (batch: ScriptBatch) => {
+    setSelectedBatch(batch);
+    setQuickRunModalOpen(true);
+  };
+
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -414,7 +440,23 @@ export default function ScriptsBatches() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground" />
-                        {batch.name}
+                        <span>{batch.name}</span>
+                        {batch.dependencies_count > 0 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                  <Link className="h-3 w-3" />
+                                  {batch.dependencies_count}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-semibold">Requires:</p>
+                                <p className="text-sm">{batch.dependencies_preview}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -493,6 +535,11 @@ export default function ScriptsBatches() {
                               {batch.active_version ? 'Deactivate' : 'Activate'}
                             </DropdownMenuItem>
                           )}
+                          {batch.active_version && (
+                            <DropdownMenuItem onClick={() => handleQuickRun(batch)}>
+                              Quick Run
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => handleViewBatch(batch)}>
                             History
                           </DropdownMenuItem>
@@ -556,6 +603,13 @@ export default function ScriptsBatches() {
         onClose={() => setDetailDrawerOpen(false)}
         onSuccess={fetchBatches}
         userRole={userRole}
+      />
+
+      <BatchQuickRunModal
+        batch={selectedBatch}
+        open={quickRunModalOpen}
+        onOpenChange={setQuickRunModalOpen}
+        onRunSuccess={fetchBatches}
       />
     </div>
   );

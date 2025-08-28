@@ -6,6 +6,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { BatchCodeEditor } from './BatchCodeEditor';
+import { BatchDependenciesTab } from './BatchDependenciesTab';
 import { 
   Save, 
   CheckCircle2, 
@@ -31,7 +33,8 @@ import {
   Monitor,
   Server,
   HardDrive,
-  Cpu
+  Cpu,
+  Link
 } from 'lucide-react';
 import { getOSOptions, getRiskOptions, type ValidationResult } from '@/utils/scriptValidation';
 import { supabase } from '@/integrations/supabase/client';
@@ -85,6 +88,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [activeTab, setActiveTab] = useState('general');
   
   const { toast } = useToast();
   const isEditing = !!batch?.id;
@@ -389,10 +393,20 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
         </SheetHeader>
 
         <ScrollArea className="h-[calc(100vh-120px)] mt-6">
-          <div className="space-y-6">
-            {/* Basic Information */}
-            <div className="space-y-4 p-4 bg-card/30 rounded-lg border">
-              <h3 className="text-lg font-semibold">Basic Information</h3>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="dependencies" className="flex items-center gap-2">
+                <Link className="h-4 w-4" />
+                Dependencies
+              </TabsTrigger>
+              <TabsTrigger value="script">Script</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="general" className="space-y-6 mt-6">
+              {/* Basic Information */}
+              <div className="space-y-4 p-4 bg-card/30 rounded-lg border">
+                <h3 className="text-lg font-semibold">Basic Information</h3>
               
               {/* Batch Name, Timeout, and Risk Level in same div as 3 divs */}
               <div className="grid grid-cols-[2fr_1fr_1fr] gap-4">
@@ -480,24 +494,37 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                 />
                 <Label htmlFor="auto-version">Auto version on save</Label>
               </div>
-            </div>
+              </div>
 
-            <Separator />
+              <Separator />
 
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes for this version</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Optional notes about this version..."
-                rows={3}
-                disabled={!canEdit}
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes for this version</Label>
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Optional notes about this version..."
+                  rows={3}
+                  disabled={!canEdit}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="dependencies" className="mt-6">
+              <BatchDependenciesTab 
+                batchId={batch?.id} 
+                canEdit={canEdit}
+                onDependencyChange={() => {
+                  // Trigger any necessary updates when dependencies change
+                  setHasUnsavedChanges(true);
+                }}
               />
-            </div>
+            </TabsContent>
 
-            <Separator />
+            <TabsContent value="script" className="space-y-6 mt-6">
+              <Separator />
 
             {/* Code Editor */}
             <BatchCodeEditor
@@ -548,7 +575,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                 </Button>
               )}
             </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </ScrollArea>
       </SheetContent>
     </Sheet>

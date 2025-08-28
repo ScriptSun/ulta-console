@@ -99,6 +99,28 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
+    // Handle dependency validation before batch execution
+    if (action === 'validate_dependencies') {
+      const { batch_id } = body;
+      
+      const { data: validation, error: validationError } = await supabaseClient.rpc('validate_batch_dependencies', {
+        _batch_id: batch_id
+      });
+
+      if (validationError) {
+        console.error('Error validating dependencies:', validationError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to validate dependencies' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ validation: validation[0] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'save_draft' || action === 'create_version' || action === 'activate_version') {
       const {
         batch_id,

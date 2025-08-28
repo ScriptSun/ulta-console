@@ -461,6 +461,54 @@ export type Database = {
         }
         Relationships: []
       }
+      batch_dependencies: {
+        Row: {
+          batch_id: string
+          created_at: string
+          created_by: string
+          depends_on_batch_id: string
+          id: string
+          min_version: number
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          created_by?: string
+          depends_on_batch_id: string
+          id?: string
+          min_version?: number
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          created_by?: string
+          depends_on_batch_id?: string
+          id?: string
+          min_version?: number
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_batch_dependencies_batch_id"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "script_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_batch_dependencies_depends_on_batch_id"
+            columns: ["depends_on_batch_id"]
+            isOneToOne: false
+            referencedRelation: "script_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ca_config: {
         Row: {
           ca_fingerprint_sha256: string
@@ -1071,6 +1119,14 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      validate_batch_dependencies: {
+        Args: { _batch_id: string }
+        Returns: {
+          is_valid: boolean
+          missing_dependencies: string[]
+          outdated_dependencies: string[]
+        }[]
       }
     }
     Enums: {
