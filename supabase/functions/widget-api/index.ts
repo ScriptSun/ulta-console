@@ -153,10 +153,149 @@ interface Database {
   }
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-csrf',
-  'Access-Control-Allow-Credentials': 'true'
+// Allowed origins for CORS - billing and WHMCS domains
+const ALLOWED_ORIGINS = [
+  'https://billing.example.com',
+  'https://whmcs.example.com', 
+  'https://portal.ultaai.com',
+  'https://app.ultaai.com'
+]
+
+// CSP header value
+const CSP_HEADER = "default-src 'none'; script-src 'self' https://widget.ultaai.com 'strict-dynamic'; connect-src https://api.ultaai.com wss://api.ultaai.com; img-src 'self' data:; style-src 'unsafe-inline'"
+
+// Widget.js content and hash for SRI
+const WIDGET_JS_CONTENT = `
+(function() {
+  'use strict';
+  
+  class UltaAIWidget {
+    constructor(config) {
+      this.config = config;
+      this.sessionId = null;
+      this.csrfToken = null;
+      this.conversationId = null;
+      this.apiBase = 'https://api.ultaai.com';
+    }
+    
+    async init() {
+      try {
+        const response = await fetch(this.apiBase + '/widget/bootstrap', {
+          credentials: 'include',
+          headers: {
+            'Origin': window.location.origin
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Bootstrap failed');
+        }
+        
+        const data = await response.json();
+        this.conversationId = data.conversation_id;
+        this.csrfToken = data.csrf;
+        
+        this.render();
+      } catch (error) {
+        console.error('UltaAI Widget init failed:', error);
+      }
+    }
+    
+    async sendMessage(content) {
+      if (!this.csrfToken) return;
+      
+      try {
+        const response = await fetch(this.apiBase + '/chat/message', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF': this.csrfToken
+          },
+          body: JSON.stringify({ content })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Message failed');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Send message failed:', error);
+      }
+    }
+    
+    render() {
+      // Simple widget UI
+      const widget = document.createElement('div');
+      widget.innerHTML = \`
+        <div id="ultaai-widget" style="position: fixed; bottom: 20px; right: 20px; width: 300px; height: 400px; border: 1px solid #ccc; background: white; z-index: 9999;">
+          <div style="padding: 10px; border-bottom: 1px solid #eee;">
+            <strong>UltaAI Assistant</strong>
+          </div>
+          <div id="ultaai-messages" style="height: 320px; overflow-y: auto; padding: 10px;"></div>
+          <div style="padding: 10px; border-top: 1px solid #eee;">
+            <input id="ultaai-input" type="text" placeholder="Type a message..." style="width: 100%; border: 1px solid #ccc; padding: 5px;">
+          </div>
+        </div>
+      \`;
+      
+      document.body.appendChild(widget);
+      
+      const input = document.getElementById('ultaai-input');
+      input.addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter' && e.target.value.trim()) {
+          const message = e.target.value.trim();
+          e.target.value = '';
+          
+          this.addMessage('user', message);
+          const response = await this.sendMessage(message);
+          
+          if (response && response.message) {
+            this.addMessage('assistant', response.message);
+          }
+        }
+      });
+    }
+    
+    addMessage(role, content) {
+      const messages = document.getElementById('ultaai-messages');
+      const msg = document.createElement('div');
+      msg.style.marginBottom = '10px';
+      msg.innerHTML = \`<strong>\${role}:</strong> \${content}\`;
+      messages.appendChild(msg);
+      messages.scrollTop = messages.scrollHeight;
+    }
+  }
+  
+  window.UltaAIWidget = UltaAIWidget;
+})();
+`
+
+// Generate SRI hash for widget.js
+async function generateSRIHash(content: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(content)
+  const hashBuffer = await crypto.subtle.digest('SHA-384', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashBase64 = btoa(String.fromCharCode.apply(null, hashArray))
+  return `sha384-${hashBase64}`
+}
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const isAllowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowedOrigin ? origin : 'null',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-csrf, origin, referer',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Security-Policy': CSP_HEADER,
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'Referrer-Policy': 'strict-origin-when-cross-origin'
+  }
 }
 
 // Rate limiting storage
@@ -238,14 +377,27 @@ const INTENT_DEFINITIONS: IntentDefinition[] = [
 serve(async (req) => {
   console.log(`Widget API: ${req.method} ${req.url}`)
   
+  // Validate origin and referer for security
+  function validateOriginAndReferer(req: Request): boolean {
+    const origin = req.headers.get('origin')
+    const referer = req.headers.get('referer')
+    
+    if (!origin && !referer) return false
+    
+    const requestOrigin = origin || (referer ? new URL(referer).origin : null)
+    return requestOrigin ? ALLOWED_ORIGINS.includes(requestOrigin) : false
+  }
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    const origin = req.headers.get('origin')
+    return new Response(null, { headers: getCorsHeaders(origin) })
   }
 
   try {
     const url = new URL(req.url)
     const path = url.pathname
+    const origin = req.headers.get('origin')
 
     // Initialize Supabase client with service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -256,10 +408,42 @@ serve(async (req) => {
     if (path === '/widget/tickets' && req.method === 'POST') {
       return await handleCreateTicket(req, supabase)
     } else if (path === '/widget/bootstrap' && req.method === 'GET') {
+      // Validate origin/referer for bootstrap
+      if (!validateOriginAndReferer(req)) {
+        return new Response(
+          JSON.stringify({ error: 'Origin not allowed' }),
+          { 
+            status: 403, 
+            headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } 
+          }
+        )
+      }
       return await handleBootstrap(req, supabase)
+    } else if (path === '/widget.js' && req.method === 'GET') {
+      return await handleWidgetJS(req)
     } else if (path === '/chat/message' && req.method === 'POST') {
+      // Validate origin/referer for chat messages
+      if (!validateOriginAndReferer(req)) {
+        return new Response(
+          JSON.stringify({ error: 'Origin not allowed' }),
+          { 
+            status: 403, 
+            headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } 
+          }
+        )
+      }
       return await handleWidgetMessage(req, supabase)
     } else if (path === '/chat/close' && req.method === 'POST') {
+      // Validate origin/referer for chat close
+      if (!validateOriginAndReferer(req)) {
+        return new Response(
+          JSON.stringify({ error: 'Origin not allowed' }),
+          { 
+            status: 403, 
+            headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } 
+          }
+        )
+      }
       return await handleWidgetClose(req, supabase)
     }
 
@@ -267,16 +451,17 @@ serve(async (req) => {
       JSON.stringify({ error: 'Not found' }),
       { 
         status: 404, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } 
       }
     )
   } catch (error) {
     console.error('Widget API Error:', error)
+    const origin = req.headers.get('origin')
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } 
       }
     )
   }
@@ -325,6 +510,66 @@ function checkRateLimit(key: string): boolean {
   return true
 }
 
+async function handleWidgetJS(req: Request): Promise<Response> {
+  try {
+    // Generate SRI hash
+    const integrityHash = await generateSRIHash(WIDGET_JS_CONTENT)
+    
+    // Create embed script with SRI
+    const embedScript = `
+<!-- UltaAI Widget Embed -->
+<script 
+  src="https://api.ultaai.com/widget.js" 
+  integrity="${integrityHash}"
+  crossorigin="anonymous"
+></script>
+<script>
+  // Initialize widget after script loads
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.UltaAIWidget) {
+      const widget = new UltaAIWidget({
+        // Widget configuration
+      });
+      widget.init();
+    }
+  });
+</script>
+<!-- End UltaAI Widget -->
+`.trim()
+
+    // Check if requesting the embed code
+    const url = new URL(req.url)
+    if (url.searchParams.get('embed') === 'true') {
+      return new Response(embedScript, {
+        headers: {
+          'Content-Type': 'text/html',
+          'Cache-Control': 'public, max-age=3600',
+          ...getCorsHeaders(req.headers.get('origin'))
+        }
+      })
+    }
+
+    // Serve the widget.js file
+    return new Response(WIDGET_JS_CONTENT, {
+      headers: {
+        'Content-Type': 'application/javascript',
+        'Cache-Control': 'public, max-age=3600, immutable',
+        'X-Content-Type-Options': 'nosniff',
+        ...getCorsHeaders(req.headers.get('origin'))
+      }
+    })
+  } catch (error) {
+    console.error('Error serving widget.js:', error)
+    return new Response('// Widget unavailable', {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/javascript',
+        ...getCorsHeaders(req.headers.get('origin'))
+      }
+    })
+  }
+}
+
 async function handleCreateTicket(req: Request, supabase: any) {
   try {
     // Verify server-to-server authentication
@@ -336,7 +581,7 @@ async function handleCreateTicket(req: Request, supabase: any) {
         JSON.stringify({ error: 'Unauthorized - Server-to-server auth required' }),
         { 
           status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -350,7 +595,7 @@ async function handleCreateTicket(req: Request, supabase: any) {
         JSON.stringify({ error: 'Missing required fields: tenant_id, agent_id, origin' }),
         { 
           status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -369,7 +614,7 @@ async function handleCreateTicket(req: Request, supabase: any) {
         JSON.stringify({ error: 'Agent not found or does not belong to tenant' }),
         { 
           status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -401,7 +646,7 @@ async function handleCreateTicket(req: Request, supabase: any) {
         JSON.stringify({ error: 'Failed to create ticket' }),
         { 
           status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -411,7 +656,7 @@ async function handleCreateTicket(req: Request, supabase: any) {
     return new Response(
       JSON.stringify({ ticket_id: ticket.id }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
       }
     )
   } catch (error) {
@@ -420,7 +665,7 @@ async function handleCreateTicket(req: Request, supabase: any) {
       JSON.stringify({ error: 'Internal server error' }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
       }
     )
   }
@@ -438,7 +683,7 @@ async function handleBootstrap(req: Request, supabase: any) {
         JSON.stringify({ error: 'Ticket cookie not found' }),
         { 
           status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -452,7 +697,7 @@ async function handleBootstrap(req: Request, supabase: any) {
         JSON.stringify({ error: 'Missing origin or referer header' }),
         { 
           status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -472,7 +717,7 @@ async function handleBootstrap(req: Request, supabase: any) {
         JSON.stringify({ error: 'Invalid or expired ticket' }),
         { 
           status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -485,7 +730,7 @@ async function handleBootstrap(req: Request, supabase: any) {
         JSON.stringify({ error: 'Origin not allowed' }),
         { 
           status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -504,7 +749,7 @@ async function handleBootstrap(req: Request, supabase: any) {
         JSON.stringify({ error: 'User agent validation failed' }),
         { 
           status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -521,7 +766,7 @@ async function handleBootstrap(req: Request, supabase: any) {
         JSON.stringify({ error: 'Failed to consume ticket' }),
         { 
           status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -538,7 +783,7 @@ async function handleBootstrap(req: Request, supabase: any) {
         JSON.stringify({ error: 'Agent not found' }),
         { 
           status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -578,7 +823,7 @@ async function handleBootstrap(req: Request, supabase: any) {
           JSON.stringify({ error: 'Failed to create conversation' }),
           { 
             status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
           }
         )
       }
@@ -613,7 +858,7 @@ async function handleBootstrap(req: Request, supabase: any) {
         JSON.stringify({ error: 'Failed to create session' }),
         { 
           status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -634,7 +879,7 @@ async function handleBootstrap(req: Request, supabase: any) {
       JSON.stringify(responseData),
       { 
         headers: { 
-          ...corsHeaders, 
+          ...getCorsHeaders(req.headers.get('origin')), 
           'Content-Type': 'application/json',
           'Set-Cookie': `ultaai_sid=${sessionId}; ${cookieOptions}`
         } 
@@ -646,7 +891,7 @@ async function handleBootstrap(req: Request, supabase: any) {
       JSON.stringify({ error: 'Internal server error' }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
       }
     )
   }
@@ -723,7 +968,7 @@ async function handleWidgetMessage(req: Request, supabase: any) {
         JSON.stringify({ error: 'Missing session or CSRF token' }),
         { 
           status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -742,7 +987,7 @@ async function handleWidgetMessage(req: Request, supabase: any) {
         JSON.stringify({ error: 'Invalid session or CSRF token' }),
         { 
           status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -754,7 +999,7 @@ async function handleWidgetMessage(req: Request, supabase: any) {
         JSON.stringify({ error: 'Rate limit exceeded' }),
         { 
           status: 429, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -767,7 +1012,7 @@ async function handleWidgetMessage(req: Request, supabase: any) {
         JSON.stringify({ error: 'Message content is required' }),
         { 
           status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -787,7 +1032,7 @@ async function handleWidgetMessage(req: Request, supabase: any) {
         JSON.stringify({ error: 'Failed to store message' }),
         { 
           status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -822,7 +1067,7 @@ async function handleWidgetMessage(req: Request, supabase: any) {
         intent: routerResult.intent
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
       }
     )
   } catch (error) {
@@ -831,7 +1076,7 @@ async function handleWidgetMessage(req: Request, supabase: any) {
       JSON.stringify({ error: 'Internal server error' }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
       }
     )
   }
@@ -1061,7 +1306,7 @@ async function handleWidgetClose(req: Request, supabase: any) {
         JSON.stringify({ error: 'Missing session or CSRF token' }),
         { 
           status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -1079,7 +1324,7 @@ async function handleWidgetClose(req: Request, supabase: any) {
         JSON.stringify({ error: 'Invalid session or CSRF token' }),
         { 
           status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
         }
       )
     }
@@ -1121,7 +1366,7 @@ async function handleWidgetClose(req: Request, supabase: any) {
         csrf: newCsrfToken
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
       }
     )
   } catch (error) {
@@ -1130,7 +1375,7 @@ async function handleWidgetClose(req: Request, supabase: any) {
       JSON.stringify({ error: 'Internal server error' }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } 
       }
     )
   }
