@@ -139,26 +139,17 @@ export function BatchVariantSwitcher({
                   <DropdownMenuItem disabled>
                     ──────────
                   </DropdownMenuItem>
-                  {missingOSes.map(os => (
-                    <DropdownMenu key={os}>
-                      <DropdownMenuTrigger asChild>
-                        <DropdownMenuItem>
-                          <Copy className="h-3 w-3 mr-2" />
-                          Duplicate for {os.charAt(0).toUpperCase() + os.slice(1)}
-                        </DropdownMenuItem>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent side="right">
-                        {Array.from(new Set(variants.map(v => v.os))).map(sourceOs => (
-                          <DropdownMenuItem
-                            key={sourceOs}
-                            onClick={() => onAddVariant(os, sourceOs)}
-                          >
-                            From {sourceOs.charAt(0).toUpperCase() + sourceOs.slice(1)}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ))}
+                  {missingOSes.map(os => 
+                    Array.from(new Set(variants.map(v => v.os))).map(sourceOs => (
+                      <DropdownMenuItem
+                        key={`${os}-${sourceOs}`}
+                        onClick={() => onAddVariant(os, sourceOs)}
+                      >
+                        <Copy className="h-3 w-3 mr-2" />
+                        Copy {sourceOs.charAt(0).toUpperCase() + sourceOs.slice(1)} to {os.charAt(0).toUpperCase() + os.slice(1)}
+                      </DropdownMenuItem>
+                    ))
+                  ).flat()}
                 </>
               )}
             </DropdownMenuContent>
