@@ -1029,9 +1029,339 @@ function classifyIntentAndExtractParams(message: string, conversationContext: an
   };
 }
 
-// Chat router to handle intent processing and batch execution
+// Screen for forbidden command patterns
+async function screenForbiddenCommands(supabase: any, message: string, tenantId: string): Promise<{ allowed: boolean; reason?: string; pattern?: string }> {
+  const lowerMessage = message.toLowerCase();
+  
+  // Define forbidden patterns that should never reach the signer
+  const forbiddenPatterns = [
+    {
+      pattern: /rm\s+(-[rf]*\s*)*\/\s*$/,
+      description: 'rm -rf / (root filesystem deletion)'
+    },
+    {
+      pattern: /rm\s+(-[rf]*\s*)*\/[^\/\s]*\s*$/,
+      description: 'rm -rf on critical system directories'
+    },
+    {
+      pattern: /mkfs\s+/,
+      description: 'filesystem creation/formatting commands'
+    },
+    {
+      pattern: /dd\s+.*of\s*=\s*\/dev\/[sh]d[a-z]/,
+      description: 'dd writing to physical devices'
+    },
+    {
+      pattern: /fdisk\s+\/dev\/[sh]d[a-z]/,
+      description: 'disk partitioning commands'
+    },
+    {
+      pattern: />\s*\/dev\/[sh]d[a-z]/,
+      description: 'writing directly to block devices'
+    },
+    {
+      pattern: /\/etc\/shadow/,
+      description: 'shadow password file access'
+    },
+    {
+      pattern: /\/etc\/passwd.*>/,
+      description: 'password file modification'
+    },
+    {
+      pattern: /fork.*bomb|:\(\)\{.*:\|:&\}/,
+      description: 'fork bomb or similar malicious patterns'
+    }
+  ];
+
+  // Check against forbidden patterns
+  for (const forbidden of forbiddenPatterns) {
+    if (forbidden.pattern.test(lowerMessage)) {
+      console.log('Forbidden command detected:', { pattern: forbidden.description, message });
+      
+      // Log critical security event
+      await supabase.from('audit_logs').insert({
+        customer_id: tenantId,
+        actor: 'system',
+        action: 'forbidden_command_blocked',
+        target: 'chat_security',
+        meta: {
+          pattern_matched: forbidden.description,
+          message_hash: await generateContentHash(message),
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return {
+        allowed: false,
+        reason: `Forbidden command pattern detected: ${forbidden.description}`,
+        pattern: forbidden.description
+      };
+    }
+  }
+
+  return { allowed: true };
+}
+
+// Check if command requires confirmation (CONFIRM policy mode)
+async function checkConfirmCommand(supabase: any, message: string, tenantId: string, agentId: string): Promise<{ 
+  needsConfirm: boolean; 
+  command?: string; 
+  confirmMessage?: string; 
+  policy_id?: string;
+  risk_level?: string;
+}> {
+  // Get active command policies for this tenant in CONFIRM mode
+  const { data: confirmPolicies } = await supabase
+    .from('command_policies')
+    .select('*')
+    .eq('customer_id', tenantId)
+    .eq('active', true)
+    .eq('mode', 'confirm');
+
+  if (!confirmPolicies || confirmPolicies.length === 0) {
+    return { needsConfirm: false };
+  }
+
+  const lowerMessage = message.toLowerCase();
+
+  // Check each confirm policy
+  for (const policy of confirmPolicies) {
+    let matches = false;
+    
+    if (policy.match_type === 'exact') {
+      matches = lowerMessage === policy.match_value.toLowerCase();
+    } else if (policy.match_type === 'contains') {
+      matches = lowerMessage.includes(policy.match_value.toLowerCase());
+    } else if (policy.match_type === 'regex') {
+      try {
+        const regex = new RegExp(policy.match_value, 'i');
+        matches = regex.test(message);
+      } catch (e) {
+        console.error('Invalid regex in policy:', policy.match_value);
+        continue;
+      }
+    } else if (policy.match_type === 'starts_with') {
+      matches = lowerMessage.startsWith(policy.match_value.toLowerCase());
+    }
+
+    if (matches) {
+      // Check OS whitelist if specified
+      if (policy.os_whitelist && policy.os_whitelist.length > 0) {
+        const { data: agent } = await supabase
+          .from('agents')
+          .select('os')
+          .eq('id', agentId)
+          .single();
+
+        if (agent?.os && !policy.os_whitelist.includes(agent.os)) {
+          continue; // Policy doesn't apply to this OS
+        }
+      }
+
+      console.log('Command requires confirmation:', { policy: policy.policy_name, command: message });
+
+      return {
+        needsConfirm: true,
+        command: message,
+        confirmMessage: policy.confirm_message || `This command requires approval: ${message}. Do you want to proceed?`,
+        policy_id: policy.id,
+        risk_level: policy.risk || 'medium'
+      };
+    }
+  }
+
+  return { needsConfirm: false };
+}
+
+// Continue processing with validated inputs after preflight
+async function continueWithValidatedInputs(
+  supabase: any, 
+  conversationId: string, 
+  conversation: any, 
+  conversationContext: any,
+  validatedInputs: Record<string, any>
+) {
+  // Find the WordPress Install batch (as specified by user)
+  const { data: batch, error: batchError } = await supabase
+    .from('script_batches')
+    .select('id, name, active_version, preflight')
+    .eq('customer_id', conversation.tenant_id)
+    .eq('name', 'WordPress Install')
+    .neq('active_version', null)
+    .single();
+
+  if (batchError || !batch) {
+    console.error('WordPress Install batch not found');
+    return {
+      response: "I couldn't find the WordPress installation automation. Please contact your administrator.",
+      action: 'no_batch',
+      intent: conversation.last_intent
+    };
+  }
+
+  // Run preflight checks if configured
+  if (batch.preflight) {
+    console.log('Running preflight checks for WordPress Install:', batch.preflight);
+    const preflightResult = await runPreflightChecks(supabase, conversation.agent_id, batch.preflight);
+    
+    if (!preflightResult.passed) {
+      // Log preflight blocked event
+      await supabase.from('chat_events').insert({
+        conversation_id: conversationId,
+        type: 'preflight_blocked',
+        agent_id: conversation.agent_id,
+        payload: {
+          intent: conversation.last_intent,
+          batch_name: 'WordPress Install',
+          batch_id: batch.id,
+          failed_checks: preflightResult.details,
+          validated_inputs: validatedInputs
+        }
+      });
+
+      return {
+        response: `I can't start the WordPress installation right now due to preflight check failures. Please address the issues and try again.`,
+        action: 'preflight_blocked',
+        intent: conversation.last_intent,
+        state: 'preflight_block',
+        details: preflightResult.details
+      };
+    }
+  }
+
+  // Insert batch run with validated inputs
+  const { data: batchRun, error: insertError } = await supabase
+    .from('batch_runs')
+    .insert({
+      batch_id: batch.id,
+      agent_id: conversation.agent_id,
+      tenant_id: conversation.tenant_id,
+      status: 'queued',
+      created_by: '22222222-2222-2222-2222-222222222222', // System user for chat-initiated runs
+      // Note: In a real implementation, you'd store the validated inputs
+      // in a metadata field or linked table for the agent to access
+    })
+    .select()
+    .single();
+
+  if (insertError || !batchRun) {
+    console.error('Failed to create batch run:', insertError);
+    
+    await supabase.from('chat_events').insert({
+      conversation_id: conversationId,
+      type: 'task_failed',
+      agent_id: conversation.agent_id,
+      payload: {
+        intent: conversation.last_intent,
+        batch_name: 'WordPress Install',
+        error: insertError?.message || 'Failed to create batch run',
+        validated_inputs: validatedInputs
+      }
+    });
+
+    return {
+      response: `I encountered an issue starting the WordPress installation. Please try again later.`,
+      action: 'error',
+      intent: conversation.last_intent
+    };
+  }
+
+  const runId = batchRun.id;
+  console.log('Created WordPress batch run:', runId);
+
+  // Update conversation with run info
+  await supabase
+    .from('chat_conversations')
+    .update({
+      last_action: 'task_queued',
+      meta: { 
+        ...conversationContext, 
+        last_run_id: runId,
+        task_inputs: validatedInputs,
+        batch_name: 'WordPress Install'
+      },
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', conversationId);
+
+  // Log task queued event
+  await supabase.from('chat_events').insert({
+    conversation_id: conversationId,
+    type: 'task_queued',
+    agent_id: conversation.agent_id,
+    ref_id: runId,
+    payload: {
+      intent: conversation.last_intent,
+      batch_name: 'WordPress Install',
+      batch_id: batch.id,
+      run_id: runId,
+      validated_inputs: validatedInputs
+    }
+  });
+
+  return {
+    response: `WordPress installation has been queued with your settings. I'll update you as it progresses.`,
+    action: 'task_queued',
+    intent: conversation.last_intent,
+    state: 'task_queued',
+    run_id: runId,
+    batch_id: batch.id,
+    summary: `Install WordPress on ${validatedInputs.domain || 'your domain'}`
+  };
+}
 async function processChatRouter(supabase: any, conversationId: string, message: string, conversation: any) {
   console.log('Processing chat router for:', { conversationId, message });
+
+  // COMMAND SCREENING - Check for forbidden patterns first
+  const forbiddenCheck = await screenForbiddenCommands(supabase, message, conversation.tenant_id);
+  if (!forbiddenCheck.allowed) {
+    console.log('Command blocked by forbidden pattern:', forbiddenCheck.reason);
+    
+    // Log security event
+    await supabase.from('chat_events').insert({
+      conversation_id: conversationId,
+      type: 'security_blocked',
+      agent_id: conversation.agent_id,
+      payload: {
+        message_content: message,
+        block_reason: forbiddenCheck.reason,
+        pattern_matched: forbiddenCheck.pattern,
+        security_level: 'critical'
+      }
+    });
+
+    return {
+      response: "I cannot execute that command for security reasons. Dangerous operations are not permitted.",
+      action: 'security_blocked',
+      intent: 'forbidden_command'
+    };
+  }
+
+  // Check for CONFIRM commands that came as free text (not batch intents)
+  const confirmCheck = await checkConfirmCommand(supabase, message, conversation.tenant_id, conversation.agent_id);
+  if (confirmCheck.needsConfirm) {
+    console.log('Command requires confirmation:', confirmCheck.command);
+    
+    // Log confirmation required event
+    await supabase.from('chat_events').insert({
+      conversation_id: conversationId,
+      type: 'confirmation_required',
+      agent_id: conversation.agent_id,
+      payload: {
+        command: confirmCheck.command,
+        policy_id: confirmCheck.policy_id,
+        risk_level: confirmCheck.risk_level
+      }
+    });
+
+    return {
+      response: confirmCheck.confirmMessage,
+      action: 'needs_confirmation',
+      intent: 'confirm_command',
+      command: confirmCheck.command,
+      policy_id: confirmCheck.policy_id
+    };
+  }
 
   // Get conversation context
   const conversationContext = conversation.meta || {};
@@ -1113,6 +1443,16 @@ async function processChatRouter(supabase: any, conversationId: string, message:
     return {
       response: "I can help you with various server tasks like installing WordPress, checking system resources, managing services, and more. What would you like me to help you with?",
       action: 'clarify',
+      intent: result.intent
+    };
+  }
+
+  // BATCH INTENT VALIDATION - Only allow defined batch intents to proceed
+  if (!result.intentDef || !result.intentDef.batchName) {
+    console.log('Intent not mapped to batch:', result.intent);
+    return {
+      response: `I understand you want to ${result.intent.replace('_', ' ')}, but this operation isn't available through the batch system yet.`,
+      action: 'unsupported_intent',
       intent: result.intent
     };
   }
