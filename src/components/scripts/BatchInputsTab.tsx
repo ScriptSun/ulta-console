@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -166,6 +166,11 @@ export function BatchInputsTab({
   onDefaultsChange,
   onValidationChange
 }: BatchInputsTabProps) {
+  // Memoize the converted fields to prevent unnecessary re-renders
+  const convertedFields = useMemo(() => {
+    return convertSchemaToFields(inputsSchema, inputsDefaults);
+  }, [inputsSchema, inputsDefaults]);
+
   const [schemaText, setSchemaText] = useState('');
   const [defaultsText, setDefaultsText] = useState('');
   const [formValues, setFormValues] = useState<Record<string, any>>({});
@@ -518,8 +523,7 @@ export function BatchInputsTab({
 
       <TabsContent value="builder" className="space-y-0">
         <InputFieldBuilder
-          key={`${inputsSchema ? JSON.stringify(inputsSchema) : 'empty'}-${inputsDefaults ? JSON.stringify(inputsDefaults) : 'empty'}`}
-          initialFields={convertSchemaToFields(inputsSchema, inputsDefaults)}
+          initialFields={convertedFields}
           canEdit={canEdit}
           onSchemaChange={onSchemaChange}
           onDefaultsChange={onDefaultsChange}

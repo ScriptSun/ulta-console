@@ -172,8 +172,22 @@ export function InputFieldBuilder({
   }, []);
 
   useEffect(() => {
-    // Only update fields if initialFields actually changed
-    if (JSON.stringify(initialFields) !== JSON.stringify(fields)) {
+    // Only update fields if initialFields actually changed (deep comparison)
+    const fieldsChanged = initialFields.length !== fields.length || 
+      initialFields.some((field, index) => 
+        !fields[index] || 
+        field.key !== fields[index].key || 
+        field.defaultValue !== fields[index].defaultValue ||
+        field.preset !== fields[index].preset ||
+        field.required !== fields[index].required
+      );
+    
+    if (fieldsChanged) {
+      console.log('InputFieldBuilder: Fields changed, updating:', { 
+        oldCount: fields.length, 
+        newCount: initialFields.length,
+        newFields: initialFields.map(f => ({ key: f.key, defaultValue: f.defaultValue }))
+      });
       setFields(initialFields);
     }
   }, [initialFields]);
