@@ -1792,4 +1792,4 @@ async function handleWidgetClose(req: Request, supabase: any) {
       }
     )
   }
-}
+})
