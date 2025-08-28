@@ -607,8 +607,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
               </div>
 
               {/* Timeout, Concurrency, and Risk Level in grid */}
-              <div className="grid grid-cols-5 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-3 space-y-2">
                   <Label htmlFor="timeout">Max Timeout (seconds)</Label>
                   <Input
                     id="timeout"
@@ -621,7 +621,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="col-span-2 space-y-2">
                   <div className="flex items-center gap-1">
                     <Label htmlFor="per-agent-concurrency">Per agent concurrency</Label>
                     <TooltipProvider>
@@ -646,7 +646,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="col-span-2 space-y-2">
                   <div className="flex items-center gap-1">
                     <Label htmlFor="per-tenant-concurrency">Per tenant concurrency</Label>
                     <TooltipProvider>
@@ -671,7 +671,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="col-span-2 space-y-2">
                   <Label>Risk Level</Label>
                   <Select
                     value={formData.risk}
@@ -693,6 +693,10 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="col-span-3">
+                  {/* Empty space for future fields */}
                 </div>
               </div>
 
