@@ -621,7 +621,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                   />
                 </div>
 
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2">
                   <div className="flex items-center gap-1">
                     <Label htmlFor="per-agent-concurrency">Per agent concurrency</Label>
                     <TooltipProvider>
