@@ -526,6 +526,7 @@ export function BatchInputsTab({
 
       <TabsContent value="builder" className="space-y-0">
         <InputFieldBuilder
+          key={`${inputsSchema ? JSON.stringify(inputsSchema) : 'empty'}-${inputsDefaults ? JSON.stringify(inputsDefaults) : 'empty'}`}
           initialFields={convertSchemaToFields(inputsSchema, inputsDefaults)}
           canEdit={canEdit}
           onSchemaChange={onSchemaChange}

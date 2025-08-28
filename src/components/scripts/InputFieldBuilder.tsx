@@ -172,7 +172,10 @@ export function InputFieldBuilder({
   }, []);
 
   useEffect(() => {
-    setFields(initialFields);
+    // Only update fields if initialFields actually changed
+    if (JSON.stringify(initialFields) !== JSON.stringify(fields)) {
+      setFields(initialFields);
+    }
   }, [initialFields]);
 
   useEffect(() => {
