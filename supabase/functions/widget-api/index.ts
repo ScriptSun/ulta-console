@@ -541,7 +541,7 @@ async function handleWebSocketChatMessage(supabase: any, client: ConnectedClient
 
     // Rate limiting check (reuse the existing rate limiting logic)
     const sessionKey = `session:${client.sessionId}`;
-    const sessionLimit = await checkRateLimit(supabase, sessionKey, 'session', 10, 10);
+    const sessionLimit = await checkWebSocketRateLimit(supabase, sessionKey, 'session', 10, 10);
     
     if (!sessionLimit.allowed) {
       client.socket.send(JSON.stringify({
@@ -595,7 +595,7 @@ async function handleWebSocketChatMessage(supabase: any, client: ConnectedClient
 }
 
 // Simple rate limiting for WebSocket messages
-async function checkRateLimit(supabase: any, bucketKey: string, bucketType: string, limit: number, windowSec: number): Promise<{ allowed: boolean; message?: string }> {
+async function checkWebSocketRateLimit(supabase: any, bucketKey: string, bucketType: string, limit: number, windowSec: number): Promise<{ allowed: boolean; message?: string }> {
   const now = new Date();
   const windowStart = new Date(Math.floor(now.getTime() / (windowSec * 1000)) * windowSec * 1000);
 
@@ -905,8 +905,8 @@ function generateRandomString(length: number = 32): string {
   return result
 }
 
-// Rate limiting helper
-function checkRateLimit(key: string): boolean {
+// Rate limiting helper for general API calls
+function checkGeneralRateLimit(key: string): boolean {
   const now = Date.now()
   const limit = rateLimits.get(key)
   
@@ -1407,7 +1407,7 @@ async function handleWidgetMessage(req: Request, supabase: any) {
 
     // Rate limiting
     const rateLimitKey = `${session.tenant_id}:${session.agent_id}:${sessionId}`
-    if (!checkRateLimit(rateLimitKey)) {
+    if (!checkGeneralRateLimit(rateLimitKey)) {
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded' }),
         { 
