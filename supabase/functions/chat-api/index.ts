@@ -643,9 +643,11 @@ async function processChatRouter(supabase: any, conversationId: string, message:
   return await processIntentWithParams(supabase, conversationId, conversation, result, conversationContext);
 }
 
-// Separate function to process intents with parameters
+// Agent-bound router with enhanced command policy checking and event tracking
 async function processIntentWithParams(supabase: any, conversationId: string, conversation: any, result: any, conversationContext: any) {
   const intentDef = result.intentDef!;
+  const agentId = conversation.agent_id;
+  const tenantId = conversation.tenant_id;
   const missingParams = intentDef.requiredParams.filter(param => !result.params[param]);
 
   // Check if we have all required parameters
@@ -678,7 +680,31 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     };
   }
 
-  // All parameters available - check if we have a matching batch
+  // All parameters available - check command policies
+  const policyCheck = await checkAgentCommandPolicies(supabase, tenantId, agentId, intentDef.batchName, result.params);
+  
+  if (!policyCheck.allowed) {
+    // Log policy blocked event
+    await supabase.from('chat_events').insert({
+      conversation_id: conversationId,
+      type: 'policy_blocked',
+      agent_id: agentId,
+      payload: {
+        intent: result.intent,
+        batch_name: intentDef.batchName,
+        reason: policyCheck.reason,
+        policy_id: policyCheck.policy_id
+      }
+    });
+
+    return {
+      response: policyCheck.reason,
+      action: 'policy_blocked',
+      intent: result.intent
+    };
+  }
+
+  // Check if we have a matching batch for this agent
   if (!intentDef.batchName) {
     return {
       response: `I understand you want to ${result.intent.replace('_', ' ')}, but I don't have the automation ready for that task yet.`,
@@ -691,7 +717,7 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
   const { data: batch, error: batchError } = await supabase
     .from('script_batches')
     .select('id, name, active_version')
-    .eq('customer_id', conversation.tenant_id)
+    .eq('customer_id', tenantId)
     .eq('name', intentDef.batchName)
     .neq('active_version', null)
     .single();
@@ -705,23 +731,23 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     };
   }
 
-  // Start batch run using the start_batch_run function
-  console.log('Starting batch run:', { batchId: batch.id, agentId: conversation.agent_id });
+  // Start batch run for this specific agent
+  console.log('Starting agent-bound batch run:', { batchId: batch.id, agentId });
   
   const { data: runResult, error: runError } = await supabase
     .rpc('start_batch_run', {
       _batch_id: batch.id,
-      _agent_id: conversation.agent_id
+      _agent_id: agentId
     });
 
   if (runError || !runResult || runResult.length === 0) {
     console.error('Failed to start batch run:', runError);
     
-    // Log failed task event
+    // Log fail event
     await supabase.from('chat_events').insert({
       conversation_id: conversationId,
-      type: 'task_failed',
-      agent_id: conversation.agent_id,
+      type: 'fail',
+      agent_id: agentId,
       payload: {
         intent: result.intent,
         batch_name: intentDef.batchName,
@@ -738,9 +764,21 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
   }
 
   const runInfo = runResult[0];
-  console.log('Batch run result:', runInfo);
+  console.log('Agent-bound batch run result:', runInfo);
 
   if (runInfo.status === 'blocked') {
+    // Log blocked event
+    await supabase.from('chat_events').insert({
+      conversation_id: conversationId,
+      type: 'task_blocked',
+      agent_id: agentId,
+      payload: {
+        intent: result.intent,
+        batch_name: intentDef.batchName,
+        reason: runInfo.message
+      }
+    });
+
     return {
       response: `I can't start the ${result.intent.replace('_', ' ')} task right now: ${runInfo.message}`,
       action: 'blocked',
@@ -748,11 +786,11 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     };
   }
 
-  // Successfully started - log the event
+  // Task queued - log the event
   await supabase.from('chat_events').insert({
     conversation_id: conversationId,
     type: 'task_queued',
-    agent_id: conversation.agent_id,
+    agent_id: agentId,
     ref_id: runInfo.run_id,
     payload: {
       intent: result.intent,
@@ -763,13 +801,29 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     }
   });
 
-  // Update conversation
+  // Task started - log the event (immediately after queuing for this agent)
+  await supabase.from('chat_events').insert({
+    conversation_id: conversationId,
+    type: 'task_started',
+    agent_id: agentId,
+    ref_id: runInfo.run_id,
+    payload: {
+      intent: result.intent,
+      batch_name: intentDef.batchName,
+      batch_id: batch.id,
+      run_id: runInfo.run_id,
+      params: result.params,
+      started_at: new Date().toISOString()
+    }
+  });
+
+  // Update conversation with agent-bound action
   await supabase
     .from('chat_conversations')
     .update({
       last_intent: result.intent,
-      last_action: `batch_started:${batch.name}`,
-      meta: { ...conversationContext, last_run_id: runInfo.run_id },
+      last_action: `agent_task_started:${batch.name}`,
+      meta: { ...conversationContext, last_run_id: runInfo.run_id, bound_agent: agentId },
       updated_at: new Date().toISOString()
     })
     .eq('id', conversationId);
@@ -779,12 +833,67 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     : '';
 
   return {
-    response: `Great! I've started the ${result.intent.replace('_', ' ')} task${paramsText}. I'll let you know once it's complete.`,
+    response: `Great! I've started the ${result.intent.replace('_', ' ')} task${paramsText} on this agent. I'll let you know once it's complete.`,
     action: 'task_started',
     intent: result.intent,
     run_id: runInfo.run_id,
-    batch_id: batch.id
+    batch_id: batch.id,
+    agent_id: agentId
   };
+}
+
+// Agent-bound command policy checker
+async function checkAgentCommandPolicies(supabase: any, tenantId: string, agentId: string, batchName: string, params: any): Promise<{ allowed: boolean; reason?: string; policy_id?: string }> {
+  // Get active command policies for this tenant
+  const { data: policies } = await supabase
+    .from('command_policies')
+    .select('*')
+    .eq('customer_id', tenantId)
+    .eq('active', true)
+    .or(`match_value.eq.${batchName},match_type.eq.wildcard`);
+
+  if (!policies || policies.length === 0) {
+    return { allowed: true };
+  }
+
+  // Get agent details for OS checking
+  const { data: agent } = await supabase
+    .from('agents')
+    .select('os')
+    .eq('id', agentId)
+    .single();
+
+  // Check each policy
+  for (const policy of policies) {
+    // Check OS whitelist if specified
+    if (policy.os_whitelist && policy.os_whitelist.length > 0 && agent?.os) {
+      if (!policy.os_whitelist.includes(agent.os)) {
+        return { 
+          allowed: false, 
+          reason: `Command blocked: not allowed on ${agent.os} systems`,
+          policy_id: policy.id
+        };
+      }
+    }
+
+    if (policy.mode === 'deny') {
+      return { 
+        allowed: false, 
+        reason: `Command blocked by policy: ${policy.policy_name}`,
+        policy_id: policy.id
+      };
+    }
+    
+    if (policy.mode === 'confirm') {
+      return { 
+        allowed: false, 
+        reason: policy.confirm_message || 'This command requires approval',
+        policy_id: policy.id
+      };
+    }
+  }
+
+  return { allowed: true };
 }
 
 // Legacy intent classification for backward compatibility
@@ -857,8 +966,8 @@ async function handleBatchCompletion(req: Request, supabase: any) {
       const conversationId = event.conversation_id;
       const payload = event.payload || {};
 
-      // Log completion event
-      const eventType = status === 'success' ? 'task_completed' : 'task_failed';
+      // Log completion event with agent-bound event types
+      const eventType = status === 'success' ? 'success' : 'fail';
       
       await supabase.from('chat_events').insert({
         conversation_id: conversationId,
