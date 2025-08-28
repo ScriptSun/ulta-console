@@ -204,7 +204,9 @@ export function InputFieldBuilder({
   };
 
   const handleNewField = () => {
+    console.log('handleNewField called, canEdit:', canEdit);
     if (canEdit) {
+      console.log('Setting modal state for new field');
       setEditingField(null);
       setIsCreatingNew(true);
       setIsModalOpen(true);
@@ -268,7 +270,19 @@ export function InputFieldBuilder({
 
   const existingKeys = fields.map(f => f.key);
 
+  const handleModalOpenChange = (open: boolean) => {
+    console.log('Modal open change:', open);
+    if (!open) {
+      // If modal is being closed, reset all states
+      setEditingField(null);
+      setIsCreatingNew(false);
+      setIsModalOpen(false);
+    }
+  };
+
   const FieldModal = () => {
+    console.log('FieldModal render - isModalOpen:', isModalOpen, 'isCreatingNew:', isCreatingNew);
+    
     const content = (
       <FieldEditor
         field={editingField}
@@ -280,7 +294,7 @@ export function InputFieldBuilder({
 
     if (isMobile) {
       return (
-        <Drawer open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <Drawer open={isModalOpen} onOpenChange={handleModalOpenChange}>
           <DrawerContent>
             <DrawerHeader>
               <DrawerTitle>
@@ -299,7 +313,7 @@ export function InputFieldBuilder({
     }
 
     return (
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
