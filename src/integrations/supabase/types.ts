@@ -576,7 +576,7 @@ export type Database = {
             foreignKeyName: "certificate_revocation_list_certificate_id_fkey"
             columns: ["certificate_id"]
             isOneToOne: false
-            referencedRelation: "certificates_metadata"
+            referencedRelation: "certificates_safe_view"
             referencedColumns: ["id"]
           },
         ]
@@ -1125,7 +1125,7 @@ export type Database = {
       }
     }
     Views: {
-      certificates_metadata: {
+      certificates_safe_view: {
         Row: {
           agent_id: string | null
           cert_pem: string | null
@@ -1136,28 +1136,6 @@ export type Database = {
           issued_at: string | null
           revoked_at: string | null
           updated_at: string | null
-        }
-        Insert: {
-          agent_id?: string | null
-          cert_pem?: string | null
-          created_at?: string | null
-          expires_at?: string | null
-          fingerprint_sha256?: string | null
-          id?: string | null
-          issued_at?: string | null
-          revoked_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          agent_id?: string | null
-          cert_pem?: string | null
-          created_at?: string | null
-          expires_at?: string | null
-          fingerprint_sha256?: string | null
-          id?: string | null
-          issued_at?: string | null
-          revoked_at?: string | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1247,6 +1225,20 @@ export type Database = {
       get_next_variant_version: {
         Args: { _batch_id: string; _os: string }
         Returns: number
+      }
+      get_user_certificate_metadata: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          agent_id: string
+          cert_pem: string
+          created_at: string
+          expires_at: string
+          fingerprint_sha256: string
+          id: string
+          issued_at: string
+          revoked_at: string
+          updated_at: string
+        }[]
       }
       get_user_customer_ids: {
         Args: Record<PropertyKey, never>
