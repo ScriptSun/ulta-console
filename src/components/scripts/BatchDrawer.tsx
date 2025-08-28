@@ -696,32 +696,6 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>OS Targets</Label>
-                <div className="flex flex-wrap gap-2">
-                  {osOptions.map((os) => {
-                    const OSIcon = getOSIcon(os.value);
-                    return (
-                      <button
-                        key={os.value}
-                        type="button"
-                        onClick={() => handleOSTargetToggle(os.value)}
-                        disabled={!canEdit}
-                        className={cn(
-                          "px-3 py-1 rounded-md border text-sm transition-colors flex items-center gap-2",
-                          formData.os_targets.includes(os.value)
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-background border-border hover:bg-muted"
-                        )}
-                      >
-                        <OSIcon className="h-4 w-4" />
-                        {os.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
               <div className="flex items-center space-x-2">
                 <Switch
                   id="auto-version"
@@ -779,10 +753,39 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
             </TabsContent>
 
             <TabsContent value="script" className="space-y-4 mt-6">
+              {/* OS Targets Selection */}
+              <div className="space-y-2">
+                <Label>OS Targets</Label>
+                <div className="flex flex-wrap gap-2">
+                  {osOptions.map((os) => {
+                    const OSIcon = getOSIcon(os.value);
+                    return (
+                      <button
+                        key={os.value}
+                        type="button"
+                        onClick={() => handleOSTargetToggle(os.value)}
+                        disabled={!canEdit}
+                        className={cn(
+                          "px-3 py-1 rounded-md border text-sm transition-colors flex items-center gap-2",
+                          formData.os_targets.includes(os.value)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border hover:bg-muted"
+                        )}
+                      >
+                        <OSIcon className="h-4 w-4" />
+                        {os.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Separator />
+
               {formData.os_targets.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
-                  <p>Please select OS targets in the General tab first</p>
+                  <p>Please select OS targets above first</p>
                 </div>
               ) : isEditing && batch?.id ? (
                 <BatchOSVariantsEditor
