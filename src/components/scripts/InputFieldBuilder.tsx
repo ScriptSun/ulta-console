@@ -311,8 +311,27 @@ export function InputFieldBuilder({
     setIsModalOpen(false);
   };
 
-  const handleTestWithSample = () => {
-    // This will be handled by the parent component's form
+  const handleFillDefaults = () => {
+    // This will trigger the BatchInputsForm's fill defaults functionality
+    // We'll need to pass this through props or use a ref
+  };
+
+  const handleCopyJson = async () => {
+    if (generatedSchema && generatedDefaults) {
+      try {
+        const summary = {
+          schema: generatedSchema,
+          defaults: generatedDefaults
+        };
+        await navigator.clipboard.writeText(JSON.stringify(summary, null, 2));
+        toast({
+          title: 'Copied',
+          description: 'Generated JSON copied to clipboard',
+        });
+      } catch (error) {
+        console.error('Failed to copy:', error);
+      }
+    }
   };
 
   const copyJsonSummary = async () => {
@@ -432,19 +451,20 @@ export function InputFieldBuilder({
               </Badge>
             </div>
             <div className="flex items-center gap-2">
-              {generatedSchema && generatedDefaults && (
+              {generatedSchema && Object.keys(generatedSchema.properties || {}).length > 0 && (
                 <>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {}} // Will be handled by BatchInputsForm
+                    onClick={handleFillDefaults}
+                    disabled={!canEdit}
                   >
                     Fill Defaults
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {}} // Will be handled by BatchInputsForm
+                    onClick={handleCopyJson}
                   >
                     <Copy className="h-3 w-3 mr-1" />
                     Copy JSON
@@ -460,6 +480,7 @@ export function InputFieldBuilder({
               schema={generatedSchema}
               defaults={generatedDefaults}
               readOnly={!canEdit}
+              onFillDefaults={handleFillDefaults}
             />
           ) : (
             <div className="text-center py-8 text-muted-foreground">

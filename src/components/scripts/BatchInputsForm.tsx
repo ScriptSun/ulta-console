@@ -36,7 +36,7 @@ interface BatchInputsFormProps {
   defaults?: any;
   onValuesChange?: (values: Record<string, any>, isValid: boolean) => void;
   readOnly?: boolean;
-  showHeaderButtons?: boolean;
+  onFillDefaults?: () => void;
 }
 
 interface FormField {
@@ -52,7 +52,7 @@ export function BatchInputsForm({
   defaults,
   onValuesChange,
   readOnly = false,
-  showHeaderButtons = false
+  onFillDefaults
 }: BatchInputsFormProps) {
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [formFields, setFormFields] = useState<FormField[]>([]);
