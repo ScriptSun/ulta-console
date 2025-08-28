@@ -1,13 +1,17 @@
 import { ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layouts/AppSidebar'
 import { TopBar } from '@/components/layouts/TopBar'
+import { ChatDemo } from '@/components/chat/ChatDemo'
 
 interface RootLayoutProps {
   children: ReactNode
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
+  const location = useLocation();
+  
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-subtle">
@@ -18,6 +22,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             {children}
           </main>
         </div>
+        <ChatDemo currentRoute={location.pathname} />
       </div>
     </SidebarProvider>
   )

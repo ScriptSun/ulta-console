@@ -75,6 +75,10 @@ serve(async (req) => {
         return await handleChatMessage(req, supabase);
       } else if (path.endsWith('/chat/close')) {
         return await handleChatClose(req, supabase);
+      } else if (path.endsWith('/demo/start')) {
+        return await handleDemoStart(req, supabase);
+      } else if (path.endsWith('/demo/message')) {
+        return await handleDemoMessage(req, supabase);
       } else if (path.endsWith('/webhook/batch-completion')) {
         return await handleBatchCompletion(req, supabase);
       }
@@ -1413,6 +1417,284 @@ async function handleBatchCompletion(req: Request, supabase: any) {
 
   } catch (error) {
     console.error('Error in handleBatchCompletion:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+// Dashboard demo handlers with Supabase auth
+async function handleDemoStart(req: Request, supabase: any) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const body = await req.json();
+  const { agent_id } = body;
+
+  if (!agent_id) {
+    return new Response(JSON.stringify({ error: 'agent_id is required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    // Get user's customer IDs
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('customer_id')
+      .eq('user_id', user.id);
+
+    if (!userRoles || userRoles.length === 0) {
+      return new Response(JSON.stringify({ error: 'No tenant access' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const customerIds = userRoles.map(r => r.customer_id);
+
+    // Validate agent access
+    const { data: agent } = await supabase
+      .from('agents')
+      .select('id, customer_id')
+      .eq('id', agent_id)
+      .single();
+
+    if (!agent || !customerIds.includes(agent.customer_id)) {
+      return new Response(JSON.stringify({ error: 'Agent not accessible' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check for existing demo conversation
+    const { data: existingConversation } = await supabase
+      .from('chat_conversations')
+      .select('*')
+      .eq('tenant_id', agent.customer_id)
+      .eq('agent_id', agent_id)
+      .eq('user_id', user.id)
+      .eq('source', 'demo')
+      .eq('status', 'open')
+      .order('created_at', { descending: true })
+      .limit(1);
+
+    if (existingConversation && existingConversation.length > 0) {
+      return new Response(JSON.stringify({ 
+        conversation_id: existingConversation[0].id,
+        created: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Create new demo conversation
+    const { data: newConversation, error: createError } = await supabase
+      .from('chat_conversations')
+      .insert({
+        tenant_id: agent.customer_id,
+        user_id: user.id,
+        agent_id: agent_id,
+        source: 'demo',
+        status: 'open',
+        started_at: new Date().toISOString(),
+        meta: { dashboard_demo: true }
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      throw createError;
+    }
+
+    // Log start event
+    await supabase.from('chat_events').insert({
+      conversation_id: newConversation.id,
+      type: 'conversation_started',
+      agent_id: agent_id,
+      payload: {
+        tenant_id: agent.customer_id,
+        user_id: user.id,
+        source: 'demo',
+        dashboard_demo: true
+      }
+    });
+
+    return new Response(JSON.stringify({ 
+      conversation_id: newConversation.id,
+      created: true 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error in handleDemoStart:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function handleDemoMessage(req: Request, supabase: any) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const body = await req.json();
+  const { conversation_id, content, is_action = false } = body;
+
+  if (!conversation_id || !content) {
+    return new Response(JSON.stringify({ error: 'conversation_id and content are required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    // Validate conversation access
+    const { data: conversation } = await supabase
+      .from('chat_conversations')
+      .select('*')
+      .eq('id', conversation_id)
+      .eq('user_id', user.id)
+      .eq('source', 'demo')
+      .single();
+
+    if (!conversation) {
+      return new Response(JSON.stringify({ error: 'Conversation not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Rate limiting for demo (more generous)
+    const sessionKey = `demo:${user.id}:${conversation_id}`;
+    const sessionLimit = await checkRateLimit(supabase, sessionKey, 'session', 15, 30);
+    if (!sessionLimit.allowed) {
+      return new Response(JSON.stringify({ 
+        error: 'Rate limit exceeded',
+        message: sessionLimit.message
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Process message through chat system
+    const messageResult = await handleChatMessage(
+      new Request(req.url, {
+        method: 'POST',
+        headers: req.headers,
+        body: JSON.stringify({
+          conversation_id,
+          role: 'user',
+          content
+        })
+      }),
+      supabase
+    );
+
+    const messageData = await messageResult.json();
+
+    // Generate assistant response
+    let assistantResponse = "I received your message and I'm processing it.";
+    let eventType = null;
+    let runId = null;
+
+    if (messageData.router_action === 'task_started') {
+      assistantResponse = messageData.router_response;
+      eventType = 'task_queued';
+      runId = messageData.run_id;
+    } else if (messageData.router_action === 'clarify') {
+      assistantResponse = messageData.router_response;
+    } else if (messageData.router_action === 'policy_blocked') {
+      assistantResponse = messageData.router_response;
+    } else if (messageData.router_action === 'no_batch') {
+      assistantResponse = messageData.router_response;
+    } else {
+      // Generate contextual response based on intent
+      const intent = messageData.intent;
+      if (intent === 'install_wordpress') {
+        assistantResponse = "I can help you install WordPress! I'll need a domain name and admin email address to get started.";
+      } else if (intent === 'check_cpu' || intent === 'check_disk' || intent === 'check_memory') {
+        assistantResponse = `I'll check the ${intent.replace('check_', '')} usage for you right away.`;
+      } else if (intent === 'restart_service') {
+        assistantResponse = "I can restart services for you. Which service would you like me to restart?";
+      } else {
+        assistantResponse = "I can help you with server management tasks like installing WordPress, checking system resources, managing services, and more. What would you like me to help you with?";
+      }
+    }
+
+    // Add assistant response
+    const { data: assistantMessage } = await supabase
+      .from('chat_messages')
+      .insert({
+        conversation_id,
+        role: 'assistant',
+        content: assistantResponse,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    // Log assistant message event
+    await supabase.from('chat_events').insert({
+      conversation_id,
+      type: 'message_sent',
+      agent_id: conversation.agent_id,
+      ref_id: assistantMessage.id,
+      payload: {
+        role: 'assistant',
+        content_length: assistantResponse.length,
+        generated_response: true
+      }
+    });
+
+    return new Response(JSON.stringify({ 
+      response: assistantResponse,
+      intent: messageData.intent,
+      event_type: eventType,
+      run_id: runId,
+      needs_inputs: messageData.router_action === 'clarify',
+      message_id: assistantMessage.id
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error in handleDemoMessage:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
