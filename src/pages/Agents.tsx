@@ -187,6 +187,12 @@ export default function Agents() {
     setDetailsOpen(true);
   };
 
+  const handleRecentTasks = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setDefaultTab('monitoring');
+    setDetailsOpen(true);
+  };
+
   const handleAgentClick = (agent: Agent) => {
     setSelectedAgent(agent);
     setDefaultTab('overview');
@@ -385,6 +391,7 @@ export default function Agents() {
           onRemove={handleRemoveAgent}
           onLogs={handleViewLogs}
           onDetails={handleAgentDetails}
+          onRecentTasks={handleRecentTasks}
           canManage={canManage}
         />
       ) : (
