@@ -172,48 +172,62 @@ export function InputFieldBuilder({
   }, []);
 
   useEffect(() => {
-    // Only update fields if initialFields actually changed (deep comparison)
-    const fieldsChanged = initialFields.length !== fields.length || 
-      initialFields.some((field, index) => 
-        !fields[index] || 
-        field.key !== fields[index].key || 
-        field.defaultValue !== fields[index].defaultValue ||
-        field.preset !== fields[index].preset ||
-        field.required !== fields[index].required
-      );
+    console.log('InputFieldBuilder useEffect - initialFields:', initialFields.length, 'current fields:', fields.length);
     
-    if (fieldsChanged) {
-      console.log('InputFieldBuilder: Fields changed, updating:', { 
-        oldCount: fields.length, 
-        newCount: initialFields.length,
-        newFields: initialFields.map(f => ({ key: f.key, defaultValue: f.defaultValue }))
+    // Prevent updates if fields are already set correctly
+    if (initialFields.length === 0 && fields.length === 0) {
+      console.log('Both empty, skipping update');
+      return;
+    }
+    
+    // Only update if there's a meaningful difference
+    const shouldUpdate = initialFields.length !== fields.length || 
+      initialFields.some((field, index) => {
+        const currentField = fields[index];
+        if (!currentField) return true;
+        
+        return field.key !== currentField.key || 
+               field.defaultValue !== currentField.defaultValue ||
+               field.preset !== currentField.preset ||
+               field.required !== currentField.required;
       });
-      setFields(initialFields);
+    
+    if (shouldUpdate) {
+      console.log('InputFieldBuilder: Updating fields from', fields.length, 'to', initialFields.length);
+      setFields([...initialFields]); // Create new array reference
+    } else {
+      console.log('InputFieldBuilder: Fields are same, skipping update');
     }
   }, [initialFields]);
 
   useEffect(() => {
-    console.log('useEffect running - fields changed:', fields.length);
-    const validation = validateFields(fields);
+    console.log('InputFieldBuilder main useEffect - fields changed:', fields.length);
     
-    // Set validation state
-    setValidationErrors(validation.errors);
-    setIsValid(validation.isValid);
-    
-    if (validation.isValid && fields.length > 0) {
-      const { schema, defaults } = buildSchemaFromFields(fields);
-      setGeneratedSchema(schema);
-      setGeneratedDefaults(defaults);
-      onSchemaChange?.(schema);
-      onDefaultsChange?.(defaults);
-    } else {
-      setGeneratedSchema(null);
-      setGeneratedDefaults(null);
-      onSchemaChange?.(null);
-      onDefaultsChange?.(null);
-    }
+    // Debounce this effect to prevent rapid updates
+    const timeoutId = setTimeout(() => {
+      const validation = validateFields(fields);
+      
+      // Set validation state
+      setValidationErrors(validation.errors);
+      setIsValid(validation.isValid);
+      
+      if (validation.isValid && fields.length > 0) {
+        const { schema, defaults } = buildSchemaFromFields(fields);
+        setGeneratedSchema(schema);
+        setGeneratedDefaults(defaults);
+        onSchemaChange?.(schema);
+        onDefaultsChange?.(defaults);
+      } else {
+        setGeneratedSchema(null);
+        setGeneratedDefaults(null);
+        onSchemaChange?.(null);
+        onDefaultsChange?.(null);
+      }
 
-    onValidationChange?.(validation.isValid, validation.errors);
+      onValidationChange?.(validation.isValid, validation.errors);
+    }, 100); // 100ms debounce
+    
+    return () => clearTimeout(timeoutId);
   }, [fields, buildSchemaFromFields, validateFields, onSchemaChange, onDefaultsChange, onValidationChange]);
 
   const handleFieldsChange = (newFields: BuilderField[]) => {

@@ -166,9 +166,20 @@ export function BatchInputsTab({
   onDefaultsChange,
   onValidationChange
 }: BatchInputsTabProps) {
+  // Add a stable key to prevent unnecessary re-renders
+  const stableKey = useMemo(() => {
+    const schemaKeys = inputsSchema?.properties ? Object.keys(inputsSchema.properties).sort().join(',') : '';
+    const defaultKeys = inputsDefaults ? Object.keys(inputsDefaults).sort().join(',') : '';
+    return `${schemaKeys}-${defaultKeys}`;
+  }, [inputsSchema, inputsDefaults]);
+
+  console.log('BatchInputsTab render with key:', stableKey);
+
   // Memoize the converted fields to prevent unnecessary re-renders
   const convertedFields = useMemo(() => {
-    return convertSchemaToFields(inputsSchema, inputsDefaults);
+    const result = convertSchemaToFields(inputsSchema, inputsDefaults);
+    console.log('BatchInputsTab: Memoized convertedFields:', result.length);
+    return result;
   }, [inputsSchema, inputsDefaults]);
 
   const [schemaText, setSchemaText] = useState('');
@@ -522,13 +533,15 @@ export function BatchInputsTab({
       </TabsList>
 
       <TabsContent value="builder" className="space-y-0">
-        <InputFieldBuilder
-          initialFields={convertedFields}
-          canEdit={canEdit}
-          onSchemaChange={onSchemaChange}
-          onDefaultsChange={onDefaultsChange}
-          onValidationChange={onValidationChange}
-        />
+        <div key={stableKey}>
+          <InputFieldBuilder
+            initialFields={convertedFields}
+            canEdit={canEdit}
+            onSchemaChange={onSchemaChange}
+            onDefaultsChange={onDefaultsChange}
+            onValidationChange={onValidationChange}
+          />
+        </div>
       </TabsContent>
 
       <TabsContent value="json" className="space-y-6">
