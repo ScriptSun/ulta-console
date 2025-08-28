@@ -83,8 +83,8 @@ export function BatchDependenciesTab({ batchId, canEdit, onDependencyChange }: B
         batch_id: dep.batch_id,
         depends_on_batch_id: dep.depends_on_batch_id,
         min_version: dep.min_version,
-        dependency_name: dep.dependency_batch.name,
-        current_version: dep.dependency_batch.active_version
+        dependency_name: dep.dependency_batch?.name || 'Unknown Batch',
+        current_version: dep.dependency_batch?.active_version || null
       })) || [];
 
       setDependencies(formattedDependencies);

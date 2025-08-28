@@ -86,6 +86,12 @@ export function BatchInputsForm({
     
     Object.keys(schema.properties).forEach(key => {
       const prop = schema.properties[key];
+      // Skip if property definition is null or undefined
+      if (!prop || typeof prop !== 'object') {
+        console.warn(`Skipping invalid property definition for key: ${key}`);
+        return;
+      }
+      
       fields.push({
         key,
         type: prop.type || 'string',
