@@ -267,8 +267,8 @@ const WIDGET_JS_CONTENT = `
             this.addMessage('assistant', response.message);
           }
         }
-  });
-}
+      });
+    }
 
 // WebSocket upgrade handler with authentication and session rotation
 async function handleWebSocketUpgrade(req: Request, supabase: any) {
