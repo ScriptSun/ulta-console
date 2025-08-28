@@ -166,8 +166,7 @@ export function BatchInputsTab({
   onDefaultsChange,
   onValidationChange
 }: BatchInputsTabProps) {
-  // State for the visual builder
-  const [convertedFields, setConvertedFields] = useState<BuilderField[]>([]);
+  // State management
   const [hasInitialized, setHasInitialized] = useState(false);
   
   // State for JSON editor
@@ -186,49 +185,27 @@ export function BatchInputsTab({
   const ajv = new Ajv({ allErrors: true, strict: false });
   addFormats(ajv);
 
-  console.log('BatchInputsTab render - hasInitialized:', hasInitialized, 'inputsSchema:', !!inputsSchema, 'inputsDefaults:', !!inputsDefaults);
+  // Memoize the converted fields to prevent unnecessary recalculations
+  const convertedFields = useMemo(() => {
+    const fields = convertSchemaToFields(inputsSchema, inputsDefaults);
+    console.log('BatchInputsTab: Memoized convertedFields:', fields.length);
+    return fields;
+  }, [inputsSchema, inputsDefaults]);
 
-  // Initialize from props only once
+  // Initialize texts when props are available
   useEffect(() => {
-    if (!hasInitialized && (inputsSchema || inputsDefaults)) {
-      console.log('BatchInputsTab: Initializing from props', inputsSchema, inputsDefaults);
-      
-      // Convert schema to fields for visual builder
-      const fields = convertSchemaToFields(inputsSchema, inputsDefaults);
-      console.log('BatchInputsTab: Converted fields:', fields.length);
-      setConvertedFields(fields);
-      
-      // Set JSON text for editor
-      if (inputsSchema) {
-        setSchemaText(JSON.stringify(inputsSchema, null, 2));
-      } else {
-        setSchemaText(JSON.stringify(DEFAULT_SCHEMA, null, 2));
-      }
-      
-      if (inputsDefaults) {
-        setDefaultsText(JSON.stringify(inputsDefaults, null, 2));
-      } else {
-        setDefaultsText(JSON.stringify({}, null, 2));
-      }
-      
+    if (inputsSchema && !hasInitialized) {
+      setSchemaText(JSON.stringify(inputsSchema, null, 2));
+      setHasInitialized(true);
+    } else if (!inputsSchema && !hasInitialized) {
+      setSchemaText(JSON.stringify(DEFAULT_SCHEMA, null, 2));
       setHasInitialized(true);
     }
-  }, [inputsSchema, inputsDefaults, hasInitialized]);
-
-  // Also update when props change significantly after initialization
-  useEffect(() => {
-    if (hasInitialized) {
-      const fields = convertSchemaToFields(inputsSchema, inputsDefaults);
-      console.log('BatchInputsTab: Props changed, updating fields:', fields.length);
-      setConvertedFields(fields);
-      
-      // Update JSON text
-      if (inputsSchema) {
-        setSchemaText(JSON.stringify(inputsSchema, null, 2));
-      }
-      if (inputsDefaults) {
-        setDefaultsText(JSON.stringify(inputsDefaults, null, 2));
-      }
+    
+    if (inputsDefaults) {
+      setDefaultsText(JSON.stringify(inputsDefaults, null, 2));
+    } else if (!inputsDefaults && hasInitialized) {
+      setDefaultsText(JSON.stringify({}, null, 2));
     }
   }, [inputsSchema, inputsDefaults, hasInitialized]);
 
