@@ -48,8 +48,15 @@ import {
   Pen,
   Check,
   X,
-  Minus
+  Minus,
+  Code2
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { BuilderField } from './FieldEditor';
 import { FIELD_PRESETS } from './FieldPresets';
@@ -60,6 +67,8 @@ interface FieldListProps {
   onEditField: (field: BuilderField) => void;
   onNewField: () => void;
   isFullWidth?: boolean;
+  onCopyJson?: () => void;
+  hasGeneratedSchema?: boolean;
 }
 
 interface SortableFieldItemProps {
@@ -421,7 +430,15 @@ function SortableFieldItem({
   );
 }
 
-export function FieldList({ fields, onFieldsChange, onEditField, onNewField, isFullWidth = false }: FieldListProps) {
+export function FieldList({ 
+  fields, 
+  onFieldsChange, 
+  onEditField, 
+  onNewField, 
+  isFullWidth = false,
+  onCopyJson,
+  hasGeneratedSchema = false
+}: FieldListProps) {
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   
   const sensors = useSensors(
@@ -476,10 +493,31 @@ export function FieldList({ fields, onFieldsChange, onEditField, onNewField, isF
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">Form Fields</h3>
-        <Button variant="outline" size="sm" onClick={onNewField}>
-          <Plus className="h-3 w-3 mr-1" />
-          Add Field
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onNewField}>
+            <Plus className="h-3 w-3 mr-1" />
+            Add Field
+          </Button>
+          {hasGeneratedSchema && onCopyJson && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onCopyJson}
+                  >
+                    <Code2 className="h-3 w-3 mr-1" />
+                    Copy as JSON
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Copy the generated schema and defaults</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
       </div>
 
       {fields.length === 0 ? (

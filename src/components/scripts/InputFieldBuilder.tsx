@@ -401,25 +401,6 @@ export function InputFieldBuilder({
         <div className="flex items-center gap-3">
         </div>
         <div className="flex items-center gap-2">
-          {generatedSchema && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyJsonSummary}
-                  >
-                    <Code2 className="h-3 w-3 mr-1" />
-                     Copy as JSON
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Copy the generated schema and defaults</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
         </div>
       </div>
 
@@ -431,6 +412,8 @@ export function InputFieldBuilder({
           onEditField={handleEditField}
           onNewField={handleNewField}
           isFullWidth={true}
+          onCopyJson={copyJsonSummary}
+          hasGeneratedSchema={!!generatedSchema}
         />
       </div>
 
