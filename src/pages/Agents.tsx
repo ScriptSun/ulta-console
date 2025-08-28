@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -40,6 +41,7 @@ interface Agent {
 }
 
 export default function Agents() {
+  const navigate = useNavigate();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -188,9 +190,7 @@ export default function Agents() {
   };
 
   const handleRecentTasks = (agent: Agent) => {
-    setSelectedAgent(agent);
-    setDefaultTab('monitoring');
-    setDetailsOpen(true);
+    navigate(`/agents/${agent.id}/tasks`);
   };
 
   const handleAgentClick = (agent: Agent) => {

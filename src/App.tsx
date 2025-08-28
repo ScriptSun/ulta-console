@@ -24,6 +24,7 @@ import ScriptsBatches from "./pages/ScriptsBatches";
 import ScriptsSettings from "./pages/ScriptsSettings";
 import CommandPolicies from "./pages/CommandPolicies";
 import Auth from "./pages/Auth";
+import AgentTasks from "./pages/AgentTasks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <Agents />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/agents/:agentId/tasks" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <AgentTasks />
                 </RootLayout>
               </ProtectedRoute>
             } />
