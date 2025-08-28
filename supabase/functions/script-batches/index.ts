@@ -40,42 +40,39 @@ Deno.serve(async (req) => {
       pathPartsLength: pathParts.length 
     })
     
-    // URL structure: /functions/v1/script-batches/BATCH_ID/variants
-    // pathParts: ["functions", "v1", "script-batches", "BATCH_ID", "variants"]
-    // We need pathParts[3] = batchId, pathParts[4] = "variants"
-    
-    if (req.method === 'GET' && pathParts.length === 4 && pathParts[2] === 'script-batches' && pathParts[3] === 'health') {
-      // Health check endpoint: GET /functions/v1/script-batches/health
+    // The pathname should be like: /batchId/variants or /batchId/variants/os/action
+    if (req.method === 'GET' && pathParts.length === 1 && pathParts[0] === 'health') {
+      // Health check endpoint: GET /health
       logger.info('Health check requested')
       return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
-    } else if (req.method === 'GET' && pathParts.length === 5 && pathParts[2] === 'script-batches' && pathParts[4] === 'variants') {
-      // Get batch variants: GET /functions/v1/script-batches/BATCH_ID/variants
-      const batchId = pathParts[3]
+    } else if (req.method === 'GET' && pathParts.length === 2 && pathParts[1] === 'variants') {
+      // Get batch variants: GET /batchId/variants
+      const batchId = pathParts[0]
       logger.info('Handling GET variants', { batchId })
       return await handleGetVariants(req, batchId)
-    } else if (req.method === 'POST' && pathParts.length === 5 && pathParts[2] === 'script-batches' && pathParts[4] === 'variants') {
-      // Create or update variant: POST /functions/v1/script-batches/BATCH_ID/variants
-      const batchId = pathParts[3]
+    } else if (req.method === 'POST' && pathParts.length === 2 && pathParts[1] === 'variants') {
+      // Create or update variant: POST /batchId/variants
+      const batchId = pathParts[0]
       logger.info('Handling POST variants', { batchId })
       return await handleCreateVariant(req, batchId)
-    } else if (req.method === 'POST' && pathParts.length === 7 && pathParts[2] === 'script-batches' && pathParts[4] === 'variants' && pathParts[6] === 'versions') {
-      // Create version for OS variant: POST /functions/v1/script-batches/BATCH_ID/variants/OS/versions
-      const batchId = pathParts[3]
-      const os = pathParts[5]
+    } else if (req.method === 'POST' && pathParts.length === 4 && pathParts[1] === 'variants' && pathParts[3] === 'versions') {
+      // Create version for OS variant: POST /batchId/variants/os/versions
+      const batchId = pathParts[0]
+      const os = pathParts[2]
       logger.info('Handling POST variant version', { batchId, os })
       return await handleCreateVariantVersion(req, batchId, os)
-    } else if (req.method === 'POST' && pathParts.length === 7 && pathParts[2] === 'script-batches' && pathParts[4] === 'variants' && pathParts[6] === 'activate') {
-      // Activate variant version: POST /functions/v1/script-batches/BATCH_ID/variants/OS/activate
-      const batchId = pathParts[3]
-      const os = pathParts[5]
+    } else if (req.method === 'POST' && pathParts.length === 4 && pathParts[1] === 'variants' && pathParts[3] === 'activate') {
+      // Activate variant version: POST /batchId/variants/os/activate
+      const batchId = pathParts[0]
+      const os = pathParts[2]
       logger.info('Handling POST activate variant', { batchId, os })
       return await handleActivateVariant(req, batchId, os)
-    } else if (req.method === 'POST' && pathParts.length === 5 && pathParts[2] === 'script-batches' && pathParts[4] === 'quick-run') {
-      // Quick run batch: POST /functions/v1/script-batches/BATCH_ID/quick-run
-      const batchId = pathParts[3]
+    } else if (req.method === 'POST' && pathParts.length === 2 && pathParts[1] === 'quick-run') {
+      // Quick run batch: POST /batchId/quick-run
+      const batchId = pathParts[0]
       logger.info('Handling POST quick run', { batchId })
       return await handleQuickRun(req, batchId)
     }
