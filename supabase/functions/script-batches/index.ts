@@ -1,7 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0'
 import { corsHeaders, cors } from '../_shared/cors.ts'
 import { logger } from '../_shared/logger.ts'
-import { createHash } from 'https://deno.land/std@0.177.0/crypto/mod.ts'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -110,10 +109,10 @@ async function handleCreateVariant(req: Request, batchId: string) {
       return new Response('Missing required fields', { status: 400, headers: corsHeaders })
     }
 
-    // Calculate SHA256 and size
+    // Calculate SHA256 and size using Web Crypto API
     const encoder = new TextEncoder()
     const data = encoder.encode(source)
-    const hashBuffer = await createHash('sha256').update(data).digest()
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
     const sha256 = Array.from(new Uint8Array(hashBuffer))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
@@ -176,10 +175,10 @@ async function handleCreateVariantVersion(req: Request, batchId: string, os: str
       return new Response('Missing source', { status: 400, headers: corsHeaders })
     }
 
-    // Calculate SHA256 and size
+    // Calculate SHA256 and size using Web Crypto API
     const encoder = new TextEncoder()
     const data = encoder.encode(source)
-    const hashBuffer = await createHash('sha256').update(data).digest()
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
     const sha256 = Array.from(new Uint8Array(hashBuffer))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
