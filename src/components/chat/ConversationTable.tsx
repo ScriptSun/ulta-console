@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Table,
   TableBody,
@@ -24,9 +26,10 @@ import {
   User, 
   Bot,
   Filter,
-  MoreVertical
+  MoreVertical,
+  CalendarIcon
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { Link } from "react-router-dom";
 
 interface Conversation {
@@ -71,17 +74,34 @@ export function ConversationTable({
 }: ConversationTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [agentFilter, setAgentFilter] = useState<string | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
+  const [dateFilter, setDateFilter] = useState<Date | null>(null);
 
   const filteredConversations = conversations.filter(conversation => {
     const matchesSearch = searchQuery === "" || 
       conversation.agents?.hostname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conversation.session_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conversation.last_intent?.toLowerCase().includes(searchQuery.toLowerCase());
+      conversation.last_intent?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conversation.user_id?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === null || conversation.status === statusFilter;
+    const matchesAgent = agentFilter === null || conversation.agent_id === agentFilter;
+    const matchesSource = sourceFilter === null || conversation.source === sourceFilter;
+    const matchesDate = dateFilter === null || 
+      new Date(conversation.started_at).toDateString() === dateFilter.toDateString();
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesAgent && matchesSource && matchesDate;
   });
+
+  // Get unique agents and sources for filters
+  const uniqueAgents = Array.from(new Set(conversations.map(c => c.agent_id)))
+    .map(id => ({
+      id,
+      hostname: conversations.find(c => c.agent_id === id)?.agents?.hostname || `Agent-${id.slice(0, 8)}`
+    }));
+  
+  const uniqueSources = Array.from(new Set(conversations.map(c => c.source)));
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -141,8 +161,8 @@ export function ConversationTable({
   return (
     <div className="space-y-4">
       {/* Filters and Search */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search conversations..."
@@ -172,6 +192,76 @@ export function ConversationTable({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Bot className="h-4 w-4 mr-2" />
+              Agent
+              {agentFilter && <Badge className="ml-2">Selected</Badge>}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => setAgentFilter(null)}>
+              All Agents
+            </DropdownMenuItem>
+            {uniqueAgents.map((agent) => (
+              <DropdownMenuItem key={agent.id} onClick={() => setAgentFilter(agent.id)}>
+                {agent.hostname}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              Source
+              {sourceFilter && <Badge className="ml-2">{sourceFilter}</Badge>}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => setSourceFilter(null)}>
+              All Sources
+            </DropdownMenuItem>
+            {uniqueSources.map((source) => (
+              <DropdownMenuItem key={source} onClick={() => setSourceFilter(source)}>
+                {source}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm">
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              Date
+              {dateFilter && <Badge className="ml-2">{format(dateFilter, 'MMM d')}</Badge>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dateFilter}
+              onSelect={setDateFilter}
+              initialFocus
+            />
+            {dateFilter && (
+              <div className="p-2 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDateFilter(null)}
+                  className="w-full"
+                >
+                  Clear Date
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
 
         <Button onClick={onRefresh} variant="outline" size="sm" disabled={loading}>
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -224,13 +314,13 @@ export function ConversationTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Agent</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead>Messages</TableHead>
-              <TableHead>Last Intent</TableHead>
               <TableHead>Started</TableHead>
-              <TableHead>Updated</TableHead>
+              <TableHead>Agent</TableHead>
+              <TableHead>User</TableHead>
+              <TableHead>Last Intent</TableHead>
+              <TableHead>Last Action</TableHead>
+              <TableHead>Messages</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -251,29 +341,31 @@ export function ConversationTable({
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => onConversationSelect(conversation)}
                 >
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDistanceToNow(new Date(conversation.started_at), { addSuffix: true })}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                        <Link
-                          to={`/agents`}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                      <Link
+                        to={`/agents/${conversation.agent_id}`}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Bot className="h-3 w-3" />
                         {conversation.agents?.hostname || `Agent-${conversation.agent_id.slice(0, 8)}`}
                       </Link>
                       {conversation.agents && getAgentStatusBadge(conversation.agents.status)}
                     </div>
                   </TableCell>
-                  <TableCell>{getStatusBadge(conversation.status)}</TableCell>
-                  <TableCell>{getSourceBadge(conversation.source)}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {conversation._count?.chat_messages || 0} msgs
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {conversation._count?.chat_events || 0} events
-                      </Badge>
+                    <div className="text-sm">
+                      {conversation.user_id ? (
+                        <Badge variant="outline" className="text-xs">
+                          {conversation.user_id.slice(0, 8)}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">Anonymous</span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -283,12 +375,21 @@ export function ConversationTable({
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(conversation.started_at), { addSuffix: true })}
+                  <TableCell>
+                    {conversation.last_action && (
+                      <Badge variant="outline" className="text-xs">
+                        {conversation.last_action.replace('_', ' ')}
+                      </Badge>
+                    )}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(conversation.updated_at), { addSuffix: true })}
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {conversation._count?.chat_messages || 0}
+                      </Badge>
+                    </div>
                   </TableCell>
+                  <TableCell>{getStatusBadge(conversation.status)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -305,7 +406,7 @@ export function ConversationTable({
                           View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link to={`/agents`}>
+                          <Link to={`/agents/${conversation.agent_id}`}>
                             View Agent
                           </Link>
                         </DropdownMenuItem>

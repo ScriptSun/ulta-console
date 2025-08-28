@@ -205,7 +205,7 @@ export function ConversationViewer({
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
               <Link
-                to={`/agents`}
+                to={`/agents/${conversation.agent_id}`}
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Bot className="h-4 w-4" />
@@ -357,12 +357,18 @@ export function ConversationViewer({
                                 {(item as Message).tokens} tokens
                               </Badge>
                             )}
+                            {(item as Message).redacted && (
+                              <Badge variant="destructive" className="text-xs flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                Redacted
+                              </Badge>
+                            )}
                           </div>
                           <div className={`text-sm ${
                             (item as Message).redacted ? 'italic text-muted-foreground' : ''
                           }`}>
                             {(item as Message).redacted 
-                              ? '[Content redacted]'
+                              ? '[Content redacted for privacy]'
                               : (item as Message).content
                             }
                           </div>
