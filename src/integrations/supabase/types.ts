@@ -692,6 +692,148 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_conversations: {
+        Row: {
+          agent_id: string
+          closed_at: string | null
+          created_at: string
+          id: string
+          last_action: string | null
+          last_intent: string | null
+          meta: Json | null
+          session_id: string | null
+          source: string
+          started_at: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          last_action?: string | null
+          last_intent?: string | null
+          meta?: Json | null
+          session_id?: string | null
+          source?: string
+          started_at?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          last_action?: string | null
+          last_intent?: string | null
+          meta?: Json | null
+          session_id?: string | null
+          source?: string
+          started_at?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_chat_conversations_agent"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_events: {
+        Row: {
+          agent_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          payload: Json | null
+          ref_id: string | null
+          type: string
+        }
+        Insert: {
+          agent_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          ref_id?: string | null
+          type: string
+        }
+        Update: {
+          agent_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          ref_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_chat_events_agent"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_chat_events_conversation"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          redacted: boolean
+          role: string
+          tokens: number | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          redacted?: boolean
+          role: string
+          tokens?: number | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          redacted?: boolean
+          role?: string
+          tokens?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_chat_messages_conversation"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       command_confirmations: {
         Row: {
           agent_id: string
