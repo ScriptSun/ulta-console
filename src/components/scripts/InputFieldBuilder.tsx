@@ -174,29 +174,30 @@ export function InputFieldBuilder({
   useEffect(() => {
     console.log('InputFieldBuilder useEffect - initialFields:', initialFields.length, 'current fields:', fields.length);
     
-    // Prevent updates if fields are already set correctly
-    if (initialFields.length === 0 && fields.length === 0) {
-      console.log('Both empty, skipping update');
-      return;
-    }
-    
-    // Only update if there's a meaningful difference
-    const shouldUpdate = initialFields.length !== fields.length || 
-      initialFields.some((field, index) => {
-        const currentField = fields[index];
-        if (!currentField) return true;
+    // Create a deep comparison function for fields
+    const fieldsEqual = (fields1: BuilderField[], fields2: BuilderField[]) => {
+      if (fields1.length !== fields2.length) return false;
+      
+      return fields1.every((field1, index) => {
+        const field2 = fields2[index];
+        if (!field2) return false;
         
-        return field.key !== currentField.key || 
-               field.defaultValue !== currentField.defaultValue ||
-               field.preset !== currentField.preset ||
-               field.required !== currentField.required;
+        return field1.key === field2.key &&
+               field1.defaultValue === field2.defaultValue &&
+               field1.preset === field2.preset &&
+               field1.required === field2.required &&
+               field1.label === field2.label &&
+               field1.helpText === field2.helpText &&
+               JSON.stringify(field1.options) === JSON.stringify(field2.options);
       });
+    };
     
-    if (shouldUpdate) {
-      console.log('InputFieldBuilder: Updating fields from', fields.length, 'to', initialFields.length);
-      setFields([...initialFields]); // Create new array reference
+    // Only update if fields are actually different
+    if (!fieldsEqual(initialFields, fields)) {
+      console.log('InputFieldBuilder: Fields differ, updating');
+      setFields([...initialFields]);
     } else {
-      console.log('InputFieldBuilder: Fields are same, skipping update');
+      console.log('InputFieldBuilder: Fields are identical, skipping update');
     }
   }, [initialFields]);
 
@@ -207,17 +208,27 @@ export function InputFieldBuilder({
     const timeoutId = setTimeout(() => {
       const validation = validateFields(fields);
       
-      // Set validation state
-      setValidationErrors(validation.errors);
-      setIsValid(validation.isValid);
+      // Only update validation state if it changed
+      if (JSON.stringify(validation.errors) !== JSON.stringify(validationErrors)) {
+        setValidationErrors(validation.errors);
+      }
+      if (validation.isValid !== isValid) {
+        setIsValid(validation.isValid);
+      }
       
       if (validation.isValid && fields.length > 0) {
         const { schema, defaults } = buildSchemaFromFields(fields);
-        setGeneratedSchema(schema);
-        setGeneratedDefaults(defaults);
-        onSchemaChange?.(schema);
-        onDefaultsChange?.(defaults);
-      } else {
+        
+        // Only update if schema/defaults actually changed
+        if (JSON.stringify(schema) !== JSON.stringify(generatedSchema)) {
+          setGeneratedSchema(schema);
+          onSchemaChange?.(schema);
+        }
+        if (JSON.stringify(defaults) !== JSON.stringify(generatedDefaults)) {
+          setGeneratedDefaults(defaults);
+          onDefaultsChange?.(defaults);
+        }
+      } else if (generatedSchema !== null || generatedDefaults !== null) {
         setGeneratedSchema(null);
         setGeneratedDefaults(null);
         onSchemaChange?.(null);
@@ -228,7 +239,7 @@ export function InputFieldBuilder({
     }, 100); // 100ms debounce
     
     return () => clearTimeout(timeoutId);
-  }, [fields, buildSchemaFromFields, validateFields, onSchemaChange, onDefaultsChange, onValidationChange]);
+  }, [fields, buildSchemaFromFields, validateFields]);
 
   const handleFieldsChange = (newFields: BuilderField[]) => {
     if (canEdit) {

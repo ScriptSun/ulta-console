@@ -314,6 +314,9 @@ export function BatchInputsTab({
     const schemaValidation = validateSchema(schemaText);
     const defaultsValidation = validateDefaults(defaultsText, schemaValidation.schema);
     
+    let newValidationErrors: string[] = [];
+    let newIsValid = true;
+    
     if (schemaValidation.isValid) {
       const fields = generateFormFields(schemaValidation.schema, defaultsValidation.defaults);
       setFormFields(fields);
@@ -325,18 +328,26 @@ export function BatchInputsTab({
       setFormValues(initialValues);
       
       const formValidation = validateFormValues(schemaValidation.schema, initialValues);
-      setValidationErrors([...defaultsValidation.errors, ...formValidation.errors]);
-      setIsValid(schemaValidation.isValid && defaultsValidation.isValid && formValidation.isValid);
+      newValidationErrors = [...defaultsValidation.errors, ...formValidation.errors];
+      newIsValid = schemaValidation.isValid && defaultsValidation.isValid && formValidation.isValid;
     } else {
-      setValidationErrors(schemaValidation.errors);
-      setIsValid(false);
+      newValidationErrors = schemaValidation.errors;
+      newIsValid = false;
       setFormFields([]);
+    }
+
+    // Only update state if values actually changed
+    if (JSON.stringify(newValidationErrors) !== JSON.stringify(validationErrors)) {
+      setValidationErrors(newValidationErrors);
+    }
+    if (newIsValid !== isValid) {
+      setIsValid(newIsValid);
     }
 
     onSchemaChange?.(schemaValidation.schema);
     onDefaultsChange?.(defaultsValidation.defaults);
-    onValidationChange?.(isValid, validationErrors);
-  }, [schemaText, defaultsText, validateSchema, validateDefaults, generateFormFields, validateFormValues, onSchemaChange, onDefaultsChange, onValidationChange, isValid, validationErrors]);
+    onValidationChange?.(newIsValid, newValidationErrors);
+  }, [schemaText, defaultsText, validateSchema, validateDefaults, generateFormFields, validateFormValues, onSchemaChange, onDefaultsChange, onValidationChange]);
 
   const handleSchemaChange = (value: string) => {
     if (canEdit) {

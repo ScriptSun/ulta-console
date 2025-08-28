@@ -120,7 +120,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   useEffect(() => {
     console.log('BatchDrawer useEffect:', { batch, isOpen, isInitialized });
     
-    if (batch) {
+    if (batch && !isInitialized) {
       console.log('BatchDrawer: Loading batch data:', batch);
       setFormData(batch);
       setIsInitialized(true);
@@ -128,7 +128,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       if (batch.id) {
         loadBatchVariants(batch.id);
       }
-    } else if (isOpen && !isInitialized) {
+    } else if (isOpen && !batch && !isInitialized) {
       // Only reset to defaults for truly new batches, not during loading
       console.log('BatchDrawer: Setting default data for new batch');
       setFormData({
