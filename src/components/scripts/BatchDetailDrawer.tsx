@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { BatchCodeEditor } from './BatchCodeEditor';
 import { BatchDiffViewer } from './BatchDiffViewer';
+import { BatchRunsTable } from './BatchRunsTable';
+import { BatchRunDetailsDrawer } from './BatchRunDetailsDrawer';
 import { BatchVersionsTab } from './BatchVersionsTab';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -77,6 +79,8 @@ export function BatchDetailDrawer({ batch, isOpen, onClose, onSuccess, userRole 
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('versions');
   
+  const [selectedRun, setSelectedRun] = useState<any>(null);
+  const [runDetailsOpen, setRunDetailsOpen] = useState(false);
   const { toast } = useToast();
   const canActivate = userRole === 'approver' || userRole === 'admin';
 

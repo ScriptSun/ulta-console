@@ -40,6 +40,8 @@ interface ScriptBatch {
   os_targets: string[];
   risk: 'low' | 'medium' | 'high';
   max_timeout_sec: number;
+  per_agent_concurrency: number;
+  per_tenant_concurrency: number;
   active_version?: number;
   auto_version: boolean;
   created_at: string;

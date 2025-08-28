@@ -51,6 +51,8 @@ interface ScriptBatch {
   os_targets: string[];
   risk: 'low' | 'medium' | 'high';
   max_timeout_sec: number;
+  per_agent_concurrency: number;
+  per_tenant_concurrency: number;
   auto_version: boolean;
   active_version?: number;
   customer_id?: string;
@@ -87,6 +89,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     os_targets: [],
     risk: 'medium',
     max_timeout_sec: 300,
+    per_agent_concurrency: 1,
+    per_tenant_concurrency: 10,
     auto_version: false,
   });
   const [scriptContent, setScriptContent] = useState(DEFAULT_SCRIPT);
@@ -118,6 +122,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
         os_targets: [],
         risk: 'medium',
         max_timeout_sec: 300,
+        per_agent_concurrency: 1,
+        per_tenant_concurrency: 10,
         auto_version: false,
       });
       setScriptContent(DEFAULT_SCRIPT);
@@ -581,19 +587,20 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
               <div className="space-y-4 p-4 bg-card/30 rounded-lg border">
                 <h3 className="text-lg font-semibold">Basic Information</h3>
               
-              {/* Batch Name, Timeout, and Risk Level in same div as 3 divs */}
-              <div className="grid grid-cols-[2fr_1fr_1fr] gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Batch Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleFormChange('name', e.target.value)}
-                    placeholder="Enter batch name"
-                    disabled={!canEdit}
-                  />
-                </div>
-                
+              {/* Batch Name Row */}
+              <div className="space-y-2">
+                <Label htmlFor="name">Batch Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleFormChange('name', e.target.value)}
+                  placeholder="Enter batch name"
+                  disabled={!canEdit}
+                />
+              </div>
+
+              {/* Timeout, Concurrency, and Risk Level in grid */}
+              <div className="grid grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="timeout">Max Timeout (seconds)</Label>
                   <Input
@@ -608,6 +615,42 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="per-agent-concurrency">
+                    Per agent concurrency
+                    <span className="block text-xs text-muted-foreground font-normal">
+                      How many runs of this batch may run on the same agent at once
+                    </span>
+                  </Label>
+                  <Input
+                    id="per-agent-concurrency"
+                    type="number"
+                    value={formData.per_agent_concurrency}
+                    onChange={(e) => handleFormChange('per_agent_concurrency', parseInt(e.target.value) || 1)}
+                    min={1}
+                    max={10}
+                    disabled={!canEdit}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="per-tenant-concurrency">
+                    Per tenant concurrency
+                    <span className="block text-xs text-muted-foreground font-normal">
+                      How many runs of this batch may run across all tenant agents at once
+                    </span>
+                  </Label>
+                  <Input
+                    id="per-tenant-concurrency"
+                    type="number"
+                    value={formData.per_tenant_concurrency}
+                    onChange={(e) => handleFormChange('per_tenant_concurrency', parseInt(e.target.value) || 10)}
+                    min={1}
+                    max={100}
+                    disabled={!canEdit}
+                  />
+                </div>
+
+                <div className="space-y-2 col-span-2">
                   <Label>Risk Level</Label>
                   <Select
                     value={formData.risk}

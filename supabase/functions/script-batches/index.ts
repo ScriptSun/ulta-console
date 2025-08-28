@@ -78,6 +78,21 @@ Deno.serve(async (req) => {
       const batchId = pathParts[0]
       Logger.info('Handling POST quick run', { batchId })
       return await handleQuickRun(req, batchId)
+    } else if (req.method === 'POST' && pathParts.length === 2 && pathParts[1] === 'start-run') {
+      // Start batch run with concurrency check: POST /batchId/start-run
+      const batchId = pathParts[0]
+      Logger.info('Handling POST start run', { batchId })
+      return await handleStartRun(req, batchId)
+    } else if (req.method === 'PUT' && pathParts.length === 2 && pathParts[0] === 'runs') {
+      // Complete batch run: PUT /runs/runId
+      const runId = pathParts[1]
+      Logger.info('Handling PUT complete run', { runId })
+      return await handleCompleteRun(req, runId)
+    } else if (req.method === 'GET' && pathParts.length === 2 && pathParts[1] === 'runs') {
+      // Get batch runs: GET /batchId/runs
+      const batchId = pathParts[0]
+      Logger.info('Handling GET batch runs', { batchId })
+      return await handleGetRuns(req, batchId)
     }
     
     Logger.warn('No matching route found', { method: req.method, pathParts })
@@ -432,6 +447,231 @@ async function handleQuickRun(req: Request, batchId: string) {
 
   } catch (error) {
     Logger.error('Quick run error', { error: error.message, batchId })
+    return new Response('Internal server error', { status: 500, headers: corsHeaders })
+  }
+}
+
+async function handleStartRun(req: Request, batchId: string) {
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+  }
+
+  try {
+    const body = await req.json()
+    const { agentId, inputs = {}, agentOs = 'ubuntu', agentOsVersion = '22.04' } = body
+
+    if (!agentId) {
+      return new Response('Missing agentId', { status: 400, headers: corsHeaders })
+    }
+
+    // Check concurrency limits and start the run
+    const { data: runResult, error } = await supabase
+      .rpc('start_batch_run', { 
+        _batch_id: batchId, 
+        _agent_id: agentId 
+      })
+
+    if (error) {
+      Logger.error('Failed to start batch run', { error, batchId, agentId })
+      return new Response('Failed to start batch run', { status: 500, headers: corsHeaders })
+    }
+
+    const result = runResult[0]
+    if (result.status === 'blocked') {
+      Logger.info('Batch run blocked', { batchId, agentId, reason: result.message })
+      return new Response(JSON.stringify({
+        success: false,
+        status: 'blocked',
+        message: result.message
+      }), {
+        status: 429, // Too Many Requests
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Get batch details for execution payload
+    const { data: batch, error: batchError } = await supabase
+      .from('script_batches')
+      .select('*')
+      .eq('id', batchId)
+      .single()
+
+    if (batchError || !batch) {
+      Logger.error('Batch not found', { error: batchError, batchId })
+      return new Response('Batch not found', { status: 404, headers: corsHeaders })
+    }
+
+    // Get the active variant for the agent's OS
+    const { data: activeVariant, error: variantError } = await supabase
+      .from('script_batch_variants')
+      .select('*')
+      .eq('batch_id', batchId)
+      .eq('os', agentOs)
+      .eq('active', true)
+      .single()
+
+    if (variantError || !activeVariant) {
+      // Mark the run as failed and return error
+      await supabase.rpc('complete_batch_run', {
+        _run_id: result.run_id,
+        _status: 'failed',
+        _raw_stdout: null,
+        _raw_stderr: `No active ${agentOs} variant available`
+      })
+      
+      Logger.error('No active variant found for OS', { error: variantError, batchId, agentOs })
+      return new Response(`No active ${agentOs} variant available`, { status: 400, headers: corsHeaders })
+    }
+
+    // Validate inputs and prepare execution payload
+    let validatedInputs = inputs
+    if (batch.inputs_schema) {
+      // TODO: Add input validation here if needed
+    }
+
+    // Map inputs to environment variables
+    const envVars: Record<string, string> = {}
+    if (validatedInputs && typeof validatedInputs === 'object') {
+      Object.keys(validatedInputs).forEach(key => {
+        const envKey = key.toUpperCase()
+        const value = validatedInputs[key]
+        if (value !== null && value !== undefined) {
+          envVars[envKey] = String(value)
+        }
+      })
+    }
+
+    const executionPayload = {
+      run_id: result.run_id,
+      batch_id: batchId,
+      batch_name: batch.name,
+      inputs: validatedInputs,
+      script: activeVariant.source,
+      sha256: activeVariant.sha256,
+      timeout_sec: batch.max_timeout_sec || 300,
+      variant: {
+        os: activeVariant.os,
+        version: activeVariant.version,
+        min_os_version: activeVariant.min_os_version
+      },
+      env_vars: envVars
+    }
+
+    Logger.info('Batch run started', { 
+      runId: result.run_id,
+      batchId, 
+      agentId,
+      agentOs, 
+      variant: `${activeVariant.os} v${activeVariant.version}` 
+    })
+
+    return new Response(JSON.stringify({
+      success: true,
+      status: 'started',
+      message: result.message,
+      run_id: result.run_id,
+      execution: executionPayload
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    Logger.error('Start run error', { error: error.message, batchId })
+    return new Response('Internal server error', { status: 500, headers: corsHeaders })
+  }
+}
+
+async function handleCompleteRun(req: Request, runId: string) {
+  try {
+    const body = await req.json()
+    const { status, stdout, stderr } = body
+
+    if (!status) {
+      return new Response('Missing status', { status: 400, headers: corsHeaders })
+    }
+
+    // Complete the batch run
+    const { data: success, error } = await supabase
+      .rpc('complete_batch_run', {
+        _run_id: runId,
+        _status: status,
+        _raw_stdout: stdout || null,
+        _raw_stderr: stderr || null
+      })
+
+    if (error) {
+      Logger.error('Failed to complete batch run', { error, runId })
+      return new Response('Failed to complete batch run', { status: 500, headers: corsHeaders })
+    }
+
+    if (!success) {
+      return new Response('Run not found', { status: 404, headers: corsHeaders })
+    }
+
+    Logger.info('Batch run completed', { runId, status })
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Run completed successfully'
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    Logger.error('Complete run error', { error: error.message, runId })
+    return new Response('Internal server error', { status: 500, headers: corsHeaders })
+  }
+}
+
+async function handleGetRuns(req: Request, batchId: string) {
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+  }
+
+  try {
+    const url = new URL(req.url)
+    const limit = parseInt(url.searchParams.get('limit') || '50')
+    const offset = parseInt(url.searchParams.get('offset') || '0')
+
+    // Get batch runs with agent information
+    const { data: runs, error } = await supabase
+      .from('batch_runs')
+      .select(`
+        *,
+        agents!inner(id, hostname)
+      `)
+      .eq('batch_id', batchId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    if (error) {
+      Logger.error('Failed to get batch runs', { error, batchId })
+      return new Response('Failed to get batch runs', { status: 500, headers: corsHeaders })
+    }
+
+    // Parse contracts and format response
+    const formattedRuns = runs.map(run => ({
+      ...run,
+      agent: run.agents,
+      contract_status: run.contract?.status || null,
+      contract_message: run.contract?.message || null,
+      contract_metrics: run.contract?.metrics || null
+    }))
+
+    return new Response(JSON.stringify({
+      runs: formattedRuns,
+      total: runs.length
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    Logger.error('Get runs error', { error: error.message, batchId })
     return new Response('Internal server error', { status: 500, headers: corsHeaders })
   }
 }

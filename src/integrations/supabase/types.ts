@@ -509,6 +509,78 @@ export type Database = {
           },
         ]
       }
+      batch_runs: {
+        Row: {
+          agent_id: string
+          batch_id: string
+          contract: Json | null
+          created_at: string
+          created_by: string
+          duration_sec: number | null
+          finished_at: string | null
+          id: string
+          parser_warning: boolean | null
+          raw_stderr: string | null
+          raw_stdout: string | null
+          started_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          agent_id: string
+          batch_id: string
+          contract?: Json | null
+          created_at?: string
+          created_by?: string
+          duration_sec?: number | null
+          finished_at?: string | null
+          id?: string
+          parser_warning?: boolean | null
+          raw_stderr?: string | null
+          raw_stdout?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          agent_id?: string
+          batch_id?: string
+          contract?: Json | null
+          created_at?: string
+          created_by?: string
+          duration_sec?: number | null
+          finished_at?: string | null
+          id?: string
+          parser_warning?: boolean | null
+          raw_stderr?: string | null
+          raw_stdout?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_runs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_runs_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "script_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ca_config: {
         Row: {
           ca_fingerprint_sha256: string
@@ -930,6 +1002,8 @@ export type Database = {
           max_timeout_sec: number
           name: string
           os_targets: string[]
+          per_agent_concurrency: number
+          per_tenant_concurrency: number
           risk: string
           updated_at: string
           updated_by: string
@@ -946,6 +1020,8 @@ export type Database = {
           max_timeout_sec?: number
           name: string
           os_targets?: string[]
+          per_agent_concurrency?: number
+          per_tenant_concurrency?: number
           risk?: string
           updated_at?: string
           updated_by?: string
@@ -962,6 +1038,8 @@ export type Database = {
           max_timeout_sec?: number
           name?: string
           os_targets?: string[]
+          per_agent_concurrency?: number
+          per_tenant_concurrency?: number
           risk?: string
           updated_at?: string
           updated_by?: string
@@ -1218,6 +1296,31 @@ export type Database = {
         Args: { _customer_id: string }
         Returns: boolean
       }
+      check_batch_concurrency: {
+        Args: { _agent_id: string; _batch_id: string }
+        Returns: {
+          agent_limit: number
+          block_reason: string
+          block_scope: string
+          can_run: boolean
+          current_agent_runs: number
+          current_tenant_runs: number
+          tenant_limit: number
+        }[]
+      }
+      complete_batch_run: {
+        Args: {
+          _raw_stderr?: string
+          _raw_stdout?: string
+          _run_id: string
+          _status: string
+        }
+        Returns: boolean
+      }
+      get_agent_tenant_id: {
+        Args: { agent_uuid: string }
+        Returns: string
+      }
       get_next_batch_version: {
         Args: { _batch_id: string }
         Returns: number
@@ -1240,6 +1343,14 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      start_batch_run: {
+        Args: { _agent_id: string; _batch_id: string }
+        Returns: {
+          message: string
+          run_id: string
+          status: string
+        }[]
       }
       validate_batch_dependencies: {
         Args: { _batch_id: string }
