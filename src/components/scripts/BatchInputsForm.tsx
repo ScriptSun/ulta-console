@@ -336,31 +336,7 @@ export function BatchInputsForm({
   }
 
   return (
-    <>
-      {/* Action buttons - render outside if showHeaderButtons */}
-      {showHeaderButtons && (
-        <div className="absolute top-4 right-4 flex items-center gap-2">
-          {!readOnly && defaults && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleFillDefaults}
-            >
-              Fill Defaults
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={copyJsonSummary}
-          >
-            <Copy className="h-3 w-3 mr-1" />
-            Copy JSON
-          </Button>
-        </div>
-      )}
-      
-      <div className="space-y-4">
+    <div className="space-y-4">
 
       {/* Form Fields */}
       <Card>
@@ -392,7 +368,6 @@ export function BatchInputsForm({
           </CardContent>
         </Card>
       )}
-      </div>
-    </>
+    </div>
   );
 }

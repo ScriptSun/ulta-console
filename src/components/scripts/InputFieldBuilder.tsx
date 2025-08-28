@@ -431,6 +431,27 @@ export function InputFieldBuilder({
                 {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
               </Badge>
             </div>
+            <div className="flex items-center gap-2">
+              {generatedSchema && generatedDefaults && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {}} // Will be handled by BatchInputsForm
+                  >
+                    Fill Defaults
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {}} // Will be handled by BatchInputsForm
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy JSON
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -439,7 +460,6 @@ export function InputFieldBuilder({
               schema={generatedSchema}
               defaults={generatedDefaults}
               readOnly={!canEdit}
-              showHeaderButtons={true}
             />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
