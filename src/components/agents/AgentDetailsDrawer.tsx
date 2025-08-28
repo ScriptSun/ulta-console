@@ -304,6 +304,19 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                         </p>
                       </div>
                       <div>
+                        <Label className="text-xs text-muted-foreground">Hostname</Label>
+                        <p className="text-sm font-medium flex items-center gap-1">
+                          <Server className="h-3 w-3" />
+                          {agent.hostname || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Agent Type</Label>
+                        <p className="text-sm font-medium capitalize">
+                          {agent.agent_type}
+                        </p>
+                      </div>
+                      <div>
                         <Label className="text-xs text-muted-foreground">Last Heartbeat</Label>
                         <p className="text-sm font-medium">
                           {agent.last_seen 
@@ -418,7 +431,7 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                   </div>
 
                   {/* System Information */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
@@ -447,33 +460,6 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Tasks Completed</span>
                           <span className="text-sm font-medium">{agent.tasks_completed}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <Network className="h-4 w-4" />
-                          Network Information
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">IP Address</span>
-                          <span className="text-sm font-medium font-mono">{agent.ip_address || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Region</span>
-                          <span className="text-sm font-medium">{agent.region || 'Unknown'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Hostname</span>
-                          <span className="text-sm font-medium">{agent.hostname || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Agent Type</span>
-                          <span className="text-sm font-medium capitalize">{agent.agent_type}</span>
                         </div>
                       </CardContent>
                     </Card>
