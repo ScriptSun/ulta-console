@@ -607,7 +607,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
               </div>
 
               {/* Timeout, Concurrency, and Risk Level in grid */}
-              <div className="grid grid-cols-12 gap-4">
+              <div className="grid grid-cols-12 gap-4 items-end">
                 <div className="col-span-3 space-y-2">
                   <Label htmlFor="timeout">Max Timeout (seconds)</Label>
                   <Input
@@ -622,7 +622,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                 </div>
 
                 <div className="col-span-3 space-y-2">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 h-5">
                     <Label htmlFor="per-agent-concurrency">Per agent concurrency</Label>
                     <TooltipProvider>
                       <Tooltip>
@@ -647,7 +647,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                 </div>
 
                 <div className="col-span-3 space-y-2">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 h-5">
                     <Label htmlFor="per-tenant-concurrency">Per tenant concurrency</Label>
                     <TooltipProvider>
                       <Tooltip>
