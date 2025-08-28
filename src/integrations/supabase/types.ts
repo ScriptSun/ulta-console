@@ -980,6 +980,57 @@ export type Database = {
         }
         Relationships: []
       }
+      intent_mappings: {
+        Row: {
+          active: boolean
+          batch_key: string | null
+          command_template: string | null
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string | null
+          id: string
+          intent_name: string
+          operation_type: string
+          policy_mode: string | null
+          risk_level: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          active?: boolean
+          batch_key?: string | null
+          command_template?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          description?: string | null
+          id?: string
+          intent_name: string
+          operation_type: string
+          policy_mode?: string | null
+          risk_level?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          active?: boolean
+          batch_key?: string | null
+          command_template?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          description?: string | null
+          id?: string
+          intent_name?: string
+          operation_type?: string
+          policy_mode?: string | null
+          risk_level?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
       policy_history: {
         Row: {
           action: string
@@ -1179,6 +1230,7 @@ export type Database = {
           os_targets: string[]
           per_agent_concurrency: number
           per_tenant_concurrency: number
+          preflight: Json | null
           risk: string
           updated_at: string
           updated_by: string
@@ -1197,6 +1249,7 @@ export type Database = {
           os_targets?: string[]
           per_agent_concurrency?: number
           per_tenant_concurrency?: number
+          preflight?: Json | null
           risk?: string
           updated_at?: string
           updated_by?: string
@@ -1215,6 +1268,7 @@ export type Database = {
           os_targets?: string[]
           per_agent_concurrency?: number
           per_tenant_concurrency?: number
+          preflight?: Json | null
           risk?: string
           updated_at?: string
           updated_by?: string
