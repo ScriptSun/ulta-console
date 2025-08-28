@@ -22,6 +22,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { BatchCodeEditor } from './BatchCodeEditor';
 import { BatchDependenciesTab } from './BatchDependenciesTab';
 import { BatchInputsTab } from './BatchInputsTab';
@@ -38,7 +44,8 @@ import {
   Server,
   HardDrive,
   Cpu,
-  Link
+  Link,
+  Info
 } from 'lucide-react';
 import { getOSOptions, getRiskOptions, type ValidationResult } from '@/utils/scriptValidation';
 import { supabase } from '@/integrations/supabase/client';
@@ -615,12 +622,19 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="per-agent-concurrency">
-                    Per agent concurrency
-                    <span className="block text-xs text-muted-foreground font-normal">
-                      How many runs of this batch may run on the same agent at once
-                    </span>
-                  </Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="per-agent-concurrency">Per agent concurrency</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>How many runs of this batch may run on the same agent at once</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Input
                     id="per-agent-concurrency"
                     type="number"
@@ -633,12 +647,19 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="per-tenant-concurrency">
-                    Per tenant concurrency
-                    <span className="block text-xs text-muted-foreground font-normal">
-                      How many runs of this batch may run across all tenant agents at once
-                    </span>
-                  </Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="per-tenant-concurrency">Per tenant concurrency</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>How many runs of this batch may run across all tenant agents at once</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Input
                     id="per-tenant-concurrency"
                     type="number"
