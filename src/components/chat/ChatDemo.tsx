@@ -324,39 +324,89 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         throw new Error('Authentication required');
       }
 
-      // Call the demo start endpoint using Supabase functions.invoke
-      const { data, error } = await supabase.functions.invoke('chat-api', {
-        body: {
-          path: '/demo/start',
-          agent_id: selectedAgent
-        },
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
+      console.log('Starting chat bootstrap for agent:', selectedAgent);
 
-      if (error) throw error;
-      const newConversationId = data.conversation_id;
+      // Create conversation directly using Supabase client instead of edge function
+      // First, get user's customer IDs
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('customer_id')
+        .eq('user_id', session.user.id);
+
+      if (rolesError || !userRoles || userRoles.length === 0) {
+        throw new Error('No tenant access found');
+      }
+
+      const tenantId = userRoles[0].customer_id;
+      
+      // Validate agent access
+      const { data: agent, error: agentError } = await supabase
+        .from('agents')
+        .select('id, customer_id, hostname, status')
+        .eq('id', selectedAgent)
+        .single();
+
+      if (agentError || !agent) {
+        throw new Error('Agent not found');
+      }
+
+      if (agent.customer_id !== tenantId) {
+        throw new Error('Agent not accessible');
+      }
+
+      console.log('Agent validated:', agent);
+
+      // Check for existing demo conversation (within last 30 minutes)
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const { data: existingConversation } = await supabase
+        .from('chat_conversations')
+        .select('id, created_at')
+        .eq('agent_id', selectedAgent)
+        .eq('tenant_id', tenantId)
+        .eq('user_id', session.user.id)
+        .eq('source', 'dashboard_demo')
+        .gte('created_at', thirtyMinutesAgo)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let newConversationId;
+
+      if (existingConversation) {
+        newConversationId = existingConversation.id;
+        console.log('Reusing existing conversation:', newConversationId);
+      } else {
+        // Create new conversation
+        const { data: newConversation, error: convError } = await supabase
+          .from('chat_conversations')
+          .insert({
+            tenant_id: tenantId,
+            agent_id: selectedAgent,
+            user_id: session.user.id,
+            source: 'dashboard_demo',
+            status: 'open',
+            started_at: new Date().toISOString()
+          })
+          .select('id')
+          .single();
+
+        if (convError) {
+          console.error('Failed to create conversation:', convError);
+          throw new Error('Failed to create conversation: ' + convError.message);
+        }
+
+        newConversationId = newConversation.id;
+        console.log('Created new conversation:', newConversationId);
+      }
+
       setConversationId(newConversationId);
       sessionStartTime.current = Date.now();
-      
-      // Add welcome message if it's a new conversation
-      if (data.created && messages.length === 0) {
-        const welcomeMessage: Message = {
-          id: 'welcome',
-          role: 'assistant',
-          content: '👋 Welcome to Chat Demo!\n\nTry asking me to install WordPress, check system resources, or manage services.',
-          timestamp: new Date(),
-          pending: false
-        };
-        setMessages([welcomeMessage]);
-      }
-      
+
       return newConversationId;
     } catch (error) {
       console.error('Error bootstrapping chat:', error);
       toast({
-        title: "Error",
+        title: "Error", 
         description: "Failed to start chat session",
         variant: "destructive",
       });
