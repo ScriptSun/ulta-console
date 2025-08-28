@@ -1183,12 +1183,23 @@ async function continueWithValidatedInputs(
   conversationContext: any,
   validatedInputs: Record<string, any>
 ) {
-  // Find the WordPress Install batch (as specified by user)
+  // Find the WordPress Install batch using intent mapping
+  const { data: intentMapping } = await supabase
+    .from('intent_mappings')
+    .select('batch_key')
+    .eq('customer_id', conversation.tenant_id)
+    .eq('intent_name', 'install_wordpress')
+    .eq('active', true)
+    .single();
+
+  const batchKey = intentMapping?.batch_key || 'wordpress_install';
+  
+  // Find the batch by matching name or checking for WordPress Install batch
   const { data: batch, error: batchError } = await supabase
     .from('script_batches')
     .select('id, name, active_version, preflight')
     .eq('customer_id', conversation.tenant_id)
-    .eq('name', 'WordPress Install')
+    .or(`name.eq.WordPress Install,name.ilike.%wordpress%install%`)
     .neq('active_version', null)
     .single();
 
