@@ -423,9 +423,9 @@ export function InputFieldBuilder({
       {/* Live Preview */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center">
             <CardTitle className="text-sm">Live Preview</CardTitle>
-            <Badge variant={isValid ? "outline" : "destructive"} className={`flex items-center gap-1 ml-1 ${isValid ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' : ''}`}>
+            <Badge variant={isValid ? "outline" : "destructive"} className={`flex items-center gap-1 ml-3 ${isValid ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' : ''}`}>
               {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
               {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
             </Badge>

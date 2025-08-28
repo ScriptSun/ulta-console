@@ -335,10 +335,8 @@ export function BatchInputsForm({
 
   return (
     <div className="space-y-4">
-      {/* Header with action buttons */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-        </div>
+      {/* Action buttons */}
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-2">
           {!readOnly && defaults && (
             <Button
