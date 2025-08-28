@@ -33,20 +33,22 @@ serve(async (req) => {
     const { action } = await req.json();
 
     if (action === 'generate_token') {
-      // Get user's customer IDs to ensure they have permission
-      const { data: customerIds } = await supabaseClient.rpc('get_user_customer_ids', {}, {
-        headers: { Authorization: authHeader }
-      });
+      // Check user roles directly to get customer access
+      const { data: userRoles, error: rolesError } = await supabaseClient
+        .from('user_roles')
+        .select('customer_id')
+        .eq('user_id', user.id);
 
-      if (!customerIds || customerIds.length === 0) {
+      if (rolesError || !userRoles || userRoles.length === 0) {
+        console.error('No customer access for user:', user.id, rolesError);
         return new Response(
           JSON.stringify({ error: 'No customer access' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Use the first customer ID (in a real app, you might want to let users choose)
-      const customerId = customerIds[0];
+      // Use the first customer ID (users can have multiple, but we'll use the first one)
+      const customerId = userRoles[0].customer_id;
 
       // Generate a secure random token
       const tokenBytes = new Uint8Array(32);
