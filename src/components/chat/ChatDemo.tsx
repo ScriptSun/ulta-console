@@ -237,20 +237,40 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         throw new Error('Authentication required');
       }
 
-      const { data, error } = await supabase.functions.invoke('chat-api', {
-        body: {
-          agent_id: selectedAgent
-        },
+      // Call the demo start endpoint with proper authentication
+      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/chat-api/demo/start`, {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk'
+        },
+        body: JSON.stringify({
+          agent_id: selectedAgent
+        })
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
 
+      const data = await response.json();
       const newConversationId = data.conversation_id;
       setConversationId(newConversationId);
       sessionStartTime.current = Date.now();
+      
+      // Add welcome message if it's a new conversation
+      if (data.created && messages.length === 0) {
+        const welcomeMessage: Message = {
+          id: 'welcome',
+          role: 'assistant',
+          content: '👋 Welcome to Chat Demo!\n\nTry asking me to install WordPress, check system resources, or manage services.',
+          timestamp: new Date(),
+          pending: false
+        };
+        setMessages([welcomeMessage]);
+      }
       
       return newConversationId;
     } catch (error) {
@@ -290,18 +310,27 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         throw new Error('Authentication required');
       }
 
-      const { data, error } = await supabase.functions.invoke('chat-api', {
-        body: {
+      // Call the demo message endpoint
+      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/chat-api/demo/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk'
+        },
+        body: JSON.stringify({
           conversation_id: currentConversationId,
           content: content.trim(),
           is_action: isAction
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
+        })
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
 
       // Add assistant message
       const assistantMessage: Message = {
