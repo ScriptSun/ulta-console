@@ -422,13 +422,15 @@ export function InputFieldBuilder({
 
       {/* Live Preview */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center">
-            <CardTitle className="text-sm">Live Preview</CardTitle>
-            <Badge variant={isValid ? "outline" : "destructive"} className={`flex items-center gap-1 ml-3 ${isValid ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' : ''}`}>
-              {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-              {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
-            </Badge>
+        <CardHeader className="relative">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <CardTitle className="text-sm">Live Preview</CardTitle>
+              <Badge variant={isValid ? "outline" : "destructive"} className={`flex items-center gap-1 ml-3 ${isValid ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' : ''}`}>
+                {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -437,6 +439,7 @@ export function InputFieldBuilder({
               schema={generatedSchema}
               defaults={generatedDefaults}
               readOnly={!canEdit}
+              showHeaderButtons={true}
             />
           ) : (
             <div className="text-center py-8 text-muted-foreground">

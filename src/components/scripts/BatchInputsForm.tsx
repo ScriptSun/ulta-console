@@ -36,6 +36,7 @@ interface BatchInputsFormProps {
   defaults?: any;
   onValuesChange?: (values: Record<string, any>, isValid: boolean) => void;
   readOnly?: boolean;
+  showHeaderButtons?: boolean;
 }
 
 interface FormField {
@@ -50,7 +51,8 @@ export function BatchInputsForm({
   schema,
   defaults,
   onValuesChange,
-  readOnly = false
+  readOnly = false,
+  showHeaderButtons = false
 }: BatchInputsFormProps) {
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [formFields, setFormFields] = useState<FormField[]>([]);
@@ -334,10 +336,10 @@ export function BatchInputsForm({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Action buttons */}
-      <div className="flex items-center justify-end">
-        <div className="flex items-center gap-2">
+    <>
+      {/* Action buttons - render outside if showHeaderButtons */}
+      {showHeaderButtons && (
+        <div className="absolute top-4 right-4 flex items-center gap-2">
           {!readOnly && defaults && (
             <Button
               variant="outline"
@@ -356,7 +358,9 @@ export function BatchInputsForm({
             Copy JSON
           </Button>
         </div>
-      </div>
+      )}
+      
+      <div className="space-y-4">
 
       {/* Form Fields */}
       <Card>
@@ -388,6 +392,7 @@ export function BatchInputsForm({
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </>
   );
 }
