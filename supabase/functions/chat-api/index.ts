@@ -582,24 +582,10 @@ async function handleChatMessage(req: Request, supabase: any, body?: any) {
       const defaults = conversationContext.inputs_defaults || {};
       
       if (inputsSchema) {
-        // Check if user is repeating the same intent instead of providing inputs
-        const intentClassification = classifyIntentAndExtractParams(content, conversationContext);
-        if (intentClassification.intent === conversation.last_intent) {
-          console.log('User repeated intent, returning existing needs_inputs response');
-          return new Response(JSON.stringify({
-            state: 'needs_inputs',
-            message: `I need some additional information to proceed with ${conversation.last_intent.replace('_', ' ')}:`,
-            inputs_schema: inputsSchema,
-            inputs_defaults: defaults,
-            missing_params: conversationContext.missing_params || []
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        
         // Check if content is JSON (synthetic message from form) or free text
         let parsedInputs = {};
         let rawContent = content;
+        let isJsonInput = false;
         
         try {
           // Try to parse as JSON first (synthetic input)
@@ -607,12 +593,30 @@ async function handleChatMessage(req: Request, supabase: any, body?: any) {
           if (jsonContent.inputs && typeof jsonContent.inputs === 'object') {
             parsedInputs = jsonContent.inputs;
             rawContent = JSON.stringify(jsonContent.inputs);
+            isJsonInput = true;
           } else {
             throw new Error('Not a synthetic input message');
           }
         } catch {
           // Parse key:value pairs and free text
           parsedInputs = parseKeyValuePairs(content, inputsSchema);
+        }
+        
+        // Only check for repeated intent if this is NOT a JSON input submission
+        if (!isJsonInput) {
+          const intentClassification = classifyIntentAndExtractParams(content, conversationContext);
+          if (intentClassification.intent === conversation.last_intent) {
+            console.log('User repeated intent, returning existing needs_inputs response');
+            return new Response(JSON.stringify({
+              state: 'needs_inputs',
+              message: `I need some additional information to proceed with ${conversation.last_intent.replace('_', ' ')}:`,
+              inputs_schema: inputsSchema,
+              inputs_defaults: defaults,
+              missing_params: conversationContext.missing_params || []
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
         }
         
         // Only validate if we actually parsed some inputs
