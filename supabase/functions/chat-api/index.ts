@@ -1,10 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0';
 
+// CORS and security headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-csrf',
+  'Access-Control-Allow-Credentials': 'true',
 };
+
+// Allowed origins for widget authentication
+const ALLOWED_ORIGINS = [
+  'https://billing.example.com',
+  'https://whmcs.example.com',
+  'https://widget.ultaai.com'
+];
 
 interface ChatStartRequest {
   tenant_id: string;
@@ -24,6 +33,18 @@ interface ChatCloseRequest {
   conversation_id: string;
 }
 
+interface ConnectedClient {
+  socket: WebSocket;
+  sessionId: string;
+  agentId: string;
+  tenantId: string;
+  conversationId: string;
+  lastRotated: Date;
+}
+
+// In-memory storage for WebSocket connections (use Redis in production)
+const connectedClients = new Map<string, ConnectedClient>();
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -40,6 +61,11 @@ serve(async (req) => {
     const path = url.pathname;
 
     console.log('Chat API request:', { method: req.method, path });
+
+    // Handle WebSocket upgrade for streaming
+    if (req.headers.get("upgrade") === "websocket") {
+      return await handleWebSocketUpgrade(req, supabase);
+    }
 
     // Route requests
     if (req.method === 'POST') {
@@ -67,6 +93,255 @@ serve(async (req) => {
     });
   }
 });
+
+// WebSocket upgrade handler with authentication and session rotation
+async function handleWebSocketUpgrade(req: Request, supabase: any) {
+  const { headers } = req;
+  const origin = headers.get("origin");
+  
+  // Validate origin
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
+    console.log('WebSocket upgrade rejected: invalid origin', origin);
+    return new Response("Forbidden", { status: 403 });
+  }
+
+  // Get and validate session cookie
+  const cookieHeader = headers.get("cookie");
+  const sessionId = extractCookie(cookieHeader, "ultaai_sid");
+  
+  if (!sessionId) {
+    console.log('WebSocket upgrade rejected: no session cookie');
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  // Validate session
+  const { data: session, error: sessionError } = await supabase
+    .from('widget_sessions')
+    .select('*')
+    .eq('session_id', sessionId)
+    .eq('is_active', true)
+    .single();
+
+  if (sessionError || !session || new Date(session.expires_at) < new Date()) {
+    console.log('WebSocket upgrade rejected: invalid session', sessionError);
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  // Check if session needs rotation (every 15 minutes)
+  const now = new Date();
+  const lastRotated = new Date(session.last_rotated);
+  const needsRotation = (now.getTime() - lastRotated.getTime()) > 15 * 60 * 1000;
+
+  if (needsRotation) {
+    // Generate new session ID
+    const newSessionId = crypto.randomUUID();
+    
+    // Update session
+    await supabase
+      .from('widget_sessions')
+      .update({
+        session_id: newSessionId,
+        last_rotated: now.toISOString(),
+        expires_at: new Date(now.getTime() + 30 * 60 * 1000).toISOString()
+      })
+      .eq('id', session.id);
+
+    console.log('Session rotated:', { oldSession: sessionId, newSession: newSessionId });
+    
+    // Close any existing sockets for this session
+    if (connectedClients.has(sessionId)) {
+      const client = connectedClients.get(sessionId)!;
+      client.socket.close(1000, "Session rotated");
+      connectedClients.delete(sessionId);
+    }
+
+    sessionId = newSessionId;
+  }
+
+  // Upgrade to WebSocket
+  const { socket, response } = Deno.upgradeWebSocket(req);
+  
+  // Log connection event
+  await supabase.from('security_events').insert({
+    event_type: 'websocket_connect',
+    session_id: session.session_id,
+    agent_id: session.agent_id,
+    tenant_id: session.tenant_id,
+    user_id: session.user_id,
+    ip_address: headers.get('x-forwarded-for') || headers.get('x-real-ip'),
+    user_agent: headers.get('user-agent'),
+    payload: { origin }
+  });
+
+  // Store connection
+  const client: ConnectedClient = {
+    socket,
+    sessionId: session.session_id,
+    agentId: session.agent_id,
+    tenantId: session.tenant_id,
+    conversationId: session.conversation_id,
+    lastRotated: now
+  };
+  
+  connectedClients.set(session.session_id, client);
+
+  socket.onopen = () => {
+    console.log('WebSocket connected:', session.session_id);
+  };
+
+  socket.onclose = async () => {
+    console.log('WebSocket disconnected:', session.session_id);
+    connectedClients.delete(session.session_id);
+    
+    // Log disconnect event
+    await supabase.from('security_events').insert({
+      event_type: 'websocket_disconnect',
+      session_id: session.session_id,
+      agent_id: session.agent_id,
+      tenant_id: session.tenant_id,
+      user_id: session.user_id,
+      payload: { duration_ms: Date.now() - now.getTime() }
+    });
+  };
+
+  socket.onerror = (error) => {
+    console.error('WebSocket error:', error);
+    connectedClients.delete(session.session_id);
+  };
+
+  return response;
+}
+
+// Rate limiting implementation
+async function checkRateLimit(supabase: any, bucketKey: string, bucketType: string, limit: number, windowSec: number): Promise<{ allowed: boolean; message?: string }> {
+  const now = new Date();
+  const windowStart = new Date(Math.floor(now.getTime() / (windowSec * 1000)) * windowSec * 1000);
+
+  // Get or create bucket
+  const { data: bucket, error } = await supabase
+    .from('rate_limit_buckets')
+    .select('*')
+    .eq('bucket_key', bucketKey)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // Not found error
+    console.error('Rate limit error:', error);
+    return { allowed: true }; // Allow on error to avoid blocking legitimate requests
+  }
+
+  if (!bucket) {
+    // Create new bucket
+    await supabase
+      .from('rate_limit_buckets')
+      .insert({
+        bucket_key: bucketKey,
+        bucket_type: bucketType,
+        count: 1,
+        window_start: windowStart.toISOString()
+      });
+    return { allowed: true };
+  }
+
+  const bucketWindowStart = new Date(bucket.window_start);
+  
+  // Reset bucket if window has passed
+  if (bucketWindowStart < windowStart) {
+    await supabase
+      .from('rate_limit_buckets')
+      .update({
+        count: 1,
+        window_start: windowStart.toISOString(),
+        updated_at: now.toISOString()
+      })
+      .eq('bucket_key', bucketKey);
+    return { allowed: true };
+  }
+
+  // Check if limit exceeded
+  if (bucket.count >= limit) {
+    const friendlyMessages = {
+      session: "You're sending messages too quickly. Please wait a moment before trying again.",
+      agent: "This agent is receiving too many requests. Please try again in a minute.",
+      tenant: "Your organization has reached the message limit. Please try again later."
+    };
+    
+    return { 
+      allowed: false, 
+      message: friendlyMessages[bucketType as keyof typeof friendlyMessages] || "Rate limit exceeded" 
+    };
+  }
+
+  // Increment counter
+  await supabase
+    .from('rate_limit_buckets')
+    .update({
+      count: bucket.count + 1,
+      updated_at: now.toISOString()
+    })
+    .eq('bucket_key', bucketKey);
+
+  return { allowed: true };
+}
+
+// Content redaction for sensitive data
+function redactSensitiveContent(content: string): { redacted: string; hasSensitive: boolean } {
+  let redacted = content;
+  let hasSensitive = false;
+
+  // Redact emails
+  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+  if (emailRegex.test(redacted)) {
+    redacted = redacted.replace(emailRegex, '[REDACTED_EMAIL]');
+    hasSensitive = true;
+  }
+
+  // Redact phone numbers (various formats)
+  const phoneRegex = /(\+?1?[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
+  if (phoneRegex.test(redacted)) {
+    redacted = redacted.replace(phoneRegex, '[REDACTED_PHONE]');
+    hasSensitive = true;
+  }
+
+  // Redact potential passwords/tokens (common patterns)
+  const passwordRegex = /\b(?:password|pass|pwd|token|key|secret)[\s:=]+[^\s]+/gi;
+  if (passwordRegex.test(redacted)) {
+    redacted = redacted.replace(passwordRegex, (match) => {
+      const parts = match.split(/[\s:=]+/);
+      return parts[0] + ': [REDACTED]';
+    });
+    hasSensitive = true;
+  }
+
+  // Redact API keys and tokens (alphanumeric sequences longer than 20 chars)
+  const tokenRegex = /\b[A-Za-z0-9]{20,}\b/g;
+  if (tokenRegex.test(redacted)) {
+    redacted = redacted.replace(tokenRegex, '[REDACTED_TOKEN]');
+    hasSensitive = true;
+  }
+
+  return { redacted, hasSensitive };
+}
+
+// Generate SHA256 hash for deduplication
+async function generateContentHash(content: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Helper function to extract cookies
+function extractCookie(cookieHeader: string | null, name: string): string | null {
+  if (!cookieHeader) return null;
+  
+  const cookies = cookieHeader.split(';');
+  for (const cookie of cookies) {
+    const [key, value] = cookie.trim().split('=');
+    if (key === name) return value;
+  }
+  return null;
+}
 
 async function validateAgentAccess(supabase: any, agentId: string, tenantId: string, userId?: string) {
   console.log('Validating agent access:', { agentId, tenantId, userId });
@@ -226,7 +501,7 @@ async function handleChatMessage(req: Request, supabase: any) {
     // Get conversation details for validation
     const { data: conversation, error: convError } = await supabase
       .from('chat_conversations')
-      .select('id, tenant_id, agent_id, user_id, status, meta')
+      .select('id, tenant_id, agent_id, user_id, status, meta, session_id')
       .eq('id', conversation_id)
       .single();
 
@@ -245,13 +520,88 @@ async function handleChatMessage(req: Request, supabase: any) {
       });
     }
 
-    // Log the message
+    // Rate limiting for user messages
+    if (role === 'user') {
+      const sessionKey = `session:${conversation.session_id || conversation_id}`;
+      const agentKey = `agent:${conversation.agent_id}`;
+      const tenantKey = `tenant:${conversation.tenant_id}`;
+
+      // Check session rate limit (10 messages per 10 seconds)
+      const sessionLimit = await checkRateLimit(supabase, sessionKey, 'session', 10, 10);
+      if (!sessionLimit.allowed) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded',
+          message: sessionLimit.message,
+          widget_message: sessionLimit.message
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Check agent rate limit (60 messages per minute)
+      const agentLimit = await checkRateLimit(supabase, agentKey, 'agent', 60, 60);
+      if (!agentLimit.allowed) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded',
+          message: agentLimit.message,
+          widget_message: agentLimit.message
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Check tenant rate limit (1000 messages per minute)
+      const tenantLimit = await checkRateLimit(supabase, tenantKey, 'tenant', 1000, 60);
+      if (!tenantLimit.allowed) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded',
+          message: tenantLimit.message,
+          widget_message: tenantLimit.message
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Redact sensitive content
+    const { redacted: redactedContent, hasSensitive } = redactSensitiveContent(content);
+    
+    // Generate content hash for deduplication
+    const contentHash = await generateContentHash(redactedContent);
+
+    // Check for duplicate messages
+    if (role === 'user') {
+      const { data: existingMessage } = await supabase
+        .from('chat_messages')
+        .select('id')
+        .eq('conversation_id', conversation_id)
+        .eq('content_sha256', contentHash)
+        .eq('role', role)
+        .limit(1);
+
+      if (existingMessage && existingMessage.length > 0) {
+        console.log('Duplicate message detected, ignoring');
+        return new Response(JSON.stringify({ 
+          message: { id: existingMessage[0].id },
+          duplicate: true 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Log the message with redacted content and hash
     const { data: message, error: messageError } = await supabase
       .from('chat_messages')
       .insert({
         conversation_id,
         role,
-        content,
+        content: redactedContent, // Store redacted content
+        content_sha256: contentHash,
+        redacted: hasSensitive,
         created_at: new Date().toISOString()
       })
       .select()
@@ -262,17 +612,17 @@ async function handleChatMessage(req: Request, supabase: any) {
       throw messageError;
     }
 
-    console.log('Message logged:', message.id);
+    console.log('Message logged:', message.id, hasSensitive ? '(redacted)' : '(clean)');
 
     // Use the chat router for user messages
     let routerResult = null;
     if (role === 'user') {
-      routerResult = await processChatRouter(supabase, conversation_id, content, conversation);
+      routerResult = await processChatRouter(supabase, conversation_id, redactedContent, conversation);
       console.log('Router result:', routerResult);
     }
 
     // For backward compatibility, still classify intent
-    const intent = routerResult?.intent || classifyIntent(content);
+    const intent = routerResult?.intent || classifyIntent(redactedContent);
     console.log('Classified intent:', intent);
 
     // Update conversation with last intent
@@ -292,11 +642,28 @@ async function handleChatMessage(req: Request, supabase: any) {
       ref_id: message.id,
       payload: {
         role,
-        content_length: content.length,
+        content_length: redactedContent.length,
         intent,
-        router_action: routerResult?.action
+        router_action: routerResult?.action,
+        redacted: hasSensitive
       }
     });
+
+    // Send response via WebSocket if connected
+    if (role === 'assistant' && conversation.session_id) {
+      const client = connectedClients.get(conversation.session_id);
+      if (client && client.socket.readyState === WebSocket.OPEN) {
+        client.socket.send(JSON.stringify({
+          type: 'message',
+          data: {
+            id: message.id,
+            role,
+            content: redactedContent,
+            created_at: message.created_at
+          }
+        }));
+      }
+    }
 
     return new Response(JSON.stringify({ 
       message,
@@ -305,7 +672,8 @@ async function handleChatMessage(req: Request, supabase: any) {
       router_response: routerResult?.response,
       router_action: routerResult?.action,
       run_id: routerResult?.run_id,
-      batch_id: routerResult?.batch_id
+      batch_id: routerResult?.batch_id,
+      redacted: hasSensitive
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -337,7 +705,7 @@ async function handleChatClose(req: Request, supabase: any) {
     // Get conversation details for validation
     const { data: conversation, error: convError } = await supabase
       .from('chat_conversations')
-      .select('id, tenant_id, agent_id, status')
+      .select('id, tenant_id, agent_id, status, session_id')
       .eq('id', conversation_id)
       .single();
 
@@ -367,6 +735,13 @@ async function handleChatClose(req: Request, supabase: any) {
 
     console.log('Conversation closed:', conversation_id);
 
+    // Close WebSocket connection if exists
+    if (conversation.session_id && connectedClients.has(conversation.session_id)) {
+      const client = connectedClients.get(conversation.session_id)!;
+      client.socket.close(1000, "Conversation closed");
+      connectedClients.delete(conversation.session_id);
+    }
+
     // Log conversation closed event
     await supabase.from('chat_events').insert({
       conversation_id,
@@ -393,7 +768,6 @@ async function handleChatClose(req: Request, supabase: any) {
   }
 }
 
-// Intent definitions with required parameters
 interface IntentDefinition {
   name: string;
   keywords: string[];
@@ -516,7 +890,7 @@ function classifyIntentAndExtractParams(message: string, conversationContext: an
     extractedParams.domain = domainMatch[1];
   }
 
-  // Extract email addresses
+  // Extract email addresses (but redact them in the stored content)
   const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
   const emailMatch = emailRegex.exec(message);
   if (emailMatch && bestMatch.requiredParams.includes('admin_email')) {
@@ -989,25 +1363,43 @@ async function handleBatchCompletion(req: Request, supabase: any) {
         ? `task_completed:${payload.batch_name || 'unknown'}`
         : `task_failed:${payload.batch_name || 'unknown'}`;
 
-      await supabase
+      const { data: conversation } = await supabase
         .from('chat_conversations')
         .update({
           last_action: lastAction,
           updated_at: new Date().toISOString()
         })
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .select('session_id')
+        .single();
 
       // Send completion message back to the conversation
       const completionMessage = status === 'success'
         ? `✅ Task completed successfully! The ${payload.intent?.replace('_', ' ') || 'requested task'} has finished${duration_sec ? ` in ${duration_sec} seconds` : ''}.`
         : `❌ Task failed: ${error_message || 'An error occurred while running the task.'}`;
 
-      await supabase.from('chat_messages').insert({
+      const { data: message } = await supabase.from('chat_messages').insert({
         conversation_id: conversationId,
         role: 'assistant',
         content: completionMessage,
         created_at: new Date().toISOString()
-      });
+      }).select().single();
+
+      // Stream completion message via WebSocket if connected
+      if (conversation?.session_id && connectedClients.has(conversation.session_id)) {
+        const client = connectedClients.get(conversation.session_id)!;
+        if (client.socket.readyState === WebSocket.OPEN) {
+          client.socket.send(JSON.stringify({
+            type: 'message',
+            data: {
+              id: message.id,
+              role: 'assistant',
+              content: completionMessage,
+              created_at: message.created_at
+            }
+          }));
+        }
+      }
 
       console.log(`Updated conversation ${conversationId} with ${eventType} status`);
     }
