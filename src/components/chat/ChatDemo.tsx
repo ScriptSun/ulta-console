@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
 import { TaskStatusCard } from './TaskStatusCard';
 import { QuickInputChips } from './QuickInputChips';
+import { InputForm } from './InputForm';
 
 interface Agent {
   id: string;
@@ -37,6 +38,12 @@ interface Message {
     duration?: number;
   };
   quickInputs?: string[];
+  needsInputs?: {
+    schema: any;
+    defaults: Record<string, any>;
+    missingParams: string[];
+  };
+  inputErrors?: Record<string, string>;
 }
 
 interface ChatDemoProps {
@@ -338,8 +345,20 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       }
 
       // Handle needs inputs
-      if (data.needs_inputs && data.missing_param) {
+      if (data.needs_inputs && data.inputs_schema) {
+        assistantMessage.needsInputs = {
+          schema: data.inputs_schema,
+          defaults: data.inputs_defaults || {},
+          missingParams: data.missing_params || []
+        };
+      } else if (data.needs_inputs && data.missing_param) {
         assistantMessage.quickInputs = getQuickInputsForParam(data.missing_param);
+      }
+
+      // Handle input errors
+      if (data.state === 'input_error' && data.errors) {
+        assistantMessage.inputErrors = data.errors;
+        assistantMessage.content = data.message || 'Please correct the errors and try again.';
       }
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -423,6 +442,13 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     setMessages(prev => prev.map(msg => 
       msg.id === messageId ? { ...msg, collapsed: !msg.collapsed } : msg
     ));
+  };
+
+  // Handle input form submission
+  const handleInputFormSubmit = (inputs: Record<string, any>) => {
+    // Send synthetic message with inputs
+    const syntheticMessage = JSON.stringify({ inputs });
+    sendMessage(syntheticMessage);
   };
 
   // Handle task view
@@ -623,6 +649,19 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                         error={message.taskStatus.error}
                         duration={message.taskStatus.duration}
                         onViewTask={handleViewTask}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Input Form */}
+                  {message.needsInputs && (
+                    <div className="mt-2 ml-8">
+                      <InputForm
+                        schema={message.needsInputs.schema}
+                        defaults={message.needsInputs.defaults}
+                        errors={message.inputErrors}
+                        onSubmit={handleInputFormSubmit}
+                        loading={isTyping}
                       />
                     </div>
                   )}

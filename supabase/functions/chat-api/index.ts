@@ -508,7 +508,7 @@ async function handleChatMessage(req: Request, supabase: any, body?: any) {
     // Get conversation details for validation
     const { data: conversation, error: convError } = await supabase
       .from('chat_conversations')
-      .select('id, tenant_id, agent_id, user_id, status, meta, session_id')
+      .select('id, tenant_id, agent_id, user_id, status, meta, session_id, last_intent, last_action')
       .eq('id', conversation_id)
       .single();
 
@@ -573,6 +573,98 @@ async function handleChatMessage(req: Request, supabase: any, body?: any) {
       }
     }
 
+    // Check for input rounds - if conversation has last_intent and last router reply was needs_inputs
+    if (role === 'user' && conversation.last_intent && conversation.last_action === 'needs_inputs') {
+      console.log('Processing input round for intent:', conversation.last_intent);
+      
+      const conversationContext = conversation.meta || {};
+      const inputsSchema = conversationContext.inputs_schema;
+      const defaults = conversationContext.inputs_defaults || {};
+      
+      if (inputsSchema) {
+        // Check if content is JSON (synthetic message from form) or free text
+        let parsedInputs = {};
+        let rawContent = content;
+        
+        try {
+          // Try to parse as JSON first (synthetic input)
+          const jsonContent = JSON.parse(content);
+          if (jsonContent.inputs && typeof jsonContent.inputs === 'object') {
+            parsedInputs = jsonContent.inputs;
+            rawContent = JSON.stringify(jsonContent.inputs);
+          } else {
+            throw new Error('Not a synthetic input message');
+          }
+        } catch {
+          // Parse key:value pairs and free text
+          parsedInputs = parseKeyValuePairs(content, inputsSchema);
+        }
+        
+        // Validate against inputs_schema
+        const validation = validateInputsAgainstSchema(parsedInputs, inputsSchema);
+        
+        if (!validation.isValid) {
+          // Return error format
+          return new Response(JSON.stringify({
+            state: 'input_error',
+            errors: validation.errors,
+            message: 'Please correct the following errors and try again.'
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        // Valid inputs - merge with defaults and continue to preflight
+        const mergedInputs = { ...defaults, ...parsedInputs };
+        
+        // Store the validated inputs in conversation context
+        const updatedContext = {
+          ...conversationContext,
+          validated_inputs: mergedInputs
+        };
+        
+        // Log the input message
+        const { data: message, error: messageError } = await supabase
+          .from('chat_messages')
+          .insert({
+            conversation_id,
+            role,
+            content: rawContent,
+            content_sha256: await generateContentHash(rawContent),
+            redacted: false,
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (messageError) {
+          console.error('Error logging input message:', messageError);
+          throw messageError;
+        }
+        
+        // Continue with intent processing using validated inputs
+        const routerResult = await continueWithValidatedInputs(
+          supabase, 
+          conversation_id, 
+          conversation, 
+          updatedContext,
+          mergedInputs
+        );
+        
+        return new Response(JSON.stringify({
+          message,
+          state: 'processing',
+          router_response: routerResult?.response,
+          router_action: routerResult?.action,
+          run_id: routerResult?.run_id,
+          batch_id: routerResult?.batch_id,
+          validated_inputs: mergedInputs
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     // Redact sensitive content
     const { redacted: redactedContent, hasSensitive } = redactSensitiveContent(content);
     
@@ -632,11 +724,12 @@ async function handleChatMessage(req: Request, supabase: any, body?: any) {
     const intent = routerResult?.intent || classifyIntent(redactedContent);
     console.log('Classified intent:', intent);
 
-    // Update conversation with last intent
+    // Update conversation with last intent and action
     await supabase
       .from('chat_conversations')
       .update({
         last_intent: intent,
+        last_action: routerResult?.action || 'processed',
         updated_at: new Date().toISOString()
       })
       .eq('id', conversation_id);
@@ -680,7 +773,10 @@ async function handleChatMessage(req: Request, supabase: any, body?: any) {
       router_action: routerResult?.action,
       run_id: routerResult?.run_id,
       batch_id: routerResult?.batch_id,
-      redacted: hasSensitive
+      redacted: hasSensitive,
+      needs_inputs: routerResult?.needs_inputs,
+      inputs_schema: routerResult?.inputs_schema,
+      inputs_defaults: routerResult?.inputs_defaults
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -1033,31 +1129,38 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
 
   // Check if we have all required parameters
   if (missingParams.length > 0) {
-    const nextParam = missingParams[0];
-    const question = intentDef.clarifyingQuestions[nextParam];
+    // Generate inputs schema for missing parameters
+    const inputsSchema = generateInputsSchema(intentDef, missingParams);
+    const inputsDefaults = generateInputsDefaults(intentDef, result.params);
     
     // Store context for next interaction
     const updatedContext = {
       ...conversationContext,
       pending_intent: result.intent,
       pending_params: result.params,
-      awaiting_param: nextParam
+      missing_params: missingParams,
+      inputs_schema: inputsSchema,
+      inputs_defaults: inputsDefaults
     };
 
     await supabase
       .from('chat_conversations')
       .update({
         last_intent: result.intent,
+        last_action: 'needs_inputs',
         meta: updatedContext,
         updated_at: new Date().toISOString()
       })
       .eq('id', conversationId);
 
     return {
-      response: question,
-      action: 'clarify',
+      response: `I need some additional information to proceed with ${result.intent.replace('_', ' ')}:`,
+      action: 'needs_inputs',
       intent: result.intent,
-      missing_param: nextParam
+      needs_inputs: true,
+      inputs_schema: inputsSchema,
+      inputs_defaults: inputsDefaults,
+      missing_params: missingParams
     };
   }
 
@@ -1703,4 +1806,321 @@ async function handleDemoMessage(req: Request, supabase: any, body?: any) {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+}
+
+// Parse key:value pairs and free text from user input
+function parseKeyValuePairs(content: string, schema: any): Record<string, any> {
+  const parsed: Record<string, any> = {};
+  const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  
+  for (const line of lines) {
+    // Try to match key:value or key=value patterns
+    const colonMatch = line.match(/^([^:]+):\s*(.+)$/);
+    const equalsMatch = line.match(/^([^=]+)=\s*(.+)$/);
+    
+    if (colonMatch) {
+      const [, key, value] = colonMatch;
+      const cleanKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+      parsed[cleanKey] = value.trim();
+    } else if (equalsMatch) {
+      const [, key, value] = equalsMatch;
+      const cleanKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+      parsed[cleanKey] = value.trim();
+    } else if (schema && schema.properties) {
+      // Try to match against known schema properties
+      for (const prop in schema.properties) {
+        const propDef = schema.properties[prop];
+        if (propDef.title && line.toLowerCase().includes(propDef.title.toLowerCase())) {
+          // Extract value after the title
+          const regex = new RegExp(`${propDef.title}[\\s:=]+(.+)`, 'i');
+          const match = line.match(regex);
+          if (match) {
+            parsed[prop] = match[1].trim();
+          }
+          break;
+        }
+      }
+    }
+  }
+  
+  // If no key-value pairs found but content exists, try to infer from schema
+  if (Object.keys(parsed).length === 0 && content.trim()) {
+    if (schema && schema.properties) {
+      const props = Object.keys(schema.properties);
+      if (props.length === 1) {
+        // Single property - use entire content as value
+        parsed[props[0]] = content.trim();
+      }
+    }
+  }
+  
+  return parsed;
+}
+
+// Validate inputs against JSON schema
+function validateInputsAgainstSchema(inputs: Record<string, any>, schema: any): { isValid: boolean; errors: Record<string, string> } {
+  const errors: Record<string, string> = {};
+  let isValid = true;
+  
+  if (!schema || !schema.properties) {
+    return { isValid: true, errors: {} };
+  }
+  
+  // Check required fields
+  if (schema.required) {
+    for (const requiredField of schema.required) {
+      if (!inputs[requiredField] || inputs[requiredField].toString().trim() === '') {
+        errors[requiredField] = `${schema.properties[requiredField]?.title || requiredField} is required`;
+        isValid = false;
+      }
+    }
+  }
+  
+  // Validate field types and formats
+  for (const field in inputs) {
+    const value = inputs[field];
+    const fieldSchema = schema.properties[field];
+    
+    if (!fieldSchema) continue;
+    
+    if (value && value.toString().trim() !== '') {
+      // Type validation
+      if (fieldSchema.type === 'string' && fieldSchema.format) {
+        switch (fieldSchema.format) {
+          case 'email':
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+              errors[field] = 'Invalid email format';
+              isValid = false;
+            }
+            break;
+          case 'hostname':
+            const hostnameRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/;
+            if (!hostnameRegex.test(value)) {
+              errors[field] = 'Invalid hostname or domain format';
+              isValid = false;
+            }
+            break;
+          case 'uri':
+            try {
+              new URL(value);
+            } catch {
+              errors[field] = 'Invalid URL format';
+              isValid = false;
+            }
+            break;
+        }
+      }
+      
+      // Pattern validation
+      if (fieldSchema.pattern) {
+        const regex = new RegExp(fieldSchema.pattern);
+        if (!regex.test(value)) {
+          errors[field] = fieldSchema.patternMessage || 'Invalid format';
+          isValid = false;
+        }
+      }
+      
+      // Enum validation
+      if (fieldSchema.enum && !fieldSchema.enum.includes(value)) {
+        errors[field] = `Value must be one of: ${fieldSchema.enum.join(', ')}`;
+        isValid = false;
+      }
+      
+      // Length validation
+      if (fieldSchema.minLength && value.length < fieldSchema.minLength) {
+        errors[field] = `Must be at least ${fieldSchema.minLength} characters`;
+        isValid = false;
+      }
+      
+      if (fieldSchema.maxLength && value.length > fieldSchema.maxLength) {
+        errors[field] = `Must be no more than ${fieldSchema.maxLength} characters`;
+        isValid = false;
+      }
+    }
+  }
+  
+  return { isValid, errors };
+}
+
+// Generate inputs schema from intent definition
+function generateInputsSchema(intentDef: any, missingParams: string[]): any {
+  const schema = {
+    type: 'object',
+    properties: {} as any,
+    required: missingParams.filter(param => intentDef.requiredParams.includes(param))
+  };
+  
+  for (const param of missingParams) {
+    const paramDef = getParameterDefinition(param);
+    schema.properties[param] = paramDef;
+  }
+  
+  return schema;
+}
+
+// Generate default values for inputs
+function generateInputsDefaults(intentDef: any, existingParams: Record<string, any>): Record<string, any> {
+  const defaults: Record<string, any> = {};
+  
+  // Include existing parameters as defaults
+  for (const [key, value] of Object.entries(existingParams)) {
+    if (value) {
+      defaults[key] = value;
+    }
+  }
+  
+  return defaults;
+}
+
+// Get parameter definition for schema generation
+function getParameterDefinition(param: string): any {
+  switch (param) {
+    case 'domain':
+      return {
+        type: 'string',
+        title: 'Domain',
+        description: 'The domain name for the website',
+        format: 'hostname',
+        pattern: '^[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?)*$',
+        patternMessage: 'Invalid domain name format',
+        examples: ['example.com', 'mysite.org', 'demo.app']
+      };
+    case 'admin_email':
+      return {
+        type: 'string',
+        title: 'Admin Email',
+        description: 'Email address for the administrator',
+        format: 'email',
+        examples: ['admin@example.com', 'webmaster@mysite.org']
+      };
+    case 'admin_user':
+      return {
+        type: 'string',
+        title: 'Admin Username',
+        description: 'Username for the administrator account',
+        minLength: 3,
+        maxLength: 50,
+        pattern: '^[a-zA-Z0-9_-]+$',
+        patternMessage: 'Username can only contain letters, numbers, underscores, and hyphens'
+      };
+    case 'admin_password':
+      return {
+        type: 'string',
+        title: 'Admin Password',
+        description: 'Password for the administrator account',
+        minLength: 8,
+        format: 'password'
+      };
+    case 'site_title':
+      return {
+        type: 'string',
+        title: 'Site Title',
+        description: 'Title for the website',
+        maxLength: 100
+      };
+    case 'service_name':
+      return {
+        type: 'string',
+        title: 'Service Name',
+        description: 'Name of the service to manage',
+        examples: ['nginx', 'apache2', 'mysql', 'php-fpm']
+      };
+    case 'database_name':
+      return {
+        type: 'string',
+        title: 'Database Name',
+        description: 'Name of the database',
+        pattern: '^[a-zA-Z0-9_]+$',
+        patternMessage: 'Database name can only contain letters, numbers, and underscores',
+        examples: ['wordpress', 'app_db', 'main_database']
+      };
+    case 'db_user':
+      return {
+        type: 'string',
+        title: 'Database User',
+        description: 'Database username',
+        pattern: '^[a-zA-Z0-9_]+$',
+        patternMessage: 'Username can only contain letters, numbers, and underscores'
+      };
+    case 'db_password':
+      return {
+        type: 'string',
+        title: 'Database Password',
+        description: 'Password for the database user',
+        minLength: 8,
+        format: 'password'
+      };
+    case 'repository_url':
+      return {
+        type: 'string',
+        title: 'Repository URL',
+        description: 'Git repository URL',
+        format: 'uri',
+        pattern: '^https?://(github\\.com|gitlab\\.com|bitbucket\\.org)/.+',
+        patternMessage: 'Must be a valid GitHub, GitLab, or Bitbucket URL'
+      };
+    case 'ssl_email':
+      return {
+        type: 'string',
+        title: 'SSL Certificate Email',
+        description: 'Email address for SSL certificate registration',
+        format: 'email'
+      };
+    default:
+      return {
+        type: 'string',
+        title: param.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        description: `Value for ${param}`
+      };
+  }
+}
+
+// Continue processing with validated inputs
+async function continueWithValidatedInputs(
+  supabase: any, 
+  conversationId: string, 
+  conversation: any, 
+  updatedContext: any,
+  validatedInputs: Record<string, any>
+): Promise<any> {
+  const pendingIntent = updatedContext.pending_intent;
+  const intentDef = INTENT_DEFINITIONS.find(i => i.name === pendingIntent);
+  
+  if (!intentDef) {
+    return {
+      response: 'Sorry, I lost track of what we were doing. Could you please start over?',
+      action: 'error',
+      intent: pendingIntent
+    };
+  }
+  
+  // Create result object with all validated inputs
+  const result = {
+    intent: pendingIntent,
+    intentDef,
+    params: validatedInputs,
+    confidence: 1.0
+  };
+  
+  // Clear pending state and update with validated inputs
+  const finalContext = { ...updatedContext };
+  delete finalContext.pending_intent;
+  delete finalContext.pending_params;
+  delete finalContext.missing_params;
+  delete finalContext.inputs_schema;
+  delete finalContext.inputs_defaults;
+  delete finalContext.validated_inputs;
+  
+  await supabase
+    .from('chat_conversations')
+    .update({
+      meta: finalContext,
+      last_action: 'processing',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', conversationId);
+  
+  // Continue with intent processing using validated inputs
+  return await processIntentWithParams(supabase, conversationId, conversation, result, finalContext);
 }
