@@ -583,7 +583,7 @@ async function handleChatMessage(req: Request, supabase: any, body?: any) {
       
       if (inputsSchema) {
         // Check if user is repeating the same intent instead of providing inputs
-        const intentClassification = classifyIntentAndExtractParams(redactedContent, conversationContext);
+        const intentClassification = classifyIntentAndExtractParams(content, conversationContext);
         if (intentClassification.intent === conversation.last_intent) {
           console.log('User repeated intent, returning existing needs_inputs response');
           return new Response(JSON.stringify({
