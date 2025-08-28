@@ -190,11 +190,12 @@ export function BatchInputsTab({
 
   // Initialize from props only once
   useEffect(() => {
-    if (!hasInitialized) {
-      console.log('BatchInputsTab: Initializing from props');
+    if (!hasInitialized && (inputsSchema || inputsDefaults)) {
+      console.log('BatchInputsTab: Initializing from props', inputsSchema, inputsDefaults);
       
       // Convert schema to fields for visual builder
       const fields = convertSchemaToFields(inputsSchema, inputsDefaults);
+      console.log('BatchInputsTab: Converted fields:', fields.length);
       setConvertedFields(fields);
       
       // Set JSON text for editor
@@ -214,16 +215,22 @@ export function BatchInputsTab({
     }
   }, [inputsSchema, inputsDefaults, hasInitialized]);
 
-  // Reset initialization when props change significantly
+  // Also update when props change significantly after initialization
   useEffect(() => {
-    const schemaKeys = inputsSchema?.properties ? Object.keys(inputsSchema.properties).sort().join(',') : '';
-    const currentFields = convertedFields.map(f => f.key).sort().join(',');
-    
-    if (hasInitialized && schemaKeys !== currentFields) {
-      console.log('BatchInputsTab: Schema changed significantly, re-initializing');
-      setHasInitialized(false);
+    if (hasInitialized) {
+      const fields = convertSchemaToFields(inputsSchema, inputsDefaults);
+      console.log('BatchInputsTab: Props changed, updating fields:', fields.length);
+      setConvertedFields(fields);
+      
+      // Update JSON text
+      if (inputsSchema) {
+        setSchemaText(JSON.stringify(inputsSchema, null, 2));
+      }
+      if (inputsDefaults) {
+        setDefaultsText(JSON.stringify(inputsDefaults, null, 2));
+      }
     }
-  }, [inputsSchema, convertedFields, hasInitialized]);
+  }, [inputsSchema, inputsDefaults, hasInitialized]);
 
   const validateSchema = useCallback((schemaStr: string) => {
     try {
