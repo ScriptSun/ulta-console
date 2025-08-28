@@ -434,7 +434,7 @@ export function InputFieldBuilder({
                     onClick={copyJsonSummary}
                   >
                     <Code2 className="h-3 w-3 mr-1" />
-                    Generated JSON
+                     Copy as JSON
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
