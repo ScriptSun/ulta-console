@@ -30,7 +30,8 @@ import {
   CheckCircle, 
   AlertTriangle,
   Info,
-  Settings
+  Settings,
+  Save
 } from 'lucide-react';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
@@ -577,142 +578,157 @@ export function BatchInputsTab({
   };
 
   return (
-    <Tabs defaultValue="builder" className="space-y-6">
-      <TabsList className="grid w-fit grid-cols-2">
-        <TabsTrigger value="builder" className="flex items-center gap-2">
-          <Settings className="h-3 w-3" />
-          Builder
-        </TabsTrigger>
-        <TabsTrigger value="json" className="flex items-center gap-2">
-          <Code className="h-3 w-3" />
-          JSON
-        </TabsTrigger>
-      </TabsList>
+    <div className="space-y-6">
+      <Tabs defaultValue="builder" className="space-y-6">
+        <TabsList className="grid w-fit grid-cols-2">
+          <TabsTrigger value="builder" className="flex items-center gap-2">
+            <Settings className="h-3 w-3" />
+            Builder
+          </TabsTrigger>
+          <TabsTrigger value="json" className="flex items-center gap-2">
+            <Code className="h-3 w-3" />
+            JSON
+          </TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="builder" className="space-y-0">
-        <InputFieldBuilder
-          initialFields={convertedFields}
-          canEdit={canEdit}
-          onSchemaChange={handleBuilderSchemaChange}
-          onDefaultsChange={handleBuilderDefaultsChange}
-          onValidationChange={handleBuilderValidationChange}
-        />
-      </TabsContent>
+        <TabsContent value="builder" className="space-y-0">
+          <InputFieldBuilder
+            initialFields={convertedFields}
+            canEdit={canEdit}
+            onSchemaChange={handleBuilderSchemaChange}
+            onDefaultsChange={handleBuilderDefaultsChange}
+            onValidationChange={handleBuilderValidationChange}
+          />
+        </TabsContent>
 
-      <TabsContent value="json" className="space-y-6">
-        {/* Validation Summary */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Badge variant={isValid ? "default" : "destructive"} className="flex items-center gap-1">
-              {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-              {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
-            </Badge>
-            {canEdit && (
-              <Button variant="outline" size="sm" onClick={handleLoadExample}>
-                Load Example
+        <TabsContent value="json" className="space-y-6">
+          {/* Validation Summary */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Badge variant={isValid ? "default" : "destructive"} className="flex items-center gap-1">
+                {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
+              </Badge>
+              {canEdit && (
+                <Button variant="outline" size="sm" onClick={handleLoadExample}>
+                  Load Example
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestWithSample}
+                disabled={!isValid}
+              >
+                <Play className="h-3 w-3 mr-1" />
+                Test with Sample
               </Button>
-            )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyJsonSummary}
+                disabled={!isValid}
+              >
+                <Copy className="h-3 w-3 mr-1" />
+                Copy JSON
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleTestWithSample}
-              disabled={!isValid}
-            >
-              <Play className="h-3 w-3 mr-1" />
-              Test with Sample
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyJsonSummary}
-              disabled={!isValid}
-            >
-              <Copy className="h-3 w-3 mr-1" />
-              Copy JSON
-            </Button>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          {/* Schema Editor */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Schema Editor */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Code className="h-4 w-4" />
+                  JSON Schema
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={schemaText}
+                  onChange={(e) => handleSchemaTextChange(e.target.value)}
+                  placeholder="Enter JSON schema..."
+                  rows={12}
+                  className="font-mono text-xs"
+                  disabled={!canEdit}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Defaults Editor */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Default Values</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={defaultsText}
+                  onChange={(e) => handleDefaultsTextChange(e.target.value)}
+                  placeholder="Enter default values..."
+                  rows={12}
+                  className="font-mono text-xs"
+                  disabled={!canEdit}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Live Preview */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Code className="h-4 w-4" />
-                JSON Schema
-              </CardTitle>
+              <CardTitle className="text-sm">Live Preview</CardTitle>
             </CardHeader>
             <CardContent>
-              <Textarea
-                value={schemaText}
-                onChange={(e) => handleSchemaTextChange(e.target.value)}
-                placeholder="Enter JSON schema..."
-                rows={12}
-                className="font-mono text-xs"
-                disabled={!canEdit}
-              />
+              {formFields.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {formFields.map(renderFormField)}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Code className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No form fields to display</p>
+                  <p className="text-sm">Add properties to your schema to see the form preview</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Defaults Editor */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Default Values</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={defaultsText}
-                onChange={(e) => handleDefaultsTextChange(e.target.value)}
-                placeholder="Enter default values..."
-                rows={12}
-                className="font-mono text-xs"
-                disabled={!canEdit}
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Live Preview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Live Preview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {formFields.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4">
-                {formFields.map(renderFormField)}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Code className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No form fields to display</p>
-                <p className="text-sm">Add properties to your schema to see the form preview</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Validation Errors */}
-        {validationErrors.length > 0 && (
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-sm text-destructive">Validation Errors</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1">
-                {validationErrors.map((error, index) => (
-                  <li key={index} className="text-sm text-destructive flex items-start gap-2">
-                    <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                    {error}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-      </TabsContent>
-    </Tabs>
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <Card className="border-destructive">
+              <CardHeader>
+                <CardTitle className="text-sm text-destructive">Validation Errors</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-1">
+                  {validationErrors.map((error, index) => (
+                    <li key={index} className="text-sm text-destructive flex items-start gap-2">
+                      <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      {error}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+      
+      {/* SAVE Button */}
+      <div className="flex justify-end">
+        <Button
+          variant="default"
+          size="default"
+          disabled={!canEdit}
+          className="flex items-center gap-2"
+        >
+          <Save className="h-4 w-4" />
+          SAVE
+        </Button>
+      </div>
+    </div>
   );
 }
