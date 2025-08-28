@@ -407,7 +407,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response || 'Processing your request...',
+        content: data.router_response || data.response || 'Processing your request...',
         timestamp: new Date(),
         pending: false
       };
