@@ -31,10 +31,13 @@ interface Message {
   pending?: boolean;
   collapsed?: boolean;
   taskStatus?: {
-    type: 'task_queued' | 'task_started' | 'task_succeeded' | 'task_failed';
+    type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done';
     intent: string;
     runId?: string;
     batchId?: string;
+    summary?: string;
+    progress?: number;
+    contract?: any;
     error?: string;
     duration?: number;
   };
@@ -221,6 +224,48 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     sessionStorage.setItem(`chatDemo_${currentRoute}`, isOpen.toString());
   }, [isOpen, currentRoute]);
 
+  // Set up WebSocket listener for task updates
+  useEffect(() => {
+    if (!selectedAgent || !conversationId) return;
+
+    const channel = supabase
+      .channel('task-updates')
+      .on('broadcast', { event: 'task_update' }, (payload) => {
+        console.log('Received task update:', payload);
+        
+        if (payload.data) {
+          const { state, run_id, summary, progress, contract, error } = payload.data;
+          
+          // Update the last message with task status if it has the same run_id
+          setMessages(prev => {
+            const updated = [...prev];
+            // Find the last assistant message with matching run_id
+            for (let i = updated.length - 1; i >= 0; i--) {
+              const msg = updated[i];
+              if (msg.role === 'assistant' && msg.taskStatus?.runId === run_id) {
+                msg.taskStatus = {
+                  ...msg.taskStatus,
+                  type: state,
+                  summary,
+                  progress,
+                  contract,
+                  error
+                };
+                break;
+              }
+            }
+            
+            return updated;
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedAgent, conversationId]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -343,8 +388,19 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         pending: false
       };
 
-      // Handle task events
-      if (data.event_type && ['task_queued', 'task_started', 'task_succeeded', 'task_failed'].includes(data.event_type)) {
+      // Handle task events and state updates
+      if (data.state) {
+        assistantMessage.taskStatus = {
+          type: data.state as any,
+          intent: data.intent || 'unknown',
+          runId: data.run_id,
+          batchId: data.batch_id,
+          summary: data.summary,
+          progress: data.progress,
+          contract: data.contract,
+          error: data.error
+        };
+      } else if (data.event_type && ['task_queued', 'task_started', 'task_succeeded', 'task_failed'].includes(data.event_type)) {
         assistantMessage.taskStatus = {
           type: data.event_type,
           intent: data.intent || 'unknown',
@@ -672,6 +728,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                         intent={message.taskStatus.intent}
                         runId={message.taskStatus.runId}
                         batchId={message.taskStatus.batchId}
+                        summary={message.taskStatus.summary}
+                        progress={message.taskStatus.progress}
+                        contract={message.taskStatus.contract}
                         error={message.taskStatus.error}
                         duration={message.taskStatus.duration}
                         onViewTask={handleViewTask}

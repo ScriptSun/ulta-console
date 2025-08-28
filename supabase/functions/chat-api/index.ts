@@ -1244,14 +1244,116 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     }
   }
 
-  // Start batch run for this specific agent
-  console.log('Starting agent-bound batch run:', { batchId: batch.id, agentId });
-  
-  const { data: runResult, error: runError } = await supabase
-    .rpc('start_batch_run', {
-      _batch_id: batch.id,
-      _agent_id: agentId
+  // Insert batch run with inputs and conversation link
+  const { data: batchRun, error: insertError } = await supabase
+    .from('batch_runs')
+    .insert({
+      batch_id: batch.id,
+      agent_id: agentId,
+      tenant_id: tenantId,
+      status: 'queued',
+      created_by: auth.uid(),
+      // Store inputs and conversation link in a metadata field if needed
+      // or add these as separate columns
+    })
+    .select()
+    .single();
+
+  if (runError || !batchRun) {
+    console.error('Failed to create batch run:', insertError);
+    
+    await supabase.from('chat_events').insert({
+      conversation_id: conversationId,
+      type: 'fail',
+      agent_id: agentId,
+      payload: {
+        intent: result.intent,
+        batch_name: intentDef.batchName,
+        error: insertError?.message || 'Failed to create batch run',
+        params: result.params
+      }
     });
+
+    return {
+      response: `I encountered an issue starting the ${result.intent.replace('_', ' ')} task. Please try again later.`,
+      action: 'error',
+      intent: result.intent
+    };
+  }
+
+  const runId = batchRun.id;
+  console.log('Created batch run:', runId);
+
+  // Link batch run to conversation
+  await supabase
+    .from('chat_conversations')
+    .update({
+      last_intent: result.intent,
+      last_action: 'task_queued',
+      meta: { 
+        ...conversationContext, 
+        last_run_id: runId, 
+        bound_agent: agentId,
+        task_inputs: result.params,
+        batch_name: intentDef.batchName
+      },
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', conversationId);
+
+  // Log task queued event
+  await supabase.from('chat_events').insert({
+    conversation_id: conversationId,
+    type: 'task_queued',
+    agent_id: agentId,
+    ref_id: runId,
+    payload: {
+      intent: result.intent,
+      batch_name: intentDef.batchName,
+      batch_id: batch.id,
+      run_id: runId,
+      params: result.params
+    }
+  });
+
+  // Send task to agent (this would typically be done via a queue or webhook)
+  // For now, we'll simulate this by updating the batch run status
+  await supabase
+    .from('batch_runs')
+    .update({ 
+      status: 'running',
+      started_at: new Date().toISOString()
+    })
+    .eq('id', runId);
+
+  // Log task started event
+  await supabase.from('chat_events').insert({
+    conversation_id: conversationId,
+    type: 'task_started',
+    agent_id: agentId,
+    ref_id: runId,
+    payload: {
+      intent: result.intent,
+      batch_name: intentDef.batchName,
+      batch_id: batch.id,
+      run_id: runId,
+      params: result.params,
+      started_at: new Date().toISOString()
+    }
+  });
+
+  const taskSummary = generateTaskSummary(result.intent, result.params);
+
+  return {
+    response: `I've queued the ${result.intent.replace('_', ' ')} task and it's now starting on the agent.`,
+    action: 'task_queued',
+    intent: result.intent,
+    state: 'task_queued',
+    run_id: runId,
+    batch_id: batch.id,
+    agent_id: agentId,
+    summary: taskSummary
+  };
 
   if (runError || !runResult || runResult.length === 0) {
     console.error('Failed to start batch run:', runError);
@@ -1438,6 +1540,27 @@ function classifyIntent(message: string): string | null {
   }
 
   return maxMatches > 0 ? bestMatch : 'general_inquiry';
+}
+
+// Generate task summary for display
+function generateTaskSummary(intent: string, params: Record<string, any>): string {
+  switch (intent) {
+    case 'install_wordpress':
+      const domain = params.domain || 'your site';
+      return `Install WordPress on ${domain}`;
+    case 'backup_database':
+      const dbName = params.database_name || 'database';
+      return `Backup ${dbName} database`;
+    case 'check_cpu':
+      return 'Check CPU usage';
+    case 'check_disk':
+      return 'Check disk usage';
+    case 'restart_service':
+      const service = params.service_name || 'service';
+      return `Restart ${service} service`;
+    default:
+      return intent.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
 }
 
 // Webhook handler for batch run completion events

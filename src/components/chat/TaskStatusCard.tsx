@@ -2,13 +2,16 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, CheckCircle, XCircle, Clock, Play } from 'lucide-react';
+import { ExternalLink, CheckCircle, XCircle, Clock, Play, BarChart3, AlertCircle } from 'lucide-react';
 
 interface TaskStatusCardProps {
-  type: 'task_queued' | 'task_started' | 'task_succeeded' | 'task_failed';
+  type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done';
   intent: string;
   runId?: string;
   batchId?: string;
+  summary?: string;
+  progress?: number;
+  contract?: any;
   error?: string;
   duration?: number;
   onViewTask?: (runId: string) => void;
@@ -19,6 +22,9 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
   intent,
   runId,
   batchId,
+  summary,
+  progress,
+  contract,
   error,
   duration,
   onViewTask
@@ -31,7 +37,7 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
           color: 'bg-blue-50 border-blue-200 text-blue-800',
           badgeColor: 'bg-blue-100 text-blue-800',
           title: 'Task Queued',
-          description: `Your ${intent.replace('_', ' ')} task has been queued and will start shortly.`
+          description: summary || `Your ${intent.replace('_', ' ')} task has been queued and will start shortly.`
         };
       case 'task_started':
         return {
@@ -39,7 +45,15 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
           color: 'bg-yellow-50 border-yellow-200 text-yellow-800',
           badgeColor: 'bg-yellow-100 text-yellow-800',
           title: 'Task Running',
-          description: `Your ${intent.replace('_', ' ')} task is now running.`
+          description: summary || `Your ${intent.replace('_', ' ')} task is now running.`
+        };
+      case 'task_progress':
+        return {
+          icon: BarChart3,
+          color: 'bg-orange-50 border-orange-200 text-orange-800',
+          badgeColor: 'bg-orange-100 text-orange-800',
+          title: `Progress ${progress || 0}%`,
+          description: summary || `Your ${intent.replace('_', ' ')} task is in progress.`
         };
       case 'task_succeeded':
         return {
@@ -47,7 +61,7 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
           color: 'bg-green-50 border-green-200 text-green-800',
           badgeColor: 'bg-green-100 text-green-800',
           title: 'Task Completed',
-          description: `Your ${intent.replace('_', ' ')} task completed successfully${duration ? ` in ${duration}s` : ''}.`
+          description: contract?.message || summary || `Your ${intent.replace('_', ' ')} task completed successfully${duration ? ` in ${duration}s` : ''}.`
         };
       case 'task_failed':
         return {
@@ -55,11 +69,19 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
           color: 'bg-red-50 border-red-200 text-red-800',
           badgeColor: 'bg-red-100 text-red-800',
           title: 'Task Failed',
-          description: error || `Your ${intent.replace('_', ' ')} task encountered an error.`
+          description: error || summary || `Your ${intent.replace('_', ' ')} task encountered an error.`
+        };
+      case 'done':
+        return {
+          icon: CheckCircle,
+          color: 'bg-green-50 border-green-200 text-green-800',
+          badgeColor: 'bg-green-100 text-green-800',
+          title: 'Done',
+          description: 'Task workflow completed'
         };
       default:
         return {
-          icon: Clock,
+          icon: AlertCircle,
           color: 'bg-gray-50 border-gray-200 text-gray-800',
           badgeColor: 'bg-gray-100 text-gray-800',
           title: 'Task Status',
@@ -83,6 +105,34 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
             </Badge>
           </div>
           <p className="text-sm opacity-90 mb-3">{config.description}</p>
+
+          {/* Progress bar for in-progress tasks */}
+          {type === 'task_progress' && typeof progress === 'number' && (
+            <div className="mb-3">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-orange-500 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Contract details for successful tasks */}
+          {type === 'task_succeeded' && contract && (
+            <div className="mb-3 p-2 bg-white/50 rounded text-xs">
+              {contract.metrics && (
+                <div className="flex gap-4">
+                  {contract.metrics.duration_sec && (
+                    <span>Duration: {contract.metrics.duration_sec}s</span>
+                  )}
+                  {contract.status && (
+                    <span>Status: {contract.status}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           
           {runId && (
             <div className="flex items-center gap-2">
@@ -95,11 +145,9 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
                 <ExternalLink className="w-3 h-3 mr-1" />
                 View Details
               </Button>
-              {runId && (
-                <span className="text-xs opacity-60 font-mono">
-                  ID: {runId.slice(0, 8)}...
-                </span>
-              )}
+              <span className="text-xs opacity-60 font-mono">
+                ID: {runId.slice(0, 8)}...
+              </span>
             </div>
           )}
         </div>
