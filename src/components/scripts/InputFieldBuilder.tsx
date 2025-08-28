@@ -37,7 +37,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { FieldList } from './FieldList';
 import { FieldEditor, BuilderField } from './FieldEditor';
 import { BatchInputsForm } from './BatchInputsForm';
-import { FIELD_PRESETS, EXAMPLE_WORDPRESS_FIELDS } from './FieldPresets';
+import { FIELD_PRESETS } from './FieldPresets';
 
 interface InputFieldBuilderProps {
   initialFields?: BuilderField[];
@@ -311,24 +311,6 @@ export function InputFieldBuilder({
     setIsModalOpen(false);
   };
 
-  const handleLoadExample = () => {
-    if (canEdit) {
-      console.log('InputFieldBuilder: User loaded example, exiting initialization mode');
-      const exampleFields: BuilderField[] = EXAMPLE_WORDPRESS_FIELDS.map(example => ({
-        id: crypto.randomUUID(),
-        key: example.key,
-        label: example.label,
-        preset: example.preset,
-        required: example.required,
-        defaultValue: example.defaultValue,
-        helpText: example.helpText,
-        options: example.options
-      }));
-      setFields(exampleFields);
-      setIsInitializing(false); // User interaction, no longer initializing
-    }
-  };
-
   const handleTestWithSample = () => {
     // This will be handled by the parent component's form
   };
@@ -417,11 +399,6 @@ export function InputFieldBuilder({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {canEdit && (
-            <Button variant="outline" size="sm" onClick={handleLoadExample}>
-              Load WordPress Example
-            </Button>
-          )}
         </div>
         <div className="flex items-center gap-2">
           {generatedSchema && (
