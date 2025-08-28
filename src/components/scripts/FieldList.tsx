@@ -365,7 +365,7 @@ function SortableFieldItem({
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="font-medium text-sm truncate">{field.label}</span>
                  {field.required && (
-                   <Badge variant="destructive" className="text-xs py-1 px-2 flex-shrink-0">
+                   <Badge variant="destructive" className="text-[11px] py-0.5 px-2 flex-shrink-0">
                      Required
                    </Badge>
                  )}
