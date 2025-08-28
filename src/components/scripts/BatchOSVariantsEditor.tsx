@@ -57,19 +57,40 @@ export function BatchOSVariantsEditor({
     
     setLoading(true);
     try {
-      // Use direct query instead since edge function might not be working properly
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
 
-      // Use direct query instead since edge function might not be working properly
-      const { data: directData, error: directError } = await supabase
-        .from('script_batch_variants')
-        .select('*')
-        .eq('batch_id', batchId)
-        .order('os')
-        .order('version', { ascending: false });
+      const response = await fetch(
+        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batchId}/variants`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      if (directError) throw directError;
+      if (!response.ok) {
+        // Fall back to direct database query if edge function fails
+        const { data: directData, error: directError } = await supabase
+          .from('script_batch_variants')
+          .select('*')
+          .eq('batch_id', batchId)
+          .order('os')
+          .order('version', { ascending: false });
 
-      setVariants((directData || []) as BatchVariant[]);
+        if (directError) throw directError;
+        setVariants((directData || []) as BatchVariant[]);
+        return;
+      }
+
+      const data = await response.json();
+      setVariants(data?.variants || []);
     } catch (error) {
       console.error('Error fetching variants:', error);
       toast({
@@ -119,16 +140,36 @@ echo "Running on ${os}"
 `;
       }
 
-      const { error } = await supabase.functions.invoke('script-batches', {
-        body: {
-          os,
-          source,
-          notes: variantNotes[os] || `Initial ${os} variant`,
-          min_os_version: null
-        }
-      });
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
 
-      if (error) throw error;
+      const response = await fetch(
+        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batchId}/variants`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            os,
+            source,
+            notes: variantNotes[os] || `Initial ${os} variant`,
+            min_os_version: null
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const data = await response.json();
 
       toast({
         title: 'Variant Created',
@@ -174,16 +215,33 @@ echo "Running on ${os}"
 
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('script-batches', {
-        body: {
-          os,
-          source,
-          notes: notes || `Version for ${os}`,
-          min_os_version: null
-        }
-      });
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
 
-      if (error) throw error;
+      const response = await fetch(
+        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batchId}/variants/${os}/versions`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            source,
+            notes: notes || `Version for ${os}`,
+            min_os_version: null
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
 
       toast({
         title: 'Version Created',
