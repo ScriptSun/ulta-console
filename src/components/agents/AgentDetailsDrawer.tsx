@@ -430,41 +430,6 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                     </Card>
                   </div>
 
-                  {/* System Information */}
-                  <div className="grid grid-cols-1 gap-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <Server className="h-4 w-4" />
-                          System Information
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">OS</span>
-                          <span className="text-sm font-medium capitalize">{agent.os || 'Unknown'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Version</span>
-                          <span className="text-sm font-medium">{agent.version || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Uptime</span>
-                          <span className="text-sm font-medium">
-                            {agent.uptime_seconds > 0 
-                              ? `${Math.floor(agent.uptime_seconds / 3600)}h ${Math.floor((agent.uptime_seconds % 3600) / 60)}m`
-                              : '0m'
-                            }
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Tasks Completed</span>
-                          <span className="text-sm font-medium">{agent.tasks_completed}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
                   {/* Storage & Resources */}
                   <div className="grid grid-cols-3 gap-4">
                     <Card>
