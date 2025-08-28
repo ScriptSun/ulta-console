@@ -9,6 +9,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Copy, 
   Check, 
@@ -16,7 +20,10 @@ import {
   Clock, 
   Download,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Server,
+  Key,
+  Lock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +44,15 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [sshDeploying, setSshDeploying] = useState(false);
+  const [sshForm, setSshForm] = useState({
+    hostname: '',
+    username: '',
+    password: '',
+    privateKey: '',
+    port: '22',
+    authMethod: 'password' as 'password' | 'key'
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -104,6 +120,73 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
     }
   };
 
+  const deployViaSSH = async () => {
+    if (!token || timeLeft <= 0) {
+      toast({
+        title: 'Error',
+        description: 'Please generate a valid deployment token first',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!sshForm.hostname || !sshForm.username) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in hostname and username',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (sshForm.authMethod === 'password' && !sshForm.password) {
+      toast({
+        title: 'Error',
+        description: 'Please provide a password',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (sshForm.authMethod === 'key' && !sshForm.privateKey) {
+      toast({
+        title: 'Error',
+        description: 'Please provide a private key',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSshDeploying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('agent-deploy', {
+        body: { 
+          action: 'deploy_ssh',
+          token: token.token,
+          ssh: sshForm
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Deployment Started',
+        description: 'Agent deployment has been initiated via SSH. Check your agents list for the new agent.',
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error('Error deploying via SSH:', error);
+      toast({
+        title: 'Deployment Failed',
+        description: 'Failed to deploy agent via SSH. Please check your credentials and try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSshDeploying(false);
+    }
+  };
+
   const formatTime = (ms: number) => {
     const minutes = Math.floor(ms / 60000);
     const seconds = Math.floor((ms % 60000) / 1000);
@@ -127,168 +210,333 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Token Status */}
-          {token && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-base">
-                  <span className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Deployment Token
-                  </span>
-                  <Badge 
-                    variant={timeLeft > 300000 ? "default" : "destructive"}
-                    className="text-xs"
-                  >
-                    {timeLeft > 0 ? `Expires in ${formatTime(timeLeft)}` : 'Expired'}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {timeLeft > 0 ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                      <Terminal className="h-4 w-4 flex-shrink-0" />
-                      <code className="text-sm font-mono flex-1 break-all">
-                        {installCommand}
-                      </code>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyToClipboard(installCommand)}
-                        className="flex-shrink-0"
-                      >
-                        {copied ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
+        <Tabs defaultValue="manual" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="ssh" className="flex items-center gap-2">
+              <Server className="h-4 w-4" />
+              SSH Installation
+            </TabsTrigger>
+            <TabsTrigger value="manual" className="flex items-center gap-2">
+              <Terminal className="h-4 w-4" />
+              Manual Installation
+            </TabsTrigger>
+          </TabsList>
+
+          {/* SSH Installation Tab */}
+          <TabsContent value="ssh" className="space-y-4 mt-6">
+            {/* Token Status */}
+            {token && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <span className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Deployment Token
+                    </span>
+                    <Badge 
+                      variant={timeLeft > 300000 ? "default" : "destructive"}
+                      className="text-xs"
+                    >
+                      {timeLeft > 0 ? `Expires in ${formatTime(timeLeft)}` : 'Expired'}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {timeLeft <= 0 && (
+                    <div className="text-center py-4">
+                      <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                      <p className="text-sm text-destructive mb-3">Token has expired</p>
+                      <Button onClick={generateToken} disabled={loading} size="sm">
+                        <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+                        Generate New Token
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      This token will expire in {formatTime(timeLeft)}. 
-                      Generate a new one if needed.
-                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {loading && !token && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Generating deployment token...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* SSH Connection Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">SSH Connection Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="hostname">Hostname/IP *</Label>
+                    <Input
+                      id="hostname"
+                      placeholder="192.168.1.100"
+                      value={sshForm.hostname}
+                      onChange={(e) => setSshForm({ ...sshForm, hostname: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="port">Port</Label>
+                    <Input
+                      id="port"
+                      placeholder="22"
+                      value={sshForm.port}
+                      onChange={(e) => setSshForm({ ...sshForm, port: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="username">Username *</Label>
+                  <Input
+                    id="username"
+                    placeholder="root"
+                    value={sshForm.username}
+                    onChange={(e) => setSshForm({ ...sshForm, username: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label>Authentication Method</Label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="authMethod"
+                        value="password"
+                        checked={sshForm.authMethod === 'password'}
+                        onChange={(e) => setSshForm({ ...sshForm, authMethod: e.target.value as 'password' | 'key' })}
+                      />
+                      <Lock className="h-4 w-4" />
+                      Password
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="authMethod"
+                        value="key"
+                        checked={sshForm.authMethod === 'key'}
+                        onChange={(e) => setSshForm({ ...sshForm, authMethod: e.target.value as 'password' | 'key' })}
+                      />
+                      <Key className="h-4 w-4" />
+                      Private Key
+                    </label>
+                  </div>
+                </div>
+
+                {sshForm.authMethod === 'password' ? (
+                  <div>
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter password"
+                      value={sshForm.password}
+                      onChange={(e) => setSshForm({ ...sshForm, password: e.target.value })}
+                    />
                   </div>
                 ) : (
-                  <div className="text-center py-4">
-                    <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
-                    <p className="text-sm text-destructive mb-3">Token has expired</p>
-                    <Button onClick={generateToken} disabled={loading} size="sm">
-                      <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-                      Generate New Token
-                    </Button>
+                  <div>
+                    <Label htmlFor="privateKey">Private Key *</Label>
+                    <Textarea
+                      id="privateKey"
+                      placeholder="-----BEGIN OPENSSH PRIVATE KEY-----
+MIIEpAIBAAKCAQEA...
+-----END OPENSSH PRIVATE KEY-----"
+                      rows={6}
+                      value={sshForm.privateKey}
+                      onChange={(e) => setSshForm({ ...sshForm, privateKey: e.target.value })}
+                      className="font-mono text-sm"
+                    />
                   </div>
                 )}
+
+                <div className="flex justify-end gap-3">
+                  <Button 
+                    onClick={deployViaSSH}
+                    disabled={sshDeploying || !token || timeLeft <= 0}
+                    className="flex items-center gap-2"
+                  >
+                    {sshDeploying && <RefreshCw className="h-4 w-4 animate-spin" />}
+                    Deploy Agent via SSH
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-          )}
+          </TabsContent>
 
-          {loading && !token && (
+          {/* Manual Installation Tab */}
+          <TabsContent value="manual" className="space-y-6 mt-6">
+            {/* Token Status */}
+            {token && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <span className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Deployment Token
+                    </span>
+                    <Badge 
+                      variant={timeLeft > 300000 ? "default" : "destructive"}
+                      className="text-xs"
+                    >
+                      {timeLeft > 0 ? `Expires in ${formatTime(timeLeft)}` : 'Expired'}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {timeLeft > 0 ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                        <Terminal className="h-4 w-4 flex-shrink-0" />
+                        <code className="text-sm font-mono flex-1 break-all">
+                          {installCommand}
+                        </code>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(installCommand)}
+                          className="flex-shrink-0"
+                        >
+                          {copied ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        This token will expire in {formatTime(timeLeft)}. 
+                        Generate a new one if needed.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                      <p className="text-sm text-destructive mb-3">Token has expired</p>
+                      <Button onClick={generateToken} disabled={loading} size="sm">
+                        <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+                        Generate New Token
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {loading && !token && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Generating deployment token...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Installation Steps */}
             <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Generating deployment token...</p>
+              <CardHeader>
+                <CardTitle className="text-base">Installation Steps</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
+                      1
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Connect to your server</h4>
+                      <p className="text-sm text-muted-foreground">
+                        SSH into the server where you want to install the agent.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
+                      2
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Run the installation command</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Copy and paste the command above into your terminal. The installer will:
+                      </p>
+                      <ul className="text-sm text-muted-foreground mt-2 ml-4 space-y-1">
+                        <li>• Download the latest agent binary</li>
+                        <li>• Configure the agent with your token</li>
+                        <li>• Set up system service for auto-start</li>
+                        <li>• Generate security certificates</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
+                      3
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Verify installation</h4>
+                      <p className="text-sm text-muted-foreground">
+                        The agent should appear in your dashboard within a few minutes. 
+                        Check the status to ensure it's connected properly.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          {/* Installation Steps */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Installation Steps</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
-                    1
+            {/* System Requirements */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">System Requirements</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <h4 className="font-medium">Supported OS</h4>
+                    <ul className="text-muted-foreground mt-1 space-y-1">
+                      <li>• Ubuntu 20.04+</li>
+                      <li>• CentOS 8+</li>
+                      <li>• RHEL 8+</li>
+                      <li>• Debian 11+</li>
+                    </ul>
                   </div>
                   <div>
-                    <h4 className="font-medium">Connect to your server</h4>
-                    <p className="text-sm text-muted-foreground">
-                      SSH into the server where you want to install the agent.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
-                    2
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Run the installation command</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Copy and paste the command above into your terminal. The installer will:
-                    </p>
-                    <ul className="text-sm text-muted-foreground mt-2 ml-4 space-y-1">
-                      <li>• Download the latest agent binary</li>
-                      <li>• Configure the agent with your token</li>
-                      <li>• Set up system service for auto-start</li>
-                      <li>• Generate security certificates</li>
+                    <h4 className="font-medium">Minimum Resources</h4>
+                    <ul className="text-muted-foreground mt-1 space-y-1">
+                      <li>• 1 CPU core</li>
+                      <li>• 512 MB RAM</li>
+                      <li>• 1 GB disk space</li>
+                      <li>• Internet connection</li>
                     </ul>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Verify installation</h4>
-                    <p className="text-sm text-muted-foreground">
-                      The agent should appear in your dashboard within a few minutes. 
-                      Check the status to ensure it's connected properly.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* System Requirements */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">System Requirements</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <h4 className="font-medium">Supported OS</h4>
-                  <ul className="text-muted-foreground mt-1 space-y-1">
-                    <li>• Ubuntu 20.04+</li>
-                    <li>• CentOS 8+</li>
-                    <li>• RHEL 8+</li>
-                    <li>• Debian 11+</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-medium">Minimum Resources</h4>
-                  <ul className="text-muted-foreground mt-1 space-y-1">
-                    <li>• 1 CPU core</li>
-                    <li>• 512 MB RAM</li>
-                    <li>• 1 GB disk space</li>
-                    <li>• Internet connection</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-end gap-3">
-            {token && timeLeft <= 0 && (
-              <Button onClick={generateToken} disabled={loading} variant="outline">
-                <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-                Generate New Token
-              </Button>
-            )}
-            <Button variant="outline" onClick={onClose}>
-              Close
+        <div className="flex justify-end gap-3 mt-6">
+          {token && timeLeft <= 0 && (
+            <Button onClick={generateToken} disabled={loading} variant="outline">
+              <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+              Generate New Token
             </Button>
-          </div>
+          )}
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
