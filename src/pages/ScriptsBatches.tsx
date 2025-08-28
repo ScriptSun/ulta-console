@@ -287,10 +287,27 @@ export default function ScriptsBatches() {
   };
 
   const handleToggleStatus = async (batch: ScriptBatch) => {
-    const newStatus = batch.active_version ? null : batch.latest_version?.version;
+    // Log current state for debugging
+    console.log('Toggle status for batch:', batch.name, 'Current active_version:', batch.active_version, 'Latest version:', batch.latest_version?.version);
+    
+    const isCurrentlyActive = batch.active_version !== null && batch.active_version !== undefined;
+    const newStatus = isCurrentlyActive ? null : batch.latest_version?.version;
+    const actionType = isCurrentlyActive ? 'deactivate' : 'activate';
+    
+    console.log('Will', actionType, 'batch. Setting active_version to:', newStatus);
+    
+    // Check if we have a version to activate
+    if (!isCurrentlyActive && !batch.latest_version?.version) {
+      toast({
+        title: 'Cannot Activate',
+        description: 'This batch has no versions to activate',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     try {
-      // Both activation and deactivation now use direct database updates
+      // Both activation and deactivation now use direct database updates  
       const { error } = await supabase
         .from('script_batches')
         .update({ 
@@ -302,18 +319,22 @@ export default function ScriptsBatches() {
 
       if (error) throw error;
 
+      const successMessage = actionType === 'activate' ? 'Batch Activated' : 'Batch Deactivated';
+      const description = `${batch.name} has been ${actionType}d successfully`;
+
       toast({
-        title: newStatus ? 'Batch Activated' : 'Batch Deactivated',
-        description: `${batch.name} has been ${newStatus ? 'activated' : 'deactivated'}`,
+        title: successMessage,
+        description: description,
       });
 
       // Refresh the data to show updated status
+      console.log('Refreshing batches after', actionType);
       fetchBatches();
     } catch (error) {
-      console.error('Error toggling batch status:', error);
+      console.error(`Error ${actionType}ing batch:`, error);
       toast({
         title: 'Error',
-        description: `Failed to ${newStatus ? 'activate' : 'deactivate'} batch: ${error.message}`,
+        description: `Failed to ${actionType} batch: ${error.message}`,
         variant: 'destructive',
       });
     }
