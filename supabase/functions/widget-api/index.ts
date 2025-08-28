@@ -255,8 +255,409 @@ const WIDGET_JS_CONTENT = `
             this.addMessage('assistant', response.message);
           }
         }
-      });
+  });
+}
+
+// WebSocket upgrade handler with authentication and session rotation
+async function handleWebSocketUpgrade(req: Request, supabase: any) {
+  const { headers } = req;
+  const origin = headers.get("origin");
+  
+  // Validate origin
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
+    console.log('WebSocket upgrade rejected: invalid origin', origin);
+    await supabase.from('security_events').insert({
+      event_type: 'websocket_rejected',
+      ip_address: headers.get('x-forwarded-for') || headers.get('x-real-ip'),
+      user_agent: headers.get('user-agent'),
+      payload: { 
+        origin, 
+        reason: 'invalid_origin',
+        allowed_origins: ALLOWED_ORIGINS
+      }
+    });
+    return new Response("Forbidden", { status: 403 });
+  }
+
+  // Get and validate session cookie
+  const cookieHeader = headers.get("cookie");
+  const sessionId = extractCookie(cookieHeader, "ultaai_sid");
+  
+  if (!sessionId) {
+    console.log('WebSocket upgrade rejected: no session cookie');
+    await supabase.from('security_events').insert({
+      event_type: 'websocket_rejected',
+      ip_address: headers.get('x-forwarded-for') || headers.get('x-real-ip'),
+      user_agent: headers.get('user-agent'),
+      payload: { 
+        origin,
+        reason: 'no_session_cookie'
+      }
+    });
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  // Validate session
+  const { data: session, error: sessionError } = await supabase
+    .from('widget_sessions')
+    .select('*')
+    .eq('session_id', sessionId)
+    .eq('is_active', true)
+    .single();
+
+  if (sessionError || !session || new Date(session.expires_at) < new Date()) {
+    console.log('WebSocket upgrade rejected: invalid session', { sessionError, expired: session ? new Date(session.expires_at) < new Date() : false });
+    await supabase.from('security_events').insert({
+      event_type: 'websocket_rejected',
+      session_id: sessionId,
+      ip_address: headers.get('x-forwarded-for') || headers.get('x-real-ip'),
+      user_agent: headers.get('user-agent'),
+      payload: { 
+        origin,
+        reason: sessionError ? 'session_error' : 'session_expired',
+        error: sessionError?.message
+      }
+    });
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  // Check if session needs rotation (every 15 minutes)
+  const now = new Date();
+  const lastRotated = new Date(session.last_rotated);
+  const needsRotation = (now.getTime() - lastRotated.getTime()) > 15 * 60 * 1000;
+  let currentSessionId = sessionId;
+
+  if (needsRotation) {
+    // Generate new session ID
+    const newSessionId = crypto.randomUUID();
+    
+    // Update session with rotation
+    await supabase
+      .from('widget_sessions')
+      .update({
+        session_id: newSessionId,
+        last_rotated: now.toISOString(),
+        expires_at: new Date(now.getTime() + 30 * 60 * 1000).toISOString()
+      })
+      .eq('id', session.id);
+
+    console.log('Session rotated for WebSocket:', { oldSession: sessionId, newSession: newSessionId });
+    
+    // Log session rotation
+    await supabase.from('security_events').insert({
+      event_type: 'session_rotated',
+      session_id: newSessionId,
+      agent_id: session.agent_id,
+      tenant_id: session.tenant_id,
+      user_id: session.user_id,
+      ip_address: headers.get('x-forwarded-for') || headers.get('x-real-ip'),
+      user_agent: headers.get('user-agent'),
+      payload: { 
+        origin,
+        old_session_id: sessionId,
+        reason: 'scheduled_rotation'
+      }
+    });
+    
+    // Close any existing sockets for the old session
+    if (connectedClients.has(sessionId)) {
+      const client = connectedClients.get(sessionId)!;
+      client.socket.close(1000, "Session rotated");
+      connectedClients.delete(sessionId);
     }
+
+    currentSessionId = newSessionId;
+  }
+
+  // Upgrade to WebSocket
+  const { socket, response } = Deno.upgradeWebSocket(req);
+  
+  // Log connection event
+  await supabase.from('security_events').insert({
+    event_type: 'websocket_connect',
+    session_id: currentSessionId,
+    agent_id: session.agent_id,
+    tenant_id: session.tenant_id,
+    user_id: session.user_id,
+    ip_address: headers.get('x-forwarded-for') || headers.get('x-real-ip'),
+    user_agent: headers.get('user-agent'),
+    payload: { 
+      origin,
+      session_rotated: needsRotation
+    }
+  });
+
+  // Store connection
+  const client: ConnectedClient = {
+    socket,
+    sessionId: currentSessionId,
+    agentId: session.agent_id,
+    tenantId: session.tenant_id,
+    conversationId: session.conversation_id,
+    lastRotated: needsRotation ? now : lastRotated
+  };
+  
+  connectedClients.set(currentSessionId, client);
+
+  // Set up WebSocket event handlers
+  socket.onopen = () => {
+    console.log('WebSocket connected:', currentSessionId);
+    
+    // Send connection confirmation with potentially new session ID
+    socket.send(JSON.stringify({
+      type: 'connected',
+      data: {
+        session_id: currentSessionId,
+        session_rotated: needsRotation,
+        agent_id: session.agent_id,
+        conversation_id: session.conversation_id
+      }
+    }));
+  };
+
+  socket.onmessage = async (event) => {
+    try {
+      const message = JSON.parse(event.data);
+      console.log('WebSocket message received:', { type: message.type, sessionId: currentSessionId });
+      
+      // Handle different message types
+      if (message.type === 'chat_message' && message.data) {
+        await handleWebSocketChatMessage(supabase, client, message.data);
+      } else if (message.type === 'ping') {
+        // Respond to ping with pong
+        socket.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+      }
+    } catch (error) {
+      console.error('WebSocket message error:', error);
+      socket.send(JSON.stringify({
+        type: 'error',
+        data: { message: 'Invalid message format' }
+      }));
+    }
+  };
+
+  socket.onclose = async (event) => {
+    console.log('WebSocket disconnected:', { sessionId: currentSessionId, code: event.code, reason: event.reason });
+    connectedClients.delete(currentSessionId);
+    
+    // Log disconnect event
+    await supabase.from('security_events').insert({
+      event_type: 'websocket_disconnect',
+      session_id: currentSessionId,
+      agent_id: session.agent_id,
+      tenant_id: session.tenant_id,
+      user_id: session.user_id,
+      payload: { 
+        duration_ms: Date.now() - now.getTime(),
+        close_code: event.code,
+        close_reason: event.reason
+      }
+    });
+  };
+
+  socket.onerror = async (error) => {
+    console.error('WebSocket error:', { sessionId: currentSessionId, error });
+    connectedClients.delete(currentSessionId);
+    
+    // Log error event
+    await supabase.from('security_events').insert({
+      event_type: 'websocket_error',
+      session_id: currentSessionId,
+      agent_id: session.agent_id,
+      tenant_id: session.tenant_id,
+      user_id: session.user_id,
+      payload: { 
+        error: error.toString()
+      }
+    });
+  };
+
+  // Set up session expiry monitoring
+  const sessionExpiryCheck = setInterval(async () => {
+    try {
+      const { data: currentSession } = await supabase
+        .from('widget_sessions')
+        .select('expires_at, is_active')
+        .eq('session_id', currentSessionId)
+        .single();
+
+      if (!currentSession || 
+          !currentSession.is_active || 
+          new Date(currentSession.expires_at) < new Date()) {
+        
+        console.log('Session expired, closing WebSocket:', currentSessionId);
+        
+        // Log expiry event
+        await supabase.from('security_events').insert({
+          event_type: 'websocket_session_expired',
+          session_id: currentSessionId,
+          agent_id: session.agent_id,
+          tenant_id: session.tenant_id,
+          user_id: session.user_id,
+          payload: { 
+            expires_at: currentSession?.expires_at,
+            is_active: currentSession?.is_active
+          }
+        });
+        
+        socket.close(1000, "Session expired");
+        clearInterval(sessionExpiryCheck);
+      }
+    } catch (error) {
+      console.error('Session expiry check error:', error);
+      socket.close(1011, "Session check failed");
+      clearInterval(sessionExpiryCheck);
+    }
+  }, 60000); // Check every minute
+
+  // Clear interval when socket closes
+  socket.addEventListener('close', () => {
+    clearInterval(sessionExpiryCheck);
+  });
+
+  return response;
+}
+
+// Handle chat messages received via WebSocket
+async function handleWebSocketChatMessage(supabase: any, client: ConnectedClient, messageData: any) {
+  try {
+    const { content, role = 'user' } = messageData;
+    
+    if (!content || !client.conversationId) {
+      throw new Error('Missing content or conversation ID');
+    }
+
+    // Rate limiting check (reuse the existing rate limiting logic)
+    const sessionKey = `session:${client.sessionId}`;
+    const sessionLimit = await checkRateLimit(supabase, sessionKey, 'session', 10, 10);
+    
+    if (!sessionLimit.allowed) {
+      client.socket.send(JSON.stringify({
+        type: 'error',
+        data: { 
+          message: sessionLimit.message,
+          type: 'rate_limit'
+        }
+      }));
+      return;
+    }
+
+    // Process the message through the chat API logic
+    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/chat-api/chat/message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+      },
+      body: JSON.stringify({
+        conversation_id: client.conversationId,
+        role,
+        content
+      })
+    });
+
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Chat processing failed');
+    }
+
+    // Send response back via WebSocket
+    client.socket.send(JSON.stringify({
+      type: 'chat_response',
+      data: {
+        message: result.message,
+        intent: result.intent,
+        router_response: result.router_response,
+        router_action: result.router_action
+      }
+    }));
+
+  } catch (error) {
+    console.error('WebSocket chat message error:', error);
+    client.socket.send(JSON.stringify({
+      type: 'error',
+      data: { message: error.message }
+    }));
+  }
+}
+
+// Simple rate limiting for WebSocket messages
+async function checkRateLimit(supabase: any, bucketKey: string, bucketType: string, limit: number, windowSec: number): Promise<{ allowed: boolean; message?: string }> {
+  const now = new Date();
+  const windowStart = new Date(Math.floor(now.getTime() / (windowSec * 1000)) * windowSec * 1000);
+
+  try {
+    const { data: bucket, error } = await supabase
+      .from('rate_limit_buckets')
+      .select('*')
+      .eq('bucket_key', bucketKey)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Rate limit error:', error);
+      return { allowed: true };
+    }
+
+    if (!bucket) {
+      await supabase
+        .from('rate_limit_buckets')
+        .insert({
+          bucket_key: bucketKey,
+          bucket_type: bucketType,
+          count: 1,
+          window_start: windowStart.toISOString()
+        });
+      return { allowed: true };
+    }
+
+    const bucketWindowStart = new Date(bucket.window_start);
+    
+    if (bucketWindowStart < windowStart) {
+      await supabase
+        .from('rate_limit_buckets')
+        .update({
+          count: 1,
+          window_start: windowStart.toISOString(),
+          updated_at: now.toISOString()
+        })
+        .eq('bucket_key', bucketKey);
+      return { allowed: true };
+    }
+
+    if (bucket.count >= limit) {
+      return { 
+        allowed: false, 
+        message: "You're sending messages too quickly. Please wait a moment."
+      };
+    }
+
+    await supabase
+      .from('rate_limit_buckets')
+      .update({
+        count: bucket.count + 1,
+        updated_at: now.toISOString()
+      })
+      .eq('bucket_key', bucketKey);
+
+    return { allowed: true };
+  } catch (error) {
+    console.error('Rate limit check error:', error);
+    return { allowed: true };
+  }
+}
+
+// Helper function to extract cookies
+function extractCookie(cookieHeader: string | null, name: string): string | null {
+  if (!cookieHeader) return null;
+  
+  const cookies = cookieHeader.split(';');
+  for (const cookie of cookies) {
+    const [key, value] = cookie.trim().split('=');
+    if (key === name) return value;
+  }
+  return null;
+}
     
     addMessage(role, content) {
       const messages = document.getElementById('ultaai-messages');
