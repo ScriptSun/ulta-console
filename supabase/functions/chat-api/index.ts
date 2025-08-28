@@ -673,21 +673,24 @@ async function handleChatMessage(req: Request, supabase: any, body?: any) {
     // Generate content hash for deduplication
     const contentHash = await generateContentHash(redactedContent);
 
-    // Check for duplicate messages
+    // Check for duplicate messages (only if sent within last 5 seconds to allow retries)
     if (role === 'user') {
+      const fiveSecondsAgo = new Date(Date.now() - 5000).toISOString();
       const { data: existingMessage } = await supabase
         .from('chat_messages')
-        .select('id')
+        .select('id, created_at')
         .eq('conversation_id', conversation_id)
         .eq('content_sha256', contentHash)
         .eq('role', role)
+        .gte('created_at', fiveSecondsAgo)
         .limit(1);
 
       if (existingMessage && existingMessage.length > 0) {
-        console.log('Duplicate message detected, ignoring');
+        console.log('Duplicate message detected within 5 seconds, ignoring');
         return new Response(JSON.stringify({ 
           message: { id: existingMessage[0].id },
-          duplicate: true 
+          duplicate: true,
+          router_response: "This message was already processed recently."
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });

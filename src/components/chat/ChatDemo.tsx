@@ -403,6 +403,12 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
       if (error) throw error;
 
+      // Handle duplicate message response
+      if (data.duplicate) {
+        console.log('Duplicate message detected, not adding assistant response');
+        return;
+      }
+
       // Add assistant message
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
