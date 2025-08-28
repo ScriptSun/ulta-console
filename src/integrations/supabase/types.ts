@@ -799,6 +799,7 @@ export type Database = {
       chat_messages: {
         Row: {
           content: string
+          content_sha256: string | null
           conversation_id: string
           created_at: string
           id: string
@@ -808,6 +809,7 @@ export type Database = {
         }
         Insert: {
           content: string
+          content_sha256?: string | null
           conversation_id: string
           created_at?: string
           id?: string
@@ -817,6 +819,7 @@ export type Database = {
         }
         Update: {
           content?: string
+          content_sha256?: string | null
           conversation_id?: string
           created_at?: string
           id?: string
@@ -1039,6 +1042,36 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_buckets: {
+        Row: {
+          bucket_key: string
+          bucket_type: string
+          count: number
+          created_at: string
+          id: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          bucket_key: string
+          bucket_type: string
+          count?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          bucket_key?: string
+          bucket_type?: string
+          count?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       script_batch_variants: {
         Row: {
           active: boolean
@@ -1256,6 +1289,45 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          payload: Json | null
+          session_id: string | null
+          tenant_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          payload?: Json | null
+          session_id?: string | null
+          tenant_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          payload?: Json | null
+          session_id?: string | null
+          tenant_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
