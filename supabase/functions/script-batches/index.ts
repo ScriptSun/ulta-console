@@ -32,37 +32,52 @@ Deno.serve(async (req) => {
     const { pathname, searchParams } = new URL(req.url)
     const pathParts = pathname.split('/').filter(Boolean)
     
-    // Remove 'script-batches' prefix from path parts
-    if (pathParts[0] === 'script-batches') {
-      pathParts.shift()
-    }
+    logger.info('Script batches request', { 
+      method: req.method, 
+      fullUrl: req.url, 
+      pathname, 
+      pathParts,
+      pathPartsLength: pathParts.length 
+    })
     
-    logger.info('Script batches request', { method: req.method, pathname, pathParts })
-    
-    if (req.method === 'GET' && pathParts.length === 2 && pathParts[1] === 'variants') {
-      // Get batch variants
+    // The pathname should be like: /batchId/variants or /batchId/variants/os/action
+    if (req.method === 'GET' && pathParts.length === 1 && pathParts[0] === 'health') {
+      // Health check endpoint: GET /health
+      logger.info('Health check requested')
+      return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    } else if (req.method === 'GET' && pathParts.length === 2 && pathParts[1] === 'variants') {
+      // Get batch variants: GET /batchId/variants
       const batchId = pathParts[0]
+      logger.info('Handling GET variants', { batchId })
       return await handleGetVariants(req, batchId)
     } else if (req.method === 'POST' && pathParts.length === 2 && pathParts[1] === 'variants') {
-      // Create or update variant
+      // Create or update variant: POST /batchId/variants
       const batchId = pathParts[0]
+      logger.info('Handling POST variants', { batchId })
       return await handleCreateVariant(req, batchId)
     } else if (req.method === 'POST' && pathParts.length === 4 && pathParts[1] === 'variants' && pathParts[3] === 'versions') {
-      // Create version for OS variant
+      // Create version for OS variant: POST /batchId/variants/os/versions
       const batchId = pathParts[0]
       const os = pathParts[2]
+      logger.info('Handling POST variant version', { batchId, os })
       return await handleCreateVariantVersion(req, batchId, os)
     } else if (req.method === 'POST' && pathParts.length === 4 && pathParts[1] === 'variants' && pathParts[3] === 'activate') {
-      // Activate variant version
+      // Activate variant version: POST /batchId/variants/os/activate
       const batchId = pathParts[0]
       const os = pathParts[2]
+      logger.info('Handling POST activate variant', { batchId, os })
       return await handleActivateVariant(req, batchId, os)
     } else if (req.method === 'POST' && pathParts.length === 2 && pathParts[1] === 'quick-run') {
-      // Quick run batch
+      // Quick run batch: POST /batchId/quick-run
       const batchId = pathParts[0]
+      logger.info('Handling POST quick run', { batchId })
       return await handleQuickRun(req, batchId)
     }
     
+    logger.warn('No matching route found', { method: req.method, pathParts })
     return new Response('Not found', { status: 404, headers: corsHeaders })
   } catch (error) {
     logger.error('Script batches error', { error: error.message })
