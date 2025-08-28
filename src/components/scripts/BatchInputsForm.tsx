@@ -335,13 +335,9 @@ export function BatchInputsForm({
 
   return (
     <div className="space-y-4">
-      {/* Header with validation status */}
+      {/* Header with action buttons */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge variant={isValid ? "outline" : "destructive"} className={`flex items-center gap-1 ${isValid ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' : ''}`}>
-            {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-            {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
-          </Badge>
         </div>
         <div className="flex items-center gap-2">
           {!readOnly && defaults && (
