@@ -32,6 +32,11 @@ Deno.serve(async (req) => {
     const { pathname, searchParams } = new URL(req.url)
     const pathParts = pathname.split('/').filter(Boolean)
     
+    // Remove 'script-batches' prefix from path parts
+    if (pathParts[0] === 'script-batches') {
+      pathParts.shift()
+    }
+    
     logger.info('Script batches request', { method: req.method, pathname, pathParts })
     
     if (req.method === 'GET' && pathParts.length === 2 && pathParts[1] === 'variants') {
