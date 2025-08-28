@@ -12,7 +12,8 @@ import {
   FileText,
   Users,
   Package,
-  MessageSquare
+  MessageSquare,
+  Globe
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import {
@@ -48,6 +49,7 @@ const securityItems = [
 ]
 
 const toolsItems = [
+  { title: 'Widget Guide', url: '/widget-guide', icon: Globe },
   { title: 'Integrations', url: '/integrations', icon: Puzzle },
   { title: 'Team Management', url: '/team-management', icon: Users },
   { title: 'Assertion Check', url: '/assertion-check', icon: TestTube },

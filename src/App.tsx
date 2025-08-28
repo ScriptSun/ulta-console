@@ -26,6 +26,7 @@ import CommandPolicies from "./pages/CommandPolicies";
 import Auth from "./pages/Auth";
 import AgentTasks from "./pages/AgentTasks";
 import ChatInbox from "./pages/ChatInbox";
+import WidgetGuide from "./pages/WidgetGuide";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -179,6 +180,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <ChatInbox />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/widget-guide" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <WidgetGuide />
                 </RootLayout>
               </ProtectedRoute>
             } />
