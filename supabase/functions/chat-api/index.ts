@@ -1595,22 +1595,30 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
   let actualMissingParams = [];
   
   // Find the actual batch configuration from database
-  const { data: batches } = await supabase
+  const { data: batches, error: batchError } = await supabase
     .from('script_batches')
-    .select('id, name, inputs_schema, preflight')
-    .eq('customer_id', tenantId)
+    .select('id, name, inputs_schema, preflight, customer_id')
+    .or(`customer_id.eq.${tenantId},customer_id.eq.00000000-0000-0000-0000-000000000001`)
     .or(`name.ilike.%${result.intent.replace('_', ' ')}%,name.ilike.%wordpress%install%`)
     .neq('active_version', null);
+
+  console.log('Searching for batches with tenant_id:', tenantId, 'and intent:', result.intent);
+  console.log('Batch search result:', batches, 'Error:', batchError);
 
   if (batches && batches.length > 0) {
     const batch = batches[0];
     actualInputsSchema = batch.inputs_schema;
+    
+    console.log('Found batch:', batch.name, 'customer_id:', batch.customer_id);
+    console.log('Batch inputs_schema:', actualInputsSchema);
     
     if (actualInputsSchema && actualInputsSchema.required) {
       // Check which required fields are missing
       actualMissingParams = actualInputsSchema.required.filter(field => !result.params[field]);
       console.log('Found batch schema for', batch.name, 'missing params:', actualMissingParams);
     }
+  } else {
+    console.log('No batches found for tenant:', tenantId, 'and intent:', result.intent);
   }
   
   // Fall back to intent definition if no batch schema found
