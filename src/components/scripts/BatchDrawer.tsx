@@ -110,6 +110,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   const [inputsErrors, setInputsErrors] = useState<string[]>([]);
   const [variants, setVariants] = useState<BatchVariant[]>([]);
   const [loadingVariants, setLoadingVariants] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const { toast } = useToast();
   const isEditing = !!batch?.id;
@@ -117,13 +118,19 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   const canActivate = userRole === 'approver' || userRole === 'admin';
 
   useEffect(() => {
+    console.log('BatchDrawer useEffect:', { batch, isOpen, isInitialized });
+    
     if (batch) {
+      console.log('BatchDrawer: Loading batch data:', batch);
       setFormData(batch);
+      setIsInitialized(true);
       // Load variants for existing batch
       if (batch.id) {
         loadBatchVariants(batch.id);
       }
-    } else {
+    } else if (isOpen && !isInitialized) {
+      // Only reset to defaults for truly new batches, not during loading
+      console.log('BatchDrawer: Setting default data for new batch');
       setFormData({
         name: '',
         os_targets: [],
@@ -136,8 +143,16 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       setScriptContent(DEFAULT_SCRIPT);
       setNotes('');
       setVariants([]);
+      setIsInitialized(true);
     }
-  }, [batch]);
+  }, [batch, isOpen, isInitialized]);
+
+  // Reset initialization when drawer closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsInitialized(false);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     // Save unsaved changes to localStorage

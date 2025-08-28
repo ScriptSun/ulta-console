@@ -109,10 +109,7 @@ const EXAMPLE_DEFAULTS = {
 
 // Convert JSON schema back to BuilderField objects
 const convertSchemaToFields = (schema?: any, defaults?: any): BuilderField[] => {
-  console.log('Converting schema to fields:', { schema, defaults });
-  
-  if (!schema?.properties) {
-    console.log('No schema properties found, returning empty array');
+  if (!schema?.properties || Object.keys(schema.properties).length === 0) {
     return [];
   }
   
@@ -158,7 +155,6 @@ const convertSchemaToFields = (schema?: any, defaults?: any): BuilderField[] => 
     return field;
   });
   
-  console.log('Converted fields:', fields);
   return fields;
 };
 
@@ -170,10 +166,6 @@ export function BatchInputsTab({
   onDefaultsChange,
   onValidationChange
 }: BatchInputsTabProps) {
-  useEffect(() => {
-    console.log('BatchInputsTab received props:', { inputsSchema, inputsDefaults });
-  }, [inputsSchema, inputsDefaults]);
-  
   const [schemaText, setSchemaText] = useState('');
   const [defaultsText, setDefaultsText] = useState('');
   const [formValues, setFormValues] = useState<Record<string, any>>({});
