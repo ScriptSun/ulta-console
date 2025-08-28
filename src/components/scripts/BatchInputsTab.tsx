@@ -113,7 +113,16 @@ const convertSchemaToFields = (schema?: any, defaults?: any): BuilderField[] => 
     return [];
   }
   
-  const fields = Object.entries(schema.properties).map(([key, property]: [string, any]) => {
+  const fields = Object.entries(schema.properties).map(([originalKey, property]: [string, any]) => {
+    // Convert key to lowercase to meet validation requirements
+    const key = originalKey.toLowerCase();
+    
+    // Skip fields that don't meet the validation criteria even after conversion
+    if (!/^[a-z][a-z0-9_]*$/.test(key)) {
+      console.warn(`Skipping field with invalid key format: ${originalKey} -> ${key}`);
+      return null;
+    }
+    
     // Find matching preset based on type and constraints
     let preset = 'text'; // default
     
@@ -138,11 +147,11 @@ const convertSchemaToFields = (schema?: any, defaults?: any): BuilderField[] => 
     const field: BuilderField = {
       id: crypto.randomUUID(),
       key,
-      label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+      label: originalKey.charAt(0).toUpperCase() + originalKey.slice(1).replace(/_/g, ' '),
       preset,
-      required: schema.required?.includes(key) || false,
+      required: schema.required?.includes(originalKey) || schema.required?.includes(key) || false,
       helpText: property.description,
-      defaultValue: defaults?.[key]
+      defaultValue: defaults?.[originalKey] || defaults?.[key]
     };
 
     // Add specific constraints
@@ -153,7 +162,7 @@ const convertSchemaToFields = (schema?: any, defaults?: any): BuilderField[] => 
     if (property.enum) field.options = property.enum;
 
     return field;
-  });
+  }).filter(Boolean) as BuilderField[]; // Remove null entries from invalid keys
   
   return fields;
 };
