@@ -1,635 +1,415 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import Ajv from 'https://esm.sh/ajv@8.12.0';
-import addFormats from 'https://esm.sh/ajv-formats@2.1.1';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0'
+import { corsHeaders, cors } from '../_shared/cors.ts'
+import { logger } from '../_shared/logger.ts'
+import { createHash } from 'https://deno.land/std@0.177.0/crypto/mod.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+)
 
-interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
+interface BatchVariant {
+  id: string;
+  batch_id: string;
+  os: string;
+  version: number;
+  sha256: string;
+  size_bytes: number;
+  source: string;
+  notes?: string;
+  active: boolean;
+  min_os_version?: string;
+  created_at: string;
+  created_by: string;
 }
 
-function validateScript(source: string): ValidationResult {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  
-  // Size check (256 KB)
-  const sizeBytes = new TextEncoder().encode(source).length;
-  if (sizeBytes > 256 * 1024) {
-    errors.push(`Script size (${Math.round(sizeBytes / 1024)} KB) exceeds maximum limit of 256 KB`);
-  }
-
-  // Check shebang
-  const lines = source.split('\n');
-  const firstLine = lines[0]?.trim();
-  if (!firstLine?.startsWith('#!/bin/bash') && !firstLine?.startsWith('#!/usr/bin/env bash')) {
-    errors.push('First line must be #!/bin/bash or #!/usr/bin/env bash');
-  }
-
-  // Forbidden patterns
-  const forbiddenPatterns = [
-    /rm\s+-rf\s+\/(?:\s|$)/g,
-    /mkfs/g,
-    /dd\s+.*\/dev\//g,
-  ];
-
-  for (const pattern of forbiddenPatterns) {
-    if (pattern.test(source)) {
-      errors.push(`Forbidden command pattern detected: ${pattern.source}`);
-    }
-  }
-
-  // Warning patterns
-  const warningPatterns = [
-    /\*(?!\s*\))/g,
-    /`[^`]*`/g,
-    /\$\([^)]*\)/g,
-  ];
-
-  for (const pattern of warningPatterns) {
-    if (pattern.test(source)) {
-      warnings.push(`Potentially unsafe pattern detected: ${pattern.source}`);
-    }
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-    warnings
-  };
-}
-
-function calculateSHA256(content: string): string {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(content);
-  const hash = crypto.subtle.digest('SHA-256', data);
-  return hash.then(hashBuffer => {
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }) as any;
-}
-
-function validateInputs(inputs: any, schema: any): { isValid: boolean; errors: string[]; validatedInputs: any } {
-  if (!schema) {
-    return { isValid: true, errors: [], validatedInputs: inputs || {} };
-  }
-
-  try {
-    const ajv = new Ajv({ allErrors: true, strict: false });
-    addFormats(ajv);
-    
-    // Enforce additionalProperties: false
-    if (schema.additionalProperties !== false) {
-      schema.additionalProperties = false;
-    }
-    
-    const validate = ajv.compile(schema);
-    const isValid = validate(inputs);
-    
-    if (!isValid) {
-      const errors = validate.errors?.map(err => 
-        `${err.instancePath?.replace('/', '') || err.propertyName || 'field'}: ${err.message}`
-      ) || [];
-      return { isValid: false, errors, validatedInputs: {} };
-    }
-    
-    // Strip any extra keys not in schema
-    const validatedInputs: any = {};
-    if (schema.properties && inputs) {
-      Object.keys(schema.properties).forEach(key => {
-        if (inputs[key] !== undefined) {
-          validatedInputs[key] = inputs[key];
-        }
-      });
-    }
-    
-    return { isValid: true, errors: [], validatedInputs };
-  } catch (error: any) {
-    return { isValid: false, errors: [error.message || 'Schema validation failed'], validatedInputs: {} };
-  }
-}
-
-function mapInputsToEnvVars(inputs: any): Record<string, string> {
-  const envVars: Record<string, string> = {};
-  
-  if (inputs && typeof inputs === 'object') {
-    Object.keys(inputs).forEach(key => {
-      const envKey = key.toUpperCase();
-      const value = inputs[key];
-      
-      // Convert value to string for environment variable
-      if (value !== null && value !== undefined) {
-        envVars[envKey] = String(value);
-      }
-    });
-  }
-  
-  return envVars;
-}
-
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const { pathname, searchParams } = new URL(req.url)
+    const pathParts = pathname.split('/').filter(Boolean)
+    
+    logger.info('Script batches request', { method: req.method, pathname, pathParts })
+    
+    if (req.method === 'GET' && pathParts.length === 2 && pathParts[1] === 'variants') {
+      // Get batch variants
+      const batchId = pathParts[0]
+      return await handleGetVariants(req, batchId)
+    } else if (req.method === 'POST' && pathParts.length === 2 && pathParts[1] === 'variants') {
+      // Create or update variant
+      const batchId = pathParts[0]
+      return await handleCreateVariant(req, batchId)
+    } else if (req.method === 'POST' && pathParts.length === 4 && pathParts[1] === 'variants' && pathParts[3] === 'versions') {
+      // Create version for OS variant
+      const batchId = pathParts[0]
+      const os = pathParts[2]
+      return await handleCreateVariantVersion(req, batchId, os)
+    } else if (req.method === 'POST' && pathParts.length === 4 && pathParts[1] === 'variants' && pathParts[3] === 'activate') {
+      // Activate variant version
+      const batchId = pathParts[0]
+      const os = pathParts[2]
+      return await handleActivateVariant(req, batchId, os)
+    } else if (req.method === 'POST' && pathParts.length === 2 && pathParts[1] === 'quick-run') {
+      // Quick run batch
+      const batchId = pathParts[0]
+      return await handleQuickRun(req, batchId)
+    }
+    
+    return new Response('Not found', { status: 404, headers: corsHeaders })
+  } catch (error) {
+    logger.error('Script batches error', { error: error.message })
+    return new Response('Internal server error', { status: 500, headers: corsHeaders })
+  }
+})
 
-    // Get the user from the request
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+async function handleGetVariants(req: Request, batchId: string) {
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+  }
 
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+  try {
+    // Get all variants for the batch
+    const { data: variants, error } = await supabase
+      .from('script_batch_variants')
+      .select('*')
+      .eq('batch_id', batchId)
+      .order('os')
+      .order('version', { ascending: false })
+
+    if (error) {
+      logger.error('Failed to get variants', { error, batchId })
+      return new Response('Failed to get variants', { status: 500, headers: corsHeaders })
     }
 
-    const body = await req.json();
-    const { action } = body;
+    return new Response(JSON.stringify({ variants }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  } catch (error) {
+    logger.error('Get variants error', { error: error.message, batchId })
+    return new Response('Internal server error', { status: 500, headers: corsHeaders })
+  }
+}
 
-    // Handle dependency validation before batch execution
-    if (action === 'validate_dependencies') {
-      const { batch_id } = body;
-      
-      const { data: validation, error: validationError } = await supabaseClient.rpc('validate_batch_dependencies', {
-        _batch_id: batch_id
-      });
+async function handleCreateVariant(req: Request, batchId: string) {
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+  }
 
-      if (validationError) {
-        console.error('Error validating dependencies:', validationError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to validate dependencies' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+  try {
+    const body = await req.json()
+    const { os, source, notes, min_os_version } = body
 
-      return new Response(
-        JSON.stringify({ validation: validation[0] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!os || !source) {
+      return new Response('Missing required fields', { status: 400, headers: corsHeaders })
     }
 
-    // Handle batch execution with inputs validation
-    if (action === 'execute_batch') {
-      const { batch_id, inputs } = body;
-      
-      // Get batch details including inputs schema and defaults
-      const { data: batchData, error: batchError } = await supabaseClient
-        .from('script_batches')
-        .select('name, customer_id, inputs_schema, inputs_defaults')
-        .eq('id', batch_id)
-        .single();
+    // Calculate SHA256 and size
+    const encoder = new TextEncoder()
+    const data = encoder.encode(source)
+    const hashBuffer = await createHash('sha256').update(data).digest()
+    const sha256 = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    const size_bytes = data.length
 
-      if (batchError) {
-        return new Response(
-          JSON.stringify({ error: 'Batch not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    // Get next version for this OS
+    const { data: nextVersionData, error: versionError } = await supabase
+      .rpc('get_next_variant_version', { _batch_id: batchId, _os: os })
 
-      // Server-side input validation and enforcement
-      let finalInputs = inputs || {};
-      const userEmail = user.email || user.id;
-      
-      if (batchData.inputs_schema) {
-        try {
-          console.log('Processing inputs with locked field enforcement...');
-          
-          // Create a copy of the schema without internal properties for validation
-          const cleanSchema = JSON.parse(JSON.stringify(batchData.inputs_schema));
-          if (cleanSchema.properties) {
-            Object.keys(cleanSchema.properties).forEach(key => {
-              if (cleanSchema.properties[key]._isLocked !== undefined) {
-                delete cleanSchema.properties[key]._isLocked;
-              }
-            });
-          }
-          
-          // Prepare final inputs - use defaults for locked fields, client values for others
-          finalInputs = {};
-          
-          // First, apply all defaults
-          if (batchData.inputs_defaults) {
-            Object.assign(finalInputs, batchData.inputs_defaults);
-          }
-          
-          // Then apply client inputs, but only for non-locked fields
-          if (batchData.inputs_schema?.properties && inputs) {
-            Object.keys(inputs).forEach(key => {
-              const propDef = batchData.inputs_schema.properties[key];
-              
-              if (propDef && propDef._isLocked) {
-                // Log security event for locked field override attempt
-                if (inputs[key] !== finalInputs[key]) {
-                  console.warn(`Security event: Attempt to override locked field ${key}`);
-                  
-                  // Insert audit log for security event
-                  await supabaseClient
-                    .from('audit_logs')
-                    .insert({
-                      customer_id: batchData.customer_id,
-                      actor: userEmail,
-                      action: 'security_event',
-                      target: `batch:${batchData.name}`,
-                      meta: {
-                        event_type: 'locked_input_override',
-                        field_key: key,
-                        attempted_value: inputs[key],
-                        enforced_value: finalInputs[key],
-                        batch_id: batch_id
-                      }
-                    });
-                }
-                // Don't override locked fields - keep the default value
-              } else {
-                // Allow override for non-locked fields
-                finalInputs[key] = inputs[key];
-              }
-            });
-          }
-
-          // Validate the final inputs using the clean schema
-          const inputValidation = validateInputs(finalInputs, cleanSchema);
-          if (!inputValidation.isValid) {
-            return new Response(
-              JSON.stringify({ 
-                error: 'Input validation failed', 
-                validation_errors: inputValidation.errors 
-              }),
-              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-
-          finalInputs = inputValidation.validatedInputs;
-          
-        } catch (error) {
-          console.error('Input processing error:', error);
-          return new Response(
-            JSON.stringify({
-              error: 'Failed to process inputs',
-              details: error instanceof Error ? error.message : 'Unknown processing error'
-            }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-      }
-
-      // Map inputs to environment variables
-      const envVars = mapInputsToEnvVars(finalInputs);
-      
-      // TODO: Here you would queue the batch for execution with the env vars
-      console.log('Batch execution queued:', {
-        batch_id,
-        batch_name: batchData.name,
-        env_vars: envVars
-      });
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Batch queued for execution',
-          env_vars: envVars
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (versionError) {
+      logger.error('Failed to get next version', { error: versionError, batchId, os })
+      return new Response('Failed to get next version', { status: 500, headers: corsHeaders })
     }
 
-    if (action === 'save_draft' || action === 'create_version' || action === 'activate_version') {
-      const {
-        batch_id,
-        name,
-        os_targets,
-        risk,
-        max_timeout_sec,
-        auto_version,
+    const version = nextVersionData as number
+
+    // Create the variant
+    const { data: variant, error } = await supabase
+      .from('script_batch_variants')
+      .insert({
+        batch_id: batchId,
+        os,
+        version,
+        sha256,
+        size_bytes,
         source,
         notes,
-        inputs_schema,
-        inputs_defaults,
-        sha256: clientSha256
-      } = body;
+        min_os_version,
+        active: false
+      })
+      .select()
+      .single()
 
-      // Validate the script
-      const validation = validateScript(source);
-      if (!validation.isValid) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Script validation failed',
-            validation_errors: validation.errors 
-          }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    if (error) {
+      logger.error('Failed to create variant', { error, batchId, os })
+      return new Response('Failed to create variant', { status: 500, headers: corsHeaders })
+    }
 
-      // Calculate server-side SHA256
-      const serverSha256 = await calculateSHA256(source);
-      if (serverSha256 !== clientSha256) {
-        return new Response(
-          JSON.stringify({ error: 'SHA256 mismatch - content may have been corrupted' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    return new Response(JSON.stringify({ variant }), {
+      status: 201,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  } catch (error) {
+    logger.error('Create variant error', { error: error.message, batchId })
+    return new Response('Internal server error', { status: 500, headers: corsHeaders })
+  }
+}
 
-      const sizeBytes = new TextEncoder().encode(source).length;
+async function handleCreateVariantVersion(req: Request, batchId: string, os: string) {
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+  }
 
-      // Get user's customer IDs
-      const { data: customerIds } = await supabaseClient.rpc('get_user_customer_ids');
-      if (!customerIds || customerIds.length === 0) {
-        return new Response(
-          JSON.stringify({ error: 'No customer access' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+  try {
+    const body = await req.json()
+    const { source, notes, min_os_version } = body
 
-      const customerId = customerIds[0];
+    if (!source) {
+      return new Response('Missing source', { status: 400, headers: corsHeaders })
+    }
 
-      let batchId = batch_id;
+    // Calculate SHA256 and size
+    const encoder = new TextEncoder()
+    const data = encoder.encode(source)
+    const hashBuffer = await createHash('sha256').update(data).digest()
+    const sha256 = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    const size_bytes = data.length
 
-        // Create or update batch if needed
-      if (!batchId) {
-        const { data: batchData, error: batchError } = await supabaseClient
-          .from('script_batches')
-          .insert({
-            customer_id: customerId,
-            name,
-            os_targets,
-            risk,
-            max_timeout_sec,
-            auto_version,
-            inputs_schema,
-            inputs_defaults,
-            created_by: user.id,
-            updated_by: user.id
-          })
-          .select('id')
-          .single();
+    // Get next version for this OS
+    const { data: nextVersionData, error: versionError } = await supabase
+      .rpc('get_next_variant_version', { _batch_id: batchId, _os: os })
 
-        if (batchError) {
-          console.error('Error creating batch:', batchError);
-          return new Response(
-            JSON.stringify({ error: 'Failed to create batch' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+    if (versionError) {
+      logger.error('Failed to get next version', { error: versionError, batchId, os })
+      return new Response('Failed to get next version', { status: 500, headers: corsHeaders })
+    }
+
+    const version = nextVersionData as number
+
+    // Create the version
+    const { data: variant, error } = await supabase
+      .from('script_batch_variants')
+      .insert({
+        batch_id: batchId,
+        os,
+        version,
+        sha256,
+        size_bytes,
+        source,
+        notes,
+        min_os_version,
+        active: false
+      })
+      .select()
+      .single()
+
+    if (error) {
+      logger.error('Failed to create variant version', { error, batchId, os })
+      return new Response('Failed to create variant version', { status: 500, headers: corsHeaders })
+    }
+
+    return new Response(JSON.stringify({ variant }), {
+      status: 201,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  } catch (error) {
+    logger.error('Create variant version error', { error: error.message, batchId, os })
+    return new Response('Internal server error', { status: 500, headers: corsHeaders })
+  }
+}
+
+async function handleActivateVariant(req: Request, batchId: string, os: string) {
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+  }
+
+  try {
+    const body = await req.json()
+    const { version } = body
+
+    if (!version) {
+      return new Response('Missing version', { status: 400, headers: corsHeaders })
+    }
+
+    // Get user ID from auth header
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    )
+    
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    )
+
+    if (authError || !user) {
+      return new Response('Invalid token', { status: 401, headers: corsHeaders })
+    }
+
+    // Activate the variant version
+    const { data: success, error } = await supabase
+      .rpc('activate_variant_version', { 
+        _batch_id: batchId, 
+        _os: os, 
+        _version: version, 
+        _user_id: user.id 
+      })
+
+    if (error) {
+      logger.error('Failed to activate variant', { error, batchId, os, version })
+      return new Response('Failed to activate variant', { status: 500, headers: corsHeaders })
+    }
+
+    if (!success) {
+      return new Response('Activation failed', { status: 400, headers: corsHeaders })
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  } catch (error) {
+    logger.error('Activate variant error', { error: error.message, batchId, os })
+    return new Response('Internal server error', { status: 500, headers: corsHeaders })
+  }
+}
+
+async function handleQuickRun(req: Request, batchId: string) {
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+  }
+
+  try {
+    const body = await req.json()
+    const { inputs = {}, agentOs = 'ubuntu', agentOsVersion = '22.04' } = body
+
+    // Get the batch details
+    const { data: batch, error: batchError } = await supabase
+      .from('script_batches')
+      .select('*')
+      .eq('id', batchId)
+      .single()
+
+    if (batchError || !batch) {
+      logger.error('Batch not found', { error: batchError, batchId })
+      return new Response('Batch not found', { status: 404, headers: corsHeaders })
+    }
+
+    // Get the active variant for the agent's OS
+    const { data: activeVariant, error: variantError } = await supabase
+      .from('script_batch_variants')
+      .select('*')
+      .eq('batch_id', batchId)
+      .eq('os', agentOs)
+      .eq('active', true)
+      .single()
+
+    if (variantError || !activeVariant) {
+      logger.error('No active variant found for OS', { error: variantError, batchId, agentOs })
+      return new Response(`No active ${agentOs} variant available`, { status: 400, headers: corsHeaders })
+    }
+
+    // Check minimum OS version if specified
+    if (activeVariant.min_os_version) {
+      // Simple semantic version comparison (assumes format like "22.04")
+      const compareVersions = (a: string, b: string) => {
+        const aParts = a.split('.').map(Number)
+        const bParts = b.split('.').map(Number)
+        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+          const aPart = aParts[i] || 0
+          const bPart = bParts[i] || 0
+          if (aPart !== bPart) return aPart - bPart
         }
-
-        batchId = batchData.id;
-
-        // Log the creation
-        await supabaseClient
-          .from('audit_logs')
-          .insert({
-            customer_id: customerId,
-            actor: user.email || user.id,
-            action: 'batch_create',
-            target: `script_batch:${name}`,
-            meta: {
-              batch_id: batchId,
-              user_id: user.id
-            }
-          });
-      } else {
-        // Update existing batch
-        await supabaseClient
-          .from('script_batches')
-          .update({
-            name,
-            os_targets,
-            risk,
-            max_timeout_sec,
-            auto_version,
-            inputs_schema,
-            inputs_defaults,
-            updated_by: user.id
-          })
-          .eq('id', batchId);
+        return 0
       }
 
-      if (action === 'save_draft') {
+      if (compareVersions(agentOsVersion, activeVariant.min_os_version) < 0) {
         return new Response(
-          JSON.stringify({ 
-            success: true,
-            batch_id: batchId,
-            message: 'Draft saved successfully'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+          `${agentOs} ${agentOsVersion} is below minimum required version ${activeVariant.min_os_version}`,
+          { status: 400, headers: corsHeaders }
+        )
       }
+    }
 
-      // Get next version number
-      const { data: nextVersionData } = await supabaseClient.rpc('get_next_batch_version', {
-        _batch_id: batchId
-      });
+    // Validate inputs if schema exists
+    let validatedInputs = inputs
+    if (batch.inputs_schema) {
+      // TODO: Add input validation here if needed
+    }
 
-      const nextVersion = nextVersionData || 1;
+    // Get user ID from auth header
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    )
+    
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    )
 
-      // Create version
-      const versionStatus = (action === 'activate_version') ? 'active' : 'draft';
-      
-      const { data: versionData, error: versionError } = await supabaseClient
-        .from('script_batch_versions')
-        .insert({
-          batch_id: batchId,
-          version: nextVersion,
-          sha256: serverSha256,
-          size_bytes: sizeBytes,
-          source,
-          notes,
-          status: versionStatus,
-          created_by: user.id
-        })
-        .select('*')
-        .single();
+    if (authError || !user) {
+      return new Response('Invalid token', { status: 401, headers: corsHeaders })
+    }
 
-      if (versionError) {
-        console.error('Error creating version:', versionError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to create version' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    // Get the script source from the active variant
+    const scriptSource = activeVariant.source
 
-      if (action === 'activate_version') {
-        // Use the database function to activate
-        const { data: activateResult } = await supabaseClient.rpc('activate_batch_version', {
-          _batch_id: batchId,
-          _version: nextVersion,
-          _user_id: user.id
-        });
-
-        if (!activateResult) {
-          return new Response(
-            JSON.stringify({ error: 'Failed to activate version' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+    // Map inputs to environment variables
+    const envVars: Record<string, string> = {}
+    if (validatedInputs && typeof validatedInputs === 'object') {
+      Object.keys(validatedInputs).forEach(key => {
+        const envKey = key.toUpperCase()
+        const value = validatedInputs[key]
+        if (value !== null && value !== undefined) {
+          envVars[envKey] = String(value)
         }
-      }
-
-      // Log version creation
-      await supabaseClient
-        .from('audit_logs')
-        .insert({
-          customer_id: customerId,
-          actor: user.email || user.id,
-          action: action === 'activate_version' ? 'batch_version_activate' : 'batch_version_create',
-          target: `script_batch:${name}`,
-          meta: {
-            batch_id: batchId,
-            version: nextVersion,
-            sha256: serverSha256,
-            user_id: user.id
-          }
-        });
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          batch_id: batchId,
-          version: nextVersion,
-          sha256: serverSha256,
-          message: action === 'activate_version' ? 'Version activated successfully' : 'Version created successfully'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      })
     }
 
-    if (action === 'activate') {
-      const { batch_id, version } = body;
-      
-      const { data: activateResult } = await supabaseClient.rpc('activate_batch_version', {
-        _batch_id: batch_id,
-        _version: version,
-        _user_id: user.id
-      });
-
-      if (!activateResult) {
-        return new Response(
-          JSON.stringify({ error: 'Failed to activate version' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Version activated successfully'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Return the execution payload with variant information
+    const executionPayload = {
+      batch_id: batchId,
+      batch_name: batch.name,
+      inputs: validatedInputs,
+      script: scriptSource,
+      sha256: activeVariant.sha256,
+      timeout_sec: batch.max_timeout_sec || 300,
+      variant: {
+        os: activeVariant.os,
+        version: activeVariant.version,
+        min_os_version: activeVariant.min_os_version
+      },
+      env_vars: envVars
     }
 
-    if (action === 'duplicate') {
-      const { batch_id } = body;
+    logger.info('Quick run prepared', { 
+      batchId, 
+      agentOs, 
+      variant: `${activeVariant.os} v${activeVariant.version}` 
+    })
 
-      // Get the original batch and its active version
-      const { data: originalBatch, error: batchError } = await supabaseClient
-        .from('script_batches')
-        .select(`
-          *,
-          script_batch_versions!inner (
-            source,
-            notes
-          )
-        `)
-        .eq('id', batch_id)
-        .eq('script_batch_versions.status', 'active')
-        .single();
-
-      if (batchError || !originalBatch) {
-        return new Response(
-          JSON.stringify({ error: 'Original batch not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const activeVersion = originalBatch.script_batch_versions[0];
-      const newName = `${originalBatch.name} (Copy)`;
-
-      // Create new batch
-      const { data: newBatch, error: newBatchError } = await supabaseClient
-        .from('script_batches')
-        .insert({
-          customer_id: originalBatch.customer_id,
-          name: newName,
-          os_targets: originalBatch.os_targets,
-          risk: originalBatch.risk,
-          max_timeout_sec: originalBatch.max_timeout_sec,
-          auto_version: originalBatch.auto_version,
-          created_by: user.id,
-          updated_by: user.id
-        })
-        .select('id')
-        .single();
-
-      if (newBatchError) {
-        return new Response(
-          JSON.stringify({ error: 'Failed to duplicate batch' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Create version 1 for the new batch
-      const serverSha256 = await calculateSHA256(activeVersion.source);
-      const sizeBytes = new TextEncoder().encode(activeVersion.source).length;
-
-      await supabaseClient
-        .from('script_batch_versions')
-        .insert({
-          batch_id: newBatch.id,
-          version: 1,
-          sha256: serverSha256,
-          size_bytes: sizeBytes,
-          source: activeVersion.source,
-          notes: activeVersion.notes,
-          status: 'draft',
-          created_by: user.id
-        });
-
-      // Log the duplication
-      await supabaseClient
-        .from('audit_logs')
-        .insert({
-          customer_id: originalBatch.customer_id,
-          actor: user.email || user.id,
-          action: 'batch_duplicate',
-          target: `script_batch:${newName}`,
-          meta: {
-            original_batch_id: batch_id,
-            new_batch_id: newBatch.id,
-            user_id: user.id
-          }
-        });
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Batch duplicated successfully'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({ error: 'Invalid action' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Batch prepared for execution',
+      execution: executionPayload
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
 
   } catch (error) {
-    console.error('Error in script-batches function:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    logger.error('Quick run error', { error: error.message, batchId })
+    return new Response('Internal server error', { status: 500, headers: corsHeaders })
   }
-});
+}

@@ -818,6 +818,51 @@ export type Database = {
         }
         Relationships: []
       }
+      script_batch_variants: {
+        Row: {
+          active: boolean
+          batch_id: string
+          created_at: string
+          created_by: string
+          id: string
+          min_os_version: string | null
+          notes: string | null
+          os: string
+          sha256: string
+          size_bytes: number
+          source: string
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          batch_id: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          min_os_version?: string | null
+          notes?: string | null
+          os: string
+          sha256: string
+          size_bytes: number
+          source: string
+          version: number
+        }
+        Update: {
+          active?: boolean
+          batch_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          min_os_version?: string | null
+          notes?: string | null
+          os?: string
+          sha256?: string
+          size_bytes?: number
+          source?: string
+          version?: number
+        }
+        Relationships: []
+      }
       script_batch_versions: {
         Row: {
           batch_id: string
@@ -1073,6 +1118,42 @@ export type Database = {
       }
     }
     Views: {
+      v_batch_variants_active: {
+        Row: {
+          batch_id: string | null
+          created_at: string | null
+          created_by: string | null
+          min_os_version: string | null
+          notes: string | null
+          os: string | null
+          sha256: string | null
+          source: string | null
+          version: number | null
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          min_os_version?: string | null
+          notes?: string | null
+          os?: string | null
+          sha256?: string | null
+          source?: string | null
+          version?: number | null
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          min_os_version?: string | null
+          notes?: string | null
+          os?: string | null
+          sha256?: string | null
+          source?: string | null
+          version?: number | null
+        }
+        Relationships: []
+      }
       view_active_commands: {
         Row: {
           count: number | null
@@ -1103,12 +1184,25 @@ export type Database = {
         Args: { _batch_id: string; _user_id: string; _version: number }
         Returns: boolean
       }
+      activate_variant_version: {
+        Args: {
+          _batch_id: string
+          _os: string
+          _user_id: string
+          _version: number
+        }
+        Returns: boolean
+      }
       can_activate_in_customer: {
         Args: { _customer_id: string }
         Returns: boolean
       }
       get_next_batch_version: {
         Args: { _batch_id: string }
+        Returns: number
+      }
+      get_next_variant_version: {
+        Args: { _batch_id: string; _os: string }
         Returns: number
       }
       get_user_customer_ids: {
@@ -1132,6 +1226,14 @@ export type Database = {
           is_valid: boolean
           missing_dependencies: string[]
           outdated_dependencies: string[]
+        }[]
+      }
+      validate_variant_dependencies: {
+        Args: { _batch_id: string; _os: string }
+        Returns: {
+          incompatible_variants: string[]
+          is_valid: boolean
+          missing_variants: string[]
         }[]
       }
     }
