@@ -1415,6 +1415,39 @@ export type Database = {
         }
         Relationships: []
       }
+      widget_metrics: {
+        Row: {
+          created_at: string
+          date_bucket: string
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_value: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_bucket?: string
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_value?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_bucket?: string
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_value?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       widget_sessions: {
         Row: {
           agent_id: string
@@ -1622,6 +1655,15 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      increment_widget_metric: {
+        Args: {
+          _increment?: number
+          _metadata?: Json
+          _metric_type: string
+          _tenant_id: string
+        }
+        Returns: undefined
       }
       is_admin: {
         Args: Record<PropertyKey, never>
