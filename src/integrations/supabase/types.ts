@@ -1226,20 +1226,6 @@ export type Database = {
         Args: { _batch_id: string; _os: string }
         Returns: number
       }
-      get_user_certificate_metadata: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          agent_id: string
-          cert_pem: string
-          created_at: string
-          expires_at: string
-          fingerprint_sha256: string
-          id: string
-          issued_at: string
-          revoked_at: string
-          updated_at: string
-        }[]
-      }
       get_user_customer_ids: {
         Args: Record<PropertyKey, never>
         Returns: string[]
