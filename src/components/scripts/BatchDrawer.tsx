@@ -169,6 +169,30 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     }
   }, [formData, scriptContent, notes, hasUnsavedChanges, batch]);
 
+  // Auto-validate script content
+  useEffect(() => {
+    if (scriptContent.trim()) {
+      // Simple validation for now - just check if content exists and is not empty
+      const mockValidation: ValidationResult = {
+        isValid: scriptContent.trim().length > 0,
+        sha256: `mock-${Date.now()}`, // Temporary mock hash
+        sizeBytes: new Blob([scriptContent]).size,
+        errors: scriptContent.trim().length === 0 ? ['Script content cannot be empty'] : [],
+        warnings: []
+      };
+      setValidation(mockValidation);
+    } else {
+      // For empty script, set as valid for new batches
+      setValidation({
+        isValid: true,
+        sha256: 'empty-script',
+        sizeBytes: 0,
+        errors: [],
+        warnings: []
+      });
+    }
+  }, [scriptContent]);
+
   useEffect(() => {
     // Load draft from localStorage
     if (isOpen && formData.name) {
@@ -877,6 +901,11 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                   onClick={handleSaveDraft}
                   disabled={loading || !validation?.isValid || !inputsValid}
                   className="flex items-center gap-2"
+                  title={
+                    !validation?.isValid ? 'Script validation failed' : 
+                    !inputsValid ? `Input validation failed: ${inputsErrors.join(', ')}` : 
+                    'Save your changes'
+                  }
                 >
                   <Save className="h-4 w-4" />
                   {loading ? 'Saving...' : 'Save Draft'}
