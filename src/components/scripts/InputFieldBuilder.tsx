@@ -4,6 +4,20 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -19,6 +33,7 @@ import {
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { FieldList } from './FieldList';
 import { FieldEditor, BuilderField } from './FieldEditor';
 import { BatchInputsForm } from './BatchInputsForm';
@@ -46,8 +61,10 @@ export function InputFieldBuilder({
   const [isValid, setIsValid] = useState(true);
   const [generatedSchema, setGeneratedSchema] = useState<any>(null);
   const [generatedDefaults, setGeneratedDefaults] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Initialize AJV
   const ajv = new Ajv({ allErrors: true, strict: false });
@@ -182,6 +199,7 @@ export function InputFieldBuilder({
     if (canEdit) {
       setEditingField(field);
       setIsCreatingNew(false);
+      setIsModalOpen(true);
     }
   };
 
@@ -189,6 +207,7 @@ export function InputFieldBuilder({
     if (canEdit) {
       setEditingField(null);
       setIsCreatingNew(true);
+      setIsModalOpen(true);
     }
   };
 
@@ -200,11 +219,13 @@ export function InputFieldBuilder({
     }
     setEditingField(null);
     setIsCreatingNew(false);
+    setIsModalOpen(false);
   };
 
   const handleCancelEdit = () => {
     setEditingField(null);
     setIsCreatingNew(false);
+    setIsModalOpen(false);
   };
 
   const handleLoadExample = () => {
@@ -247,6 +268,53 @@ export function InputFieldBuilder({
 
   const existingKeys = fields.map(f => f.key);
 
+  const FieldModal = () => {
+    const content = (
+      <FieldEditor
+        field={editingField}
+        existingKeys={existingKeys}
+        onSave={handleSaveField}
+        onCancel={handleCancelEdit}
+      />
+    );
+
+    if (isMobile) {
+      return (
+        <Drawer open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>
+                {isCreatingNew ? 'Add Field' : 'Edit Field'}
+              </DrawerTitle>
+              <DrawerDescription>
+                {isCreatingNew ? 'Configure your new input field' : 'Modify the field configuration'}
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-4">
+              {content}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      );
+    }
+
+    return (
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {isCreatingNew ? 'Add Field' : 'Edit Field'}
+            </DialogTitle>
+            <DialogDescription>
+              {isCreatingNew ? 'Configure your new input field' : 'Modify the field configuration'}
+            </DialogDescription>
+          </DialogHeader>
+          {content}
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Validation Summary */}
@@ -285,40 +353,19 @@ export function InputFieldBuilder({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
-        {/* Left Column - Field List */}
-        <div>
-          <FieldList
-            fields={fields}
-            onFieldsChange={handleFieldsChange}
-            onEditField={handleEditField}
-            onNewField={handleNewField}
-          />
-        </div>
-
-        {/* Right Column - Field Editor */}
-        <div>
-          {(editingField || isCreatingNew) ? (
-            <FieldEditor
-              field={editingField}
-              existingKeys={existingKeys}
-              onSave={handleSaveField}
-              onCancel={handleCancelEdit}
-            />
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Field Editor</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Select a field to edit or create a new one</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+      {/* Full Width Field List */}
+      <div>
+        <FieldList
+          fields={fields}
+          onFieldsChange={handleFieldsChange}
+          onEditField={handleEditField}
+          onNewField={handleNewField}
+          isFullWidth={true}
+        />
       </div>
+
+      {/* Field Editor Modal */}
+      <FieldModal />
 
       {/* Live Preview */}
       <Card>

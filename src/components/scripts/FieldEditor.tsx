@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -204,222 +203,215 @@ export function FieldEditor({ field, existingKeys, onSave, onCancel }: FieldEdit
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">
-          {field ? 'Edit Field' : 'New Field'}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="label">Label *</Label>
-          <Input
-            id="label"
-            value={formData.label}
-            onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
-            className={errors.label ? 'border-destructive' : ''}
-          />
-          {errors.label && <p className="text-xs text-destructive">{errors.label}</p>}
-        </div>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="label">Label *</Label>
+        <Input
+          id="label"
+          value={formData.label}
+          onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
+          className={errors.label ? 'border-destructive' : ''}
+        />
+        {errors.label && <p className="text-xs text-destructive">{errors.label}</p>}
+      </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="key">Key *</Label>
-            {keyLocked && (
-              <Badge variant="secondary" className="text-xs">
-                Key locked by preset
-              </Badge>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Input
-              id="key"
-              value={formData.key}
-              onChange={(e) => !keyLocked && setFormData(prev => ({ ...prev, key: e.target.value.toLowerCase() }))}
-              placeholder="lowercase_with_underscores"
-              className={errors.key ? 'border-destructive' : ''}
-              disabled={keyLocked}
-            />
-            {formData.key && (
-              <Badge variant="outline" className="text-xs font-mono">
-                ENV: {formData.key.toUpperCase()}
-              </Badge>
-            )}
-            {keyLocked && (
-              <p className="text-xs text-muted-foreground">Key locked by preset.</p>
-            )}
-            {errors.key && <p className="text-xs text-destructive">{errors.key}</p>}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="preset">Preset</Label>
-          <Select
-            value={formData.preset}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, preset: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(FIELD_PRESETS).map(([key, preset]) => (
-                <SelectItem key={key} value={key}>
-                  {preset.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="required"
-            checked={formData.required}
-            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, required: checked }))}
-          />
-          <Label htmlFor="required">Required</Label>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Default Value</Label>
-            {preset && !preset.runtime_editable && (
-              <Badge variant="outline" className="text-xs">
-                Locked value
-              </Badge>
-            )}
-          </div>
-          <div className={preset && !preset.runtime_editable ? 'opacity-60' : ''}>
-            {getDefaultValueInput()}
-          </div>
-          {preset && !preset.runtime_editable && (
-            <p className="text-xs text-muted-foreground">Value locked by preset configuration.</p>
-          )}
-        </div>
-
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="runtimeOverride"
-              checked={preset?.runtime_editable || false}
-              disabled={true}
-            />
-            <Label htmlFor="runtimeOverride" className="text-sm">Allow override at runtime</Label>
-          </div>
-          {preset && !preset.runtime_editable && (
+          <Label htmlFor="key">Key *</Label>
+          {keyLocked && (
             <Badge variant="secondary" className="text-xs">
-              Disabled by preset
+              Key locked by preset
             </Badge>
           )}
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="helpText">Help Text</Label>
-          <Textarea
-            id="helpText"
-            value={formData.helpText}
-            onChange={(e) => setFormData(prev => ({ ...prev, helpText: e.target.value }))}
-            rows={2}
+          <Input
+            id="key"
+            value={formData.key}
+            onChange={(e) => !keyLocked && setFormData(prev => ({ ...prev, key: e.target.value.toLowerCase() }))}
+            placeholder="lowercase_with_underscores"
+            className={errors.key ? 'border-destructive' : ''}
+            disabled={keyLocked}
           />
+          {formData.key && (
+            <Badge variant="outline" className="text-xs font-mono">
+              ENV: {formData.key.toUpperCase()}
+            </Badge>
+          )}
+          {keyLocked && (
+            <p className="text-xs text-muted-foreground">Key locked by preset.</p>
+          )}
+          {errors.key && <p className="text-xs text-destructive">{errors.key}</p>}
         </div>
+      </div>
 
-        {/* Preset-specific options */}
-        {(formData.preset === 'integer' || formData.preset === 'port') && (
-          <>
-            <Separator />
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="minValue">Min Value</Label>
-                <Input
-                  id="minValue"
-                  type="number"
-                  value={formData.minValue || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, minValue: parseInt(e.target.value) || undefined }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxValue">Max Value</Label>
-                <Input
-                  id="maxValue"
-                  type="number"
-                  value={formData.maxValue || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, maxValue: parseInt(e.target.value) || undefined }))}
-                />
-              </div>
-            </div>
-          </>
+      <div className="space-y-2">
+        <Label htmlFor="preset">Preset</Label>
+        <Select
+          value={formData.preset}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, preset: value }))}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(FIELD_PRESETS).map(([key, preset]) => (
+              <SelectItem key={key} value={key}>
+                {preset.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="required"
+          checked={formData.required}
+          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, required: checked }))}
+        />
+        <Label htmlFor="required">Required</Label>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label>Default Value</Label>
+          {preset && !preset.runtime_editable && (
+            <Badge variant="outline" className="text-xs">
+              Locked value
+            </Badge>
+          )}
+        </div>
+        <div className={preset && !preset.runtime_editable ? 'opacity-60' : ''}>
+          {getDefaultValueInput()}
+        </div>
+        {preset && !preset.runtime_editable && (
+          <p className="text-xs text-muted-foreground">Value locked by preset configuration.</p>
         )}
+      </div>
 
-        {(formData.preset === 'text' || formData.preset === 'textarea' || formData.preset === 'password') && (
-          <>
-            <Separator />
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="minLength">Min Length</Label>
-                <Input
-                  id="minLength"
-                  type="number"
-                  value={formData.minLength || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, minLength: parseInt(e.target.value) || undefined }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxLength">Max Length</Label>
-                <Input
-                  id="maxLength"
-                  type="number"
-                  value={formData.maxLength || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, maxLength: parseInt(e.target.value) || undefined }))}
-                />
-              </div>
-            </div>
-          </>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="runtimeOverride"
+            checked={preset?.runtime_editable || false}
+            disabled={true}
+          />
+          <Label htmlFor="runtimeOverride" className="text-sm">Allow override at runtime</Label>
+        </div>
+        {preset && !preset.runtime_editable && (
+          <Badge variant="secondary" className="text-xs">
+            Disabled by preset
+          </Badge>
         )}
+      </div>
 
-        {formData.preset === 'select' && (
-          <>
-            <Separator />
+      <div className="space-y-2">
+        <Label htmlFor="helpText">Help Text</Label>
+        <Textarea
+          id="helpText"
+          value={formData.helpText}
+          onChange={(e) => setFormData(prev => ({ ...prev, helpText: e.target.value }))}
+          rows={2}
+        />
+      </div>
+
+      {/* Preset-specific options */}
+      {(formData.preset === 'integer' || formData.preset === 'port') && (
+        <>
+          <Separator />
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Options</Label>
-                <Button type="button" variant="outline" size="sm" onClick={handleAddOption}>
-                  <Plus className="h-3 w-3 mr-1" />
-                  Add Option
+              <Label htmlFor="minValue">Min Value</Label>
+              <Input
+                id="minValue"
+                type="number"
+                value={formData.minValue || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, minValue: parseInt(e.target.value) || undefined }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maxValue">Max Value</Label>
+              <Input
+                id="maxValue"
+                type="number"
+                value={formData.maxValue || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, maxValue: parseInt(e.target.value) || undefined }))}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {(formData.preset === 'text' || formData.preset === 'textarea' || formData.preset === 'password') && (
+        <>
+          <Separator />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="minLength">Min Length</Label>
+              <Input
+                id="minLength"
+                type="number"
+                value={formData.minLength || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, minLength: parseInt(e.target.value) || undefined }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maxLength">Max Length</Label>
+              <Input
+                id="maxLength"
+                type="number"
+                value={formData.maxLength || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, maxLength: parseInt(e.target.value) || undefined }))}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {formData.preset === 'select' && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Options</Label>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddOption}>
+                <Plus className="h-3 w-3 mr-1" />
+                Add Option
+              </Button>
+            </div>
+            {formData.options?.map((option, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={option}
+                  onChange={(e) => handleOptionChange(index, e.target.value)}
+                  placeholder="Option value"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRemoveOption(index)}
+                >
+                  <Minus className="h-3 w-3" />
                 </Button>
               </div>
-              {formData.options?.map((option, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Input
-                    value={option}
-                    onChange={(e) => handleOptionChange(index, e.target.value)}
-                    placeholder="Option value"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRemoveOption(index)}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-              {errors.options && <p className="text-xs text-destructive">{errors.options}</p>}
-            </div>
-          </>
-        )}
+            ))}
+            {errors.options && <p className="text-xs text-destructive">{errors.options}</p>}
+          </div>
+        </>
+      )}
 
-        <Separator />
-        
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>
-            {field ? 'Update Field' : 'Add Field'}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      <Separator />
+      
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave}>
+          {field ? 'Update Field' : 'Add Field'}
+        </Button>
+      </div>
+    </div>
   );
 }

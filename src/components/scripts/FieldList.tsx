@@ -50,6 +50,7 @@ import {
   X,
   Minus
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { BuilderField } from './FieldEditor';
 import { FIELD_PRESETS } from './FieldPresets';
 
@@ -58,6 +59,7 @@ interface FieldListProps {
   onFieldsChange: (fields: BuilderField[]) => void;
   onEditField: (field: BuilderField) => void;
   onNewField: () => void;
+  isFullWidth?: boolean;
 }
 
 interface SortableFieldItemProps {
@@ -70,6 +72,7 @@ interface SortableFieldItemProps {
   onStartEdit: () => void;
   onSaveEdit: (field: BuilderField) => void;
   onCancelEdit: () => void;
+  isFullWidth?: boolean;
 }
 
 function SortableFieldItem({ 
@@ -81,7 +84,8 @@ function SortableFieldItem({
   isEditing,
   onStartEdit,
   onSaveEdit,
-  onCancelEdit
+  onCancelEdit,
+  isFullWidth = false
 }: SortableFieldItemProps) {
   const {
     attributes,
@@ -345,12 +349,12 @@ function SortableFieldItem({
   }
 
   return (
-    <Card ref={setNodeRef} style={style} className="mb-2">
+    <Card ref={setNodeRef} style={style} className={cn("mb-3", isFullWidth ? "w-full" : "mb-2")}>
       <CardContent className="p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center justify-between flex-wrap gap-2 md:flex-nowrap">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <button
-              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground flex-shrink-0"
               {...attributes}
               {...listeners}
             >
@@ -358,17 +362,17 @@ function SortableFieldItem({
             </button>
             
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="font-medium text-sm truncate">{field.label}</span>
                 {field.required && (
-                  <Badge variant="destructive" className="text-xs py-0 px-1">
+                  <Badge variant="destructive" className="text-xs py-0 px-1 flex-shrink-0">
                     Required
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="font-mono bg-muted px-1 rounded">{field.key}</span>
-                <Badge variant="outline" className="text-xs">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                <span className="font-mono bg-muted px-1 rounded flex-shrink-0">{field.key}</span>
+                <Badge variant="outline" className="text-xs flex-shrink-0">
                   {typeLabel}
                 </Badge>
                 {field.defaultValue !== undefined && field.defaultValue !== '' && (
@@ -380,7 +384,7 @@ function SortableFieldItem({
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -417,7 +421,7 @@ function SortableFieldItem({
   );
 }
 
-export function FieldList({ fields, onFieldsChange, onEditField, onNewField }: FieldListProps) {
+export function FieldList({ fields, onFieldsChange, onEditField, onNewField, isFullWidth = false }: FieldListProps) {
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   
   const sensors = useSensors(
@@ -502,6 +506,7 @@ export function FieldList({ fields, onFieldsChange, onEditField, onNewField }: F
                 onStartEdit={() => handleStartEdit(field.id)}
                 onSaveEdit={handleSaveEdit}
                 onCancelEdit={handleCancelEdit}
+                isFullWidth={isFullWidth}
               />
             ))}
           </SortableContext>
