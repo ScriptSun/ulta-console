@@ -33,3 +33,6 @@ verify_jwt = false
 
 [functions.signer-hook]
 verify_jwt = false
+
+[functions.chat-api]
+verify_jwt = false
