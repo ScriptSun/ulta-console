@@ -475,6 +475,56 @@ export function BatchInputsTab({
     }
   };
 
+  const handleSave = () => {
+    if (!canEdit || !isValid) return;
+    
+    try {
+      // Get current schema and validate it
+      const schemaValidation = validateSchema(schemaText);
+      if (!schemaValidation.isValid) {
+        toast({
+          title: 'Save Failed',
+          description: 'Schema validation failed. Please fix errors before saving.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Get current defaults and validate them
+      const defaultsValidation = validateDefaults(defaultsText, schemaValidation.schema);
+      if (!defaultsValidation.isValid) {
+        toast({
+          title: 'Save Failed',
+          description: 'Defaults validation failed. Please fix errors before saving.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Update with current form values as new defaults
+      const updatedDefaults = { ...defaultsValidation.defaults, ...formValues };
+
+      // Update the defaults text to reflect current form values
+      setDefaultsText(JSON.stringify(updatedDefaults, null, 2));
+
+      // Notify parent components of the changes
+      onSchemaChange?.(schemaValidation.schema);
+      onDefaultsChange?.(updatedDefaults);
+      
+      toast({
+        title: 'Saved Successfully',
+        description: 'Schema and input values have been updated.',
+      });
+    } catch (error) {
+      console.error('Save failed:', error);
+      toast({
+        title: 'Save Failed',
+        description: 'An unexpected error occurred while saving.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const shouldMaskField = (key: string, type: string) => {
     return key.toLowerCase().includes('pass') || 
            key.toLowerCase().includes('secret') || 
@@ -722,7 +772,8 @@ export function BatchInputsTab({
         <Button
           variant="default"
           size="default"
-          disabled={!canEdit}
+          disabled={!canEdit || !isValid}
+          onClick={handleSave}
           className="flex items-center gap-2"
         >
           <Save className="h-4 w-4" />
