@@ -443,55 +443,30 @@ MIIEpAIBAAKCAQEA...
               </Card>
             )}
 
-            {/* Installation Steps */}
+            {/* Manual Setup Section */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Installation Steps</CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <div className="space-y-4">
-                  <div className="flex gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
-                      1
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full border-2 border-primary bg-primary flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
                     </div>
-                    <div>
-                      <h4 className="font-medium">Connect to your server</h4>
-                      <p className="text-sm text-muted-foreground">
-                        SSH into the server where you want to install the agent.
-                      </p>
-                    </div>
+                    <h3 className="font-medium">Manual Setup — I will install the agent using the command</h3>
+                    <Copy className="w-4 h-4 text-muted-foreground ml-auto" />
                   </div>
-
-                  <div className="flex gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
-                      2
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Run the installation command</h4>
+                  
+                  {token && timeLeft > 0 && (
+                    <>
+                      <div className="bg-muted rounded-lg p-4">
+                        <code className="text-sm font-mono break-all text-foreground">
+                          {installCommand}
+                        </code>
+                      </div>
                       <p className="text-sm text-muted-foreground">
-                        Copy and paste the command above into your terminal. The installer will:
+                        This token is unique to your VPS and expires in {formatTime(timeLeft)}.
                       </p>
-                      <ul className="text-sm text-muted-foreground mt-2 ml-4 space-y-1">
-                        <li>• Download the latest agent binary</li>
-                        <li>• Configure the agent with your token</li>
-                        <li>• Set up system service for auto-start</li>
-                        <li>• Generate security certificates</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium">
-                      3
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Verify installation</h4>
-                      <p className="text-sm text-muted-foreground">
-                        The agent should appear in your dashboard within a few minutes. 
-                        Check the status to ensure it's connected properly.
-                      </p>
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
