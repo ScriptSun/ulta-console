@@ -29,7 +29,7 @@ interface Agent {
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'completed':
+    case 'success':
       return CheckCircle2;
     case 'failed':
       return XCircle;
@@ -37,6 +37,8 @@ const getStatusIcon = (status: string) => {
       return PlayCircle;
     case 'pending':
       return Clock;
+    case 'cancelled':
+      return AlertCircle;
     default:
       return AlertCircle;
   }
@@ -44,7 +46,7 @@ const getStatusIcon = (status: string) => {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'completed':
+    case 'success':
       return 'bg-green-500/10 text-green-400 border-green-500/20';
     case 'failed':
       return 'bg-red-500/10 text-red-400 border-red-500/20';
@@ -52,6 +54,8 @@ const getStatusColor = (status: string) => {
       return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
     case 'pending':
       return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+    case 'cancelled':
+      return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
     default:
       return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
   }
