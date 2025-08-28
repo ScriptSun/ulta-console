@@ -153,6 +153,15 @@ interface Database {
   }
 }
 
+interface ConnectedClient {
+  socket: WebSocket;
+  sessionId: string;
+  agentId: string;
+  tenantId: string;
+  conversationId?: string;
+  lastRotated: Date;
+}
+
 // Allowed origins for CORS - billing and WHMCS domains
 const ALLOWED_ORIGINS = [
   'https://billing.example.com',
@@ -160,6 +169,9 @@ const ALLOWED_ORIGINS = [
   'https://portal.ultaai.com',
   'https://app.ultaai.com'
 ]
+
+// In-memory storage for WebSocket connections (use Redis in production)
+const connectedClients = new Map<string, ConnectedClient>();
 
 // CSP header value
 const CSP_HEADER = "default-src 'none'; script-src 'self' https://widget.ultaai.com 'strict-dynamic'; connect-src https://api.ultaai.com wss://api.ultaai.com; img-src 'self' data:; style-src 'unsafe-inline'"
