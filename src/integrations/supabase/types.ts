@@ -1343,6 +1343,75 @@ export type Database = {
         }
         Relationships: []
       }
+      widget_sessions: {
+        Row: {
+          agent_id: string
+          conversation_id: string | null
+          created_at: string
+          csrf: string
+          expires_at: string
+          id: string
+          tenant_id: string
+          user_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          conversation_id?: string | null
+          created_at?: string
+          csrf: string
+          expires_at?: string
+          id?: string
+          tenant_id: string
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          csrf?: string
+          expires_at?: string
+          id?: string
+          tenant_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      widget_tickets: {
+        Row: {
+          agent_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          origin: string
+          tenant_id: string
+          ua_hash: string | null
+          used_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          origin: string
+          tenant_id: string
+          ua_hash?: string | null
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          origin?: string
+          tenant_id?: string
+          ua_hash?: string | null
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       certificates_safe_view: {
