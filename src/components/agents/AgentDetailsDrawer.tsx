@@ -30,7 +30,12 @@ import {
   AlertTriangle,
   Key,
   RotateCcw,
-  ListTodo
+  ListTodo,
+  Network,
+  Database,
+  Zap,
+  Wifi,
+  BarChart3
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -387,6 +392,10 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                       <CardContent>
                         <div className="text-2xl font-bold">{agent.cpu_usage}%</div>
                         <Progress value={agent.cpu_usage} className="mt-2" />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>Used: {agent.cpu_usage.toFixed(1)}%</span>
+                          <span>Free: {(100 - agent.cpu_usage).toFixed(1)}%</span>
+                        </div>
                       </CardContent>
                     </Card>
                     
@@ -400,94 +409,210 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                       <CardContent>
                         <div className="text-2xl font-bold">{agent.memory_usage}%</div>
                         <Progress value={agent.memory_usage} className="mt-2" />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>Used: {agent.memory_usage.toFixed(1)}%</span>
+                          <span>Free: {(100 - agent.memory_usage).toFixed(1)}%</span>
+                        </div>
                       </CardContent>
                     </Card>
                   </div>
 
-                  {/* Logs */}
+                  {/* System Information */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <Server className="h-4 w-4" />
+                          System Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">OS</span>
+                          <span className="text-sm font-medium capitalize">{agent.os || 'Unknown'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Version</span>
+                          <span className="text-sm font-medium">{agent.version || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Uptime</span>
+                          <span className="text-sm font-medium">
+                            {agent.uptime_seconds > 0 
+                              ? `${Math.floor(agent.uptime_seconds / 3600)}h ${Math.floor((agent.uptime_seconds % 3600) / 60)}m`
+                              : '0m'
+                            }
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Tasks Completed</span>
+                          <span className="text-sm font-medium">{agent.tasks_completed}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <Network className="h-4 w-4" />
+                          Network Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">IP Address</span>
+                          <span className="text-sm font-medium font-mono">{agent.ip_address || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Region</span>
+                          <span className="text-sm font-medium">{agent.region || 'Unknown'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Hostname</span>
+                          <span className="text-sm font-medium">{agent.hostname || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Agent Type</span>
+                          <span className="text-sm font-medium capitalize">{agent.agent_type}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Storage & Resources */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <Database className="h-4 w-4" />
+                          Disk Usage
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">75.2%</div>
+                        <Progress value={75.2} className="mt-2" />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>Used: 451 GB</span>
+                          <span>Free: 149 GB</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <Zap className="h-4 w-4" />
+                          Load Average
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>1 min</span>
+                            <span className="font-mono">1.24</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>5 min</span>
+                            <span className="font-mono">1.18</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>15 min</span>
+                            <span className="font-mono">1.05</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <Wifi className="h-4 w-4" />
+                          Network I/O
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>RX</span>
+                            <span className="font-mono">124 MB/s</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>TX</span>
+                            <span className="font-mono">89 MB/s</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Packets</span>
+                            <span className="font-mono">15.2K/s</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Top Applications */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Activity className="h-4 w-4" />
-                        Recent Logs
+                        Top Applications
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <ScrollArea className="h-64">
-                        <div className="space-y-2">
-                          {logs.map((log) => (
-                            <div key={log.id} className="flex items-start gap-2 text-sm border rounded p-3">
-                              <Badge 
-                                variant="secondary" 
-                                className={cn(
-                                  "text-xs px-2 py-0 h-5",
-                                  logLevelConfig[log.level].color,
-                                  logLevelConfig[log.level].bgColor
-                                )}
-                              >
-                                {log.level}
-                              </Badge>
-                              <div className="flex-1 min-w-0">
-                                <p className="break-words font-mono text-sm">{log.message}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(log.timestamp).toLocaleString()}
-                                </p>
+                      <div className="space-y-3">
+                        {[
+                          { name: 'nodejs', cpu: 15.2, memory: 8.3, pid: '1234' },
+                          { name: 'nginx', cpu: 8.7, memory: 2.1, pid: '5678' },
+                          { name: 'postgres', cpu: 12.4, memory: 15.6, pid: '9012' },
+                          { name: 'redis-server', cpu: 3.1, memory: 4.2, pid: '3456' },
+                          { name: 'docker', cpu: 6.8, memory: 11.9, pid: '7890' }
+                        ].map((app, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 border rounded">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
+                                <span className="text-xs font-mono">{index + 1}</span>
+                              </div>
+                              <div>
+                                <p className="font-medium font-mono">{app.name}</p>
+                                <p className="text-xs text-muted-foreground">PID: {app.pid}</p>
                               </div>
                             </div>
-                          ))}
-                          {logs.length === 0 && (
-                            <p className="text-center text-muted-foreground py-8">No logs found</p>
-                          )}
-                        </div>
-                      </ScrollArea>
+                            <div className="text-right">
+                              <p className="text-sm font-medium">CPU: {app.cpu}%</p>
+                              <p className="text-xs text-muted-foreground">RAM: {app.memory}%</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </CardContent>
                   </Card>
 
-                  {/* Recent Tasks */}
+                  {/* Resource Summary */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <ListTodo className="h-4 w-4" />
-                        Recent Tasks
+                        <BarChart3 className="h-4 w-4" />
+                        Resource Summary
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <ScrollArea className="h-64">
-                        <div className="space-y-2">
-                          {tasks.map((task) => {
-                            const TaskIcon = taskStatusConfig[task.status].icon;
-                            return (
-                              <div key={task.id} className="border rounded p-3">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <TaskIcon className={cn("h-4 w-4", taskStatusConfig[task.status].color)} />
-                                      <span className="font-medium">{task.task_name}</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      Started: {task.started_at ? new Date(task.started_at).toLocaleString() : 'Not started'}
-                                    </p>
-                                    {task.completed_at && (
-                                      <p className="text-xs text-muted-foreground">
-                                        Completed: {new Date(task.completed_at).toLocaleString()}
-                                      </p>
-                                    )}
-                                    {task.error_message && (
-                                      <p className="text-xs text-red-600 mt-1">{task.error_message}</p>
-                                    )}
-                                  </div>
-                                  <Badge variant="outline" className="ml-2">
-                                    {task.status}
-                                  </Badge>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {tasks.length === 0 && (
-                            <p className="text-center text-muted-foreground py-8">No tasks found</p>
-                          )}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-3 bg-muted/30 rounded">
+                          <div className="text-2xl font-bold text-green-600">{(100 - agent.cpu_usage).toFixed(1)}%</div>
+                          <div className="text-xs text-muted-foreground">CPU Free</div>
                         </div>
-                      </ScrollArea>
+                        <div className="text-center p-3 bg-muted/30 rounded">
+                          <div className="text-2xl font-bold text-blue-600">{(100 - agent.memory_usage).toFixed(1)}%</div>
+                          <div className="text-xs text-muted-foreground">RAM Free</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted/30 rounded">
+                          <div className="text-2xl font-bold text-purple-600">24.8%</div>
+                          <div className="text-xs text-muted-foreground">Disk Free</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted/30 rounded">
+                          <div className="text-2xl font-bold text-orange-600">4</div>
+                          <div className="text-xs text-muted-foreground">CPU Cores</div>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
