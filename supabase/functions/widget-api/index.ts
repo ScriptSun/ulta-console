@@ -540,7 +540,7 @@ async function handleWebSocketChatMessage(supabase: any, client: ConnectedClient
     }
 
     // Rate limiting check (reuse the existing rate limiting logic)
-    const sessionKey = `session:${client.sessionId}`;
+    const sessionKey = "session:" + client.sessionId;
     const sessionLimit = await checkWebSocketRateLimit(supabase, sessionKey, 'session', 10, 10);
     
     if (!sessionLimit.allowed) {
