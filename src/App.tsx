@@ -27,6 +27,7 @@ import Auth from "./pages/Auth";
 import AgentTasks from "./pages/AgentTasks";
 import ChatInbox from "./pages/ChatInbox";
 import WidgetGuide from "./pages/WidgetGuide";
+import SecurityDashboard from "./pages/SecurityDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -187,6 +188,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <WidgetGuide />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/security/dashboard" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <SecurityDashboard />
                 </RootLayout>
               </ProtectedRoute>
             } />

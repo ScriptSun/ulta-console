@@ -1066,6 +1066,28 @@ async function handleCreateTicket(req: Request, supabase: any) {
 
     console.log(`Created widget ticket ${ticket.id} for tenant ${tenant_id}, agent ${agent_id}`)
 
+    // Log ticket creation audit event
+    await supabase.from('audit_logs').insert({
+      customer_id: tenant_id,
+      actor: 'system',
+      action: 'ticket_issued',
+      target: `ticket:${ticket.id}`,
+      meta: {
+        agent_id,
+        origin,
+        user_id: user_id || null,
+        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+      }
+    });
+
+    // Increment ticket metrics
+    await supabase.rpc('increment_widget_metric', {
+      _tenant_id: tenant_id,
+      _metric_type: 'tickets_issued',
+      _increment: 1,
+      _metadata: { agent_id }
+    });
+
     return new Response(
       JSON.stringify({ ticket_id: ticket.id }),
       { 
@@ -1092,6 +1114,18 @@ async function handleBootstrap(req: Request, supabase: any) {
     const ticketId = cookies['ultaai_ticket']
     
     if (!ticketId) {
+      // Log security event for missing ticket
+      await supabase.from('security_events').insert({
+        tenant_id: '00000000-0000-0000-0000-000000000000', // Unknown tenant
+        event_type: 'invalid_ticket',
+        severity: 'medium',
+        source: 'widget_bootstrap',
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+        user_agent: req.headers.get('user-agent'),
+        origin: req.headers.get('origin'),
+        details: { reason: 'ticket_cookie_not_found' }
+      });
+      
       return new Response(
         JSON.stringify({ error: 'Ticket cookie not found' }),
         { 
@@ -1126,6 +1160,33 @@ async function handleBootstrap(req: Request, supabase: any) {
 
     if (ticketError || !ticket) {
       console.log('Ticket validation error:', ticketError)
+      
+      // Log security event for invalid ticket
+      await supabase.from('security_events').insert({
+        tenant_id: '00000000-0000-0000-0000-000000000000', // Unknown tenant
+        event_type: 'invalid_ticket',
+        severity: 'high',
+        source: 'widget_bootstrap',
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+        user_agent: req.headers.get('user-agent'),
+        ticket_id: ticketId,
+        origin: req.headers.get('origin'),
+        details: { 
+          reason: ticket ? 'ticket_expired_or_used' : 'ticket_not_found',
+          error: ticketError?.message 
+        }
+      });
+
+      // Increment widget metrics
+      if (!ticket) {
+        await supabase.rpc('increment_widget_metric', {
+          _tenant_id: '00000000-0000-0000-0000-000000000000',
+          _metric_type: 'bootstrap_failure',
+          _increment: 1,
+          _metadata: { reason: 'invalid_ticket' }
+        });
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Invalid or expired ticket' }),
         { 
@@ -1139,6 +1200,32 @@ async function handleBootstrap(req: Request, supabase: any) {
     const requestOrigin = origin || new URL(referer!).origin
     if (!requestOrigin.includes(ticket.origin)) {
       console.log('Origin mismatch:', { requestOrigin, ticketOrigin: ticket.origin })
+      
+      // Log security event for origin mismatch
+      await supabase.from('security_events').insert({
+        tenant_id: ticket.tenant_id,
+        event_type: 'origin_mismatch',
+        severity: 'high',
+        source: 'widget_bootstrap',
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+        user_agent: req.headers.get('user-agent'),
+        ticket_id: ticketId,
+        origin: requestOrigin,
+        details: { 
+          request_origin: requestOrigin,
+          ticket_origin: ticket.origin,
+          agent_id: ticket.agent_id
+        }
+      });
+
+      // Increment widget metrics
+      await supabase.rpc('increment_widget_metric', {
+        _tenant_id: ticket.tenant_id,
+        _metric_type: 'bootstrap_failure',
+        _increment: 1,
+        _metadata: { reason: 'origin_mismatch' }
+      });
+      
       return new Response(
         JSON.stringify({ error: 'Origin not allowed' }),
         { 
@@ -1158,6 +1245,32 @@ async function handleBootstrap(req: Request, supabase: any) {
     
     if (ticket.ua_hash && ticket.ua_hash !== ua_hash) {
       console.log('UA hash mismatch')
+      
+      // Log security event for user agent mismatch (potential replay attack)
+      await supabase.from('security_events').insert({
+        tenant_id: ticket.tenant_id,
+        event_type: 'replay_attempt',
+        severity: 'high',
+        source: 'widget_bootstrap',
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+        user_agent: req.headers.get('user-agent'),
+        ticket_id: ticketId,
+        origin: requestOrigin,
+        details: { 
+          expected_ua_hash: ticket.ua_hash,
+          received_ua_hash: ua_hash,
+          agent_id: ticket.agent_id
+        }
+      });
+
+      // Increment widget metrics
+      await supabase.rpc('increment_widget_metric', {
+        _tenant_id: ticket.tenant_id,
+        _metric_type: 'bootstrap_failure',
+        _increment: 1,
+        _metadata: { reason: 'ua_mismatch' }
+      });
+      
       return new Response(
         JSON.stringify({ error: 'User agent validation failed' }),
         { 
@@ -1242,6 +1355,20 @@ async function handleBootstrap(req: Request, supabase: any) {
       }
 
       conversationId = newConversation.id
+      
+      // Log audit event for new conversation started
+      await supabase.from('audit_logs').insert({
+        customer_id: ticket.tenant_id,
+        actor: ticket.user_id || 'anonymous',
+        action: 'chat_start',
+        target: `conversation:${conversationId}`,
+        meta: {
+          agent_id: ticket.agent_id,
+          source: 'widget',
+          origin: requestOrigin,
+          ticket_id: ticketId
+        }
+      });
     }
 
     // Generate CSRF token and session
@@ -1287,6 +1414,35 @@ async function handleBootstrap(req: Request, supabase: any) {
     }
 
     console.log(`Bootstrap successful for conversation ${conversationId}`)
+
+    // Log successful bootstrap audit event
+    await supabase.from('audit_logs').insert({
+      customer_id: ticket.tenant_id,
+      actor: ticket.user_id || 'anonymous',
+      action: 'widget_bootstrap_success',
+      target: `session:${sessionId}`,
+      meta: {
+        conversation_id: conversationId,
+        agent_id: ticket.agent_id,
+        origin: requestOrigin,
+        ticket_id: ticketId
+      }
+    });
+
+    // Increment success metrics
+    await supabase.rpc('increment_widget_metric', {
+      _tenant_id: ticket.tenant_id,
+      _metric_type: 'bootstrap_success',
+      _increment: 1,
+      _metadata: { agent_id: ticket.agent_id }
+    });
+
+    await supabase.rpc('increment_widget_metric', {
+      _tenant_id: ticket.tenant_id,
+      _metric_type: 'tickets_consumed',
+      _increment: 1,
+      _metadata: { agent_id: ticket.agent_id }
+    });
 
     return new Response(
       JSON.stringify(responseData),
@@ -1377,6 +1533,23 @@ async function handleWidgetMessage(req: Request, supabase: any) {
     const csrfHeader = req.headers.get('x-csrf')
     
     if (!sessionId || !csrfHeader) {
+      // Log security event for missing CSRF token
+      await supabase.from('security_events').insert({
+        tenant_id: '00000000-0000-0000-0000-000000000000', // Unknown tenant
+        event_type: 'csrf_fail',
+        severity: 'medium',
+        source: 'widget_message',
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+        user_agent: req.headers.get('user-agent'),
+        session_id: sessionId,
+        origin: req.headers.get('origin'),
+        details: { 
+          has_session: !!sessionId,
+          has_csrf: !!csrfHeader,
+          reason: 'missing_session_or_csrf'
+        }
+      });
+
       return new Response(
         JSON.stringify({ error: 'Missing session or CSRF token' }),
         { 
@@ -1396,6 +1569,24 @@ async function handleWidgetMessage(req: Request, supabase: any) {
       .single()
 
     if (sessionError || !session) {
+      // Log security event for invalid CSRF
+      await supabase.from('security_events').insert({
+        tenant_id: session?.tenant_id || '00000000-0000-0000-0000-000000000000',
+        event_type: 'csrf_fail',
+        severity: 'high',
+        source: 'widget_message',
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+        user_agent: req.headers.get('user-agent'),
+        session_id: sessionId,
+        origin: req.headers.get('origin'),
+        details: { 
+          reason: 'invalid_session_or_csrf',
+          csrf_provided: !!csrfHeader,
+          session_exists: !!session,
+          error: sessionError?.message
+        }
+      });
+
       return new Response(
         JSON.stringify({ error: 'Invalid session or CSRF token' }),
         { 
@@ -1450,6 +1641,20 @@ async function handleWidgetMessage(req: Request, supabase: any) {
       )
     }
 
+    // Log audit event for message stored
+    await supabase.from('audit_logs').insert({
+      customer_id: session.tenant_id,
+      actor: session.user_id || 'anonymous',
+      action: 'message_stored',
+      target: `conversation:${session.conversation_id}`,
+      meta: {
+        role: 'user',
+        agent_id: session.agent_id,
+        source: 'widget',
+        content_length: content.length
+      }
+    });
+
     // Get conversation for context
     const { data: conversation } = await supabase
       .from('chat_conversations')
@@ -1459,6 +1664,20 @@ async function handleWidgetMessage(req: Request, supabase: any) {
 
     // Process message through router
     const routerResult = await processChatRouter(supabase, session.conversation_id!, content, conversation, session.agent_id, session.tenant_id)
+
+    // Log audit event for router decision
+    await supabase.from('audit_logs').insert({
+      customer_id: session.tenant_id,
+      actor: 'system',
+      action: 'router_decision',
+      target: `conversation:${session.conversation_id}`,
+      meta: {
+        intent: routerResult.intent,
+        action: routerResult.action,
+        agent_id: session.agent_id,
+        has_task: !!routerResult.task_id
+      }
+    });
 
     // Store assistant response
     const { error: responseError } = await supabase
@@ -1471,6 +1690,36 @@ async function handleWidgetMessage(req: Request, supabase: any) {
 
     if (responseError) {
       console.error('Error storing response:', responseError)
+    } else {
+      // Log audit event for assistant message stored
+      await supabase.from('audit_logs').insert({
+        customer_id: session.tenant_id,
+        actor: 'assistant',
+        action: 'message_stored',
+        target: `conversation:${session.conversation_id}`,
+        meta: {
+          role: 'assistant',
+          agent_id: session.agent_id,
+          source: 'widget',
+          content_length: routerResult.response.length,
+          intent: routerResult.intent
+        }
+      });
+    }
+
+    // If router created a task, log it
+    if (routerResult.task_id) {
+      await supabase.from('audit_logs').insert({
+        customer_id: session.tenant_id,
+        actor: 'system',
+        action: 'task_link',
+        target: `task:${routerResult.task_id}`,
+        meta: {
+          conversation_id: session.conversation_id,
+          agent_id: session.agent_id,
+          intent: routerResult.intent
+        }
+      });
     }
 
     return new Response(

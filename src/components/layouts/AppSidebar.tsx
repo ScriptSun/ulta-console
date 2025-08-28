@@ -43,6 +43,7 @@ const monitoringItems = [
 ]
 
 const securityItems = [
+  { title: 'Security Dashboard', url: '/security/dashboard', icon: Shield },
   { title: 'Command Policies', url: '/security/command-policies', icon: Shield },
   { title: 'Security Center', url: '/security', icon: Shield },
   { title: 'API Keys', url: '/api-keys', icon: Key },
