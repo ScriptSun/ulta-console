@@ -517,12 +517,21 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
       // Handle needs inputs
       if (data.state === 'needs_inputs' && data.inputs_schema) {
+        console.log('Setting needsInputs with schema:', data.inputs_schema);
         assistantMessage.needsInputs = {
           schema: data.inputs_schema,
           defaults: data.inputs_defaults || {},
           missingParams: data.missing_params || []
         };
-        assistantMessage.content = data.message || 'Please provide the required information to continue.';
+        assistantMessage.content = data.response || 'Please provide the required information to continue.';
+      } else if (data.needs_inputs && data.inputs_schema) {
+        console.log('Alternative needs_inputs path with schema:', data.inputs_schema);
+        assistantMessage.needsInputs = {
+          schema: data.inputs_schema,
+          defaults: data.inputs_defaults || {},
+          missingParams: data.missing_params || []
+        };
+        assistantMessage.content = data.response || 'Please provide the required information to continue.';
       } else if (data.needs_inputs && data.missing_param) {
         assistantMessage.quickInputs = getQuickInputsForParam(data.missing_param);
       }
@@ -799,8 +808,33 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                     } ${compactDensity ? 'p-2 text-sm' : ''}`}>
                       {message.content.split('\n').length > 10 && !message.collapsed ? (
                         <div>
-                          <div className="whitespace-pre-wrap">
-                            {message.content.split('\n').slice(0, 10).join('\n')}
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1 whitespace-pre-wrap">
+                              {message.content.split('\n').slice(0, 10).join('\n')}
+                            </div>
+                            
+                            {/* Task Status Icon */}
+                            {message.taskStatus && (
+                              <div className="flex-shrink-0 ml-2">
+                                {message.taskStatus.type === 'task_succeeded' ? (
+                                  <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center" title="Task completed successfully">
+                                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                  </div>
+                                ) : message.taskStatus.type === 'task_failed' ? (
+                                  <div className="w-3 h-3 bg-red-500 rounded-full flex items-center justify-center" title="Task failed">
+                                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                  </div>
+                                ) : message.taskStatus.type === 'task_started' ? (
+                                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" title="Task running">
+                                    <div className="w-1.5 h-1.5 bg-white rounded-full m-0.75"></div>
+                                  </div>
+                                ) : (
+                                  <div className="w-3 h-3 bg-gray-400 rounded-full" title="Task status unknown">
+                                    <div className="w-1.5 h-1.5 bg-white rounded-full m-0.75"></div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <Button
                             variant="ghost"
@@ -813,20 +847,45 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                           </Button>
                         </div>
                       ) : (
-                        <div>
-                          <div className="whitespace-pre-wrap">{message.content}</div>
-                          {message.content.split('\n').length > 10 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="mt-2 h-6 px-2 text-xs"
-                              onClick={() => toggleMessageCollapse(message.id)}
-                            >
-                              <ChevronUp className="w-3 h-3 mr-1" />
-                              Show less
-                            </Button>
+                      <div>
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 whitespace-pre-wrap">{message.content}</div>
+                          
+                          {/* Task Status Icon */}
+                          {message.taskStatus && (
+                            <div className="flex-shrink-0 ml-2">
+                              {message.taskStatus.type === 'task_succeeded' ? (
+                                <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center" title="Task completed successfully">
+                                  <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                </div>
+                              ) : message.taskStatus.type === 'task_failed' ? (
+                                <div className="w-3 h-3 bg-red-500 rounded-full flex items-center justify-center" title="Task failed">
+                                  <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                </div>
+                              ) : message.taskStatus.type === 'task_started' ? (
+                                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" title="Task running">
+                                  <div className="w-1.5 h-1.5 bg-white rounded-full m-0.75"></div>
+                                </div>
+                              ) : (
+                                <div className="w-3 h-3 bg-gray-400 rounded-full" title="Task status unknown">
+                                  <div className="w-1.5 h-1.5 bg-white rounded-full m-0.75"></div>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
+                        {message.content.split('\n').length > 10 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-2 h-6 px-2 text-xs"
+                            onClick={() => toggleMessageCollapse(message.id)}
+                          >
+                            <ChevronUp className="w-3 h-3 mr-1" />
+                            Show less
+                          </Button>
+                        )}
+                      </div>
                       )}
                       
                       <div className="flex items-center justify-between mt-2">
@@ -845,23 +904,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                     </div>
                   </div>
                   
-                  {/* Task Status Card */}
-                  {message.taskStatus && (
-                    <div className="mt-2 ml-8">
-                      <TaskStatusCard
-                        type={message.taskStatus.type}
-                        intent={message.taskStatus.intent}
-                        runId={message.taskStatus.runId}
-                        batchId={message.taskStatus.batchId}
-                        summary={message.taskStatus.summary}
-                        progress={message.taskStatus.progress}
-                        contract={message.taskStatus.contract}
-                        error={message.taskStatus.error}
-                        duration={message.taskStatus.duration}
-                        onViewTask={handleViewTask}
-                      />
-                    </div>
-                  )}
+                  {/* Remove the large TaskStatusCard since we now show small icons */}
                   
                   {/* Preflight Block Card */}
                   {message.preflightBlocked && (

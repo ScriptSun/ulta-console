@@ -1227,11 +1227,11 @@ async function continueWithValidatedInputs(
     .eq('active', true)
     .maybeSingle();
 
-  // Find the batch by matching name or checking for WordPress Install batch
+  // Find the batch by matching name or checking for WordPress Install batch (include system batches)
   const { data: batch, error: batchError } = await supabase
     .from('script_batches')
     .select('id, name, active_version, preflight, inputs_schema')
-    .eq('customer_id', conversation.tenant_id)
+    .or(`customer_id.eq.${conversation.tenant_id},customer_id.eq.00000000-0000-0000-0000-000000000001`)
     .or(`name.eq.WordPress Install,name.ilike.%wordpress%install%`)
     .neq('active_version', null)
     .maybeSingle();
