@@ -115,6 +115,16 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
   const config = getStatusConfig();
   const Icon = config.icon;
 
+  // For successful tasks, show compact indicator
+  if (type === 'task_succeeded' || type === 'done') {
+    return (
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+        <CheckCircle className="w-4 h-4" />
+        <span>Success</span>
+      </div>
+    );
+  }
+
   return (
     <Card className={`p-4 ${config.color} border-l-4`}>
       <div className="flex items-start gap-3">
@@ -140,21 +150,7 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
             </div>
           )}
 
-          {/* Contract details for successful tasks */}
-          {type === 'task_succeeded' && contract && (
-            <div className="mb-3 p-2 bg-white/50 rounded text-xs">
-              {contract.metrics && (
-                <div className="flex gap-4">
-                  {contract.metrics.duration_sec && (
-                    <span>Duration: {contract.metrics.duration_sec}s</span>
-                  )}
-                  {contract.status && (
-                    <span>Status: {contract.status}</span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Contract details - this code is unreachable now */}
           
           {(runId || batchId) && (
             <div className="flex items-center gap-2">
