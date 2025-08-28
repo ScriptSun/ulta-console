@@ -1,0 +1,560 @@
+import { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { 
+  Code, 
+  Play, 
+  Copy, 
+  Eye, 
+  EyeOff, 
+  CheckCircle, 
+  AlertTriangle,
+  Info
+} from 'lucide-react';
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
+import { useToast } from '@/hooks/use-toast';
+
+interface BatchInputsTabProps {
+  inputsSchema?: any;
+  inputsDefaults?: any;
+  canEdit: boolean;
+  onSchemaChange?: (schema: any) => void;
+  onDefaultsChange?: (defaults: any) => void;
+  onValidationChange?: (isValid: boolean, errors: string[]) => void;
+}
+
+interface FormField {
+  key: string;
+  type: string;
+  required: boolean;
+  value: any;
+  error?: string;
+}
+
+const DEFAULT_SCHEMA = {
+  type: 'object',
+  properties: {},
+  required: [],
+  additionalProperties: false
+};
+
+const EXAMPLE_SCHEMA = {
+  type: 'object',
+  properties: {
+    domain: {
+      type: 'string',
+      pattern: '^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
+      description: 'Domain name for deployment'
+    },
+    port: {
+      type: 'integer',
+      minimum: 1,
+      maximum: 65535,
+      description: 'Port number'
+    },
+    environment: {
+      type: 'string',
+      enum: ['development', 'staging', 'production'],
+      description: 'Deployment environment'
+    },
+    admin_email: {
+      type: 'string',
+      format: 'email',
+      description: 'Administrator email address'
+    },
+    db_pass: {
+      type: 'string',
+      minLength: 8,
+      description: 'Database password (will be masked)'
+    },
+    enable_ssl: {
+      type: 'boolean',
+      description: 'Enable SSL/TLS encryption'
+    }
+  },
+  required: ['domain', 'admin_email'],
+  additionalProperties: false
+};
+
+const EXAMPLE_DEFAULTS = {
+  port: 443,
+  environment: 'production',
+  enable_ssl: true
+};
+
+export function BatchInputsTab({
+  inputsSchema,
+  inputsDefaults,
+  canEdit,
+  onSchemaChange,
+  onDefaultsChange,
+  onValidationChange
+}: BatchInputsTabProps) {
+  const [schemaText, setSchemaText] = useState('');
+  const [defaultsText, setDefaultsText] = useState('');
+  const [formValues, setFormValues] = useState<Record<string, any>>({});
+  const [formFields, setFormFields] = useState<FormField[]>([]);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isValid, setIsValid] = useState(true);
+  const [maskedFields, setMaskedFields] = useState<Set<string>>(new Set());
+  const [showJsonSummary, setShowJsonSummary] = useState(false);
+  
+  const { toast } = useToast();
+
+  // Initialize AJV
+  const ajv = new Ajv({ allErrors: true, strict: false });
+  addFormats(ajv);
+
+  useEffect(() => {
+    if (inputsSchema) {
+      setSchemaText(JSON.stringify(inputsSchema, null, 2));
+    } else {
+      setSchemaText(JSON.stringify(DEFAULT_SCHEMA, null, 2));
+    }
+  }, [inputsSchema]);
+
+  useEffect(() => {
+    if (inputsDefaults) {
+      setDefaultsText(JSON.stringify(inputsDefaults, null, 2));
+    } else {
+      setDefaultsText(JSON.stringify({}, null, 2));
+    }
+  }, [inputsDefaults]);
+
+  const validateSchema = useCallback((schemaStr: string) => {
+    try {
+      const schema = JSON.parse(schemaStr);
+      
+      // Enforce additionalProperties: false
+      if (schema.additionalProperties !== false) {
+        schema.additionalProperties = false;
+      }
+      
+      ajv.compile(schema);
+      return { isValid: true, schema, errors: [] };
+    } catch (error: any) {
+      return { 
+        isValid: false, 
+        schema: null, 
+        errors: [error.message || 'Invalid JSON schema'] 
+      };
+    }
+  }, [ajv]);
+
+  const validateDefaults = useCallback((defaultsStr: string, schema: any) => {
+    try {
+      const defaults = JSON.parse(defaultsStr);
+      
+      if (!schema) return { isValid: true, defaults, errors: [] };
+      
+      const validate = ajv.compile(schema);
+      const isValid = validate(defaults);
+      
+      return {
+        isValid,
+        defaults,
+        errors: isValid ? [] : validate.errors?.map(err => `${err.instancePath || 'root'}: ${err.message}`) || []
+      };
+    } catch (error: any) {
+      return {
+        isValid: false,
+        defaults: null,
+        errors: [error.message || 'Invalid JSON']
+      };
+    }
+  }, [ajv]);
+
+  const generateFormFields = useCallback((schema: any, defaults: any = {}) => {
+    if (!schema?.properties) return [];
+
+    const fields: FormField[] = [];
+    
+    Object.keys(schema.properties).forEach(key => {
+      const prop = schema.properties[key];
+      fields.push({
+        key,
+        type: prop.type || 'string',
+        required: schema.required?.includes(key) || false,
+        value: defaults[key] !== undefined ? defaults[key] : getDefaultValue(prop),
+        error: undefined
+      });
+    });
+
+    return fields;
+  }, []);
+
+  const getDefaultValue = (prop: any) => {
+    switch (prop.type) {
+      case 'boolean':
+        return false;
+      case 'integer':
+      case 'number':
+        return prop.minimum || 0;
+      case 'array':
+        return [];
+      case 'object':
+        return {};
+      default:
+        return '';
+    }
+  };
+
+  const validateFormValues = useCallback((schema: any, values: Record<string, any>) => {
+    if (!schema) return { isValid: true, errors: [] };
+
+    const validate = ajv.compile(schema);
+    const isValid = validate(values);
+    
+    const errors = isValid ? [] : validate.errors?.map(err => 
+      `${err.instancePath?.replace('/', '') || err.propertyName || 'field'}: ${err.message}`
+    ) || [];
+
+    return { isValid, errors };
+  }, [ajv]);
+
+  useEffect(() => {
+    const schemaValidation = validateSchema(schemaText);
+    const defaultsValidation = validateDefaults(defaultsText, schemaValidation.schema);
+    
+    if (schemaValidation.isValid) {
+      const fields = generateFormFields(schemaValidation.schema, defaultsValidation.defaults);
+      setFormFields(fields);
+      
+      const initialValues: Record<string, any> = {};
+      fields.forEach(field => {
+        initialValues[field.key] = field.value;
+      });
+      setFormValues(initialValues);
+      
+      const formValidation = validateFormValues(schemaValidation.schema, initialValues);
+      setValidationErrors([...defaultsValidation.errors, ...formValidation.errors]);
+      setIsValid(schemaValidation.isValid && defaultsValidation.isValid && formValidation.isValid);
+    } else {
+      setValidationErrors(schemaValidation.errors);
+      setIsValid(false);
+      setFormFields([]);
+    }
+
+    onSchemaChange?.(schemaValidation.schema);
+    onDefaultsChange?.(defaultsValidation.defaults);
+    onValidationChange?.(isValid, validationErrors);
+  }, [schemaText, defaultsText, validateSchema, validateDefaults, generateFormFields, validateFormValues, onSchemaChange, onDefaultsChange, onValidationChange, isValid, validationErrors]);
+
+  const handleSchemaChange = (value: string) => {
+    if (canEdit) {
+      setSchemaText(value);
+    }
+  };
+
+  const handleDefaultsChange = (value: string) => {
+    if (canEdit) {
+      setDefaultsText(value);
+    }
+  };
+
+  const handleFormValueChange = (key: string, value: any) => {
+    const newValues = { ...formValues, [key]: value };
+    setFormValues(newValues);
+    
+    // Re-validate form
+    const schema = validateSchema(schemaText).schema;
+    if (schema) {
+      const validation = validateFormValues(schema, newValues);
+      
+      // Update field-specific errors
+      const newFields = formFields.map(field => {
+        if (field.key === key) {
+          const fieldError = validation.errors.find(err => err.startsWith(key + ':'));
+          return { ...field, value, error: fieldError };
+        }
+        return field;
+      });
+      setFormFields(newFields);
+    }
+  };
+
+  const handleTestWithSample = () => {
+    const defaults = validateDefaults(defaultsText, validateSchema(schemaText).schema).defaults;
+    if (defaults) {
+      const newValues: Record<string, any> = {};
+      formFields.forEach(field => {
+        newValues[field.key] = defaults[field.key] !== undefined ? defaults[field.key] : field.value;
+      });
+      setFormValues(newValues);
+      
+      const newFields = formFields.map(field => ({
+        ...field,
+        value: newValues[field.key]
+      }));
+      setFormFields(newFields);
+    }
+  };
+
+  const handleLoadExample = () => {
+    if (canEdit) {
+      setSchemaText(JSON.stringify(EXAMPLE_SCHEMA, null, 2));
+      setDefaultsText(JSON.stringify(EXAMPLE_DEFAULTS, null, 2));
+    }
+  };
+
+  const toggleFieldMask = (key: string) => {
+    const newMasked = new Set(maskedFields);
+    if (newMasked.has(key)) {
+      newMasked.delete(key);
+    } else {
+      newMasked.add(key);
+    }
+    setMaskedFields(newMasked);
+  };
+
+  const copyJsonSummary = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(formValues, null, 2));
+      toast({
+        title: 'Copied',
+        description: 'Validated inputs copied to clipboard',
+      });
+    } catch (error) {
+      console.error('Failed to copy:', error);
+    }
+  };
+
+  const shouldMaskField = (key: string, type: string) => {
+    return key.toLowerCase().includes('pass') || 
+           key.toLowerCase().includes('secret') || 
+           key.toLowerCase().includes('token') ||
+           maskedFields.has(key);
+  };
+
+  const renderFormField = (field: FormField) => {
+    const schema = validateSchema(schemaText).schema;
+    const prop = schema?.properties?.[field.key] || {};
+    const isMasked = shouldMaskField(field.key, field.type);
+
+    return (
+      <div key={field.key} className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor={field.key} className="flex items-center gap-2">
+            {field.key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            {field.required && <span className="text-destructive">*</span>}
+            {prop.description && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">{prop.description}</p>
+                    {prop.pattern && (
+                      <p className="text-xs mt-1 opacity-80">Pattern: {prop.pattern}</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </Label>
+          {(field.key.toLowerCase().includes('pass') || field.key.toLowerCase().includes('secret')) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleFieldMask(field.key)}
+              className="h-6 w-6 p-0"
+            >
+              {isMasked ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+            </Button>
+          )}
+        </div>
+        
+        {field.type === 'boolean' ? (
+          <Switch
+            id={field.key}
+            checked={!!field.value}
+            onCheckedChange={(checked) => handleFormValueChange(field.key, checked)}
+            disabled={!canEdit}
+          />
+        ) : field.type === 'integer' || field.type === 'number' ? (
+          <Input
+            id={field.key}
+            type="number"
+            value={field.value || ''}
+            onChange={(e) => handleFormValueChange(field.key, field.type === 'integer' ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0)}
+            min={prop.minimum}
+            max={prop.maximum}
+            disabled={!canEdit}
+            className={field.error ? 'border-destructive' : ''}
+          />
+        ) : prop.enum ? (
+          <Select
+            value={field.value || ''}
+            onValueChange={(value) => handleFormValueChange(field.key, value)}
+            disabled={!canEdit}
+          >
+            <SelectTrigger className={field.error ? 'border-destructive' : ''}>
+              <SelectValue placeholder="Select an option" />
+            </SelectTrigger>
+            <SelectContent>
+              {prop.enum.map((option: string) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            id={field.key}
+            type={isMasked ? 'password' : 'text'}
+            value={field.value || ''}
+            onChange={(e) => handleFormValueChange(field.key, e.target.value)}
+            minLength={prop.minLength}
+            maxLength={prop.maxLength}
+            pattern={prop.pattern}
+            disabled={!canEdit}
+            className={field.error ? 'border-destructive' : ''}
+          />
+        )}
+        
+        {field.error && (
+          <p className="text-xs text-destructive">{field.error}</p>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Validation Summary */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Badge variant={isValid ? "default" : "destructive"} className="flex items-center gap-1">
+            {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+            {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
+          </Badge>
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={handleLoadExample}>
+              Load Example
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTestWithSample}
+            disabled={!isValid}
+          >
+            <Play className="h-3 w-3 mr-1" />
+            Test with Sample
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyJsonSummary}
+            disabled={!isValid}
+          >
+            <Copy className="h-3 w-3 mr-1" />
+            Copy JSON
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        {/* Schema Editor */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Code className="h-4 w-4" />
+              JSON Schema
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={schemaText}
+              onChange={(e) => handleSchemaChange(e.target.value)}
+              placeholder="Enter JSON schema..."
+              rows={12}
+              className="font-mono text-xs"
+              disabled={!canEdit}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Defaults Editor */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Default Values</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={defaultsText}
+              onChange={(e) => handleDefaultsChange(e.target.value)}
+              placeholder="Enter default values..."
+              rows={12}
+              className="font-mono text-xs"
+              disabled={!canEdit}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Live Preview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Live Preview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {formFields.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4">
+              {formFields.map(renderFormField)}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Code className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No form fields to display</p>
+              <p className="text-sm">Add properties to your schema to see the form preview</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Validation Errors */}
+      {validationErrors.length > 0 && (
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-sm text-destructive">Validation Errors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1">
+              {validationErrors.map((error, index) => (
+                <li key={index} className="text-sm text-destructive flex items-start gap-2">
+                  <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                  {error}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

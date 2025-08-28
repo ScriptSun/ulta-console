@@ -24,6 +24,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { BatchCodeEditor } from './BatchCodeEditor';
 import { BatchDependenciesTab } from './BatchDependenciesTab';
+import { BatchInputsTab } from './BatchInputsTab';
 import { 
   Save, 
   CheckCircle2, 
@@ -50,6 +51,8 @@ interface ScriptBatch {
   auto_version: boolean;
   active_version?: number;
   customer_id?: string;
+  inputs_schema?: any;
+  inputs_defaults?: any;
 }
 
 interface BatchDrawerProps {
@@ -89,6 +92,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+  const [inputsValid, setInputsValid] = useState(true);
+  const [inputsErrors, setInputsErrors] = useState<string[]>([]);
   
   const { toast } = useToast();
   const isEditing = !!batch?.id;
@@ -185,7 +190,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       return;
     }
 
-    if (!validation?.isValid) {
+    if (!validation?.isValid || !inputsValid) {
       toast({
         title: 'Validation Error',
         description: 'Please fix validation errors before saving',
@@ -244,7 +249,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       return;
     }
 
-    if (!validation?.isValid) {
+    if (!validation?.isValid || !inputsValid) {
       toast({
         title: 'Validation Error',
         description: 'Please fix validation errors before creating version',
@@ -303,7 +308,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       return;
     }
 
-    if (!validation?.isValid) {
+    if (!validation?.isValid || !inputsValid) {
       toast({
         title: 'Validation Error',
         description: 'Please fix validation errors before activating',
@@ -394,8 +399,12 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
 
         <ScrollArea className="h-[calc(100vh-120px)] mt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="inputs" className="flex items-center gap-2">
+                <FileCode className="h-4 w-4" />
+                Inputs
+              </TabsTrigger>
               <TabsTrigger value="dependencies" className="flex items-center gap-2">
                 <Link className="h-4 w-4" />
                 Dependencies
@@ -512,6 +521,24 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
               </div>
             </TabsContent>
 
+            <TabsContent value="inputs" className="mt-6">
+              <BatchInputsTab 
+                inputsSchema={formData.inputs_schema}
+                inputsDefaults={formData.inputs_defaults}
+                canEdit={canEdit}
+                onSchemaChange={(schema) => {
+                  handleFormChange('inputs_schema', schema);
+                }}
+                onDefaultsChange={(defaults) => {
+                  handleFormChange('inputs_defaults', defaults);
+                }}
+                onValidationChange={(isValid, errors) => {
+                  setInputsValid(isValid);
+                  setInputsErrors(errors);
+                }}
+              />
+            </TabsContent>
+
             <TabsContent value="dependencies" className="mt-6">
               <BatchDependenciesTab 
                 batchId={batch?.id} 
@@ -545,7 +572,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                   <Button
                     variant="outline"
                     onClick={handleSaveDraft}
-                    disabled={loading || !validation?.isValid}
+                    disabled={loading || !validation?.isValid || !inputsValid}
                   >
                     <Save className="h-4 w-4 mr-2" />
                     Save Draft
@@ -555,7 +582,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                     <Button
                       variant="outline"
                       onClick={handleCreateVersion}
-                      disabled={loading || !validation?.isValid}
+                      disabled={loading || !validation?.isValid || !inputsValid}
                     >
                       <FileCode className="h-4 w-4 mr-2" />
                       Create Version
@@ -567,7 +594,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
               {canActivate && (
                 <Button
                   onClick={handleActivateVersion}
-                  disabled={loading || !validation?.isValid}
+                  disabled={loading || !validation?.isValid || !inputsValid}
                   className="bg-gradient-primary hover:bg-primary-dark"
                 >
                   <Play className="h-4 w-4 mr-2" />

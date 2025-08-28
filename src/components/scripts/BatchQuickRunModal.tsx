@@ -9,8 +9,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { Play, AlertTriangle, CheckCircle } from 'lucide-react';
 import { BatchDependencyWarningModal } from './BatchDependencyWarningModal';
+import { BatchInputsForm } from './BatchInputsForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,6 +29,8 @@ interface BatchQuickRunModalProps {
     id: string;
     name: string;
     active_version?: number | null;
+    inputs_schema?: any;
+    inputs_defaults?: any;
   } | null;
   onRunSuccess?: () => void;
 }
@@ -40,6 +44,8 @@ export function BatchQuickRunModal({
   const [loading, setLoading] = useState(false);
   const [validationResult, setValidationResult] = useState<DependencyValidation | null>(null);
   const [showDependencyWarning, setShowDependencyWarning] = useState(false);
+  const [inputValues, setInputValues] = useState<Record<string, any>>({});
+  const [inputsValid, setInputsValid] = useState(true);
   
   const { toast } = useToast();
 
@@ -85,8 +91,17 @@ export function BatchQuickRunModal({
     if (!batch?.id) return;
 
     try {
-      // Here you would typically call your batch execution endpoint
-      // For now, we'll simulate the execution
+      // Call batch execution with validated inputs
+      const { data, error } = await supabase.functions.invoke('script-batches', {
+        body: {
+          action: 'execute_batch',
+          batch_id: batch.id,
+          inputs: inputValues
+        }
+      });
+
+      if (error) throw error;
+
       toast({
         title: 'Batch Executed',
         description: `Batch "${batch.name}" has been queued for execution`,
@@ -94,11 +109,11 @@ export function BatchQuickRunModal({
 
       onRunSuccess?.();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error executing batch:', error);
       toast({
         title: 'Execution Error',
-        description: 'Failed to execute batch',
+        description: error.message || 'Failed to execute batch',
         variant: 'destructive',
       });
     } finally {
@@ -160,6 +175,20 @@ export function BatchQuickRunModal({
               </div>
             )}
 
+            {batch.inputs_schema && (
+              <>
+                <Separator />
+                <BatchInputsForm
+                  schema={batch.inputs_schema}
+                  defaults={batch.inputs_defaults}
+                  onValuesChange={(values, isValid) => {
+                    setInputValues(values);
+                    setInputsValid(isValid);
+                  }}
+                />
+              </>
+            )}
+
             <div className="bg-muted/50 p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">
                 This will immediately execute the batch on available agents. 
@@ -174,7 +203,7 @@ export function BatchQuickRunModal({
             </Button>
             <Button
               onClick={handleQuickRun}
-              disabled={!batch.active_version || loading}
+              disabled={!batch.active_version || loading || !inputsValid}
               className="bg-gradient-primary hover:bg-primary-dark"
             >
               {loading ? (

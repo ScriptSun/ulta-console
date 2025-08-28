@@ -54,6 +54,8 @@ interface ScriptBatch {
   };
   dependencies_count?: number;
   dependencies_preview?: string;
+  inputs_schema?: any;
+  inputs_defaults?: any;
 }
 
 const riskColors = {
@@ -158,7 +160,9 @@ export default function ScriptsBatches() {
           risk: batch.risk as 'low' | 'medium' | 'high',
           latest_version: latestVersion,
           dependencies_count: dependenciesCount,
-          dependencies_preview: dependenciesPreview
+          dependencies_preview: dependenciesPreview,
+          inputs_schema: batch.inputs_schema,
+          inputs_defaults: batch.inputs_defaults
         });
       }
 

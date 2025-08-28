@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import Ajv from 'https://esm.sh/ajv@8.12.0';
+import addFormats from 'https://esm.sh/ajv-formats@2.1.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -72,6 +74,64 @@ function calculateSHA256(content: string): string {
   }) as any;
 }
 
+function validateInputs(inputs: any, schema: any): { isValid: boolean; errors: string[]; validatedInputs: any } {
+  if (!schema) {
+    return { isValid: true, errors: [], validatedInputs: inputs || {} };
+  }
+
+  try {
+    const ajv = new Ajv({ allErrors: true, strict: false });
+    addFormats(ajv);
+    
+    // Enforce additionalProperties: false
+    if (schema.additionalProperties !== false) {
+      schema.additionalProperties = false;
+    }
+    
+    const validate = ajv.compile(schema);
+    const isValid = validate(inputs);
+    
+    if (!isValid) {
+      const errors = validate.errors?.map(err => 
+        `${err.instancePath?.replace('/', '') || err.propertyName || 'field'}: ${err.message}`
+      ) || [];
+      return { isValid: false, errors, validatedInputs: {} };
+    }
+    
+    // Strip any extra keys not in schema
+    const validatedInputs: any = {};
+    if (schema.properties && inputs) {
+      Object.keys(schema.properties).forEach(key => {
+        if (inputs[key] !== undefined) {
+          validatedInputs[key] = inputs[key];
+        }
+      });
+    }
+    
+    return { isValid: true, errors: [], validatedInputs };
+  } catch (error: any) {
+    return { isValid: false, errors: [error.message || 'Schema validation failed'], validatedInputs: {} };
+  }
+}
+
+function mapInputsToEnvVars(inputs: any): Record<string, string> {
+  const envVars: Record<string, string> = {};
+  
+  if (inputs && typeof inputs === 'object') {
+    Object.keys(inputs).forEach(key => {
+      const envKey = key.toUpperCase();
+      const value = inputs[key];
+      
+      // Convert value to string for environment variable
+      if (value !== null && value !== undefined) {
+        envVars[envKey] = String(value);
+      }
+    });
+  }
+  
+  return envVars;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -121,6 +181,56 @@ serve(async (req) => {
       );
     }
 
+    // Handle batch execution with inputs validation
+    if (action === 'execute_batch') {
+      const { batch_id, inputs } = body;
+      
+      // Get batch details including inputs schema
+      const { data: batchData, error: batchError } = await supabaseClient
+        .from('script_batches')
+        .select('name, inputs_schema')
+        .eq('id', batch_id)
+        .single();
+
+      if (batchError) {
+        return new Response(
+          JSON.stringify({ error: 'Batch not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validate inputs against schema
+      const inputValidation = validateInputs(inputs, batchData.inputs_schema);
+      if (!inputValidation.isValid) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Input validation failed', 
+            validation_errors: inputValidation.errors 
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Map inputs to environment variables
+      const envVars = mapInputsToEnvVars(inputValidation.validatedInputs);
+      
+      // TODO: Here you would queue the batch for execution with the env vars
+      console.log('Batch execution queued:', {
+        batch_id,
+        batch_name: batchData.name,
+        env_vars: envVars
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Batch queued for execution',
+          env_vars: envVars
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'save_draft' || action === 'create_version' || action === 'activate_version') {
       const {
         batch_id,
@@ -131,6 +241,8 @@ serve(async (req) => {
         auto_version,
         source,
         notes,
+        inputs_schema,
+        inputs_defaults,
         sha256: clientSha256
       } = body;
 
@@ -170,7 +282,7 @@ serve(async (req) => {
 
       let batchId = batch_id;
 
-      // Create or update batch if needed
+        // Create or update batch if needed
       if (!batchId) {
         const { data: batchData, error: batchError } = await supabaseClient
           .from('script_batches')
@@ -181,6 +293,8 @@ serve(async (req) => {
             risk,
             max_timeout_sec,
             auto_version,
+            inputs_schema,
+            inputs_defaults,
             created_by: user.id,
             updated_by: user.id
           })
@@ -220,6 +334,8 @@ serve(async (req) => {
             risk,
             max_timeout_sec,
             auto_version,
+            inputs_schema,
+            inputs_defaults,
             updated_by: user.id
           })
           .eq('id', batchId);

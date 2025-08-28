@@ -873,6 +873,8 @@ export type Database = {
           created_by: string
           customer_id: string
           id: string
+          inputs_defaults: Json | null
+          inputs_schema: Json | null
           max_timeout_sec: number
           name: string
           os_targets: string[]
@@ -887,6 +889,8 @@ export type Database = {
           created_by?: string
           customer_id: string
           id?: string
+          inputs_defaults?: Json | null
+          inputs_schema?: Json | null
           max_timeout_sec?: number
           name: string
           os_targets?: string[]
@@ -901,6 +905,8 @@ export type Database = {
           created_by?: string
           customer_id?: string
           id?: string
+          inputs_defaults?: Json | null
+          inputs_schema?: Json | null
           max_timeout_sec?: number
           name?: string
           os_targets?: string[]
