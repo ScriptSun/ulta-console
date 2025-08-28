@@ -118,10 +118,10 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   const canActivate = userRole === 'approver' || userRole === 'admin';
 
   useEffect(() => {
-    console.log('BatchDrawer useEffect:', { batch, isOpen, isInitialized });
+    console.log('BatchDrawer useEffect:', { batch: !!batch, isOpen, isInitialized });
     
     if (batch && !isInitialized) {
-      console.log('BatchDrawer: Loading batch data:', batch);
+      console.log('BatchDrawer: Loading batch data - inputs_schema:', !!batch.inputs_schema, 'inputs_defaults:', !!batch.inputs_defaults);
       setFormData(batch);
       setIsInitialized(true);
       // Load variants for existing batch
@@ -145,6 +145,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       setVariants([]);
       setIsInitialized(true);
     }
+    console.log('BatchDrawer useEffect end - formData inputs_schema:', !!formData.inputs_schema);
   }, [batch, isOpen, isInitialized]);
 
   // Reset initialization when drawer closes
@@ -550,7 +551,12 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   };
 
   const handleFormChange = (field: keyof ScriptBatch, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    console.log('BatchDrawer handleFormChange:', field, 'value type:', typeof value, 'value:', value);
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      console.log('BatchDrawer new formData inputs_schema:', !!newData.inputs_schema, 'inputs_defaults:', !!newData.inputs_defaults);
+      return newData;
+    });
     setHasUnsavedChanges(true);
   };
 

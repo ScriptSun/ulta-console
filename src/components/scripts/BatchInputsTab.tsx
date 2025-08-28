@@ -173,7 +173,7 @@ export function BatchInputsTab({
     return `${schemaKeys}-${defaultKeys}`;
   }, [inputsSchema, inputsDefaults]);
 
-  console.log('BatchInputsTab render with key:', stableKey);
+  console.log('BatchInputsTab render - inputsSchema:', !!inputsSchema, 'inputsDefaults:', !!inputsDefaults, 'key:', stableKey);
 
   // Memoize the converted fields to prevent unnecessary re-renders
   const convertedFields = useMemo(() => {
