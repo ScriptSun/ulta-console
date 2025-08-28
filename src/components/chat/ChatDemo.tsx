@@ -392,7 +392,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         body: {
           path: '/chat/message',
           conversation_id: currentConversationId,
-          message: content.trim(),
+          role: 'user',
+          content: content.trim(),
           agent_id: selectedAgent
         },
         headers: {
