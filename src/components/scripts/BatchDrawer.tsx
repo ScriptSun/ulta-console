@@ -25,6 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { BatchCodeEditor } from './BatchCodeEditor';
 import { BatchDependenciesTab } from './BatchDependenciesTab';
 import { BatchInputsTab } from './BatchInputsTab';
+import { BatchOSVariantsEditor } from './BatchOSVariantsEditor';
 import { BatchVariantSwitcher, BatchVariant } from './BatchVariantSwitcher';
 import { BatchVariantsList } from './BatchVariantsList';
 import { 
@@ -713,50 +714,57 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
               />
             </TabsContent>
 
-            <TabsContent value="script" className="space-y-6 mt-6">
+            <TabsContent value="script" className="space-y-4 mt-6">
               {formData.os_targets.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
                   <p>Please select OS targets in the General tab first</p>
                 </div>
+              ) : isEditing && batch?.id ? (
+                <BatchOSVariantsEditor
+                  batchId={batch.id}
+                  osTargets={formData.os_targets}
+                  canEdit={canEdit}
+                  canActivate={canActivate}
+                  onSuccess={() => {
+                    setHasUnsavedChanges(false);
+                    onSuccess();
+                  }}
+                />
               ) : (
-                <>
-                  {batch?.id ? (
-                    <BatchVariantSwitcher
-                      batchId={batch.id}
-                      osTargets={formData.os_targets}
-                      variants={variants}
-                      onVariantChange={handleVariantChange}
-                      onCreateVersion={handleCreateVariantVersion}
-                      onActivateVersion={handleActivateVariantVersion}
-                      onAddVariant={handleAddVariant}
-                      canEdit={canEdit}
-                      canActivate={canActivate}
-                    />
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Monitor className="h-8 w-8 mx-auto mb-2" />
-                      <p>Save the batch first to enable variant management</p>
-                    </div>
-                  )}
-
-                  {batch?.id && (
-                    <BatchVariantsList
-                      variants={variants}
-                      osTargets={formData.os_targets}
-                      onViewHistory={(os) => {
-                        // TODO: Implement history view
-                        toast({ title: 'Coming Soon', description: 'History view will be available soon' });
+                <div className="space-y-4">
+                  {/* Basic script editor for new batch */}
+                  <div className="p-4 border rounded-lg bg-muted/50">
+                    <h4 className="font-medium text-sm mb-2">Main Script</h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      This will be used as the default script for all OS targets. 
+                      You can create OS-specific variants after saving.
+                    </p>
+                  </div>
+                  
+                  <BatchCodeEditor
+                    content={scriptContent}
+                    onChange={(value) => {
+                      setScriptContent(value);
+                      setHasUnsavedChanges(true);
+                    }}
+                    readOnly={!canEdit}
+                  />
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Version Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={notes}
+                      onChange={(e) => {
+                        setNotes(e.target.value);
+                        setHasUnsavedChanges(true);
                       }}
-                      onViewDiff={(os) => {
-                        // TODO: Implement diff view
-                        toast({ title: 'Coming Soon', description: 'Diff view will be available soon' });
-                      }}
-                      onActivateVersion={handleActivateVariantVersion}
-                      canActivate={canActivate}
+                      placeholder="Describe what this version does..."
+                      disabled={!canEdit}
                     />
-                  )}
-                </>
+                  </div>
+                </div>
               )}
             </TabsContent>
           </Tabs>

@@ -30,12 +30,15 @@ Deno.serve(async (req) => {
 
   try {
     const { pathname, searchParams } = new URL(req.url)
-    const pathParts = pathname.split('/').filter(Boolean)
+    // Remove the function name from the path (e.g., /script-batches/batchId/variants -> /batchId/variants)
+    const cleanPath = pathname.replace(/^\/[^\/]+\//, '/')
+    const pathParts = cleanPath.split('/').filter(Boolean)
     
     Logger.info('Script batches request', { 
       method: req.method, 
       fullUrl: req.url, 
       pathname, 
+      cleanPath,
       pathParts,
       pathPartsLength: pathParts.length 
     })
