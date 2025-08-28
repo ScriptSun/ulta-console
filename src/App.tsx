@@ -25,6 +25,7 @@ import ScriptsSettings from "./pages/ScriptsSettings";
 import CommandPolicies from "./pages/CommandPolicies";
 import Auth from "./pages/Auth";
 import AgentTasks from "./pages/AgentTasks";
+import ChatInbox from "./pages/ChatInbox";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -171,6 +172,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <ScriptsSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/chat/inbox" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <ChatInbox />
                 </RootLayout>
               </ProtectedRoute>
             } />
