@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, CheckCircle, XCircle, Clock, Play, BarChart3, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface TaskStatusCardProps {
   type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done';
@@ -29,6 +30,19 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
   duration,
   onViewTask
 }) => {
+  const navigate = useNavigate();
+
+  const handleViewDetails = () => {
+    if (onViewTask && runId) {
+      onViewTask(runId);
+    } else if (runId) {
+      // Navigate to batch run details page
+      navigate(`/scripts/batches/runs/${runId}`);
+    } else if (batchId) {
+      // Navigate to batch details page  
+      navigate(`/scripts/batches/${batchId}`);
+    }
+  };
   const getStatusConfig = () => {
     switch (type) {
       case 'task_queued':
@@ -134,19 +148,19 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
             </div>
           )}
           
-          {runId && (
+          {(runId || batchId) && (
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 className="h-7 px-2 text-xs"
-                onClick={() => onViewTask?.(runId)}
+                onClick={handleViewDetails}
               >
                 <ExternalLink className="w-3 h-3 mr-1" />
                 View Details
               </Button>
               <span className="text-xs opacity-60 font-mono">
-                ID: {runId.slice(0, 8)}...
+                ID: {(runId || batchId)?.slice(0, 8)}...
               </span>
             </div>
           )}

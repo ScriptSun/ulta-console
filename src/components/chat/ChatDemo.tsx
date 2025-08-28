@@ -178,18 +178,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       if (customerRoles && customerRoles.length > 0) {
         const customerId = customerRoles[0].customer_id;
         
-        const { data: demoAgent, error } = await supabase
-          .from('agents')
-          .insert({
-            customer_id: customerId,
-            hostname: 'Demo Server',
-            agent_type: 'demo',
-            os: 'linux',
-            status: 'online',
-            version: '1.0.0-demo'
-          })
-          .select()
-          .single();
+          const { data: demoAgent, error } = await supabase
+            .from('agents')
+            .insert({
+              customer_id: customerId,
+              hostname: 'Ubuntu Demo Server',
+              agent_type: 'demo',
+              os: 'ubuntu', // Explicitly set to ubuntu for test case
+              status: 'online',
+              version: '1.0.0-demo'
+            })
+            .select()
+            .single();
 
         if (error) throw error;
 
@@ -198,7 +198,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         
         toast({
           title: "Demo Agent Created",
-          description: "A demo agent has been created for testing",
+          description: "An Ubuntu demo agent has been created for testing WordPress installation",
         });
       }
     } catch (error) {
@@ -224,45 +224,68 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     sessionStorage.setItem(`chatDemo_${currentRoute}`, isOpen.toString());
   }, [isOpen, currentRoute]);
 
-  // Set up WebSocket listener for task updates
+  // Set up WebSocket listener for task updates and real-time chat events
   useEffect(() => {
     if (!selectedAgent || !conversationId) return;
 
-    const channel = supabase
-      .channel('task-updates')
-      .on('broadcast', { event: 'task_update' }, (payload) => {
-        console.log('Received task update:', payload);
-        
-        if (payload.data) {
-          const { state, run_id, summary, progress, contract, error } = payload.data;
+    // Listen to chat events for real-time task updates
+    const eventsChannel = supabase
+      .channel('chat-events-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_events',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          console.log('Real-time chat event:', payload.new);
           
-          // Update the last message with task status if it has the same run_id
-          setMessages(prev => {
-            const updated = [...prev];
-            // Find the last assistant message with matching run_id
-            for (let i = updated.length - 1; i >= 0; i--) {
-              const msg = updated[i];
-              if (msg.role === 'assistant' && msg.taskStatus?.runId === run_id) {
-                msg.taskStatus = {
-                  ...msg.taskStatus,
-                  type: state,
-                  summary,
-                  progress,
-                  contract,
-                  error
-                };
-                break;
+          const event = payload.new;
+          if (['task_queued', 'task_started', 'task_succeeded', 'task_failed'].includes(event.type)) {
+            // Update the last assistant message with the new task status
+            setMessages(prev => {
+              const updated = [...prev];
+              // Find the last assistant message
+              for (let i = updated.length - 1; i >= 0; i--) {
+                const msg = updated[i];
+                if (msg.role === 'assistant' && !msg.taskStatus) {
+                  // Add or update task status
+                  msg.taskStatus = {
+                    type: event.type as any,
+                    intent: event.payload?.intent || 'unknown',
+                    runId: event.ref_id,
+                    batchId: event.payload?.batch_id,
+                    summary: event.payload?.batch_name || 'Task in progress',
+                    progress: event.payload?.progress,
+                    contract: event.payload?.contract,
+                    error: event.payload?.error,
+                    duration: event.payload?.duration_sec
+                  };
+                  break;
+                } else if (msg.role === 'assistant' && msg.taskStatus?.runId === event.ref_id) {
+                  // Update existing task status
+                  msg.taskStatus = {
+                    ...msg.taskStatus,
+                    type: event.type as any,
+                    progress: event.payload?.progress || msg.taskStatus.progress,
+                    contract: event.payload?.contract || msg.taskStatus.contract,
+                    error: event.payload?.error || msg.taskStatus.error,
+                    duration: event.payload?.duration_sec || msg.taskStatus.duration
+                  };
+                  break;
+                }
               }
-            }
-            
-            return updated;
-          });
+              return updated;
+            });
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(eventsChannel);
     };
   }, [selectedAgent, conversationId]);
 
@@ -398,13 +421,19 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
           summary: data.summary,
           progress: data.progress,
           contract: data.contract,
-          error: data.error
+          error: data.error,
+          duration: data.duration
         };
         
-        // Handle "done" state with simple check message
-        if (data.state === 'done') {
-          assistantMessage.content = '✅ Task completed successfully';
-          assistantMessage.taskStatus = undefined; // Don't show task card for done state
+        // Handle different states
+        if (data.state === 'task_succeeded') {
+          assistantMessage.content = '✅ WordPress installation completed successfully!';
+          assistantMessage.taskStatus.summary = data.summary || 'WordPress installation completed';
+        } else if (data.state === 'task_failed') {
+          assistantMessage.content = '❌ WordPress installation failed. Please check the error details.';
+          assistantMessage.taskStatus.error = data.error;
+        } else if (data.state === 'task_started') {
+          assistantMessage.content = '🔄 WordPress installation is now running...';
         }
       } else if (data.event_type && ['task_queued', 'task_started', 'task_succeeded', 'task_failed'].includes(data.event_type)) {
         assistantMessage.taskStatus = {
