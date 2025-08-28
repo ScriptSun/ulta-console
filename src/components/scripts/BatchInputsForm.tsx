@@ -24,7 +24,8 @@ import {
   CheckCircle, 
   AlertTriangle,
   Info,
-  Copy
+  Copy,
+  Lock
 } from 'lucide-react';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
@@ -137,6 +138,14 @@ export function BatchInputsForm({
   }, [schema, defaults, generateFormFields, validateFormValues, onValuesChange]);
 
   const handleFormValueChange = (key: string, value: any) => {
+    const prop = schema?.properties?.[key] || {};
+    
+    // If field is locked, ignore the change and log security event
+    if (prop._isLocked) {
+      console.warn(`Attempt to override locked field: ${key}`);
+      return;
+    }
+    
     if (readOnly) return;
     
     const newValues = { ...formValues, [key]: value };
@@ -217,6 +226,7 @@ export function BatchInputsForm({
   const renderFormField = (field: FormField) => {
     const prop = schema?.properties?.[field.key] || {};
     const isMasked = shouldMaskField(field.key, field.type);
+    const isLocked = prop._isLocked || false;
 
     return (
       <div key={field.key} className="space-y-2">
@@ -224,6 +234,7 @@ export function BatchInputsForm({
           <Label htmlFor={field.key} className="flex items-center gap-2">
             {field.key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
             {field.required && <span className="text-destructive">*</span>}
+            {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
             {prop.description && (
               <TooltipProvider>
                 <Tooltip>
@@ -240,7 +251,7 @@ export function BatchInputsForm({
               </TooltipProvider>
             )}
           </Label>
-          {(field.key.toLowerCase().includes('pass') || field.key.toLowerCase().includes('secret')) && (
+          {(field.key.toLowerCase().includes('pass') || field.key.toLowerCase().includes('secret')) && !isLocked && (
             <Button
               variant="ghost"
               size="sm"
@@ -258,7 +269,7 @@ export function BatchInputsForm({
             id={field.key}
             checked={!!field.value}
             onCheckedChange={(checked) => handleFormValueChange(field.key, checked)}
-            disabled={readOnly}
+            disabled={readOnly || isLocked}
           />
         ) : field.type === 'integer' || field.type === 'number' ? (
           <Input
@@ -268,16 +279,16 @@ export function BatchInputsForm({
             onChange={(e) => handleFormValueChange(field.key, field.type === 'integer' ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0)}
             min={prop.minimum}
             max={prop.maximum}
-            disabled={readOnly}
-            className={field.error ? 'border-destructive' : ''}
+            disabled={readOnly || isLocked}
+            className={`${field.error ? 'border-destructive' : ''} ${isLocked ? 'opacity-60' : ''}`}
           />
         ) : prop.enum ? (
           <Select
             value={field.value || ''}
             onValueChange={(value) => handleFormValueChange(field.key, value)}
-            disabled={readOnly}
+            disabled={readOnly || isLocked}
           >
-            <SelectTrigger className={field.error ? 'border-destructive' : ''}>
+            <SelectTrigger className={`${field.error ? 'border-destructive' : ''} ${isLocked ? 'opacity-60' : ''}`}>
               <SelectValue placeholder="Select an option" />
             </SelectTrigger>
             <SelectContent>
@@ -297,9 +308,13 @@ export function BatchInputsForm({
             minLength={prop.minLength}
             maxLength={prop.maxLength}
             pattern={prop.pattern}
-            disabled={readOnly}
-            className={field.error ? 'border-destructive' : ''}
+            disabled={readOnly || isLocked}
+            className={`${field.error ? 'border-destructive' : ''} ${isLocked ? 'opacity-60' : ''}`}
           />
+        )}
+        
+        {isLocked && (
+          <p className="text-xs text-muted-foreground">Value locked by preset configuration.</p>
         )}
         
         {field.error && (

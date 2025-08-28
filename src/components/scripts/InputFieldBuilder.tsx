@@ -95,6 +95,11 @@ export function InputFieldBuilder({
         property.enum = field.options;
       }
 
+      // Mark locked fields
+      if (!preset.runtime_editable) {
+        property._isLocked = true;
+      }
+
       properties[field.key] = property;
 
       if (field.required) {
@@ -103,6 +108,8 @@ export function InputFieldBuilder({
 
       if (field.defaultValue !== undefined && field.defaultValue !== '') {
         defaults[field.key] = field.defaultValue;
+      } else if (preset.default_value !== undefined && preset.default_value !== '') {
+        defaults[field.key] = preset.default_value;
       }
     });
 

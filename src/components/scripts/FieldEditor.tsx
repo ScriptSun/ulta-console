@@ -58,27 +58,44 @@ export function FieldEditor({ field, existingKeys, onSave, onCancel }: FieldEdit
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [keyLocked, setKeyLocked] = useState(false);
 
   const preset = FIELD_PRESETS[formData.preset];
 
   useEffect(() => {
-    if (formData.preset && !field) {
-      const presetConfig = FIELD_PRESETS[formData.preset];
-      if (presetConfig) {
+    if (formData.preset && preset) {
+      const isNewField = !field;
+      const shouldSetDefaults = isNewField || (field && field.preset !== formData.preset);
+      
+      if (shouldSetDefaults) {
+        // Generate unique key if needed
+        let newKey = preset.key_default;
+        if (existingKeys.includes(newKey) && newKey !== field?.key) {
+          let counter = 2;
+          while (existingKeys.includes(`${newKey}_${counter}`)) {
+            counter++;
+          }
+          newKey = `${newKey}_${counter}`;
+        }
+
         setFormData(prev => ({
           ...prev,
-          label: presetConfig.label,
-          defaultValue: presetConfig.default,
-          helpText: presetConfig.description || '',
-          minValue: presetConfig.minimum,
-          maxValue: presetConfig.maximum,
-          minLength: presetConfig.minLength,
-          maxLength: presetConfig.maxLength,
-          options: presetConfig.enum ? [...presetConfig.enum] : []
+          label: prev.label || preset.label_default,
+          key: newKey,
+          defaultValue: preset.default_value,
+          helpText: prev.helpText || preset.description || '',
+          minValue: preset.minimum,
+          maxValue: preset.maximum,
+          minLength: preset.minLength,
+          maxLength: preset.maxLength,
+          options: preset.enum ? [...preset.enum] : []
         }));
       }
+
+      // Set key lock based on runtime_editable
+      setKeyLocked(!preset.runtime_editable || preset.key_default === 'file_path');
     }
-  }, [formData.preset, field]);
+  }, [formData.preset, field, existingKeys, preset]);
 
   const validateKey = (key: string) => {
     if (!key) return 'Key is required';
@@ -206,15 +223,33 @@ export function FieldEditor({ field, existingKeys, onSave, onCancel }: FieldEdit
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="key">Key *</Label>
-          <Input
-            id="key"
-            value={formData.key}
-            onChange={(e) => setFormData(prev => ({ ...prev, key: e.target.value.toLowerCase() }))}
-            placeholder="lowercase_with_underscores"
-            className={errors.key ? 'border-destructive' : ''}
-          />
-          {errors.key && <p className="text-xs text-destructive">{errors.key}</p>}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="key">Key *</Label>
+            {keyLocked && (
+              <Badge variant="secondary" className="text-xs">
+                Key locked by preset
+              </Badge>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Input
+              id="key"
+              value={formData.key}
+              onChange={(e) => !keyLocked && setFormData(prev => ({ ...prev, key: e.target.value.toLowerCase() }))}
+              placeholder="lowercase_with_underscores"
+              className={errors.key ? 'border-destructive' : ''}
+              disabled={keyLocked}
+            />
+            {formData.key && (
+              <Badge variant="outline" className="text-xs font-mono">
+                ENV: {formData.key.toUpperCase()}
+              </Badge>
+            )}
+            {keyLocked && (
+              <p className="text-xs text-muted-foreground">Key locked by preset.</p>
+            )}
+            {errors.key && <p className="text-xs text-destructive">{errors.key}</p>}
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -246,8 +281,36 @@ export function FieldEditor({ field, existingKeys, onSave, onCancel }: FieldEdit
         </div>
 
         <div className="space-y-2">
-          <Label>Default Value</Label>
-          {getDefaultValueInput()}
+          <div className="flex items-center justify-between">
+            <Label>Default Value</Label>
+            {preset && !preset.runtime_editable && (
+              <Badge variant="outline" className="text-xs">
+                Locked value
+              </Badge>
+            )}
+          </div>
+          <div className={preset && !preset.runtime_editable ? 'opacity-60' : ''}>
+            {getDefaultValueInput()}
+          </div>
+          {preset && !preset.runtime_editable && (
+            <p className="text-xs text-muted-foreground">Value locked by preset configuration.</p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="runtimeOverride"
+              checked={preset?.runtime_editable || false}
+              disabled={true}
+            />
+            <Label htmlFor="runtimeOverride" className="text-sm">Allow override at runtime</Label>
+          </div>
+          {preset && !preset.runtime_editable && (
+            <Badge variant="secondary" className="text-xs">
+              Disabled by preset
+            </Badge>
+          )}
         </div>
 
         <div className="space-y-2">

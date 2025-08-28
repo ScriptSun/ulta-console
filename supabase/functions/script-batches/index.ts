@@ -185,10 +185,10 @@ serve(async (req) => {
     if (action === 'execute_batch') {
       const { batch_id, inputs } = body;
       
-      // Get batch details including inputs schema
+      // Get batch details including inputs schema and defaults
       const { data: batchData, error: batchError } = await supabaseClient
         .from('script_batches')
-        .select('name, inputs_schema')
+        .select('name, customer_id, inputs_schema, inputs_defaults')
         .eq('id', batch_id)
         .single();
 
@@ -199,20 +199,95 @@ serve(async (req) => {
         );
       }
 
-      // Validate inputs against schema
-      const inputValidation = validateInputs(inputs, batchData.inputs_schema);
-      if (!inputValidation.isValid) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Input validation failed', 
-            validation_errors: inputValidation.errors 
-          }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      // Server-side input validation and enforcement
+      let finalInputs = inputs || {};
+      const userEmail = user.email || user.id;
+      
+      if (batchData.inputs_schema) {
+        try {
+          console.log('Processing inputs with locked field enforcement...');
+          
+          // Create a copy of the schema without internal properties for validation
+          const cleanSchema = JSON.parse(JSON.stringify(batchData.inputs_schema));
+          if (cleanSchema.properties) {
+            Object.keys(cleanSchema.properties).forEach(key => {
+              if (cleanSchema.properties[key]._isLocked !== undefined) {
+                delete cleanSchema.properties[key]._isLocked;
+              }
+            });
+          }
+          
+          // Prepare final inputs - use defaults for locked fields, client values for others
+          finalInputs = {};
+          
+          // First, apply all defaults
+          if (batchData.inputs_defaults) {
+            Object.assign(finalInputs, batchData.inputs_defaults);
+          }
+          
+          // Then apply client inputs, but only for non-locked fields
+          if (batchData.inputs_schema?.properties && inputs) {
+            Object.keys(inputs).forEach(key => {
+              const propDef = batchData.inputs_schema.properties[key];
+              
+              if (propDef && propDef._isLocked) {
+                // Log security event for locked field override attempt
+                if (inputs[key] !== finalInputs[key]) {
+                  console.warn(`Security event: Attempt to override locked field ${key}`);
+                  
+                  // Insert audit log for security event
+                  await supabaseClient
+                    .from('audit_logs')
+                    .insert({
+                      customer_id: batchData.customer_id,
+                      actor: userEmail,
+                      action: 'security_event',
+                      target: `batch:${batchData.name}`,
+                      meta: {
+                        event_type: 'locked_input_override',
+                        field_key: key,
+                        attempted_value: inputs[key],
+                        enforced_value: finalInputs[key],
+                        batch_id: batch_id
+                      }
+                    });
+                }
+                // Don't override locked fields - keep the default value
+              } else {
+                // Allow override for non-locked fields
+                finalInputs[key] = inputs[key];
+              }
+            });
+          }
+
+          // Validate the final inputs using the clean schema
+          const inputValidation = validateInputs(finalInputs, cleanSchema);
+          if (!inputValidation.isValid) {
+            return new Response(
+              JSON.stringify({ 
+                error: 'Input validation failed', 
+                validation_errors: inputValidation.errors 
+              }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          finalInputs = inputValidation.validatedInputs;
+          
+        } catch (error) {
+          console.error('Input processing error:', error);
+          return new Response(
+            JSON.stringify({
+              error: 'Failed to process inputs',
+              details: error instanceof Error ? error.message : 'Unknown processing error'
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
 
       // Map inputs to environment variables
-      const envVars = mapInputsToEnvVars(inputValidation.validatedInputs);
+      const envVars = mapInputsToEnvVars(finalInputs);
       
       // TODO: Here you would queue the batch for execution with the env vars
       console.log('Batch execution queued:', {
