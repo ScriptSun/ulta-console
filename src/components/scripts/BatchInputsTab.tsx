@@ -113,6 +113,12 @@ const convertSchemaToFields = (schema?: any, defaults?: any): BuilderField[] => 
     return [];
   }
   
+  console.log('Converting schema to fields:', {
+    schema: schema,
+    required: schema.required,
+    properties: Object.keys(schema.properties)
+  });
+  
   const fields = Object.entries(schema.properties).map(([originalKey, property]: [string, any]) => {
     // Convert key to lowercase to meet validation requirements
     const key = originalKey.toLowerCase();
@@ -144,14 +150,25 @@ const convertSchemaToFields = (schema?: any, defaults?: any): BuilderField[] => 
       preset = 'boolean';
     }
 
+    // Check if field is required - check both original key and converted key
+    const isRequired = Array.isArray(schema.required) ? 
+      (schema.required.includes(originalKey) || schema.required.includes(key)) : 
+      false;
+    
+    console.log(`Field ${originalKey} (${key}): required = ${isRequired}`, {
+      requiredArray: schema.required,
+      includesOriginal: schema.required?.includes(originalKey),
+      includesConverted: schema.required?.includes(key)
+    });
+
     const field: BuilderField = {
       id: crypto.randomUUID(),
       key,
-      label: originalKey.charAt(0).toUpperCase() + originalKey.slice(1).replace(/_/g, ' '),
+      label: property.title || (originalKey.charAt(0).toUpperCase() + originalKey.slice(1).replace(/_/g, ' ')),
       preset,
-      required: schema.required?.includes(originalKey) || schema.required?.includes(key) || false,
+      required: isRequired,
       helpText: property.description,
-      defaultValue: defaults?.[originalKey] || defaults?.[key]
+      defaultValue: defaults?.[originalKey] || defaults?.[key] || property.default
     };
 
     // Add specific constraints
@@ -163,6 +180,8 @@ const convertSchemaToFields = (schema?: any, defaults?: any): BuilderField[] => 
 
     return field;
   }).filter(Boolean) as BuilderField[]; // Remove null entries from invalid keys
+  
+  console.log('Converted fields:', fields.map(f => ({ key: f.key, label: f.label, required: f.required })));
   
   return fields;
 };
