@@ -69,3 +69,6 @@ verify_jwt = false
 
 [functions.ultaai-inputs-fill]
 verify_jwt = false
+
+[functions.ultaai-exec-run]
+verify_jwt = false
