@@ -27,10 +27,31 @@ export function InputForm({
   loading = false 
 }: InputFormProps) {
   const [values, setValues] = useState<Record<string, any>>(defaults);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (schema?.required) {
+      schema.required.forEach((fieldKey: string) => {
+        const value = values[fieldKey];
+        if (!value || (typeof value === 'string' && value.trim() === '')) {
+          const fieldSchema = schema.properties[fieldKey];
+          const label = fieldSchema?.title || fieldKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+          newErrors[fieldKey] = `${label} is required`;
+        }
+      });
+    }
+    
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(values);
+    if (validateForm()) {
+      onSubmit(values);
+    }
   };
 
   const updateValue = (key: string, value: any) => {
@@ -39,7 +60,7 @@ export function InputForm({
 
   const renderField = (key: string, fieldSchema: any) => {
     const value = values[key] || '';
-    const error = errors[key];
+    const error = errors[key] || validationErrors[key];
     const isRequired = schema.required?.includes(key);
 
     const fieldId = `input-${key}`;
@@ -48,6 +69,12 @@ export function InputForm({
     if (fieldSchema.type === 'boolean') {
       return (
         <div key={key} className="space-y-2">
+          {error && (
+            <p className="text-sm text-destructive flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {error}
+            </p>
+          )}
           <div className="flex items-center space-x-2">
             <Switch
               id={fieldId}
@@ -61,12 +88,6 @@ export function InputForm({
           {fieldSchema.description && (
             <p className="text-sm text-muted-foreground">{fieldSchema.description}</p>
           )}
-          {error && (
-            <p className="text-sm text-destructive flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              {error}
-            </p>
-          )}
         </div>
       );
     }
@@ -74,6 +95,12 @@ export function InputForm({
     if (fieldSchema.enum) {
       return (
         <div key={key} className="space-y-2">
+          {error && (
+            <p className="text-sm text-destructive flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {error}
+            </p>
+          )}
           <Label htmlFor={fieldId} className={error ? 'text-destructive' : ''}>
             {label} {isRequired && <span className="text-destructive">*</span>}
           </Label>
@@ -91,12 +118,6 @@ export function InputForm({
           </Select>
           {fieldSchema.description && (
             <p className="text-sm text-muted-foreground">{fieldSchema.description}</p>
-          )}
-          {error && (
-            <p className="text-sm text-destructive flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              {error}
-            </p>
           )}
         </div>
       );
@@ -118,6 +139,12 @@ export function InputForm({
 
     return (
       <div key={key} className="space-y-2">
+        {error && (
+          <p className="text-sm text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            {error}
+          </p>
+        )}
         <Label htmlFor={fieldId} className={error ? 'text-destructive' : ''}>
           {label} {isRequired && <span className="text-destructive">*</span>}
         </Label>
@@ -146,12 +173,6 @@ export function InputForm({
             ))}
           </div>
         )}
-        {error && (
-          <p className="text-sm text-destructive flex items-center gap-1">
-            <AlertCircle className="h-3 w-3" />
-            {error}
-          </p>
-        )}
       </div>
     );
   };
@@ -160,7 +181,7 @@ export function InputForm({
     return null;
   }
 
-  const hasErrors = Object.keys(errors).length > 0;
+  const hasErrors = Object.keys(errors).length > 0 || Object.keys(validationErrors).length > 0;
 
   return (
     <Card className="w-full">
@@ -186,7 +207,7 @@ export function InputForm({
                 Cancel
               </Button>
             )}
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || Object.keys(validationErrors).length > 0}>
               {loading ? (
                 'Processing...'
               ) : (
