@@ -601,7 +601,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       }
 
       // Normal chat flow - call router/decide
-      const { data: decision, error: decisionError } = await supabase.functions.invoke('ultaai-router-decide', {
+      const { data, error: decisionError } = await supabase.functions.invoke('ultaai-router-decide', {
         body: {
           agent_id: selectedAgent,
           user_request: content.trim()
@@ -610,9 +610,35 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
       if (decisionError) throw decisionError;
 
-      console.log('Router decision:', decision);
+      console.log('Router response:', data);
 
-      // Extract and store debug logs if available
+      // Handle dual-mode response
+      if (data.mode === 'chat') {
+        // Chat mode: add plain text response
+        const chatMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.text || 'Hello, how can I help you?',
+          timestamp: new Date(),
+          pending: false
+        };
+        setMessages(prev => [...prev, chatMessage]);
+        
+        // Show unread badge if window is closed
+        if (!isOpen && enableBadge) {
+          setUnreadBadge(true);
+          if (playSound) {
+            const audio = new Audio('/notification.mp3');
+            audio.play().catch(() => {});
+          }
+        }
+        return;
+      }
+
+      // Action mode: process the action JSON
+      const decision = data;
+
+      // Extract debug logs if available
       if (decision._debug?.openai_logs) {
         const newLogs = [];
         
@@ -658,6 +684,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       // Store logs and clean decision for message
       const cleanDecision = { ...decision };
       delete cleanDecision._debug;
+
+      // Show human message if available, then the action JSON
+      if (data.human) {
+        const humanMessage: Message = {
+          id: (Date.now() + 0.5).toString(),
+          role: 'assistant',
+          content: data.human,
+          timestamp: new Date(),
+          pending: false
+        };
+        setMessages(prev => [...prev, humanMessage]);
+      }
 
       // Add assistant message with decision (show raw JSON for debugging)
       const assistantMessage: Message = {
