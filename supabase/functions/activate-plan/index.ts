@@ -10,7 +10,7 @@ interface ActivatePlanRequest {
   user_id: string;
   customer_id: string;
   plan_name: string;
-  whmcs_order_id?: string;
+  order_id?: string;
   api_key: string;
 }
 
@@ -41,10 +41,10 @@ serve(async (req) => {
     );
 
     const body: ActivatePlanRequest = await req.json();
-    const { user_id, customer_id, plan_name, whmcs_order_id, api_key } = body;
+    const { user_id, customer_id, plan_name, order_id, api_key } = body;
 
     // Validate API key (you should set this as a secret)
-    const expectedApiKey = Deno.env.get('WHMCS_API_KEY');
+    const expectedApiKey = Deno.env.get('HOSTING_COMPANIES_API_KEY');
     if (!expectedApiKey || api_key !== expectedApiKey) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -107,7 +107,7 @@ serve(async (req) => {
         status: 'active',
         current_period_start: currentDate.toISOString(),
         current_period_end: nextMonth.toISOString(),
-        whmcs_order_id,
+        order_id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -130,14 +130,14 @@ serve(async (req) => {
       .from('audit_logs')
       .insert({
         customer_id,
-        actor: 'WHMCS_API',
+        actor: 'HOSTING_COMPANY_API',
         action: 'plan_activated',
         target: `user:${user_id}`,
         meta: {
           plan_name,
           plan_id: plan.id,
           subscription_id: subscription.id,
-          whmcs_order_id,
+          order_id,
           api_activation: true
         }
       });
