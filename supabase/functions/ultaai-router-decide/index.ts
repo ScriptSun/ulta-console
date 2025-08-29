@@ -44,7 +44,11 @@ Rules:
 - Obey policy_notes thresholds
 - Validate shell against command_policies, do not emit forbidden content
 - Only one JSON object, no prose
-- All responses must include "task" and "status"`;
+- All responses must include "task" and "status"
+- Confirmed batch: "status":"confirmed"
+- Custom shell: "status":"unconfirmed"
+- Proposed batch: "status":"unconfirmed"
+- Not supported: "status":"rejected"`;
 
 serve(async (req) => {
   console.log('🚀 Function called with method:', req.method);
@@ -114,14 +118,15 @@ serve(async (req) => {
     // 2. Call GPT with the router system prompt and schema
     console.log('🤖 Calling OpenAI GPT...');
     
-    // Define minimal schema inline to avoid any stale imports
+    // Must be EXACTLY this, no extra keys
     const ROUTER_MIN_SCHEMA = {
       type: "object",
       properties: {
         task: { type: "string" },
-        status: { type: "string" } // "confirmed", "unconfirmed", "rejected"
+        status: { type: "string", enum: ["confirmed", "unconfirmed", "rejected"] }
       },
-      required: ["task", "status"]
+      required: ["task", "status"],
+      additionalProperties: false
     };
     
     console.log("Schema sent to OpenAI:", JSON.stringify(ROUTER_MIN_SCHEMA));
