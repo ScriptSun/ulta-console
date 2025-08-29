@@ -961,8 +961,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                   
                    {/* Input Errors Display */}
                    {message.inputErrors && Object.keys(message.inputErrors).length > 0 && (
-                     <div className="mt-4 relative overflow-hidden rounded-xl backdrop-blur-sm bg-gradient-to-br from-red-50/80 to-orange-50/80 dark:from-red-950/40 dark:to-orange-950/40 border border-red-200/60 dark:border-red-800/40 shadow-lg shadow-red-100/50 dark:shadow-red-900/20 animate-in fade-in-0 slide-in-from-top-2 duration-300">
-                       <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-orange-500/5 dark:from-red-400/5 dark:to-orange-400/5"></div>
+                     <div className="mt-4 relative overflow-hidden rounded-xl backdrop-blur-sm bg-gradient-to-br from-red-50/80 to-orange-50/80 dark:from-red-900/60 dark:to-orange-900/60 border border-red-200/60 dark:border-red-700/60 shadow-lg shadow-red-100/50 dark:shadow-red-800/30 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+                       <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-orange-500/5 dark:from-red-400/10 dark:to-orange-400/10"></div>
                        <div className="relative p-4">
                          <div className="flex items-start gap-3">
                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center mt-0.5">
