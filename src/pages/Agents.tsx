@@ -195,6 +195,10 @@ export default function Agents() {
     navigate(`/agents/${agent.id}/tasks`);
   };
 
+  const handleAgentChat = (agent: Agent) => {
+    navigate(`/agents/${agent.id}/chat`);
+  };
+
   const handleAgentClick = (agent: Agent) => {
     setSelectedAgent(agent);
     setDefaultTab('overview');
@@ -394,6 +398,7 @@ export default function Agents() {
           onLogs={handleViewLogs}
           onDetails={handleAgentDetails}
           onRecentTasks={handleRecentTasks}
+          onChat={handleAgentChat}
           canManage={canManage}
         />
       ) : (

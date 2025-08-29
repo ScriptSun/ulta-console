@@ -25,6 +25,7 @@ import ScriptsSettings from "./pages/ScriptsSettings";
 import CommandPolicies from "./pages/CommandPolicies";
 import Auth from "./pages/Auth";
 import AgentTasks from "./pages/AgentTasks";
+import AgentChat from "./pages/AgentChat";
 import ChatInbox from "./pages/ChatInbox";
 import WidgetGuide from "./pages/WidgetGuide";
 import SecurityDashboard from "./pages/SecurityDashboard";
@@ -70,6 +71,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <AgentTasks />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/agents/:agentId/chat" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <AgentChat />
                 </RootLayout>
               </ProtectedRoute>
             } />
