@@ -1116,10 +1116,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
                       {/* AI Advice Display */}
                       {message.adviceResult && (
-                        <div className="mt-3 p-3 rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
-                          <div className="text-sm font-medium mb-2">💡 AI Suggestions:</div>
+                        <div className="mt-3 p-3 rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200">
+                          <div className="text-sm font-medium mb-2 text-yellow-900 dark:text-yellow-100">💡 AI Suggestions:</div>
                           {message.adviceResult.suggested_fixes.map((fix, index) => (
-                            <div key={index} className="text-xs bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded mb-1">
+                            <div key={index} className="text-xs bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded mb-1 text-yellow-800 dark:text-yellow-200">
                               {fix}
                             </div>
                           ))}
