@@ -183,9 +183,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!Deno.env.get('SUPABASE_URL'),
+      hasSupabaseKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+      hasOpenAIKey: !!Deno.env.get('OPENAI_API_KEY')
+    });
+
     const { agent_id, user_request }: RequestBody = await req.json();
 
     if (!agent_id || !user_request) {
+      console.error('Missing required parameters:', { agent_id: !!agent_id, user_request: !!user_request });
       return new Response(JSON.stringify({ error: 'Missing agent_id or user_request' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -195,13 +202,20 @@ serve(async (req) => {
     console.log(`Processing router decision for agent_id: ${agent_id}, user_request: ${user_request}`);
 
     // 1. Call /api/ultaai/router/payload
+    console.log('Calling ultaai-router-payload...');
     const payloadResponse = await supabase.functions.invoke('ultaai-router-payload', {
       body: { agent_id, user_request }
     });
 
+    console.log('Payload response:', { 
+      hasData: !!payloadResponse.data, 
+      hasError: !!payloadResponse.error,
+      errorMessage: payloadResponse.error?.message 
+    });
+
     if (payloadResponse.error) {
       console.error('Error calling router payload:', payloadResponse.error);
-      return new Response(JSON.stringify({ error: 'Failed to get router payload' }), {
+      return new Response(JSON.stringify({ error: 'Failed to get router payload', details: payloadResponse.error.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -211,31 +225,45 @@ serve(async (req) => {
     console.log('Got payload with', payload.candidates?.length || 0, 'candidates');
 
     // 2. Call GPT with the router system prompt and schema
-    const decision = await callGPT({
-      system: ROUTER_SYSTEM_PROMPT,
-      user: payload,
-      schema: ROUTER_RESPONSE_SCHEMA
-    });
+    console.log('Calling OpenAI GPT...');
+    
+    try {
+      const decision = await callGPT({
+        system: ROUTER_SYSTEM_PROMPT,
+        user: payload,
+        schema: ROUTER_RESPONSE_SCHEMA
+      });
 
-    console.log('GPT decision:', decision.task);
+      console.log('GPT decision received:', decision.task);
 
-    // 3. Update agents table with the decision
-    const { error: updateError } = await supabase
-      .from('agents')
-      .update({ last_decision_json: decision })
-      .eq('id', agent_id);
+      // 3. Update agents table with the decision
+      console.log('Updating agent with decision...');
+      const { error: updateError } = await supabase
+        .from('agents')
+        .update({ last_decision_json: decision })
+        .eq('id', agent_id);
 
-    if (updateError) {
-      console.error('Error updating agent with decision:', updateError);
-      // Continue anyway, just log the error
+      if (updateError) {
+        console.error('Error updating agent with decision:', updateError);
+        // Continue anyway, just log the error
+      }
+
+      console.log(`Router decision completed successfully for agent ${agent_id}`);
+
+      // 4. Return the decision
+      return new Response(JSON.stringify(decision), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (gptError) {
+      console.error('OpenAI API error:', gptError);
+      return new Response(JSON.stringify({ 
+        error: 'Failed to process with AI', 
+        details: gptError.message 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    console.log(`Router decision completed successfully for agent ${agent_id}`);
-
-    // 4. Return the decision
-    return new Response(JSON.stringify(decision), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
 
   } catch (error) {
     console.error('Error processing router decision:', error);

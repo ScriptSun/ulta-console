@@ -46,9 +46,15 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log('Router-payload environment check:', {
+      hasSupabaseUrl: !!Deno.env.get('SUPABASE_URL'),
+      hasSupabaseKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    });
+
     const { agent_id, user_request }: RequestBody = await req.json();
 
     if (!agent_id || !user_request) {
+      console.error('Router-payload missing parameters:', { agent_id: !!agent_id, user_request: !!user_request });
       return new Response(JSON.stringify({ error: 'Missing agent_id or user_request' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -58,15 +64,18 @@ serve(async (req) => {
     console.log(`Processing router payload for agent_id: ${agent_id}, user_request: ${user_request}`);
 
     // 1. Load agent by id, select heartbeat and last_heartbeat
+    console.log('Loading agent...');
     const { data: agent, error: agentError } = await supabase
       .from('agents')
       .select('heartbeat, last_heartbeat')
       .eq('id', agent_id)
       .single();
 
+    console.log('Agent query result:', { hasAgent: !!agent, agentError: agentError?.message });
+
     if (agentError) {
       console.error('Error loading agent:', agentError);
-      return new Response(JSON.stringify({ error: 'Agent not found' }), {
+      return new Response(JSON.stringify({ error: 'Agent not found', details: agentError.message }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
