@@ -1152,16 +1152,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                 </div>
               )}
               
-              {messages.map((message) => (
-                <div key={message.id}>
-                  <div className={`group flex gap-3 ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}>
-                    <div className={`max-w-[80%] rounded-lg p-3 ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    } ${compactDensity ? 'p-2 text-sm' : ''}`}>
+               {messages.map((message) => (
+                 <div key={message.id}>
+                   {/* Only show chat message bubble if there's no input form needed */}
+                   {!message.needsInputs && (
+                     <div className={`group flex gap-3 ${
+                       message.role === 'user' ? 'justify-end' : 'justify-start'
+                     }`}>
+                       <div className={`max-w-[80%] rounded-lg p-3 ${
+                         message.role === 'user'
+                           ? 'bg-primary text-primary-foreground'
+                           : 'bg-muted'
+                       } ${compactDensity ? 'p-2 text-sm' : ''}`}>
                       {typeof message.content === 'string' && message.content.split('\n').length > 10 && !message.collapsed ? (
                         <div>
                           <div className="flex items-start gap-2">
@@ -1347,11 +1349,12 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                         >
                           <Copy className="w-3 h-3" />
                         </Button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Remove the large TaskStatusCard since we now show small icons */}
+                       </div>
+                     </div>
+                   </div>
+                   )}
+                   
+                   {/* Remove the large TaskStatusCard since we now show small icons */}
                   
                   {/* Preflight Block Card */}
                   {message.preflightBlocked && (
