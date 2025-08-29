@@ -1400,6 +1400,45 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          monthly_ai_requests: number
+          monthly_server_events: number
+          name: string
+          price_cents: number
+          stripe_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          monthly_ai_requests?: number
+          monthly_server_events?: number
+          name: string
+          price_cents?: number
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          monthly_ai_requests?: number
+          monthly_server_events?: number
+          name?: string
+          price_cents?: number
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           id: string
@@ -1457,6 +1496,44 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_tracking: {
+        Row: {
+          count: number
+          created_at: string
+          customer_id: string
+          id: string
+          usage_date: string
+          usage_type: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          customer_id: string
+          id?: string
+          usage_date?: string
+          usage_type: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          customer_id?: string
+          id?: string
+          usage_date?: string
+          usage_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_tracking_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1483,6 +1560,63 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          customer_id: string
+          id: string
+          plan_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          customer_id: string
+          id?: string
+          plan_id: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          customer_id?: string
+          id?: string
+          plan_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       widget_metrics: {
         Row: {
@@ -1693,6 +1827,14 @@ export type Database = {
           tenant_limit: number
         }[]
       }
+      check_usage_limit: {
+        Args: { _customer_id: string; _usage_type: string; _user_id: string }
+        Returns: {
+          allowed: boolean
+          current_usage: number
+          limit_amount: number
+        }[]
+      }
       complete_batch_run: {
         Args: {
           _raw_stderr?: string
@@ -1714,6 +1856,14 @@ export type Database = {
         Args: { _batch_id: string; _os: string }
         Returns: number
       }
+      get_user_current_plan: {
+        Args: { _customer_id: string; _user_id: string }
+        Returns: {
+          monthly_ai_requests: number
+          monthly_server_events: number
+          plan_name: string
+        }[]
+      }
       get_user_customer_ids: {
         Args: Record<PropertyKey, never>
         Returns: string[]
@@ -1723,6 +1873,10 @@ export type Database = {
           _customer_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: boolean
+      }
+      increment_usage: {
+        Args: { _customer_id: string; _usage_type: string; _user_id: string }
         Returns: boolean
       }
       increment_widget_metric: {
