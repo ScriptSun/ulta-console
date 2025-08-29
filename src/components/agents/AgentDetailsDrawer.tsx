@@ -136,7 +136,6 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
   const { toast } = useToast();
 
   useEffect(() => {
-    // Always set to overview when drawer opens
     if (isOpen) {
       setActiveTab('overview');
     }
@@ -153,7 +152,6 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
     
     setLoading(true);
     try {
-      // Fetch tasks
       const { data: tasksData } = await supabase
         .from('agent_tasks')
         .select('*')
@@ -161,7 +159,6 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
         .order('created_at', { ascending: false })
         .limit(50);
 
-      // Fetch logs
       const { data: logsData } = await supabase
         .from('agent_logs')
         .select('*')
@@ -242,52 +239,6 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
     }
   };
 
-  const copyHeartbeatToClipboard = async () => {
-    if (!agent?.heartbeat) return;
-    
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(agent.heartbeat, null, 2));
-      toast({
-        title: 'Copied!',
-        description: 'Heartbeat JSON copied to clipboard',
-      });
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to copy to clipboard',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const validateHeartbeat = () => {
-    if (!agent?.heartbeat) {
-      toast({
-        title: 'Validation Failed',
-        description: 'No heartbeat data to validate',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const requiredKeys = ['agent_id', 'os', 'ip', 'open_ports', 'running_services'];
-    const missingKeys = requiredKeys.filter(key => !(key in agent.heartbeat));
-
-    if (missingKeys.length > 0) {
-      toast({
-        title: 'Validation Failed',
-        description: `Missing required keys: ${missingKeys.join(', ')}`,
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Validation Passed',
-        description: 'All required keys are present in heartbeat',
-      });
-    }
-  };
-
   if (!agent) return null;
 
   const config = statusConfig[agent.status];
@@ -325,7 +276,6 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-full">
                 <TabsContent value="overview" className="space-y-6 p-1">
-                  {/* System Information */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -387,7 +337,6 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                     </CardContent>
                   </Card>
 
-                  {/* Security Status */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -446,64 +395,74 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                 </TabsContent>
 
                 <TabsContent value="heartbeat" className="space-y-6 p-1">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="heartbeat">
+                      <AccordionTrigger className="flex items-center gap-2">
                         <Heart className="h-4 w-4" />
-                        Agent Heartbeat
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Last heartbeat</Label>
-                          <p className="text-sm font-medium">
-                            {agent.last_heartbeat 
-                              ? new Date(agent.last_heartbeat).toLocaleString()
-                              : 'Unknown'
-                            }
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={copyHeartbeatToClipboard}
-                            disabled={!agent.heartbeat}
-                          >
-                            <Copy className="h-3 w-3 mr-1" />
-                            Copy JSON
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={validateHeartbeat}
-                            disabled={!agent.heartbeat}
-                          >
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Validate
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      {agent.heartbeat && Object.keys(agent.heartbeat).length > 0 ? (
-                        <div className="bg-muted rounded-lg p-4 max-h-96 overflow-auto">
-                          <pre className="text-xs font-mono whitespace-pre-wrap">
-                            {JSON.stringify(agent.heartbeat, null, 2)}
-                          </pre>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No heartbeat data available</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                        Heartbeat
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-sm text-muted-foreground">
+                                  Last heartbeat: {agent.last_heartbeat 
+                                    ? new Date(agent.last_heartbeat).toLocaleString()
+                                    : 'Unknown'
+                                  }
+                                </Label>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      const requiredFields = ['agent_id', 'os', 'ip', 'open_ports', 'running_services'];
+                                      const heartbeat = agent.heartbeat || {};
+                                      const missing = requiredFields.filter(field => !(field in heartbeat));
+                                      
+                                      if (missing.length === 0) {
+                                        toast({ title: 'Valid', description: 'Heartbeat contains all required fields' });
+                                      } else {
+                                        toast({ 
+                                          title: 'Invalid', 
+                                          description: `Missing: ${missing.join(', ')}`,
+                                          variant: 'destructive'
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Validate
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(JSON.stringify(agent.heartbeat, null, 2));
+                                      toast({ title: 'Copied', description: 'Heartbeat JSON copied to clipboard' });
+                                    }}
+                                  >
+                                    <Copy className="h-3 w-3 mr-1" />
+                                    Copy
+                                  </Button>
+                                </div>
+                              </div>
+                              
+                              <div className="relative">
+                                <pre className="bg-muted p-3 rounded-md text-xs overflow-auto max-h-64">
+                                  <code>{JSON.stringify(agent.heartbeat || {}, null, 2)}</code>
+                                </pre>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 </TabsContent>
 
                 <TabsContent value="monitoring" className="space-y-6 p-1">
-                  {/* Performance Metrics */}
                   <div className="grid grid-cols-2 gap-4">
                     <Card>
                       <CardHeader>
@@ -539,198 +498,42 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                       </CardContent>
                     </Card>
                   </div>
-
-                  {/* Storage & Resources */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <Database className="h-4 w-4" />
-                          Disk Usage
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">75.2%</div>
-                        <Progress value={75.2} className="mt-2" />
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                          <span>Used: 451 GB</span>
-                          <span>Free: 149 GB</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <Zap className="h-4 w-4" />
-                          Load Average
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>1 min</span>
-                            <span className="font-mono">1.24</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>5 min</span>
-                            <span className="font-mono">1.18</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>15 min</span>
-                            <span className="font-mono">1.05</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <Wifi className="h-4 w-4" />
-                          Network I/O
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>RX</span>
-                            <span className="font-mono">124 MB/s</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>TX</span>
-                            <span className="font-mono">89 MB/s</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Packets</span>
-                            <span className="font-mono">15.2K/s</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Top Applications */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-4 w-4" />
-                        Top Applications
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {[
-                          { name: 'nodejs', cpu: 15.2, memory: 8.3, pid: '1234' },
-                          { name: 'nginx', cpu: 8.7, memory: 2.1, pid: '5678' },
-                          { name: 'postgres', cpu: 12.4, memory: 15.6, pid: '9012' },
-                          { name: 'redis-server', cpu: 3.1, memory: 4.2, pid: '3456' },
-                          { name: 'docker', cpu: 6.8, memory: 11.9, pid: '7890' }
-                        ].map((app, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 border rounded text-sm">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-primary/10 rounded flex items-center justify-center">
-                                <span className="text-xs font-mono">{index + 1}</span>
-                              </div>
-                              <div>
-                                <p className="font-medium font-mono text-sm">{app.name}</p>
-                                <p className="text-xs text-muted-foreground">PID: {app.pid}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs font-medium">CPU: {app.cpu}%</p>
-                              <p className="text-xs text-muted-foreground">RAM: {app.memory}%</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Resource Summary */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" />
-                        Resource Summary
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-3 bg-muted/30 rounded">
-                          <div className="text-2xl font-bold text-green-600">{(100 - agent.cpu_usage).toFixed(1)}%</div>
-                          <div className="text-xs text-muted-foreground">CPU Free</div>
-                        </div>
-                        <div className="text-center p-3 bg-muted/30 rounded">
-                          <div className="text-2xl font-bold text-blue-600">{(100 - agent.memory_usage).toFixed(1)}%</div>
-                          <div className="text-xs text-muted-foreground">RAM Free</div>
-                        </div>
-                        <div className="text-center p-3 bg-muted/30 rounded">
-                          <div className="text-2xl font-bold text-purple-600">24.8%</div>
-                          <div className="text-xs text-muted-foreground">Disk Free</div>
-                        </div>
-                        <div className="text-center p-3 bg-muted/30 rounded">
-                          <div className="text-2xl font-bold text-orange-600">4</div>
-                          <div className="text-xs text-muted-foreground">CPU Cores</div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
                 </TabsContent>
 
-                <TabsContent value="settings" className="space-y-4 p-1">
-                  {canManage ? (
-                    <>
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Settings className="h-4 w-4" />
-                            Agent Settings
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label>Auto-updates</Label>
-                              <p className="text-xs text-muted-foreground">
-                                Automatically update agent when new versions are available
-                              </p>
-                            </div>
-                            <Switch
-                              checked={agent.auto_updates_enabled}
-                              onCheckedChange={handleAutoUpdatesToggle}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">
-                              Deregistering an agent will permanently remove it from your account.
-                              This action cannot be undone.
-                            </p>
-                            <Button 
-                              variant="destructive" 
-                              onClick={handleDeregisterAgent}
-                              className="w-full"
-                            >
-                              Deregister Agent
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </>
-                  ) : (
+                <TabsContent value="settings" className="space-y-6 p-1">
+                  {canManage && (
                     <Card>
-                      <CardContent className="pt-6">
-                        <p className="text-center text-muted-foreground">
-                          You don't have permission to modify agent settings.
-                        </p>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Settings className="h-4 w-4" />
+                          Agent Settings
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm font-medium">Auto-updates</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Automatically update agent software when new versions are available
+                            </p>
+                          </div>
+                          <Switch 
+                            checked={agent.auto_updates_enabled}
+                            onCheckedChange={handleAutoUpdatesToggle}
+                          />
+                        </div>
+                        
+                        <div className="pt-4 border-t">
+                          <Button 
+                            variant="destructive" 
+                            onClick={handleDeregisterAgent}
+                          >
+                            Deregister Agent
+                          </Button>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            This will permanently remove the agent from your account. This action cannot be undone.
+                          </p>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
