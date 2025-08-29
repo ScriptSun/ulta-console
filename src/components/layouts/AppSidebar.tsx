@@ -33,7 +33,7 @@ const mainItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Agents', url: '/agents', icon: Bot },
   { title: 'Chat Inbox', url: '/chat/inbox', icon: MessageSquare },
-  { title: 'Batches', url: '/scripts/batches', icon: Package },
+  { title: 'Templates & Scripts', url: '/scripts/batches', icon: Package },
   { title: 'Tasks', url: '/tasks', icon: CheckSquare },
 ]
 
