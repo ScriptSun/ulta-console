@@ -55,11 +55,31 @@ const ROUTER_RESPONSE_SCHEMA = {
       "enum": ["confirmed_batch", "custom_shell", "proposed_batch", "not_supported"]
     },
     "batch_id": {"type": "string"},
-    "params": {"type": "object"},
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {"type": "string"},
+        "shell": {"type": "string"}
+      }
+    },
     "status": {"type": "string"},
     "risk": {"type": "string", "enum": ["low", "medium", "high"]},
     "preflight": {"type": "array", "items": {"type": "string"}},
-    "batch": {"type": "object"},
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {"type": "string"},
+        "name": {"type": "string"},
+        "risk": {"type": "string", "enum": ["low", "medium", "high"]},
+        "description": {"type": "string"},
+        "inputs_schema": {"type": "object"},
+        "inputs_defaults": {"type": "object"},
+        "preflight": {"type": "object"},
+        "commands": {"type": "array", "items": {"type": "string"}}
+      }
+    },
     "reason": {"type": "string"}
   },
   "additionalProperties": false
