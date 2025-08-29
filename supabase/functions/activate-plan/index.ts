@@ -43,14 +43,21 @@ serve(async (req) => {
     const body: ActivatePlanRequest = await req.json();
     const { user_id, customer_id, plan_name, order_id, api_key } = body;
 
-    // Validate API key (you should set this as a secret)
-    const expectedApiKey = Deno.env.get('HOSTING_COMPANIES_API_KEY');
-    if (!expectedApiKey || api_key !== expectedApiKey) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    // Validate API key against database
+    const { data: keyValidation, error: keyError } = await supabaseAdmin
+      .rpc('validate_api_key', { _api_key: api_key });
+    
+    if (keyError || !keyValidation || keyValidation.length === 0 || !keyValidation[0].valid) {
+      return new Response(JSON.stringify({ error: 'Invalid or expired API key' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
+    const { customer_id: api_customer_id, api_key_id } = keyValidation[0];
+    
+    // Track API key usage
+    await supabaseAdmin.rpc('track_api_key_usage', { _api_key_id: api_key_id });
 
     // Validate required fields
     if (!user_id || !customer_id || !plan_name) {
@@ -58,6 +65,16 @@ serve(async (req) => {
         error: 'Missing required fields: user_id, customer_id, plan_name' 
       }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Verify the customer_id matches the API key's customer (security check)
+    if (customer_id !== api_customer_id) {
+      return new Response(JSON.stringify({ 
+        error: 'API key not authorized for this customer' 
+      }), {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
