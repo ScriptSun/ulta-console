@@ -515,26 +515,47 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         assistantMessage.content = data.response || 'Preflight checks failed. Please address the issues and try again.';
       }
 
-      // Handle needs inputs
-      if (data.state === 'needs_inputs' && data.inputs_schema) {
-        console.log('Setting needsInputs with schema:', data.inputs_schema);
-        assistantMessage.needsInputs = {
-          schema: data.inputs_schema,
-          defaults: data.inputs_defaults || {},
-          missingParams: data.missing_params || []
-        };
-        assistantMessage.content = data.response || 'Please provide the required information to continue.';
-      } else if (data.needs_inputs && data.inputs_schema) {
-        console.log('Alternative needs_inputs path with schema:', data.inputs_schema);
-        assistantMessage.needsInputs = {
-          schema: data.inputs_schema,
-          defaults: data.inputs_defaults || {},
-          missingParams: data.missing_params || []
-        };
-        assistantMessage.content = data.response || 'Please provide the required information to continue.';
-      } else if (data.needs_inputs && data.missing_param) {
-        assistantMessage.quickInputs = getQuickInputsForParam(data.missing_param);
+  // Handle needs inputs - fetch complete schema from database if needed
+  if (data.state === 'needs_inputs' && data.inputs_schema) {
+    console.log('Setting needsInputs with schema:', data.inputs_schema);
+    
+    // If this is WordPress installation, get the complete schema from database
+    let completeSchema = data.inputs_schema;
+    if (content.toLowerCase().includes('wordpress') || content.toLowerCase().includes('install wordpress')) {
+      try {
+        const { data: batches } = await supabase
+          .from('script_batches')
+          .select('inputs_schema, inputs_defaults')
+          .eq('name', 'WordPress Installer')
+          .single();
+        
+        if (batches?.inputs_schema) {
+          console.log('Using complete WordPress schema from database:', batches.inputs_schema);
+          completeSchema = batches.inputs_schema;
+          data.inputs_defaults = batches.inputs_defaults || data.inputs_defaults;
+        }
+      } catch (error) {
+        console.log('Failed to fetch complete schema, using API schema:', error);
       }
+    }
+    
+    assistantMessage.needsInputs = {
+      schema: completeSchema,
+      defaults: data.inputs_defaults || {},
+      missingParams: data.missing_params || []
+    };
+    assistantMessage.content = data.message || data.response || 'Please provide the required information to continue.';
+  } else if (data.needs_inputs && data.inputs_schema) {
+    console.log('Alternative needs_inputs path with schema:', data.inputs_schema);
+    assistantMessage.needsInputs = {
+      schema: data.inputs_schema,
+      defaults: data.inputs_defaults || {},
+      missingParams: data.missing_params || []
+    };
+    assistantMessage.content = data.message || data.response || 'Please provide the required information to continue.';
+  } else if (data.needs_inputs && data.missing_param) {
+    assistantMessage.quickInputs = getQuickInputsForParam(data.missing_param);
+  }
 
       // Handle input errors
       if (data.state === 'input_error' && data.errors) {
