@@ -446,7 +446,6 @@ export default function ScriptsBatches() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Batch Name</TableHead>
-                  <TableHead>OS Targets</TableHead>
                   <TableHead>Latest SHA256</TableHead>
                   <TableHead>Risk</TableHead>
                   <TableHead>Max Timeout</TableHead>
@@ -461,19 +460,14 @@ export default function ScriptsBatches() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
                         <FileText className="h-4 w-4 text-muted-foreground" />
-                         <div className="flex flex-col">
-                           <span className="font-semibold">{batch.name}</span>
-                           {batch.description && (
-                             <p className="text-sm text-muted-foreground mt-1 max-w-md line-clamp-2">
-                               {batch.description}
-                             </p>
-                           )}
-                           {batch.key && (
-                             <Badge variant="secondary" className="text-xs font-mono mt-1 w-fit bg-primary/10 text-primary">
-                               {batch.key}
-                             </Badge>
-                           )}
-                         </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{batch.name}</span>
+                          {batch.key && (
+                            <span className="text-purple-500 font-mono text-sm">
+                              {batch.key}
+                            </span>
+                          )}
+                        </div>
                         {batch.dependencies_count > 0 && (
                           <TooltipProvider>
                             <Tooltip>
@@ -490,15 +484,6 @@ export default function ScriptsBatches() {
                             </Tooltip>
                           </TooltipProvider>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {batch.os_targets.map((os) => (
-                          <Badge key={os} variant="outline" className="text-xs">
-                            {os}
-                          </Badge>
-                        ))}
                       </div>
                     </TableCell>
                     <TableCell>
