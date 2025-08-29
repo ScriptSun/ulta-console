@@ -515,12 +515,14 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         assistantMessage.content = data.response || 'Preflight checks failed. Please address the issues and try again.';
       }
 
-  // Handle needs inputs - fetch complete schema from database if needed
+  // Handle needs inputs - always use database schema for WordPress
   if (data.state === 'needs_inputs' && data.inputs_schema) {
     console.log('Setting needsInputs with schema:', data.inputs_schema);
     
-    // If this is WordPress installation, get the complete schema from database
+    // Always get the complete schema from database for WordPress installation
     let completeSchema = data.inputs_schema;
+    let completeDefaults = data.inputs_defaults || {};
+    
     if (content.toLowerCase().includes('wordpress') || content.toLowerCase().includes('install wordpress')) {
       try {
         const { data: batches } = await supabase
@@ -531,8 +533,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         
         if (batches?.inputs_schema) {
           console.log('Using complete WordPress schema from database:', batches.inputs_schema);
+          console.log('Database defaults:', batches.inputs_defaults);
           completeSchema = batches.inputs_schema;
-          data.inputs_defaults = batches.inputs_defaults || data.inputs_defaults;
+          completeDefaults = batches.inputs_defaults || {};
         }
       } catch (error) {
         console.log('Failed to fetch complete schema, using API schema:', error);
@@ -541,7 +544,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     
     assistantMessage.needsInputs = {
       schema: completeSchema,
-      defaults: data.inputs_defaults || {},
+      defaults: completeDefaults,
       missingParams: data.missing_params || []
     };
     assistantMessage.content = data.message || data.response || 'Please provide the required information to continue.';
