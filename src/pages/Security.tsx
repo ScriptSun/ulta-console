@@ -32,7 +32,7 @@ const securitySections = [
     title: 'API Security',
     description: 'API keys and authentication settings',
     icon: Key,
-    url: '/security/api',
+    url: '/api-keys',
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
   },
