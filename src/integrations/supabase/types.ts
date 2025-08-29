@@ -195,6 +195,7 @@ export type Database = {
           id: string
           ip_address: unknown | null
           last_cert_rotation: string | null
+          last_decision_json: Json | null
           last_heartbeat: string | null
           last_seen: string | null
           memory_usage: number | null
@@ -221,6 +222,7 @@ export type Database = {
           id?: string
           ip_address?: unknown | null
           last_cert_rotation?: string | null
+          last_decision_json?: Json | null
           last_heartbeat?: string | null
           last_seen?: string | null
           memory_usage?: number | null
@@ -247,6 +249,7 @@ export type Database = {
           id?: string
           ip_address?: unknown | null
           last_cert_rotation?: string | null
+          last_decision_json?: Json | null
           last_heartbeat?: string | null
           last_seen?: string | null
           memory_usage?: number | null
