@@ -446,6 +446,7 @@ export default function ScriptsBatches() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Batch Name</TableHead>
+                  <TableHead>Script Keys</TableHead>
                   <TableHead>Latest SHA256</TableHead>
                   <TableHead>Risk</TableHead>
                   <TableHead>Max Timeout</TableHead>
@@ -460,14 +461,7 @@ export default function ScriptsBatches() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
                         <FileText className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{batch.name}</span>
-                          {batch.key && (
-                            <span className="text-purple-500 font-mono text-sm">
-                              {batch.key}
-                            </span>
-                          )}
-                        </div>
+                        <span className="font-semibold">{batch.name}</span>
                         {batch.dependencies_count > 0 && (
                           <TooltipProvider>
                             <Tooltip>
@@ -485,6 +479,25 @@ export default function ScriptsBatches() {
                           </TooltipProvider>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {batch.key ? (
+                        <div className="flex flex-col">
+                          <span className="text-purple-500 font-mono text-sm font-semibold">
+                            {batch.key}
+                          </span>
+                          {batch.description && (
+                            <p className="text-xs text-muted-foreground mt-1 max-w-xs line-clamp-2">
+                              {batch.description.length > 80 
+                                ? `${batch.description.substring(0, 80)}...` 
+                                : batch.description
+                              }
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {batch.latest_version?.sha256 ? (
