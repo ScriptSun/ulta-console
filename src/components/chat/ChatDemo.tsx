@@ -104,6 +104,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
+  const [selectedAgentDetails, setSelectedAgentDetails] = useState<Agent | null>(null);
+  const [selectedAgentHeartbeat, setSelectedAgentHeartbeat] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -255,6 +257,13 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     sessionStorage.setItem(`chatDemo_${currentRoute}`, isOpen.toString());
   }, [isOpen, currentRoute]);
 
+  // Load agent details and heartbeat when selectedAgent changes
+  useEffect(() => {
+    if (selectedAgent && shouldShowDemo) {
+      fetchAgentDetailsAndHeartbeat(selectedAgent);
+    }
+  }, [selectedAgent, shouldShowDemo]);
+
   // Set up WebSocket listener for task updates and real-time chat events
   useEffect(() => {
     if (!selectedAgent || !conversationId) return;
@@ -325,13 +334,86 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Fetch agent details and heartbeat when agent is selected
+  const fetchAgentDetailsAndHeartbeat = async (agentId: string) => {
+    try {
+      console.log('Fetching agent details and heartbeat for:', agentId);
+      
+      // Fetch complete agent details including heartbeat
+      const { data: agentDetails, error: agentError } = await supabase
+        .from('agents')
+        .select('*')
+        .eq('id', agentId)
+        .single();
+
+      if (agentError) {
+        console.error('Error fetching agent details:', agentError);
+        toast({
+          title: "Error",
+          description: "Failed to fetch agent details",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (agentDetails) {
+        console.log('Agent details fetched:', agentDetails);
+        setSelectedAgentDetails(agentDetails);
+        setSelectedAgentHeartbeat(agentDetails.heartbeat);
+
+        // Send agent info and heartbeat to ChatGPT to start new conversation
+        if (agentDetails.heartbeat && Object.keys(agentDetails.heartbeat).length > 0) {
+          const agentInfoMessage = `New agent selected: ${agentDetails.hostname || agentDetails.agent_type} (${agentDetails.os}). Current status: ${agentDetails.status}. Latest heartbeat data: ${JSON.stringify(agentDetails.heartbeat, null, 2)}`;
+          
+          // Add system message about agent selection
+          const systemMessage: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `🔄 Connected to agent: **${agentDetails.hostname || agentDetails.agent_type}**\n\n📊 **System Info:**\n- OS: ${agentDetails.os}\n- Status: ${agentDetails.status}\n- Type: ${agentDetails.agent_type}\n- Last seen: ${agentDetails.last_heartbeat ? new Date(agentDetails.last_heartbeat).toLocaleString() : 'Never'}\n\n💓 **Latest Heartbeat:**\n\`\`\`json\n${JSON.stringify(agentDetails.heartbeat, null, 2)}\n\`\`\`\n\nHow can I help you manage this system?`,
+            timestamp: new Date(),
+            pending: false
+          };
+
+          setMessages([systemMessage]);
+          
+          // Send heartbeat data to router for context
+          console.log('Sending agent context to ChatGPT:', agentInfoMessage);
+        } else {
+          // If no heartbeat, just show basic agent info
+          const basicInfoMessage: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `🔄 Connected to agent: **${agentDetails.hostname || agentDetails.agent_type}**\n\n📊 **System Info:**\n- OS: ${agentDetails.os}\n- Status: ${agentDetails.status}\n- Type: ${agentDetails.agent_type}\n\n⚠️ No recent heartbeat data available.\n\nHow can I help you manage this system?`,
+            timestamp: new Date(),
+            pending: false
+          };
+
+          setMessages([basicInfoMessage]);
+        }
+      }
+    } catch (error) {
+      console.error('Error in fetchAgentDetailsAndHeartbeat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch agent information",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Handle agent selection
-  const handleAgentChange = (agentId: string) => {
+  const handleAgentChange = async (agentId: string) => {
     setSelectedAgent(agentId);
     localStorage.setItem('chatDemoSelectedAgent', agentId);
+    
     // Reset conversation when agent changes
     setConversationId(null);
     setMessages([]);
+    
+    // Fetch new agent details and heartbeat, then send to ChatGPT
+    if (agentId) {
+      await fetchAgentDetailsAndHeartbeat(agentId);
+    }
   };
 
   // Bootstrap chat session with dashboard authentication
