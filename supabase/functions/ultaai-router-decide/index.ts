@@ -141,7 +141,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "gpt-4o-mini",
           temperature: 0,
-          response_format: { type: "json_object" }, // allows either text or JSON, we will parse defensively
+          // No response_format constraint - let model choose text or JSON based on prompt
           messages: [
             { role: "system", content: ULTA_DUAL_MODE_ASSISTANT },
             { role: "user", content: JSON.stringify(payload) }
