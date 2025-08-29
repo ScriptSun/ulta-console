@@ -67,8 +67,8 @@ verify_jwt = false
 [functions.ultaai-policy-check]
 verify_jwt = false
 
-[functions.ultaai-inputs-fill]
+[functions.ultaai-exec-run]
 verify_jwt = false
 
-[functions.ultaai-exec-run]
+[functions.ultaai-advice]
 verify_jwt = false
