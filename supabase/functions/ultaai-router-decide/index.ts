@@ -44,144 +44,7 @@ Rules:
 - Obey policy_notes thresholds
 - Validate shell against command_policies, do not emit forbidden content
 - Only one JSON object, no prose
-- All responses must include a "status" field: for confirmed batches use "confirmed", for custom_shell and proposed_batch use "unconfirmed", for not_supported use "rejected"`;
-
-// Minimal strict-safe schema. Every key in properties is listed in required.
-const ROUTER_SCHEMA: any = {
-  type: "object",
-  properties: {
-    task: { type: "string" },
-    status: { type: "string" } // "confirmed", "unconfirmed", "rejected"
-  },
-  required: ["task", "status"],
-  additionalProperties: true
-};
-
-// GPT call function
-async function callGPT({
-  system,
-  user,
-  schema,
-  temperature = 0
-}: {
-  system: string;
-  user: any;
-  schema?: Record<string, unknown>;
-  temperature?: number;
-}): Promise<{ decision: any; logs: any }> {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-  
-  const logs = {
-    request: null as any,
-    response: null as any,
-    error: null as any
-  };
-  
-  console.log('🔑 OpenAI API Key available:', !!openaiApiKey);
-  
-  if (!openaiApiKey) {
-    const error = "OPENAI_API_KEY environment variable is required but not set";
-    logs.error = error;
-    throw new Error(error);
-  }
-
-  const response_format = schema 
-    ? { 
-        type: "json_schema" as const, 
-        json_schema: { 
-          name: "UltaAI_Router_Output", 
-          schema, 
-          strict: true 
-        }
-      }
-    : { type: "json_object" as const };
-
-  const requestBody = {
-    model: "gpt-4o-mini",
-    temperature: 0,
-    response_format,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: JSON.stringify(user) }
-    ]
-  };
-
-  // Store full request for logging
-  logs.request = {
-    url: 'https://api.openai.com/v1/chat/completions',
-    method: 'POST',
-    body: requestBody,
-    timestamp: new Date().toISOString()
-  };
-
-  console.log('📤 OpenAI Request:', {
-    model: requestBody.model,
-    temperature: requestBody.temperature,
-    response_format: requestBody.response_format,
-    messages: requestBody.messages.map(m => ({ role: m.role, content: m.content.substring(0, 200) + '...' }))
-  });
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    console.log('📡 OpenAI Response Status:', response.status);
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error('❌ OpenAI API error:', response.status, errorBody);
-      logs.error = {
-        status: response.status,
-        body: errorBody,
-        timestamp: new Date().toISOString()
-      };
-      throw new Error(`OpenAI API error: ${response.status} ${errorBody}`);
-    }
-
-    const completion = await response.json();
-    
-    // Store full response for logging
-    logs.response = {
-      status: response.status,
-      body: completion,
-      timestamp: new Date().toISOString()
-    };
-
-    console.log('✅ OpenAI Response:', {
-      model: completion.model,
-      usage: completion.usage,
-      finish_reason: completion.choices[0]?.finish_reason
-    });
-
-    const content = completion.choices[0]?.message?.content;
-    console.log('📝 OpenAI Content:', content);
-    
-    if (!content) {
-      const error = "No content received from OpenAI";
-      logs.error = error;
-      throw new Error(error);
-    }
-
-    const parsedContent = JSON.parse(content);
-    console.log('🎯 Parsed Decision:', parsedContent);
-
-    return { decision: parsedContent, logs };
-  } catch (error) {
-    if (!logs.error) {
-      logs.error = {
-        message: error.message,
-        timestamp: new Date().toISOString()
-      };
-    }
-    throw error;
-  }
-}
+- All responses must include "task" and "status"`;
 
 serve(async (req) => {
   console.log('🚀 Function called with method:', req.method);
@@ -250,14 +113,104 @@ serve(async (req) => {
 
     // 2. Call GPT with the router system prompt and schema
     console.log('🤖 Calling OpenAI GPT...');
-    console.log("ROUTER_SCHEMA being sent:", JSON.stringify(ROUTER_SCHEMA));
+    
+    // Define minimal schema inline to avoid any stale imports
+    const ROUTER_MIN_SCHEMA = {
+      type: "object",
+      properties: {
+        task: { type: "string" },
+        status: { type: "string" } // "confirmed", "unconfirmed", "rejected"
+      },
+      required: ["task", "status"]
+    };
+    
+    console.log("Schema sent to OpenAI:", JSON.stringify(ROUTER_MIN_SCHEMA));
     
     try {
-      const { decision, logs } = await callGPT({
-        system: ROUTER_SYSTEM_PROMPT,
-        user: payload,
-        schema: ROUTER_SCHEMA
+      const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+      
+      if (!openaiApiKey) {
+        throw new Error("OPENAI_API_KEY environment variable is required but not set");
+      }
+
+      const requestBody = {
+        model: "gpt-4o-mini",
+        temperature: 0,
+        response_format: {
+          type: "json_schema" as const,
+          json_schema: {
+            name: "UltaAI_Router_Output",
+            schema: ROUTER_MIN_SCHEMA,
+            strict: true
+          }
+        },
+        messages: [
+          { role: "system", content: ROUTER_SYSTEM_PROMPT },
+          { role: "user", content: JSON.stringify(payload) }
+        ]
+      };
+
+      console.log('📤 OpenAI Request:', {
+        model: requestBody.model,
+        temperature: requestBody.temperature,
+        response_format: requestBody.response_format,
+        messages: requestBody.messages.map(m => ({ role: m.role, content: m.content.substring(0, 200) + '...' }))
       });
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('📡 OpenAI Response Status:', response.status);
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error('❌ OpenAI API error:', response.status, errorBody);
+        throw new Error(`OpenAI API error: ${response.status} ${errorBody}`);
+      }
+
+      const completion = await response.json();
+      
+      console.log('✅ OpenAI Response:', {
+        model: completion.model,
+        usage: completion.usage,
+        finish_reason: completion.choices[0]?.finish_reason
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      console.log('📝 OpenAI Content:', content);
+      
+      if (!content) {
+        throw new Error("No content received from OpenAI");
+      }
+
+      const decision = JSON.parse(content);
+      console.log('🎯 Parsed Decision:', decision);
+
+      // Validate that we have required fields
+      if (!decision.task || !decision.status) {
+        throw new Error(`Invalid response: missing required fields. Got: ${JSON.stringify(decision)}`);
+      }
+
+      const logs = {
+        request: {
+          url: 'https://api.openai.com/v1/chat/completions',
+          method: 'POST',
+          body: requestBody,
+          timestamp: new Date().toISOString()
+        },
+        response: {
+          status: response.status,
+          body: completion,
+          timestamp: new Date().toISOString()
+        },
+        error: null
+      };
 
       console.log('🎉 GPT decision received:', decision.task);
 
