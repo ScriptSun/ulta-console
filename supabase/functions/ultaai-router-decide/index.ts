@@ -45,86 +45,52 @@ Rules:
 - Validate shell against command_policies, do not emit forbidden content
 - Only one JSON object, no prose`;
 
+// Single-shape schema, no oneOf
 const ROUTER_SCHEMA = {
   type: "object",
-  oneOf: [
-    // 1) Confirmed batch
-    {
-      type: "object",
-      properties: {
-        task: { type: "string" },                  // script key from DB
-        batch_id: { type: "string" },              // script_batches.id
-        params: {
-          type: "object",
-          // no fixed properties here, we allow flexible params
-          additionalProperties: { type: ["string","number","boolean","null"] }
-        },
-        status: { type: "string", enum: ["confirmed"] },
-        risk: { type: "string", enum: ["low","medium","high"] },
-        preflight: { type: "array", items: { type: "string" } }
-      },
-      required: ["task","batch_id","params","status","risk","preflight"],
-      additionalProperties: false
+  properties: {
+    // discriminator
+    task: {
+      type: "string",
+      // you can keep it open, or restrict to known values
+      // enum: ["install_wordpress","install_ssl","install_n8n","restart_nginx","check_cpu","check_disk","fix_mysql_crash","install_fail2ban","create_ftp_user","restart_php","custom_shell","proposed_batch","not_supported"]
     },
 
-    // 2) Custom shell
-    {
+    // common fields, optional
+    status: { type: "string" },             // "confirmed" or "unconfirmed"
+    risk: { type: "string" },               // "low" | "medium" | "high"
+    preflight: { type: "array", items: { type: "string" } },
+
+    // confirmed batch fields
+    batch_id: { type: "string" },           // script_batches.id for confirmed selections
+
+    // params is flexible
+    params: {
       type: "object",
-      properties: {
-        task: { type: "string", enum: ["custom_shell"] },
-        params: {
-          type: "object",
-          properties: {
-            description: { type: "string" },
-            shell: { type: "string" }
-          },
-          required: ["description","shell"],
-          additionalProperties: false
-        },
-        status: { type: "string", enum: ["unconfirmed"] },
-        risk: { type: "string", enum: ["low","medium","high"] }
-      },
-      required: ["task","params","status","risk"],
-      additionalProperties: false
+      additionalProperties: { type: ["string","number","boolean","null"] }
     },
 
-    // 3) Proposed batch
-    {
-      type: "object",
-      properties: {
-        task: { type: "string", enum: ["proposed_batch"] },
-        status: { type: "string", enum: ["unconfirmed"] },
-        batch: {
-          type: "object",
-          properties: {
-            key: { type: "string" },
-            name: { type: "string" },
-            risk: { type: "string", enum: ["low","medium","high"] },
-            description: { type: "string" },
-            inputs_schema: { type: "object" },
-            inputs_defaults: { type: "object" },
-            preflight: { type: "object" },
-            commands: { type: "array", items: { type: "string" } }
-          },
-          required: ["key","name","risk","description","inputs_schema","inputs_defaults","preflight","commands"],
-          additionalProperties: false
-        }
-      },
-      required: ["task","status","batch"],
-      additionalProperties: false
-    },
+    // not_supported reason
+    reason: { type: "string" },
 
-    // 4) Not supported
-    {
+    // proposed batch payload
+    batch: {
       type: "object",
       properties: {
-        task: { type: "string", enum: ["not_supported"] },
-        reason: { type: "string" }
+        key: { type: "string" },
+        name: { type: "string" },
+        risk: { type: "string" },
+        description: { type: "string" },
+        inputs_schema: { type: "object" },
+        inputs_defaults: { type: "object" },
+        preflight: { type: "object" },
+        commands: { type: "array", items: { type: "string" } }
       },
-      required: ["task","reason"],
       additionalProperties: false
     }
-  ]
+  },
+  required: ["task"],
+  additionalProperties: false
 };
 
 // GPT call function
@@ -159,16 +125,16 @@ async function callGPT({
     ? { 
         type: "json_schema" as const, 
         json_schema: { 
-          name: "UltaAI_JSON", 
+          name: "UltaAI_Router_Output", 
           schema, 
           strict: true 
-        } 
+        }
       }
     : { type: "json_object" as const };
 
   const requestBody = {
-    model: "gpt-5-2025-08-07",
-    max_completion_tokens: 4000,
+    model: "gpt-5-thinking",
+    temperature: 0,
     response_format,
     messages: [
       { role: "system", content: system },
@@ -186,7 +152,7 @@ async function callGPT({
 
   console.log('📤 OpenAI Request:', {
     model: requestBody.model,
-    max_completion_tokens: requestBody.max_completion_tokens,
+    temperature: requestBody.temperature,
     response_format: requestBody.response_format,
     messages: requestBody.messages.map(m => ({ role: m.role, content: m.content.substring(0, 200) + '...' }))
   });
