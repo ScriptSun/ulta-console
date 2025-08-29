@@ -891,7 +891,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                       ) : (
                       <div>
                         <div className="flex items-start gap-2">
-                          <div className="flex-1 whitespace-pre-wrap">{message.content}</div>
+                          <div className="flex-1 whitespace-pre-wrap">
+                            {typeof message.content === 'string' ? message.content : JSON.stringify(message.content)}
+                          </div>
                           
                           {/* Task Status Icon */}
                           {message.taskStatus && (
@@ -938,7 +940,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                           variant="ghost"
                           size="sm"
                           className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0"
-                          onClick={() => copyMessage(message.content)}
+                          onClick={() => copyMessage(typeof message.content === 'string' ? message.content : JSON.stringify(message.content))}
                         >
                           <Copy className="w-3 h-3" />
                         </Button>
