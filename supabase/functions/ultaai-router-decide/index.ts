@@ -45,44 +45,86 @@ Rules:
 - Validate shell against command_policies, do not emit forbidden content
 - Only one JSON object, no prose`;
 
-// Simplified schema without oneOf (not supported by OpenAI structured output)
-const ROUTER_RESPONSE_SCHEMA = {
-  "type": "object",
-  "required": ["task"],
-  "properties": {
-    "task": {
-      "type": "string",
-      "enum": ["confirmed_batch", "custom_shell", "proposed_batch", "not_supported"]
+const ROUTER_SCHEMA = {
+  type: "object",
+  oneOf: [
+    // 1) Confirmed batch
+    {
+      type: "object",
+      properties: {
+        task: { type: "string" },                  // script key from DB
+        batch_id: { type: "string" },              // script_batches.id
+        params: {
+          type: "object",
+          // no fixed properties here, we allow flexible params
+          additionalProperties: { type: ["string","number","boolean","null"] }
+        },
+        status: { type: "string", enum: ["confirmed"] },
+        risk: { type: "string", enum: ["low","medium","high"] },
+        preflight: { type: "array", items: { type: "string" } }
+      },
+      required: ["task","batch_id","params","status","risk","preflight"],
+      additionalProperties: false
     },
-    "batch_id": {"type": "string"},
-    "params": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "description": {"type": "string"},
-        "shell": {"type": "string"}
-      }
+
+    // 2) Custom shell
+    {
+      type: "object",
+      properties: {
+        task: { type: "string", enum: ["custom_shell"] },
+        params: {
+          type: "object",
+          properties: {
+            description: { type: "string" },
+            shell: { type: "string" }
+          },
+          required: ["description","shell"],
+          additionalProperties: false
+        },
+        status: { type: "string", enum: ["unconfirmed"] },
+        risk: { type: "string", enum: ["low","medium","high"] }
+      },
+      required: ["task","params","status","risk"],
+      additionalProperties: false
     },
-    "status": {"type": "string"},
-    "risk": {"type": "string", "enum": ["low", "medium", "high"]},
-    "preflight": {"type": "array", "items": {"type": "string"}},
-    "batch": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "key": {"type": "string"},
-        "name": {"type": "string"},
-        "risk": {"type": "string", "enum": ["low", "medium", "high"]},
-        "description": {"type": "string"},
-        "inputs_schema": {"type": "object"},
-        "inputs_defaults": {"type": "object"},
-        "preflight": {"type": "object"},
-        "commands": {"type": "array", "items": {"type": "string"}}
-      }
+
+    // 3) Proposed batch
+    {
+      type: "object",
+      properties: {
+        task: { type: "string", enum: ["proposed_batch"] },
+        status: { type: "string", enum: ["unconfirmed"] },
+        batch: {
+          type: "object",
+          properties: {
+            key: { type: "string" },
+            name: { type: "string" },
+            risk: { type: "string", enum: ["low","medium","high"] },
+            description: { type: "string" },
+            inputs_schema: { type: "object" },
+            inputs_defaults: { type: "object" },
+            preflight: { type: "object" },
+            commands: { type: "array", items: { type: "string" } }
+          },
+          required: ["key","name","risk","description","inputs_schema","inputs_defaults","preflight","commands"],
+          additionalProperties: false
+        }
+      },
+      required: ["task","status","batch"],
+      additionalProperties: false
     },
-    "reason": {"type": "string"}
-  },
-  "additionalProperties": false
+
+    // 4) Not supported
+    {
+      type: "object",
+      properties: {
+        task: { type: "string", enum: ["not_supported"] },
+        reason: { type: "string" }
+      },
+      required: ["task","reason"],
+      additionalProperties: false
+    }
+  ]
 };
 
 // GPT call function
@@ -125,8 +167,8 @@ async function callGPT({
     : { type: "json_object" as const };
 
   const requestBody = {
-    model: "gpt-4o",
-    max_tokens: 4000,
+    model: "gpt-5-2025-08-07",
+    max_completion_tokens: 4000,
     response_format,
     messages: [
       { role: "system", content: system },
@@ -144,7 +186,7 @@ async function callGPT({
 
   console.log('📤 OpenAI Request:', {
     model: requestBody.model,
-    max_tokens: requestBody.max_tokens,
+    max_completion_tokens: requestBody.max_completion_tokens,
     response_format: requestBody.response_format,
     messages: requestBody.messages.map(m => ({ role: m.role, content: m.content.substring(0, 200) + '...' }))
   });
@@ -283,7 +325,7 @@ serve(async (req) => {
       const { decision, logs } = await callGPT({
         system: ROUTER_SYSTEM_PROMPT,
         user: payload,
-        schema: ROUTER_RESPONSE_SCHEMA
+        schema: ROUTER_SCHEMA
       });
 
       console.log('🎉 GPT decision received:', decision.task);
