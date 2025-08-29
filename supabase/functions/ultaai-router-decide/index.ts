@@ -76,13 +76,21 @@ async function callGPT({
   user: any;
   schema?: Record<string, unknown>;
   temperature?: number;
-}): Promise<any> {
+}): Promise<{ decision: any; logs: any }> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  
+  const logs = {
+    request: null as any,
+    response: null as any,
+    error: null as any
+  };
   
   console.log('🔑 OpenAI API Key available:', !!openaiApiKey);
   
   if (!openaiApiKey) {
-    throw new Error("OPENAI_API_KEY environment variable is required but not set");
+    const error = "OPENAI_API_KEY environment variable is required but not set";
+    logs.error = error;
+    throw new Error(error);
   }
 
   const response_format = schema 
@@ -106,6 +114,14 @@ async function callGPT({
     ]
   };
 
+  // Store full request for logging
+  logs.request = {
+    url: 'https://api.openai.com/v1/chat/completions',
+    method: 'POST',
+    body: requestBody,
+    timestamp: new Date().toISOString()
+  };
+
   console.log('📤 OpenAI Request:', {
     model: requestBody.model,
     max_tokens: requestBody.max_tokens,
@@ -113,41 +129,66 @@ async function callGPT({
     messages: requestBody.messages.map(m => ({ role: m.role, content: m.content.substring(0, 200) + '...' }))
   });
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody)
-  });
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
 
-  console.log('📡 OpenAI Response Status:', response.status);
+    console.log('📡 OpenAI Response Status:', response.status);
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error('❌ OpenAI API error:', response.status, errorBody);
-    throw new Error(`OpenAI API error: ${response.status} ${errorBody}`);
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('❌ OpenAI API error:', response.status, errorBody);
+      logs.error = {
+        status: response.status,
+        body: errorBody,
+        timestamp: new Date().toISOString()
+      };
+      throw new Error(`OpenAI API error: ${response.status} ${errorBody}`);
+    }
+
+    const completion = await response.json();
+    
+    // Store full response for logging
+    logs.response = {
+      status: response.status,
+      body: completion,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('✅ OpenAI Response:', {
+      model: completion.model,
+      usage: completion.usage,
+      finish_reason: completion.choices[0]?.finish_reason
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    console.log('📝 OpenAI Content:', content);
+    
+    if (!content) {
+      const error = "No content received from OpenAI";
+      logs.error = error;
+      throw new Error(error);
+    }
+
+    const parsedContent = JSON.parse(content);
+    console.log('🎯 Parsed Decision:', parsedContent);
+
+    return { decision: parsedContent, logs };
+  } catch (error) {
+    if (!logs.error) {
+      logs.error = {
+        message: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+    throw error;
   }
-
-  const completion = await response.json();
-  console.log('✅ OpenAI Response:', {
-    model: completion.model,
-    usage: completion.usage,
-    finish_reason: completion.choices[0]?.finish_reason
-  });
-
-  const content = completion.choices[0]?.message?.content;
-  console.log('📝 OpenAI Content:', content);
-  
-  if (!content) {
-    throw new Error("No content received from OpenAI");
-  }
-
-  const parsedContent = JSON.parse(content);
-  console.log('🎯 Parsed Decision:', parsedContent);
-
-  return parsedContent;
 }
 
 serve(async (req) => {
@@ -219,7 +260,7 @@ serve(async (req) => {
     console.log('🤖 Calling OpenAI GPT...');
     
     try {
-      const decision = await callGPT({
+      const { decision, logs } = await callGPT({
         system: ROUTER_SYSTEM_PROMPT,
         user: payload,
         schema: ROUTER_RESPONSE_SCHEMA
@@ -241,8 +282,19 @@ serve(async (req) => {
 
       console.log(`✅ Router decision completed successfully for agent ${agent_id}`);
 
-      // 4. Return the decision
-      return new Response(JSON.stringify(decision), {
+      // 4. Return the decision with logs
+      return new Response(JSON.stringify({
+        ...decision,
+        _debug: {
+          openai_logs: logs,
+          payload_summary: {
+            candidates_count: payload.candidates?.length || 0,
+            policies_count: payload.command_policies?.length || 0,
+            agent_id: agent_id,
+            user_request: user_request
+          }
+        }
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (gptError) {

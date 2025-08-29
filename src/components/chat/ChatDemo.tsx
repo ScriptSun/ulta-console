@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play } from 'lucide-react';
+import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
@@ -14,6 +14,7 @@ import { TaskStatusCard } from './TaskStatusCard';
 import { QuickInputChips } from './QuickInputChips';
 import { InputForm } from './InputForm';
 import { PreflightBlockCard } from './PreflightBlockCard';
+import { ApiLogsViewer } from './ApiLogsViewer';
 
 interface Agent {
   id: string;
@@ -118,6 +119,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
   const [enableRealTime, setEnableRealTime] = useState(true);
   const [autoClear, setAutoClear] = useState(false);
   const [showUnreadBadge, setShowUnreadBadge] = useState(true);
+  const [apiLogs, setApiLogs] = useState<any[]>([]);
+  const [logViewerOpen, setLogViewerOpen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -609,22 +612,69 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
       console.log('Router decision:', decision);
 
+      // Extract and store debug logs if available
+      if (decision._debug?.openai_logs) {
+        const newLogs = [];
+        
+        // Add request log
+        if (decision._debug.openai_logs.request) {
+          newLogs.push({
+            id: `${Date.now()}-request`,
+            timestamp: decision._debug.openai_logs.request.timestamp || new Date().toISOString(),
+            type: 'request',
+            data: decision._debug.openai_logs.request,
+            userMessage: content.trim()
+          });
+        }
+        
+        // Add response log
+        if (decision._debug.openai_logs.response) {
+          newLogs.push({
+            id: `${Date.now()}-response`,
+            timestamp: decision._debug.openai_logs.response.timestamp || new Date().toISOString(),
+            type: 'response',
+            data: decision._debug.openai_logs.response,
+            userMessage: content.trim()
+          });
+        }
+        
+        // Add error log if exists
+        if (decision._debug.openai_logs.error) {
+          newLogs.push({
+            id: `${Date.now()}-error`,
+            timestamp: decision._debug.openai_logs.error.timestamp || new Date().toISOString(),
+            type: 'error',
+            data: decision._debug.openai_logs.error,
+            userMessage: content.trim()
+          });
+        }
+        
+        // Store logs in state
+        setApiLogs(prev => [...prev, ...newLogs]);
+        
+        console.log('📊 OpenAI API Logs captured:', newLogs);
+      }
+
+      // Store logs and clean decision for message
+      const cleanDecision = { ...decision };
+      delete cleanDecision._debug;
+
       // Add assistant message with decision
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: getDecisionMessage(decision),
+        content: getDecisionMessage(cleanDecision),
         timestamp: new Date(),
         pending: false,
-        decision: decision
+        decision: cleanDecision
       };
 
       // Handle not_supported case - get advice
-      if (decision.task === 'not_supported') {
+      if (cleanDecision.task === 'not_supported') {
         try {
           const { data: adviceData, error: adviceError } = await supabase.functions.invoke('ultaai-advice', {
             body: {
-              reason: decision.reason || 'Request not supported',
+              reason: cleanDecision.reason || 'Request not supported',
               heartbeat_small: {} // Could get real heartbeat here
             }
           });
@@ -949,6 +999,20 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
               </div>
               
               <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setLogViewerOpen(true)}
+                  title="View OpenAI API Logs"
+                >
+                  <FileText className="w-4 h-4" />
+                  {apiLogs.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-4 text-xs">
+                      {apiLogs.length}
+                    </Badge>
+                  )}
+                </Button>
+                
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="sm">
@@ -1359,6 +1423,13 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
           </Card>
         </div>
       )}
+      
+      {/* API Logs Viewer */}
+      <ApiLogsViewer
+        open={logViewerOpen}
+        onOpenChange={setLogViewerOpen}
+        logs={apiLogs}
+      />
     </>
   );
 };
