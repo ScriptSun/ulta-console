@@ -932,18 +932,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                      </div>
                    )}
                    
-                   {/* Input Form */}
-                  {message.needsInputs && (
-                    <div className="mt-2 ml-8">
-                      <InputForm
-                        schema={message.needsInputs.schema}
-                        defaults={message.needsInputs.defaults}
-                        errors={message.inputErrors}
-                        onSubmit={handleInputFormSubmit}
-                        loading={isTyping}
-                      />
-                    </div>
-                  )}
+                    {/* Input Form */}
+                   {message.needsInputs && (
+                     <div className="mt-2">
+                       <InputForm
+                         schema={message.needsInputs.schema}
+                         defaults={message.needsInputs.defaults}
+                         errors={message.inputErrors}
+                         onSubmit={handleInputFormSubmit}
+                         loading={isTyping}
+                       />
+                     </div>
+                   )}
                   
                   {/* Quick Input Chips */}
                   {message.quickInputs && (
