@@ -50,8 +50,8 @@ async function callGPT({
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: "gpt-5-2025-08-07",
-      max_completion_tokens: 4000,
+      model: "gpt-4o",
+      max_tokens: 4000,
       response_format,
       messages: [
         { role: "system", content: system },
