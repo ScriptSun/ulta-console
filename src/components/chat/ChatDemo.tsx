@@ -1293,11 +1293,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
                       {/* Preflight Results Display */}
                       {message.preflightResult && (
-                        <div className={`mt-3 p-3 rounded-lg border ${
-                          message.preflightResult.preflight_ok 
-                            ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950' 
-                            : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950'
-                        }`}>
+                        <div className="mt-3 p-3 rounded-lg border border-success/20 bg-success/10 text-success-foreground">
                           <div className="text-sm font-medium mb-2">
                             Preflight Result: {message.preflightResult.preflight_ok ? '✅ Passed' : '❌ Failed'}
                           </div>
