@@ -419,17 +419,23 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('script-batches', {
-        body: {
-          action: 'save_draft',
-          batch_id: batch?.id,
-          ...formData,
-          source: scriptContent,
-          notes,
-          sha256: validation.sha256,
-          size_bytes: validation.sizeBytes
-        }
-      });
+      // Update the batch record directly with correct column names
+      const { error } = await supabase
+        .from('script_batches')
+        .update({
+          name: formData.name,
+          inputs_schema: formData.inputs_schema,
+          inputs_defaults: formData.inputs_defaults,
+          os_targets: formData.os_targets,
+          risk: formData.risk,
+          max_timeout_sec: formData.max_timeout_sec,
+          per_agent_concurrency: formData.per_agent_concurrency,
+          per_tenant_concurrency: formData.per_tenant_concurrency,
+          auto_version: formData.auto_version,
+          preflight: {},
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', batch?.id);
 
       if (error) throw error;
 
