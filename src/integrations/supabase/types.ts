@@ -1225,6 +1225,7 @@ export type Database = {
           id: string
           inputs_defaults: Json | null
           inputs_schema: Json | null
+          key: string | null
           max_timeout_sec: number
           name: string
           os_targets: string[]
@@ -1244,6 +1245,7 @@ export type Database = {
           id?: string
           inputs_defaults?: Json | null
           inputs_schema?: Json | null
+          key?: string | null
           max_timeout_sec?: number
           name: string
           os_targets?: string[]
@@ -1263,6 +1265,7 @@ export type Database = {
           id?: string
           inputs_defaults?: Json | null
           inputs_schema?: Json | null
+          key?: string | null
           max_timeout_sec?: number
           name?: string
           os_targets?: string[]

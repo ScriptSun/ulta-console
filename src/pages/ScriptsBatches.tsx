@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils';
 interface ScriptBatch {
   id: string;
   name: string;
+  key?: string;
   os_targets: string[];
   risk: 'low' | 'medium' | 'high';
   max_timeout_sec: number;
@@ -459,7 +460,14 @@ export default function ScriptsBatches() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span>{batch.name}</span>
+                        <div className="flex flex-col">
+                          <span>{batch.name}</span>
+                          {batch.key && (
+                            <Badge variant="outline" className="text-xs font-mono mt-1 w-fit">
+                              {batch.key}
+                            </Badge>
+                          )}
+                        </div>
                         {batch.dependencies_count > 0 && (
                           <TooltipProvider>
                             <Tooltip>
