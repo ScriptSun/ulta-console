@@ -445,7 +445,6 @@ export default function ScriptsBatches() {
                 <TableRow>
                   <TableHead>Batch Name</TableHead>
                   <TableHead>OS Targets</TableHead>
-                  <TableHead>Latest Version</TableHead>
                   <TableHead>Latest SHA256</TableHead>
                   <TableHead>Risk</TableHead>
                   <TableHead>Max Timeout</TableHead>
@@ -458,12 +457,12 @@ export default function ScriptsBatches() {
                 {filteredBatches.map((batch) => (
                   <TableRow key={batch.id}>
                     <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         <div className="flex flex-col">
-                          <span>{batch.name}</span>
+                          <span className="font-semibold">{batch.name}</span>
                           {batch.key && (
-                            <Badge variant="outline" className="text-xs font-mono mt-1 w-fit">
+                            <Badge variant="secondary" className="text-xs font-mono mt-1 w-fit bg-primary/10 text-primary">
                               {batch.key}
                             </Badge>
                           )}
@@ -494,9 +493,6 @@ export default function ScriptsBatches() {
                           </Badge>
                         ))}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {batch.latest_version ? `v${batch.latest_version.version}` : 'No versions'}
                     </TableCell>
                     <TableCell>
                       {batch.latest_version?.sha256 ? (
