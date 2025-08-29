@@ -37,7 +37,18 @@ Decision rules:
 
 2) If the user asks to run, install, configure, restart, check, fix, enable, or open, select the best matching batch from the batches list by key, name, and description. Return one compact JSON object only, no prose.
 
-3) For the chosen batch:
+3) SEMANTIC MATCHING GUIDE - Match these user intents to batches:
+   - CPU monitoring/checking (check cpu, cpu usage, monitor cpu, system status) → "system_health_check" 
+   - Memory/RAM monitoring (check memory, ram usage) → "system_health_check"
+   - Disk space checking (disk usage, storage check) → "system_health_check" 
+   - System health/monitoring → "system_health_check"
+   - WordPress installation → "wordpress_installer"
+   - Node.js/PM2 setup → "install_nodejs_pm2"
+   - Docker installation → "install_docker_compose"
+   - SSL certificate setup → "setup_ssl_letsencrypt"
+   - N8N workflow automation → "install_n8n_automation"
+
+4) For the chosen batch:
    - Set "task" to the batch key.
    - Set "batch_id" to the batch id.
    - Derive a list of required parameter names from inputs_schema.required.
@@ -47,9 +58,9 @@ Decision rules:
    - If missing_params is empty, status = "confirmed". If not, status = "unconfirmed".
    - Include a short "human" tip to guide the UI, for example "Please provide wp_admin_email and wp_title."
 
-4) Never invent a batch key that is not in the provided list. If nothing matches, return a JSON with task="not_supported", status="rejected", and a short reason.
+5) Never invent a batch key that is not in the provided list. If nothing matches, return a JSON with task="not_supported", status="rejected", and a short reason.
 
-5) Output formats:
+6) Output formats:
    A) Chat reply, for small talk:
       plain text only, no JSON.
 
@@ -166,7 +177,7 @@ serve(async (req) => {
     }
     
     // Determine if this looks like an action request
-    const isActionRequest = /\b(install|configure|restart|check|fix|enable|open|run|setup|create|start|stop)\b/i.test(payload.user_request);
+    const isActionRequest = /\b(install|configure|restart|check|fix|enable|open|run|setup|create|start|stop|monitor|status|usage)\b/i.test(payload.user_request);
     
     try {
       const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
