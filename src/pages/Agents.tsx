@@ -38,6 +38,8 @@ interface Agent {
   last_cert_rotation?: string;
   created_at: string;
   customer_id: string;
+  heartbeat?: any;
+  last_heartbeat?: string;
 }
 
 export default function Agents() {
@@ -88,7 +90,7 @@ export default function Agents() {
     try {
       const { data, error } = await supabase
         .from('agents')
-        .select('*')
+        .select('*, heartbeat, last_heartbeat')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

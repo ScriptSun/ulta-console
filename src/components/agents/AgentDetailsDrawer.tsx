@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { 
   Monitor, 
   Shield, 
@@ -35,7 +36,10 @@ import {
   Database,
   Zap,
   Wifi,
-  BarChart3
+  BarChart3,
+  Heart,
+  Copy,
+  CheckSquare
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +65,8 @@ interface Agent {
   last_cert_rotation?: string;
   created_at: string;
   customer_id: string;
+  heartbeat?: any;
+  last_heartbeat?: string;
 }
 
 interface AgentTask {
@@ -236,6 +242,52 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
     }
   };
 
+  const copyHeartbeatToClipboard = async () => {
+    if (!agent?.heartbeat) return;
+    
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(agent.heartbeat, null, 2));
+      toast({
+        title: 'Copied!',
+        description: 'Heartbeat JSON copied to clipboard',
+      });
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to copy to clipboard',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const validateHeartbeat = () => {
+    if (!agent?.heartbeat) {
+      toast({
+        title: 'Validation Failed',
+        description: 'No heartbeat data to validate',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const requiredKeys = ['agent_id', 'os', 'ip', 'open_ports', 'running_services'];
+    const missingKeys = requiredKeys.filter(key => !(key in agent.heartbeat));
+
+    if (missingKeys.length > 0) {
+      toast({
+        title: 'Validation Failed',
+        description: `Missing required keys: ${missingKeys.join(', ')}`,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Validation Passed',
+        description: 'All required keys are present in heartbeat',
+      });
+    }
+  };
+
   if (!agent) return null;
 
   const config = statusConfig[agent.status];
@@ -263,8 +315,9 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
 
         <div className="flex-1 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6 h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
+            <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="heartbeat">Heartbeat</TabsTrigger>
               <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
@@ -386,6 +439,63 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                             <RotateCcw className="h-4 w-4" />
                             {new Date(agent.last_cert_rotation).toLocaleString()}
                           </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="heartbeat" className="space-y-6 p-1">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Heart className="h-4 w-4" />
+                        Agent Heartbeat
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Last heartbeat</Label>
+                          <p className="text-sm font-medium">
+                            {agent.last_heartbeat 
+                              ? new Date(agent.last_heartbeat).toLocaleString()
+                              : 'Unknown'
+                            }
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={copyHeartbeatToClipboard}
+                            disabled={!agent.heartbeat}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copy JSON
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={validateHeartbeat}
+                            disabled={!agent.heartbeat}
+                          >
+                            <CheckSquare className="h-3 w-3 mr-1" />
+                            Validate
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {agent.heartbeat && Object.keys(agent.heartbeat).length > 0 ? (
+                        <div className="bg-muted rounded-lg p-4 max-h-96 overflow-auto">
+                          <pre className="text-xs font-mono whitespace-pre-wrap">
+                            {JSON.stringify(agent.heartbeat, null, 2)}
+                          </pre>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No heartbeat data available</p>
                         </div>
                       )}
                     </CardContent>
