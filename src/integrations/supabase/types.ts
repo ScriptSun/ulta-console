@@ -190,10 +190,12 @@ export type Database = {
           created_at: string
           created_by: string
           customer_id: string
+          heartbeat: Json
           hostname: string | null
           id: string
           ip_address: unknown | null
           last_cert_rotation: string | null
+          last_heartbeat: string | null
           last_seen: string | null
           memory_usage: number | null
           os: string | null
@@ -214,10 +216,12 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_id: string
+          heartbeat?: Json
           hostname?: string | null
           id?: string
           ip_address?: unknown | null
           last_cert_rotation?: string | null
+          last_heartbeat?: string | null
           last_seen?: string | null
           memory_usage?: number | null
           os?: string | null
@@ -238,10 +242,12 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_id?: string
+          heartbeat?: Json
           hostname?: string | null
           id?: string
           ip_address?: unknown | null
           last_cert_rotation?: string | null
+          last_heartbeat?: string | null
           last_seen?: string | null
           memory_usage?: number | null
           os?: string | null
@@ -1725,6 +1731,10 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      set_agent_heartbeat: {
+        Args: { p_id: string; p_json: Json }
+        Returns: undefined
       }
       start_batch_run: {
         Args: { _agent_id: string; _batch_id: string }
