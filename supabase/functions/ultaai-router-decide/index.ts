@@ -81,9 +81,18 @@ const ROUTER_SCHEMA = {
         name: { type: "string" },
         risk: { type: "string" },
         description: { type: "string" },
-        inputs_schema: { type: "object" },
-        inputs_defaults: { type: "object" },
-        preflight: { type: "object" },
+        inputs_schema: { 
+          type: "object",
+          additionalProperties: false
+        },
+        inputs_defaults: { 
+          type: "object",
+          additionalProperties: false
+        },
+        preflight: { 
+          type: "object",
+          additionalProperties: false
+        },
         commands: { type: "array", items: { type: "string" } }
       },
       additionalProperties: false
