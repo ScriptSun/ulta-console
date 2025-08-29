@@ -440,6 +440,60 @@ export type Database = {
           },
         ]
       }
+      api_keys: {
+        Row: {
+          created_at: string
+          created_by: string
+          customer_id: string
+          daily_request_count: number
+          daily_request_date: string
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          permissions: string[]
+          request_count: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          daily_request_count?: number
+          daily_request_date?: string
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          permissions?: string[]
+          request_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          daily_request_count?: number
+          daily_request_date?: string
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          permissions?: string[]
+          request_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -1844,6 +1898,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      generate_api_key: {
+        Args: { _customer_id: string; _name: string; _permissions?: string[] }
+        Returns: {
+          api_key: string
+          id: string
+          key_prefix: string
+        }[]
+      }
       get_agent_tenant_id: {
         Args: { agent_uuid: string }
         Returns: string
@@ -1902,6 +1964,18 @@ export type Database = {
           message: string
           run_id: string
           status: string
+        }[]
+      }
+      track_api_key_usage: {
+        Args: { _api_key_id: string }
+        Returns: undefined
+      }
+      validate_api_key: {
+        Args: { _api_key: string }
+        Returns: {
+          api_key_id: string
+          customer_id: string
+          valid: boolean
         }[]
       }
       validate_batch_dependencies: {
