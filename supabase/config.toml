@@ -45,3 +45,15 @@ verify_jwt = false
 
 [functions.agent-heartbeat]
 verify_jwt = false
+
+[functions.ultaai-router-payload]
+verify_jwt = false
+
+[functions.agent-control]
+verify_jwt = false
+
+[functions.agent-deploy]
+verify_jwt = false
+
+[functions.script-batches]
+verify_jwt = false
