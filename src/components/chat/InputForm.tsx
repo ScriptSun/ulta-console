@@ -56,6 +56,18 @@ export function InputForm({
 
   const updateValue = (key: string, value: any) => {
     setValues(prev => ({ ...prev, [key]: value }));
+    
+    // Clear validation error if field becomes valid
+    if (validationErrors[key]) {
+      const isRequired = schema?.required?.includes(key);
+      if (!isRequired || (value && (typeof value !== 'string' || value.trim() !== ''))) {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[key];
+          return newErrors;
+        });
+      }
+    }
   };
 
   const renderField = (key: string, fieldSchema: any) => {
