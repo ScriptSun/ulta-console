@@ -193,9 +193,37 @@ export function InputForm({
           </Alert>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {Object.entries(schema.properties).map(([key, fieldSchema]) =>
-            renderField(key, fieldSchema)
-          )}
+          {(() => {
+            const fields = Object.entries(schema.properties);
+            const fieldCount = fields.length;
+            
+            // If 2 fields: stack vertically
+            if (fieldCount <= 2) {
+              return (
+                <div className="space-y-4">
+                  {fields.map(([key, fieldSchema]) => renderField(key, fieldSchema))}
+                </div>
+              );
+            }
+            
+            // If 3+ fields: create responsive grid
+            // 2 fields per row, with remaining fields on subsequent rows
+            const rows = [];
+            for (let i = 0; i < fields.length; i += 2) {
+              const rowFields = fields.slice(i, i + 2);
+              rows.push(
+                <div key={`row-${i}`} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {rowFields.map(([key, fieldSchema]) => renderField(key, fieldSchema))}
+                </div>
+              );
+            }
+            
+            return (
+              <div className="space-y-4">
+                {rows}
+              </div>
+            );
+          })()}
           <div className="flex justify-end gap-2 pt-4">
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
