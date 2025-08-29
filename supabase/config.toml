@@ -57,3 +57,6 @@ verify_jwt = false
 
 [functions.script-batches]
 verify_jwt = false
+
+[functions.ultaai-router-decide]
+verify_jwt = false
