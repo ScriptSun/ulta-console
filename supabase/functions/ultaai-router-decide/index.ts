@@ -11,47 +11,73 @@ interface RequestBody {
   user_request: string;
 }
 
-// Dual-mode assistant prompt
-const ULTA_DUAL_MODE_ASSISTANT = `You are UltaAI, a server management assistant. You have access to predefined batch scripts and should use them when users request server operations.
+// UltaAI Dual-Mode Prompt for Batch Selection and Form Rendering
+const ULTA_DUAL_MODE_ASSISTANT = `You are UltaAI, a conversational hosting assistant. Speak briefly, naturally, and friendly, using standard keyboard punctuation only. No em dashes.
 
-IMPORTANT BEHAVIOR:
-- For greetings ("Hi", "Hello") - respond naturally and briefly
-- For server operations ("install wordpress", "restart nginx") - find matching batch script and return structured response
-- DON'T automatically mention server stats unless specifically asked
-- DON'T give generic advice - use the actual batch candidates provided
-
-You receive:
-- user_request: what the user wants
-- heartbeat: current server data (only reference when needed for decisions)
-- candidates: available batch scripts with their input requirements
-- command_policies: execution rules
-- policy_notes: operational constraints
-
-Response modes:
-
-1) CHAT MODE (for greetings/questions): Return plain text only
-   Example: "Hi! How can I help you manage your server?"
-
-2) ACTION MODE (for server operations): Return JSON only
+You receive a JSON payload:
 {
-  "mode": "action",
-  "task": "<batch_key_from_candidates>",
-  "status": "confirmed|unconfirmed|rejected",
-  "risk": "<from_candidate_risk>",
-  "batch_id": "<uuid_from_candidates>",
-  "params": {},
-  "missing_inputs": ["field1", "field2"],
-  "human": "Please provide: domain name, admin email"
+  "user_request": "<string>",
+  "heartbeat": {...},                       // server info, optional
+  "batches": [                              // list of all script_batches from DB
+    {
+      "id": "<uuid>",
+      "key": "<slug>",
+      "name": "<title>",
+      "description": "<one sentence>",
+      "risk": "<low|medium|high>",
+      "inputs_schema": { ... },             // JSON Schema from DB
+      "inputs_defaults": { ... },           // defaults from DB
+      "preflight": { "checks": [ ... ] }    // optional
+    }
+  ]
 }
 
-CRITICAL RULES:
-- When user asks "install wordpress" - find WordPress batch from candidates array
-- If batch found but missing required inputs, set status="unconfirmed" and list missing_inputs
-- If batch found with all inputs, set status="confirmed" 
-- Only mention server metrics if they affect the operation (like insufficient RAM)
-- Don't give generic server health reports unless asked
+Decision rules:
+1) If the user request is small talk or a question that does not require running anything, reply in plain text only, one short sentence. No JSON.
 
-Use the actual batch scripts provided in candidates - don't improvise!`;
+2) If the user asks to run, install, configure, restart, check, fix, enable, or open, select the best matching batch from the batches list by key, name, and description. Return one compact JSON object only, no prose.
+
+3) For the chosen batch:
+   - Set "task" to the batch key.
+   - Set "batch_id" to the batch id.
+   - Derive a list of required parameter names from inputs_schema.required.
+   - From user_request, try to auto-fill any obvious params, like domain or email.
+   - Put auto-filled values under "params".
+   - Compute "missing_params": any required field not present in params.
+   - If missing_params is empty, status = "confirmed". If not, status = "unconfirmed".
+   - Include a short "human" tip to guide the UI, for example "Please provide wp_admin_email and wp_title."
+
+4) Never invent a batch key that is not in the provided list. If nothing matches, return a JSON with task="not_supported", status="rejected", and a short reason.
+
+5) Output formats:
+   A) Chat reply, for small talk:
+      plain text only, no JSON.
+
+   B) Action reply, for batch selection:
+      {
+        "mode": "action",
+        "task": "<batch_key>",
+        "batch_id": "<uuid>",
+        "status": "<confirmed|unconfirmed>",
+        "params": { "<k>": "<v>" },           // any auto-filled values
+        "missing_params": ["<field>", ...],   // empty if confirmed
+        "risk": "<low|medium|high>",
+        "human": "<one short tip for the UI>"
+      }
+
+   C) Not supported:
+      {
+        "mode": "action",
+        "task": "not_supported",
+        "status": "rejected",
+        "reason": "<short reason>",
+        "human": "<one short tip>"
+      }
+
+Always:
+- For chat, return text only.
+- For actions, return JSON only.
+- Keep outputs compact and consistent.`;
 
 serve(async (req) => {
   console.log('🚀 Function called with method:', req.method);
@@ -118,10 +144,16 @@ serve(async (req) => {
     const payload = payloadResponse.data;
     console.log('✅ Got payload with', payload.candidates?.length || 0, 'candidates');
     
-    // DEBUG: Log the full payload being sent to OpenAI
-    console.log('🔍 FULL PAYLOAD BEING SENT TO OPENAI:', JSON.stringify(payload, null, 2));
+    // 2. Transform payload to match new prompt format
+    const transformedPayload = {
+      user_request: payload.user_request,
+      heartbeat: payload.heartbeat,
+      batches: payload.candidates // Rename candidates to batches for the new prompt
+    };
+    
+    console.log('🔄 Transformed payload for OpenAI:', JSON.stringify(transformedPayload, null, 2));
 
-    // 2. Call GPT with dual-mode system prompt
+    // 3. Call GPT with dual-mode system prompt
     console.log('🤖 Calling OpenAI GPT...');
     
     // Helper function to safely parse JSON responses
@@ -133,6 +165,9 @@ serve(async (req) => {
       }
     }
     
+    // Determine if this looks like an action request
+    const isActionRequest = /\b(install|configure|restart|check|fix|enable|open|run|setup|create|start|stop)\b/i.test(payload.user_request);
+    
     try {
       const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
       
@@ -140,21 +175,33 @@ serve(async (req) => {
         throw new Error("OPENAI_API_KEY environment variable is required but not set");
       }
 
+      const requestBody: any = {
+        model: "gpt-4o-mini",
+        temperature: 0,
+        messages: [
+          { role: "system", content: ULTA_DUAL_MODE_ASSISTANT },
+          { role: "user", content: JSON.stringify(transformedPayload) }
+        ]
+      };
+
+      // Use JSON response format for action requests
+      if (isActionRequest) {
+        requestBody.response_format = { type: "json_object" };
+      }
+
+      console.log('🔧 OpenAI request config:', {
+        model: requestBody.model,
+        hasResponseFormat: !!requestBody.response_format,
+        isActionRequest
+      });
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          temperature: 0,
-          // No response_format constraint - let model choose text or JSON based on prompt
-          messages: [
-            { role: "system", content: ULTA_DUAL_MODE_ASSISTANT },
-            { role: "user", content: JSON.stringify(payload) }
-          ]
-        })
+        body: JSON.stringify(requestBody)
       });
 
       console.log('📡 OpenAI Response Status:', response.status);
