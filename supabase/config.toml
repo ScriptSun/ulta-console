@@ -42,3 +42,6 @@ verify_jwt = false
 
 [functions.chat-router]
 verify_jwt = false
+
+[functions.agent-heartbeat]
+verify_jwt = false

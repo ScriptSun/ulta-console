@@ -7,6 +7,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -14,7 +15,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { 
   Monitor, 
   Shield, 
@@ -39,7 +39,7 @@ import {
   BarChart3,
   Heart,
   Copy,
-  CheckSquare
+  CheckCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -480,7 +480,7 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                             onClick={validateHeartbeat}
                             disabled={!agent.heartbeat}
                           >
-                            <CheckSquare className="h-3 w-3 mr-1" />
+                            <CheckCircle className="h-3 w-3 mr-1" />
                             Validate
                           </Button>
                         </div>
