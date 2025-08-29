@@ -156,23 +156,6 @@ export function InputForm({
         {fieldSchema.description && (
           <p className="text-sm text-muted-foreground">{fieldSchema.description}</p>
         )}
-        {fieldSchema.examples && fieldSchema.examples.length > 1 && (
-          <div className="flex flex-wrap gap-1">
-            {fieldSchema.examples.slice(0, 3).map((example: string) => (
-              <Button
-                key={example}
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={() => updateValue(key, example)}
-                className="h-6 px-2 text-xs"
-                disabled={loading}
-              >
-                {example}
-              </Button>
-            ))}
-          </div>
-        )}
       </div>
     );
   };
