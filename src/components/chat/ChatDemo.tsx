@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
@@ -55,6 +55,34 @@ interface Message {
       message?: string;
       [key: string]: any;
     }>;
+  };
+  // New router decision fields
+  decision?: {
+    task: string;
+    status?: string;
+    batch_id?: string;
+    params?: any;
+    risk?: string;
+    preflight?: string[];
+    batch?: any;
+    reason?: string;
+  };
+  preflightResult?: {
+    preflight_ok: boolean;
+    failed: string[];
+  };
+  executionResult?: {
+    status: string;
+    message?: string;
+    reason?: string;
+    script_id?: string;
+    exit_code?: number;
+    stdout_tail?: string;
+    stderr_tail?: string;
+  };
+  adviceResult?: {
+    message: string;
+    suggested_fixes: string[];
   };
 }
 
@@ -414,18 +442,31 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
     }
   };
 
-  // Send message using chat API
+  // Send message using new router functionality
   const sendMessage = async (content: string, isAction = false) => {
     if (!content.trim() || !selectedAgent) return;
 
     const currentConversationId = await bootstrapChat();
     if (!currentConversationId) return;
 
+    // Check if this is an execution command (JSON with inputs or confirm flags)
+    let isExecutionCommand = false;
+    let executionData: any = null;
+    
+    try {
+      if (content.startsWith('{')) {
+        executionData = JSON.parse(content);
+        isExecutionCommand = true;
+      }
+    } catch (error) {
+      // Not JSON, treat as normal message
+    }
+
     // Add user message immediately
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: content.trim(),
+      content: isExecutionCommand ? 'Execute with provided inputs' : content.trim(),
       timestamp: new Date(),
       pending: false
     };
@@ -440,130 +481,79 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         throw new Error('Authentication required');
       }
 
-      // Call the chat message endpoint
-      const { data, error } = await supabase.functions.invoke('chat-api', {
-        body: {
-          path: '/chat/message',
-          conversation_id: currentConversationId,
-          role: 'user',
-          content: content.trim(),
-          agent_id: selectedAgent
-        },
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
+      // Handle execution commands (from InputForm submissions)
+      if (isExecutionCommand && executionData?.inputs) {
+        // Get the last decision from messages
+        const lastDecision = messages.filter(m => m.decision).pop()?.decision;
+        if (!lastDecision) {
+          throw new Error('No previous decision found for execution');
         }
-      });
 
-      if (error) throw error;
+        // Call execution endpoint
+        const { data: execData, error: execError } = await supabase.functions.invoke('ultaai-exec-run', {
+          body: {
+            agent_id: selectedAgent,
+            decision: { ...lastDecision, params: executionData.inputs },
+            confirm: true
+          }
+        });
 
-      // Handle duplicate message response
-      if (data.duplicate) {
-        console.log('Duplicate message detected, not adding assistant response');
+        if (execError) throw execError;
+
+        // Add execution result message
+        const execMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: getExecutionMessage(execData),
+          timestamp: new Date(),
+          pending: false,
+          executionResult: execData
+        };
+
+        setMessages(prev => [...prev, execMessage]);
+        setIsTyping(false);
         return;
       }
 
-      // Add assistant message
+      // Normal chat flow - call router/decide
+      const { data: decision, error: decisionError } = await supabase.functions.invoke('ultaai-router-decide', {
+        body: {
+          agent_id: selectedAgent,
+          user_request: content.trim()
+        }
+      });
+
+      if (decisionError) throw decisionError;
+
+      console.log('Router decision:', decision);
+
+      // Add assistant message with decision
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.router_response || data.response || 'Processing your request...',
+        content: getDecisionMessage(decision),
         timestamp: new Date(),
-        pending: false
+        pending: false,
+        decision: decision
       };
 
-      // Handle task events and state updates
-      if (data.state) {
-        assistantMessage.taskStatus = {
-          type: data.state as any,
-          intent: data.intent || 'unknown',
-          runId: data.run_id,
-          batchId: data.batch_id,
-          summary: data.summary,
-          progress: data.progress,
-          contract: data.contract,
-          error: data.error,
-          duration: data.duration
-        };
-        
-        // Handle different states
-        if (data.state === 'task_succeeded') {
-          assistantMessage.content = '✅ WordPress installation completed successfully!';
-          assistantMessage.taskStatus.summary = data.summary || 'WordPress installation completed';
-        } else if (data.state === 'task_failed') {
-          assistantMessage.content = '❌ WordPress installation failed. Please check the error details.';
-          assistantMessage.taskStatus.error = data.error;
-        } else if (data.state === 'task_started') {
-          assistantMessage.content = '🔄 WordPress installation is now running...';
-        } else if (data.state === 'input_error') {
-          assistantMessage.content = data.message || 'Please correct the following errors and try again.';
-          assistantMessage.inputErrors = data.errors || [];
+      // Handle not_supported case - get advice
+      if (decision.task === 'not_supported') {
+        try {
+          const { data: adviceData, error: adviceError } = await supabase.functions.invoke('ultaai-advice', {
+            body: {
+              reason: decision.reason || 'Request not supported',
+              heartbeat_small: {} // Could get real heartbeat here
+            }
+          });
+
+          if (!adviceError && adviceData) {
+            assistantMessage.adviceResult = adviceData;
+            assistantMessage.content = `${assistantMessage.content}\n\n💡 AI Suggestion: ${adviceData.message}`;
+          }
+        } catch (error) {
+          console.error('Error getting advice:', error);
         }
-      } else if (data.event_type && ['task_queued', 'task_started', 'task_succeeded', 'task_failed'].includes(data.event_type)) {
-        assistantMessage.taskStatus = {
-          type: data.event_type,
-          intent: data.intent || 'unknown',
-          runId: data.run_id,
-          batchId: data.batch_id
-        };
-      }
-
-      // Handle preflight blocks
-      if (data.state === 'preflight_block' && data.details) {
-        assistantMessage.preflightBlocked = {
-          details: data.details
-        };
-        assistantMessage.content = data.response || 'Preflight checks failed. Please address the issues and try again.';
-      }
-
-  // Handle needs inputs - always use database schema for WordPress
-  if (data.state === 'needs_inputs' && data.inputs_schema) {
-    console.log('Setting needsInputs with schema:', data.inputs_schema);
-    
-    // Always get the complete schema from database for WordPress installation
-    let completeSchema = data.inputs_schema;
-    let completeDefaults = data.inputs_defaults || {};
-    
-    if (content.toLowerCase().includes('wordpress') || content.toLowerCase().includes('install wordpress')) {
-      try {
-        const { data: batches } = await supabase
-          .from('script_batches')
-          .select('inputs_schema, inputs_defaults')
-          .eq('name', 'WordPress Installer')
-          .single();
-        
-        if (batches?.inputs_schema) {
-          console.log('Using complete WordPress schema from database:', batches.inputs_schema);
-          console.log('Database defaults:', batches.inputs_defaults);
-          completeSchema = batches.inputs_schema;
-          completeDefaults = batches.inputs_defaults || {};
-        }
-      } catch (error) {
-        console.log('Failed to fetch complete schema, using API schema:', error);
-      }
-    }
-    
-    assistantMessage.needsInputs = {
-      schema: completeSchema,
-      defaults: completeDefaults,
-      missingParams: data.missing_params || []
-    };
-    assistantMessage.content = data.message || data.response || 'Please provide the required information to continue.';
-  } else if (data.needs_inputs && data.inputs_schema) {
-    console.log('Alternative needs_inputs path with schema:', data.inputs_schema);
-    assistantMessage.needsInputs = {
-      schema: data.inputs_schema,
-      defaults: data.inputs_defaults || {},
-      missingParams: data.missing_params || []
-    };
-    assistantMessage.content = data.message || data.response || 'Please provide the required information to continue.';
-  } else if (data.needs_inputs && data.missing_param) {
-    assistantMessage.quickInputs = getQuickInputsForParam(data.missing_param);
-  }
-
-      // Handle input errors
-      if (data.state === 'input_error' && data.errors) {
-        assistantMessage.inputErrors = data.errors;
-        assistantMessage.content = data.message || 'Please correct the errors and try again.';
       }
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -572,9 +562,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       if (!isOpen && enableBadge) {
         setUnreadBadge(true);
         if (playSound) {
-          // Play notification sound
           const audio = new Audio('/notification.mp3');
-          audio.play().catch(() => {}); // Ignore errors
+          audio.play().catch(() => {});
         }
       }
 
@@ -595,6 +584,122 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         pending: false
       };
       setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  // Helper function to generate decision message content
+  const getDecisionMessage = (decision: any): string => {
+    switch (decision.task) {
+      case 'not_supported':
+        return `I'm not able to help with that request. ${decision.reason || 'This type of request is not supported.'}`;
+      
+      case 'custom_shell':
+        return `I can run this command: \`${decision.params?.shell}\`\nThis will ${decision.params?.description || 'execute the command'}.`;
+      
+      case 'proposed_batch':
+        return `I can create a new batch called "${decision.batch?.name}" to ${decision.batch?.description || 'handle your request'}. This is a ${decision.batch?.risk || 'medium'} risk operation.`;
+      
+      default:
+        // Confirmed batch
+        if (decision.status === 'confirmed') {
+          return `I can help you with that! I found a suitable batch (${decision.task}) to handle your request. This is a ${decision.risk || 'medium'} risk operation.`;
+        }
+        return `I found a batch to handle your request: ${decision.task}`;
+    }
+  };
+
+  // Helper function to generate execution message content
+  const getExecutionMessage = (execResult: any): string => {
+    switch (execResult.status) {
+      case 'success':
+        return `✅ Task completed successfully!`;
+      case 'awaiting_confirm':
+        return `⏳ ${execResult.message || 'Confirmation required before proceeding.'}`;
+      case 'rejected':
+        return `❌ Task rejected: ${execResult.reason || 'Operation not permitted.'}`;
+      case 'error':
+        return `🚨 Error: ${execResult.reason || 'An error occurred during execution.'}`;
+      default:
+        return `Status: ${execResult.status}`;
+    }
+  };
+
+  // Handle preflight check
+  const handlePreflightCheck = async (decision: any) => {
+    if (!selectedAgent) return;
+
+    setIsTyping(true);
+    try {
+      const { data: preflightData, error: preflightError } = await supabase.functions.invoke('ultaai-preflight-run', {
+        body: {
+          agent_id: selectedAgent,
+          decision: decision
+        }
+      });
+
+      if (preflightError) throw preflightError;
+
+      // Add preflight result message
+      const preflightMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: preflightData.preflight_ok 
+          ? '✅ All preflight checks passed! You can proceed with execution.'
+          : '❌ Some preflight checks failed. Please address the issues before proceeding.',
+        timestamp: new Date(),
+        pending: false,
+        preflightResult: preflightData
+      };
+
+      setMessages(prev => [...prev, preflightMessage]);
+    } catch (error) {
+      console.error('Error running preflight:', error);
+      toast({
+        title: "Error",
+        description: "Failed to run preflight checks",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  // Handle execution
+  const handleExecution = async (decision: any, confirmFlag = false) => {
+    if (!selectedAgent) return;
+
+    setIsTyping(true);
+    try {
+      const { data: execData, error: execError } = await supabase.functions.invoke('ultaai-exec-run', {
+        body: {
+          agent_id: selectedAgent,
+          decision: decision,
+          confirm: confirmFlag
+        }
+      });
+
+      if (execError) throw execError;
+
+      // Add execution result message
+      const execMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: getExecutionMessage(execData),
+        timestamp: new Date(),
+        pending: false,
+        executionResult: execData
+      };
+
+      setMessages(prev => [...prev, execMessage]);
+    } catch (error) {
+      console.error('Error executing:', error);
+      toast({
+        title: "Error",
+        description: "Failed to execute task",
+        variant: "destructive",
+      });
     } finally {
       setIsTyping(false);
     }
@@ -930,6 +1035,95 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                           </Button>
                         )}
                       </div>
+                      )}
+                      
+                      {/* Router Decision Action Buttons */}
+                      {message.decision && message.role === 'assistant' && (
+                        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-muted/50">
+                          {/* Confirmed batch actions */}
+                          {message.decision.status === 'confirmed' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handlePreflightCheck(message.decision)}
+                                disabled={isTyping}
+                                className="text-xs"
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Preflight
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleExecution(message.decision, true)}
+                                disabled={isTyping}
+                                className="text-xs"
+                              >
+                                <Play className="w-3 h-3 mr-1" />
+                                Execute
+                              </Button>
+                            </>
+                          )}
+                          
+                          {/* Custom shell or proposed batch actions */}
+                          {(message.decision.task === 'custom_shell' || message.decision.task === 'proposed_batch') && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleExecution(message.decision, true)}
+                              disabled={isTyping}
+                              className="text-xs"
+                            >
+                              <Play className="w-3 h-3 mr-1" />
+                              Execute & Confirm
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Preflight Results Display */}
+                      {message.preflightResult && (
+                        <div className={`mt-3 p-3 rounded-lg border ${
+                          message.preflightResult.preflight_ok 
+                            ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950' 
+                            : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950'
+                        }`}>
+                          <div className="text-sm font-medium mb-2">
+                            Preflight Result: {message.preflightResult.preflight_ok ? '✅ Passed' : '❌ Failed'}
+                          </div>
+                          {message.preflightResult.failed && message.preflightResult.failed.length > 0 && (
+                            <div className="space-y-1">
+                              {message.preflightResult.failed.map((failure, index) => (
+                                <div key={index} className="text-xs bg-red-100 dark:bg-red-900 px-2 py-1 rounded">
+                                  {failure}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Execution Results Display */}
+                      {message.executionResult && (
+                        <div className="mt-3 p-3 rounded-lg border bg-muted/50">
+                          <div className="text-sm font-medium mb-2">
+                            Execution: {message.executionResult.status}
+                          </div>
+                          <pre className="text-xs bg-background p-2 rounded overflow-auto">
+                            {JSON.stringify(message.executionResult, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+
+                      {/* AI Advice Display */}
+                      {message.adviceResult && (
+                        <div className="mt-3 p-3 rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
+                          <div className="text-sm font-medium mb-2">💡 AI Suggestions:</div>
+                          {message.adviceResult.suggested_fixes.map((fix, index) => (
+                            <div key={index} className="text-xs bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded mb-1">
+                              {fix}
+                            </div>
+                          ))}
+                        </div>
                       )}
                       
                       <div className="flex items-center justify-between mt-2">
