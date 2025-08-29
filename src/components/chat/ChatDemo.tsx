@@ -848,7 +848,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
                     } ${compactDensity ? 'p-2 text-sm' : ''}`}>
-                      {message.content.split('\n').length > 10 && !message.collapsed ? (
+                      {typeof message.content === 'string' && message.content.split('\n').length > 10 && !message.collapsed ? (
                         <div>
                           <div className="flex items-start gap-2">
                             <div className="flex-1 whitespace-pre-wrap">
@@ -916,7 +916,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                             </div>
                           )}
                         </div>
-                        {message.content.split('\n').length > 10 && (
+                        {typeof message.content === 'string' && message.content.split('\n').length > 10 && (
                           <Button
                             variant="ghost"
                             size="sm"
