@@ -666,8 +666,26 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
   // Handle input form submission
   const handleInputFormSubmit = (inputs: Record<string, any>) => {
-    // Send synthetic message with inputs
-    const syntheticMessage = JSON.stringify({ inputs });
+    // Map field names from database schema to what chat API expects
+    const mappedInputs = { ...inputs };
+    
+    // WordPress field name mappings
+    if (mappedInputs.wp_admin_email) {
+      mappedInputs.admin_email = mappedInputs.wp_admin_email;
+      delete mappedInputs.wp_admin_email;
+    }
+    if (mappedInputs.wp_title) {
+      mappedInputs.wp_title = mappedInputs.wp_title; // Keep as is
+    }
+    if (mappedInputs.wp_admin_user) {
+      mappedInputs.wp_admin_user = mappedInputs.wp_admin_user; // Keep as is
+    }
+    
+    console.log('Original inputs:', inputs);
+    console.log('Mapped inputs for API:', mappedInputs);
+    
+    // Send synthetic message with mapped inputs
+    const syntheticMessage = JSON.stringify({ inputs: mappedInputs });
     sendMessage(syntheticMessage);
   };
 
