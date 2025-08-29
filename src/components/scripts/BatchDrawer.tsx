@@ -56,6 +56,7 @@ import { cn } from '@/lib/utils';
 interface ScriptBatch {
   id?: string;
   name: string;
+  description?: string;
   os_targets: string[];
   risk: 'low' | 'medium' | 'high';
   max_timeout_sec: number;
@@ -134,6 +135,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       console.log('BatchDrawer: Setting default data for new batch');
       setFormData({
         name: '',
+        description: '',
         os_targets: [],
         risk: 'medium',
         max_timeout_sec: 300,
@@ -424,6 +426,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
         .from('script_batches')
         .update({
           name: formData.name,
+          description: formData.description,
           inputs_schema: formData.inputs_schema,
           inputs_defaults: formData.inputs_defaults,
           os_targets: formData.os_targets,
@@ -533,6 +536,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
         .from('script_batches')
         .update({
           name: formData.name,
+          description: formData.description,
           inputs_schema: formData.inputs_schema,
           inputs_defaults: formData.inputs_defaults,
           os_targets: formData.os_targets,
@@ -736,6 +740,19 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                   value={formData.name}
                   onChange={(e) => handleFormChange('name', e.target.value)}
                   placeholder="Enter batch name"
+                  disabled={!canEdit}
+                />
+              </div>
+
+              {/* Description Row */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description || ''}
+                  onChange={(e) => handleFormChange('description', e.target.value)}
+                  placeholder="Brief description of what this batch does (helps ChatGPT understand its purpose)"
+                  rows={2}
                   disabled={!canEdit}
                 />
               </div>

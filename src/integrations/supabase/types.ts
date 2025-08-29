@@ -1228,6 +1228,7 @@ export type Database = {
           created_at: string
           created_by: string
           customer_id: string
+          description: string | null
           id: string
           inputs_defaults: Json | null
           inputs_schema: Json | null
@@ -1248,6 +1249,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_id: string
+          description?: string | null
           id?: string
           inputs_defaults?: Json | null
           inputs_schema?: Json | null
@@ -1268,6 +1270,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_id?: string
+          description?: string | null
           id?: string
           inputs_defaults?: Json | null
           inputs_schema?: Json | null

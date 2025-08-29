@@ -38,6 +38,7 @@ interface ScriptBatch {
   id: string;
   name: string;
   key?: string;
+  description?: string;
   os_targets: string[];
   risk: 'low' | 'medium' | 'high';
   max_timeout_sec: number;
@@ -188,7 +189,8 @@ export default function ScriptsBatches() {
     // Search filter
     if (searchQuery) {
       filtered = filtered.filter(batch =>
-        batch.name.toLowerCase().includes(searchQuery.toLowerCase())
+        batch.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (batch.description && batch.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
