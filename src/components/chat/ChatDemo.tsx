@@ -659,11 +659,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       const cleanDecision = { ...decision };
       delete cleanDecision._debug;
 
-      // Add assistant message with decision
+      // Add assistant message with decision (show raw JSON for debugging)
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: getDecisionMessage(cleanDecision),
+        content: typeof cleanDecision === 'string' ? cleanDecision : JSON.stringify(cleanDecision, null, 2),
         timestamp: new Date(),
         pending: false,
         decision: cleanDecision
