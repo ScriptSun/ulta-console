@@ -419,8 +419,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
 
     setLoading(true);
     try {
-      // Update the batch record directly with correct column names
-      const { error } = await supabase
+      // Update the batch metadata
+      const { error: batchError } = await supabase
         .from('script_batches')
         .update({
           name: formData.name,
@@ -437,11 +437,56 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
         })
         .eq('id', batch?.id);
 
-      if (error) throw error;
+      if (batchError) throw batchError;
+
+      // Also save/update the script content if it exists
+      if (scriptContent && scriptContent.trim()) {
+        // Get the first OS target or default to ubuntu
+        const currentOs = formData.os_targets[0] || 'ubuntu';
+        
+        // Check if there's already a variant for this OS
+        const existingVariant = variants.find(v => v.os === currentOs);
+        
+        if (existingVariant) {
+          // Update existing variant if the content changed
+          if (existingVariant.source !== scriptContent) {
+            const { error: variantError } = await supabase
+              .from('script_batch_variants')
+              .update({
+                source: scriptContent,
+                notes: notes || 'Draft update',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingVariant.id);
+              
+            if (variantError) {
+              console.warn('Failed to update variant content:', variantError);
+            }
+          }
+        } else {
+          // Create new variant for this OS
+          const { error: variantError } = await supabase
+            .from('script_batch_variants')
+            .insert({
+              batch_id: batch?.id,
+              os: currentOs,
+              version: 1,
+              sha256: validation.sha256,
+              size_bytes: validation.sizeBytes,
+              source: scriptContent,
+              notes: notes || 'Initial draft',
+              active: false
+            });
+            
+          if (variantError) {
+            console.warn('Failed to create variant:', variantError);
+          }
+        }
+      }
 
       toast({
         title: 'Draft Saved',
-        description: 'Batch draft saved successfully',
+        description: 'Batch draft and script content saved successfully',
       });
 
       // Clear draft from localStorage
@@ -450,7 +495,6 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       setHasUnsavedChanges(false);
       
       onSuccess();
-      onClose();
     } catch (error) {
       console.error('Error saving draft:', error);
       toast({
@@ -484,23 +528,61 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('script-batches', {
-        body: {
-          action: 'create_version',
-          batch_id: batch?.id,
-          ...formData,
-          source: scriptContent,
-          notes,
-          sha256: validation.sha256,
-          size_bytes: validation.sizeBytes
-        }
-      });
+      // First update the batch metadata
+      const { error: batchError } = await supabase
+        .from('script_batches')
+        .update({
+          name: formData.name,
+          inputs_schema: formData.inputs_schema,
+          inputs_defaults: formData.inputs_defaults,
+          os_targets: formData.os_targets,
+          risk: formData.risk,
+          max_timeout_sec: formData.max_timeout_sec,
+          per_agent_concurrency: formData.per_agent_concurrency,
+          per_tenant_concurrency: formData.per_tenant_concurrency,
+          auto_version: formData.auto_version,
+          preflight: {},
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', batch?.id);
 
-      if (error) throw error;
+      if (batchError) throw batchError;
+
+      // Create version for the current OS using direct fetch to the edge function
+      const currentOs = formData.os_targets[0] || 'ubuntu';
+      
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+      const response = await fetch(
+        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch?.id}/variants/${currentOs}/versions`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            source: scriptContent,
+            notes: notes || 'New version created',
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const data = await response.json();
 
       toast({
         title: 'Version Created',
-        description: `Version ${data.version} created successfully`,
+        description: `Version ${data.variant.version} created successfully for ${currentOs}`,
       });
 
       // Clear draft from localStorage
