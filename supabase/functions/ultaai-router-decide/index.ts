@@ -76,25 +76,6 @@ const ROUTER_SCHEMA = {
     // proposed batch payload
     batch: {
       type: "object",
-      properties: {
-        key: { type: "string" },
-        name: { type: "string" },
-        risk: { type: "string" },
-        description: { type: "string" },
-        inputs_schema: { 
-          type: "object",
-          additionalProperties: false
-        },
-        inputs_defaults: { 
-          type: "object",
-          additionalProperties: false
-        },
-        preflight: { 
-          type: "object",
-          additionalProperties: false
-        },
-        commands: { type: "array", items: { type: "string" } }
-      },
       additionalProperties: false
     }
   },
