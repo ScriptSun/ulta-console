@@ -66,3 +66,6 @@ verify_jwt = false
 
 [functions.ultaai-policy-check]
 verify_jwt = false
+
+[functions.ultaai-inputs-fill]
+verify_jwt = false
