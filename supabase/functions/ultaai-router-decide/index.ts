@@ -133,7 +133,7 @@ async function callGPT({
     : { type: "json_object" as const };
 
   const requestBody = {
-    model: "gpt-5-thinking",
+    model: "gpt-4o-mini",
     temperature: 0,
     response_format,
     messages: [
