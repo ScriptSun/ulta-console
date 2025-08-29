@@ -961,16 +961,33 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                   
                    {/* Input Errors Display */}
                    {message.inputErrors && Object.keys(message.inputErrors).length > 0 && (
-                     <div className="mt-2 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-                       <h4 className="text-sm font-medium text-orange-800 dark:text-orange-200 mb-2">Please correct the following:</h4>
-                       <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-1">
-                         {Object.entries(message.inputErrors).map(([field, error]) => (
-                           <li key={field} className="flex items-start gap-2">
-                             <span className="font-medium">{field}:</span>
-                             <span>{error}</span>
-                           </li>
-                         ))}
-                       </ul>
+                     <div className="mt-4 relative overflow-hidden rounded-xl backdrop-blur-sm bg-gradient-to-br from-red-50/80 to-orange-50/80 dark:from-red-950/40 dark:to-orange-950/40 border border-red-200/60 dark:border-red-800/40 shadow-lg shadow-red-100/50 dark:shadow-red-900/20 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+                       <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-orange-500/5 dark:from-red-400/5 dark:to-orange-400/5"></div>
+                       <div className="relative p-4">
+                         <div className="flex items-start gap-3">
+                           <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center mt-0.5">
+                             <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                             </svg>
+                           </div>
+                           <div className="flex-1 min-w-0">
+                             <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-3 tracking-tight">
+                               Please correct the following:
+                             </h4>
+                             <ul className="space-y-2.5">
+                               {Object.entries(message.inputErrors).map(([field, error]) => (
+                                 <li key={field} className="flex items-start gap-2 group">
+                                   <div className="w-1.5 h-1.5 rounded-full bg-red-400 dark:bg-red-500 mt-2 flex-shrink-0 group-hover:scale-110 transition-transform duration-200"></div>
+                                   <div className="flex-1">
+                                     <span className="font-medium text-red-800 dark:text-red-200 text-sm">{field}:</span>
+                                     <span className="text-red-700 dark:text-red-300 text-sm ml-1">{error}</span>
+                                   </div>
+                                 </li>
+                               ))}
+                             </ul>
+                           </div>
+                         </div>
+                       </div>
                      </div>
                    )}
                    
