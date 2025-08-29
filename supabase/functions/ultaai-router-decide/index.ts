@@ -45,60 +45,24 @@ Rules:
 - Validate shell against command_policies, do not emit forbidden content
 - Only one JSON object, no prose`;
 
+// Simplified schema without oneOf (not supported by OpenAI structured output)
 const ROUTER_RESPONSE_SCHEMA = {
-  "type":"object",
-  "oneOf":[
-    { "type":"object","required":["task","batch_id","params","status","risk","preflight"],
-      "properties":{
-        "task":{"type":"string"},
-        "batch_id":{"type":"string"},
-        "params":{"type":"object","additionalProperties":{"type":["string","number","boolean","null"]}},
-        "status":{"type":"string","enum":["confirmed"]},
-        "risk":{"type":"string","enum":["low","medium","high"]},
-        "preflight":{"type":"array","items":{"type":"string"}}
-      },
-      "additionalProperties":false
+  "type": "object",
+  "required": ["task"],
+  "properties": {
+    "task": {
+      "type": "string",
+      "enum": ["confirmed_batch", "custom_shell", "proposed_batch", "not_supported"]
     },
-    { "type":"object","required":["task","params","status","risk"],
-      "properties":{
-        "task":{"type":"string","enum":["custom_shell"]},
-        "params":{"type":"object","required":["description","shell"],
-          "properties":{"description":{"type":"string"},"shell":{"type":"string"}},
-          "additionalProperties":false
-        },
-        "status":{"type":"string","enum":["unconfirmed"]},
-        "risk":{"type":"string","enum":["low","medium","high"]}
-      },
-      "additionalProperties":false
-    },
-    { "type":"object","required":["task","status","batch"],
-      "properties":{
-        "task":{"type":"string","enum":["proposed_batch"]},
-        "status":{"type":"string","enum":["unconfirmed"]},
-        "batch":{"type":"object","required":["key","name","risk","description","inputs_schema","inputs_defaults","preflight","commands"],
-          "properties":{
-            "key":{"type":"string"},
-            "name":{"type":"string"},
-            "risk":{"type":"string","enum":["low","medium","high"]},
-            "description":{"type":"string"},
-            "inputs_schema":{"type":"object"},
-            "inputs_defaults":{"type":"object"},
-            "preflight":{"type":"object"},
-            "commands":{"type":"array","items":{"type":"string"}}
-          },
-          "additionalProperties":false
-        }
-      },
-      "additionalProperties":false
-    },
-    { "type":"object","required":["task","reason"],
-      "properties":{
-        "task":{"type":"string","enum":["not_supported"]},
-        "reason":{"type":"string"}
-      },
-      "additionalProperties":false
-    }
-  ]
+    "batch_id": {"type": "string"},
+    "params": {"type": "object"},
+    "status": {"type": "string"},
+    "risk": {"type": "string", "enum": ["low", "medium", "high"]},
+    "preflight": {"type": "array", "items": {"type": "string"}},
+    "batch": {"type": "object"},
+    "reason": {"type": "string"}
+  },
+  "additionalProperties": false
 };
 
 // GPT call function
