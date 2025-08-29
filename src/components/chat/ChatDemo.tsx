@@ -707,6 +707,31 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         decision: cleanDecision
       };
 
+      // If decision has missing_params, set up needsInputs for form rendering
+      if (cleanDecision.status === 'unconfirmed' && cleanDecision.missing_params && cleanDecision.batch_id) {
+        try {
+          // Fetch batch schema to set up the input form
+          const { data: batchData, error: batchError } = await supabase
+            .from('script_batches')
+            .select('inputs_schema, inputs_defaults')
+            .eq('id', cleanDecision.batch_id)
+            .single();
+
+          if (!batchError && batchData) {
+            assistantMessage.needsInputs = {
+              schema: batchData.inputs_schema,
+              defaults: (batchData.inputs_defaults as Record<string, any>) || {},
+              missingParams: cleanDecision.missing_params
+            };
+
+            // Update the content to show the human-friendly message instead of JSON
+            assistantMessage.content = cleanDecision.human || `Please provide the required information to proceed with ${cleanDecision.task}.`;
+          }
+        } catch (error) {
+          console.error('Error fetching batch schema:', error);
+        }
+      }
+
       // Handle not_supported case - get advice
       if (cleanDecision.task === 'not_supported') {
         try {
