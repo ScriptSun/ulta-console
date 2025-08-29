@@ -33,7 +33,7 @@ const ROUTER_SYSTEM_PROMPT = `You are UltaAI Router. Input contains: user_reques
 }}
 
 4) Not supported:
-{"task":"not_supported","reason":"<short>"}
+{"task":"not_supported","status":"rejected","reason":"<short>"}
 
 Rules:
 - Pick best match from candidates by name, key, description
@@ -43,44 +43,18 @@ Rules:
 - Never output multiple commands joined by pipes or && or ;
 - Obey policy_notes thresholds
 - Validate shell against command_policies, do not emit forbidden content
-- Only one JSON object, no prose`;
+- Only one JSON object, no prose
+- All responses must include a "status" field: for confirmed batches use "confirmed", for custom_shell and proposed_batch use "unconfirmed", for not_supported use "rejected"`;
 
-// Single-shape schema, no oneOf
-const ROUTER_SCHEMA = {
+// Minimal strict-safe schema. Every key in properties is listed in required.
+const ROUTER_SCHEMA: any = {
   type: "object",
   properties: {
-    // discriminator
-    task: {
-      type: "string",
-      // you can keep it open, or restrict to known values
-      // enum: ["install_wordpress","install_ssl","install_n8n","restart_nginx","check_cpu","check_disk","fix_mysql_crash","install_fail2ban","create_ftp_user","restart_php","custom_shell","proposed_batch","not_supported"]
-    },
-
-    // common fields, optional
-    status: { type: "string" },             // "confirmed" or "unconfirmed"
-    risk: { type: "string" },               // "low" | "medium" | "high"
-    preflight: { type: "array", items: { type: "string" } },
-
-    // confirmed batch fields
-    batch_id: { type: "string" },           // script_batches.id for confirmed selections
-
-    // params is flexible
-    params: {
-      type: "object",
-      additionalProperties: { type: ["string","number","boolean","null"] }
-    },
-
-    // not_supported reason
-    reason: { type: "string" },
-
-    // proposed batch payload
-    batch: {
-      type: "object",
-      additionalProperties: false
-    }
+    task: { type: "string" },
+    status: { type: "string" } // "confirmed", "unconfirmed", "rejected"
   },
-  required: ["task"],
-  additionalProperties: false
+  required: ["task", "status"],
+  additionalProperties: true
 };
 
 // GPT call function
@@ -276,6 +250,7 @@ serve(async (req) => {
 
     // 2. Call GPT with the router system prompt and schema
     console.log('🤖 Calling OpenAI GPT...');
+    console.log("ROUTER_SCHEMA being sent:", JSON.stringify(ROUTER_SCHEMA));
     
     try {
       const { decision, logs } = await callGPT({
