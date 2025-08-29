@@ -724,8 +724,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
               missingParams: cleanDecision.missing_params
             };
 
-            // Update the content to show the human-friendly message instead of JSON
-            assistantMessage.content = cleanDecision.human || `Please provide the required information to proceed with ${cleanDecision.task}.`;
+            // Don't show additional message since the form handles its own messaging
+            assistantMessage.content = '';
           }
         } catch (error) {
           console.error('Error fetching batch schema:', error);
