@@ -60,3 +60,6 @@ verify_jwt = false
 
 [functions.ultaai-router-decide]
 verify_jwt = false
+
+[functions.ultaai-preflight-run]
+verify_jwt = false
