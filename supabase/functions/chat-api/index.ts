@@ -1232,8 +1232,8 @@ async function continueWithValidatedInputs(
     .from('script_batches')
     .select('id, name, active_version, preflight, inputs_schema')
     .or(`customer_id.eq.${conversation.tenant_id},customer_id.eq.00000000-0000-0000-0000-000000000001`)
-    .or(`name.eq.WordPress Install,name.ilike.%wordpress%install%`)
-    .neq('active_version', null)
+    .or(`name.eq.WordPress Installer,name.ilike.%wordpress%install%`)
+    .not('active_version', 'is', null)
     .maybeSingle();
 
   if (batchError || !batch) {
@@ -1600,7 +1600,7 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     .select('id, name, inputs_schema, preflight, customer_id')
     .or(`customer_id.eq.${tenantId},customer_id.eq.00000000-0000-0000-0000-000000000001`)
     .or(`name.ilike.%${result.intent.replace('_', ' ')}%,name.ilike.%wordpress%install%`)
-    .neq('active_version', null);
+    .not('active_version', 'is', null);
 
   console.log('Searching for batches with tenant_id:', tenantId, 'and intent:', result.intent);
   console.log('Batch search result:', batches, 'Error:', batchSearchError);
@@ -1718,14 +1718,14 @@ async function processIntentWithParams(supabase: any, conversationId: string, co
     };
   }
 
-  // Find the batch for this intent
+  // Find the batch for this intent - check both tenant and system batches
   const { data: batch, error: batchFindError } = await supabase
     .from('script_batches')
     .select('id, name, active_version, preflight')
-    .eq('customer_id', tenantId)
-    .eq('name', intentDef.batchName)
-    .neq('active_version', null)
-    .single();
+    .or(`customer_id.eq.${tenantId},customer_id.eq.00000000-0000-0000-0000-000000000001`)
+    .or(`name.eq.${intentDef.batchName},name.ilike.WordPress Installer`)
+    .not('active_version', 'is', null)
+    .maybeSingle();
 
   if (batchFindError || !batch) {
     console.error('No active batch found for intent:', { intent: result.intent, batchName: intentDef.batchName });
