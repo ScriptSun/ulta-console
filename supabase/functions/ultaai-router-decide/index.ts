@@ -95,7 +95,6 @@ const ROUTER_SCHEMA = {
         },
         commands: { type: "array", items: { type: "string" } }
       },
-      required: ["key", "name", "risk", "description", "inputs_schema", "inputs_defaults", "preflight", "commands"],
       additionalProperties: false
     }
   },
