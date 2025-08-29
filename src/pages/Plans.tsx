@@ -2,67 +2,186 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CreditCard, Check, Zap, Crown, Star } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/integrations/supabase/client'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Plans() {
-  const currentPlan = {
-    name: 'Pro',
-    price: '$49/month',
-    status: 'active',
-    renewalDate: '2024-02-15',
-    features: ['10,000 API requests', '1,000 compute hours', '100GB storage', 'Priority support']
-  }
+  const [currentPlan, setCurrentPlan] = useState<any>(null)
+  const [usage, setUsage] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
   const availablePlans = [
     {
-      name: 'Starter',
-      price: '$19',
+      name: 'Free',
+      price: '$0',
       period: 'per month',
-      description: 'Perfect for small projects and experimentation',
+      description: 'Perfect for getting started with agents',
       features: [
-        '2,500 API requests',
-        '100 compute hours',
-        '25GB storage',
-        'Community support',
+        '25 AI requests per month',
+        '25 server events per month',
+        'Basic support',
+        'Community access'
+      ],
+      monthly_ai_requests: 25,
+      monthly_server_events: 25,
+      popular: false,
+      current: false
+    },
+    {
+      name: 'Basic',
+      price: '$10',
+      period: 'per month',
+      description: 'Ideal for small projects and teams',
+      features: [
+        '70 AI requests per month',
+        '70 server events per month',
+        'Email support',
         'Basic analytics'
       ],
+      monthly_ai_requests: 70,
+      monthly_server_events: 70,
       popular: false,
       current: false
     },
     {
       name: 'Pro',
-      price: '$49',
+      price: '$16',
       period: 'per month',
-      description: 'Best for growing businesses and teams',
+      description: 'Best for growing businesses',
       features: [
-        '10,000 API requests',
-        '1,000 compute hours',
-        '100GB storage',
+        '125 AI requests per month',
+        '125 server events per month',
         'Priority support',
         'Advanced analytics',
         'Custom integrations'
       ],
+      monthly_ai_requests: 125,
+      monthly_server_events: 125,
       popular: true,
-      current: true
+      current: false
     },
     {
-      name: 'Enterprise',
-      price: '$199',
+      name: 'Premium',
+      price: '$19',
       period: 'per month',
-      description: 'For large-scale production applications',
+      description: 'For high-volume agent operations',
       features: [
-        'Unlimited API requests',
-        '10,000 compute hours',
-        '1TB storage',
+        '200 AI requests per month',
+        '200 server events per month',
         'Dedicated support',
         'Advanced analytics',
         'Custom integrations',
-        'SLA guarantee',
-        'Custom models'
+        'Priority processing'
       ],
+      monthly_ai_requests: 200,
+      monthly_server_events: 200,
       popular: false,
       current: false
     }
   ]
+
+  useEffect(() => {
+    fetchCurrentPlan()
+    fetchUsage()
+  }, [])
+
+  const fetchCurrentPlan = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Get user's customer IDs
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('customer_id')
+        .eq('user_id', user.id)
+        .limit(1)
+
+      if (!userRoles?.[0]) return
+
+      const customerId = userRoles[0].customer_id
+
+      // Get current subscription
+      const { data: subscription } = await supabase
+        .from('user_subscriptions')
+        .select(`
+          *,
+          subscription_plans (*)
+        `)
+        .eq('user_id', user.id)
+        .eq('customer_id', customerId)
+        .eq('status', 'active')
+        .single()
+
+      if (subscription) {
+        setCurrentPlan({
+          name: subscription.subscription_plans.name,
+          price: subscription.subscription_plans.name === 'Free' ? 'Free' : `$${(subscription.subscription_plans.price_cents / 100)}/month`,
+          status: subscription.status,
+          renewalDate: subscription.current_period_end,
+          monthly_ai_requests: subscription.subscription_plans.monthly_ai_requests,
+          monthly_server_events: subscription.subscription_plans.monthly_server_events
+        })
+      } else {
+        // Default to free plan
+        setCurrentPlan({
+          name: 'Free',
+          price: 'Free',
+          status: 'active',
+          renewalDate: null,
+          monthly_ai_requests: 25,
+          monthly_server_events: 25
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching current plan:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load current plan",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchUsage = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('customer_id')
+        .eq('user_id', user.id)
+        .limit(1)
+
+      if (!userRoles?.[0]) return
+
+      const customerId = userRoles[0].customer_id
+
+      // Get current month usage
+      const today = new Date().toISOString().split('T')[0]
+      const { data: usageData } = await supabase
+        .from('usage_tracking')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('customer_id', customerId)
+        .eq('usage_date', today)
+
+      const aiUsage = usageData?.find(u => u.usage_type === 'ai_request')?.count || 0
+      const serverUsage = usageData?.find(u => u.usage_type === 'server_event')?.count || 0
+
+      setUsage({
+        ai_requests: aiUsage,
+        server_events: serverUsage
+      })
+    } catch (error) {
+      console.error('Error fetching usage:', error)
+    }
+  }
 
   const billingHistory = [
     {
@@ -105,46 +224,63 @@ export default function Plans() {
       </div>
 
       {/* Current Plan */}
-      <Card className="bg-gradient-primary border-primary shadow-glow">
-        <CardHeader className="text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Crown className="h-6 w-6" />
-              <div>
-                <CardTitle className="text-xl">Current Plan: {currentPlan.name}</CardTitle>
-                <p className="text-white/80">{currentPlan.price}</p>
+      {loading ? (
+        <Card className="bg-gradient-primary border-primary shadow-glow">
+          <CardContent className="text-white p-8 text-center">
+            <Zap className="h-8 w-8 mx-auto mb-4 animate-pulse" />
+            <p>Loading your plan...</p>
+          </CardContent>
+        </Card>
+      ) : currentPlan ? (
+        <Card className="bg-gradient-primary border-primary shadow-glow">
+          <CardHeader className="text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Crown className="h-6 w-6" />
+                <div>
+                  <CardTitle className="text-xl">Current Plan: {currentPlan.name}</CardTitle>
+                  <p className="text-white/80">{currentPlan.price}</p>
+                </div>
               </div>
+              <Badge className="bg-white/20 text-white border-white/30">
+                {currentPlan.status}
+              </Badge>
             </div>
-            <Badge className="bg-white/20 text-white border-white/30">
-              {currentPlan.status}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="text-white space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-white/80">Features included:</p>
-              <ul className="mt-2 space-y-1">
-                {currentPlan.features.map((feature, index) => (
-                  <li key={index} className="flex items-center gap-2 text-sm">
+          </CardHeader>
+          <CardContent className="text-white space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-white/80">Plan limits:</p>
+                <ul className="mt-2 space-y-1">
+                  <li className="flex items-center gap-2 text-sm">
                     <Check className="h-3 w-3" />
-                    {feature}
+                    {currentPlan.monthly_ai_requests} AI requests per month
                   </li>
-                ))}
-              </ul>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-sm text-white/80">Next billing date</p>
-                <p className="font-medium">{currentPlan.renewalDate}</p>
+                  <li className="flex items-center gap-2 text-sm">
+                    <Check className="h-3 w-3" />
+                    {currentPlan.monthly_server_events} server events per month
+                  </li>
+                </ul>
               </div>
-              <Button variant="secondary" size="sm">
-                Manage Subscription
-              </Button>
+              <div className="space-y-2">
+                {usage && (
+                  <div>
+                    <p className="text-sm text-white/80">Current usage:</p>
+                    <p className="font-medium">AI Requests: {usage.ai_requests}/{currentPlan.monthly_ai_requests}</p>
+                    <p className="font-medium">Server Events: {usage.server_events}/{currentPlan.monthly_server_events}</p>
+                  </div>
+                )}
+                {currentPlan.renewalDate && (
+                  <div>
+                    <p className="text-sm text-white/80">Next billing date</p>
+                    <p className="font-medium">{new Date(currentPlan.renewalDate).toLocaleDateString()}</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Available Plans */}
       <div>
@@ -184,15 +320,15 @@ export default function Plans() {
                 </ul>
                 <Button 
                   className={`w-full ${
-                    plan.current 
+                    currentPlan?.name === plan.name
                       ? 'bg-muted text-muted-foreground cursor-not-allowed' 
                       : plan.popular 
                         ? 'bg-gradient-primary hover:bg-primary-dark shadow-glow' 
                         : ''
                   }`}
-                  disabled={plan.current}
+                  disabled={currentPlan?.name === plan.name}
                 >
-                  {plan.current ? 'Current Plan' : `Upgrade to ${plan.name}`}
+                  {currentPlan?.name === plan.name ? 'Current Plan' : `Contact for ${plan.name}`}
                 </Button>
               </CardContent>
             </Card>
