@@ -909,7 +909,10 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
               <div className="space-y-6">
                 <RenderTemplatePicker
                   value={renderConfig}
-                  onChange={setRenderConfig}
+                  onChange={(config) => {
+                    setRenderConfig(config);
+                    setHasUnsavedChanges(true);
+                  }}
                   className="w-full"
                 />
                 
