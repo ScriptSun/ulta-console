@@ -88,6 +88,7 @@ interface Message {
     message: string;
     suggested_fixes: string[];
   };
+  renderConfig?: RenderConfig;
 }
 
 interface ChatDemoProps {
@@ -1314,13 +1315,12 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
                       {/* Execution Results Display */}
                       {message.executionResult && (
-                        <div className="mt-3 p-3 rounded-lg border bg-muted/50">
-                          <div className="text-sm font-medium mb-2">
-                            Execution: {message.executionResult.status}
-                          </div>
-                          <pre className="text-xs bg-background p-2 rounded overflow-auto">
-                            {JSON.stringify(message.executionResult, null, 2)}
-                          </pre>
+                        <div className="mt-3">
+                          <RenderedResultCard
+                            data={message.executionResult}
+                            renderConfig={message.renderConfig || { type: 'text' }}
+                            title="Execution Result"
+                          />
                         </div>
                       )}
 

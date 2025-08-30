@@ -35,6 +35,7 @@ import { BatchInputsTab } from './BatchInputsTab';
 import { BatchOSVariantsEditor } from './BatchOSVariantsEditor';
 import { BatchVariantSwitcher, BatchVariant } from './BatchVariantSwitcher';
 import { BatchVariantsList } from './BatchVariantsList';
+import { RenderTemplatePicker } from './RenderTemplatePicker';
 import { 
   Save, 
   CheckCircle2, 
@@ -52,6 +53,7 @@ import { getOSOptions, getRiskOptions, type ValidationResult } from '@/utils/scr
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { RenderConfig, DEFAULT_RENDER_TEMPLATES } from '@/types/renderTypes';
 
 interface ScriptBatch {
   id?: string;
@@ -67,6 +69,7 @@ interface ScriptBatch {
   customer_id?: string;
   inputs_schema?: any;
   inputs_defaults?: any;
+  render_config?: any;
 }
 
 interface BatchDrawerProps {
@@ -113,6 +116,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   const [variants, setVariants] = useState<BatchVariant[]>([]);
   const [loadingVariants, setLoadingVariants] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [renderConfig, setRenderConfig] = useState<RenderConfig>(DEFAULT_RENDER_TEMPLATES['plain-text']);
   
   const { toast } = useToast();
   const isEditing = !!batch?.id;
@@ -125,6 +129,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     if (batch && !isInitialized) {
       console.log('BatchDrawer: Loading batch data - inputs_schema:', !!batch.inputs_schema, 'inputs_defaults:', !!batch.inputs_defaults);
       setFormData(batch);
+      setRenderConfig(batch.render_config || DEFAULT_RENDER_TEMPLATES['plain-text']);
       setIsInitialized(true);
       // Load variants for existing batch
       if (batch.id) {
@@ -146,6 +151,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       setScriptContent(DEFAULT_SCRIPT);
       setNotes('');
       setVariants([]);
+      setRenderConfig(DEFAULT_RENDER_TEMPLATES['plain-text']);
       setIsInitialized(true);
     }
     console.log('BatchDrawer useEffect end - formData inputs_schema:', !!formData.inputs_schema);
@@ -429,6 +435,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
           description: formData.description,
           inputs_schema: formData.inputs_schema,
           inputs_defaults: formData.inputs_defaults,
+          render_config: renderConfig,
           os_targets: formData.os_targets,
           risk: formData.risk,
           max_timeout_sec: formData.max_timeout_sec,
@@ -539,6 +546,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
           description: formData.description,
           inputs_schema: formData.inputs_schema,
           inputs_defaults: formData.inputs_defaults,
+          render_config: renderConfig,
           os_targets: formData.os_targets,
           risk: formData.risk,
           max_timeout_sec: formData.max_timeout_sec,
@@ -714,11 +722,15 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
 
         <ScrollArea className="h-[calc(100vh-180px)] mt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="inputs" className="flex items-center gap-2">
                 <FileCode className="h-4 w-4" />
                 Inputs
+              </TabsTrigger>
+              <TabsTrigger value="render" className="flex items-center gap-2">
+                <Monitor className="h-4 w-4" />
+                Response
               </TabsTrigger>
               <TabsTrigger value="dependencies" className="flex items-center gap-2">
                 <Link className="h-4 w-4" />
@@ -889,6 +901,14 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                   setInputsValid(isValid);
                   setInputsErrors(errors);
                 }}
+              />
+            </TabsContent>
+
+            <TabsContent value="render" className="mt-6">
+              <RenderTemplatePicker
+                value={renderConfig}
+                onChange={setRenderConfig}
+                className="w-full"
               />
             </TabsContent>
 

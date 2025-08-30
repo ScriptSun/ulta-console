@@ -60,6 +60,7 @@ interface ScriptBatch {
   dependencies_preview?: string;
   inputs_schema?: any;
   inputs_defaults?: any;
+  render_config?: any;
 }
 
 const riskColors = {
