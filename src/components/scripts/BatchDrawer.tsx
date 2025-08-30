@@ -36,6 +36,7 @@ import { BatchOSVariantsEditor } from './BatchOSVariantsEditor';
 import { BatchVariantSwitcher, BatchVariant } from './BatchVariantSwitcher';
 import { BatchVariantsList } from './BatchVariantsList';
 import { RenderTemplatePicker } from './RenderTemplatePicker';
+import { RenderedResultCard } from '@/components/chat/RenderedResultCard';
 import { 
   Save, 
   CheckCircle2, 
@@ -435,7 +436,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
           description: formData.description,
           inputs_schema: formData.inputs_schema,
           inputs_defaults: formData.inputs_defaults,
-          render_config: renderConfig,
+          render_config: renderConfig as any,
           os_targets: formData.os_targets,
           risk: formData.risk,
           max_timeout_sec: formData.max_timeout_sec,
@@ -546,7 +547,7 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
           description: formData.description,
           inputs_schema: formData.inputs_schema,
           inputs_defaults: formData.inputs_defaults,
-          render_config: renderConfig,
+          render_config: renderConfig as any,
           os_targets: formData.os_targets,
           risk: formData.risk,
           max_timeout_sec: formData.max_timeout_sec,
@@ -905,11 +906,32 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
             </TabsContent>
 
             <TabsContent value="render" className="mt-6">
-              <RenderTemplatePicker
-                value={renderConfig}
-                onChange={setRenderConfig}
-                className="w-full"
-              />
+              <div className="space-y-6">
+                <RenderTemplatePicker
+                  value={renderConfig}
+                  onChange={setRenderConfig}
+                  className="w-full"
+                />
+                
+                {/* Render Demo */}
+                <div className="border-t pt-6">
+                  <h3 className="text-base font-semibold mb-4">Preview</h3>
+                  <RenderedResultCard
+                    data={renderConfig.type === 'gauge' ? 75.3 : renderConfig.type === 'pie-chart' ? [
+                      { name: 'Used', value: 6.2 },
+                      { name: 'Free', value: 8.0 }
+                    ] : renderConfig.type === 'bar-chart' ? [
+                      { name: 'Core 1', value: 85 },
+                      { name: 'Core 2', value: 72 }
+                    ] : renderConfig.type === 'table' ? [
+                      { name: 'Item 1', value: 100, status: 'Active' },
+                      { name: 'Item 2', value: 85, status: 'Warning' }
+                    ] : 'Sample execution result text'}
+                    renderConfig={renderConfig}
+                    title="Sample Result"
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="dependencies" className="mt-6">

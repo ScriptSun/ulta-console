@@ -11,12 +11,14 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
 import { TaskStatusCard } from './TaskStatusCard';
-import { QuickInputChips } from './QuickInputChips';
 import { InputForm } from './InputForm';
 import { PreflightBlockCard } from './PreflightBlockCard';
 import { ApiLogsViewer } from './ApiLogsViewer';
 import { CustomShellCard } from './CustomShellCard';
 import { ProposedBatchScriptCard } from './ProposedBatchScriptCard';
+import { QuickInputChips } from './QuickInputChips';
+import { RenderedResultCard } from './RenderedResultCard';
+import { RenderConfig } from '@/types/renderTypes';
 
 interface Agent {
   id: string;
@@ -714,10 +716,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       // If decision has missing_params, set up needsInputs for form rendering
       if (cleanDecision.status === 'unconfirmed' && cleanDecision.missing_params && cleanDecision.batch_id) {
         try {
-          // Fetch batch schema to set up the input form
+          // Fetch batch schema and render config to set up the input form
           const { data: batchData, error: batchError } = await supabase
             .from('script_batches')
-            .select('inputs_schema, inputs_defaults')
+            .select('inputs_schema, inputs_defaults, render_config')
             .eq('id', cleanDecision.batch_id)
             .single();
 
@@ -727,6 +729,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
               defaults: (batchData.inputs_defaults as Record<string, any>) || {},
               missingParams: cleanDecision.missing_params
             };
+            
+            // Store render config for execution results
+            assistantMessage.renderConfig = (batchData.render_config as unknown as RenderConfig) || { type: 'text' };
 
             // Don't show additional message since the form handles its own messaging
             assistantMessage.content = '';
@@ -871,6 +876,24 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
     setIsTyping(true);
     try {
+      // Get render config from the current batch if available
+      let renderConfig: RenderConfig | undefined;
+      if (decision.batch_id) {
+        try {
+          const { data: batchData, error: batchError } = await supabase
+            .from('script_batches')
+            .select('render_config')
+            .eq('id', decision.batch_id)
+            .single();
+          
+          if (!batchError && batchData?.render_config) {
+            renderConfig = batchData.render_config as unknown as RenderConfig;
+          }
+        } catch (error) {
+          console.error('Error fetching batch render config:', error);
+        }
+      }
+
       const { data: execData, error: execError } = await supabase.functions.invoke('ultaai-exec-run', {
         body: {
           agent_id: selectedAgent,
@@ -888,7 +911,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
         content: getExecutionMessage(execData),
         timestamp: new Date(),
         pending: false,
-        executionResult: execData
+        executionResult: execData,
+        renderConfig: renderConfig || { type: 'text' }
       };
 
       setMessages(prev => [...prev, execMessage]);

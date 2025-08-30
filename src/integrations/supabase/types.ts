@@ -1296,6 +1296,7 @@ export type Database = {
           per_agent_concurrency: number
           per_tenant_concurrency: number
           preflight: Json | null
+          render_config: Json | null
           risk: string
           updated_at: string
           updated_by: string
@@ -1317,6 +1318,7 @@ export type Database = {
           per_agent_concurrency?: number
           per_tenant_concurrency?: number
           preflight?: Json | null
+          render_config?: Json | null
           risk?: string
           updated_at?: string
           updated_by?: string
@@ -1338,6 +1340,7 @@ export type Database = {
           per_agent_concurrency?: number
           per_tenant_concurrency?: number
           preflight?: Json | null
+          render_config?: Json | null
           risk?: string
           updated_at?: string
           updated_by?: string
