@@ -15,6 +15,8 @@ import { QuickInputChips } from './QuickInputChips';
 import { InputForm } from './InputForm';
 import { PreflightBlockCard } from './PreflightBlockCard';
 import { ApiLogsViewer } from './ApiLogsViewer';
+import { CustomShellCard } from './CustomShellCard';
+import { ProposedBatchScriptCard } from './ProposedBatchScriptCard';
 
 interface Agent {
   id: string;
@@ -22,6 +24,7 @@ interface Agent {
   os: string;
   status: string;
   agent_type: string;
+  customer_id: string;
 }
 
 interface Message {
@@ -171,7 +174,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       try {
         const { data, error } = await supabase
           .from('agents')
-          .select('id, hostname, os, status, agent_type')
+          .select('id, hostname, os, status, agent_type, customer_id')
           .order('hostname');
 
         if (error) throw error;
@@ -1395,18 +1398,40 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
                      </div>
                    )}
                    
-                    {/* Input Form */}
-                   {message.needsInputs && (
-                     <div className="mt-2">
-                       <InputForm
-                         schema={message.needsInputs.schema}
-                         defaults={message.needsInputs.defaults}
-                         errors={message.inputErrors}
-                         onSubmit={handleInputFormSubmit}
-                         loading={isTyping}
-                       />
-                     </div>
-                   )}
+                     {/* Input Form */}
+                    {message.needsInputs && (
+                      <div className="mt-2">
+                        <InputForm
+                          schema={message.needsInputs.schema}
+                          defaults={message.needsInputs.defaults}
+                          errors={message.inputErrors}
+                          onSubmit={handleInputFormSubmit}
+                          loading={isTyping}
+                        />
+                      </div>
+                    )}
+
+                    {/* Custom Shell Command Card */}
+                    {message.decision?.task === 'custom_shell' && selectedAgentDetails && (
+                      <div className="mt-2">
+                        <CustomShellCard
+                          data={message.decision as any}
+                          agentId={selectedAgent}
+                          tenantId={selectedAgentDetails.customer_id}
+                        />
+                      </div>
+                    )}
+
+                    {/* Proposed Batch Script Card */}
+                    {message.decision?.task === 'proposed_batch_script' && selectedAgentDetails && (
+                      <div className="mt-2">
+                        <ProposedBatchScriptCard
+                          data={message.decision as any}
+                          agentId={selectedAgent}
+                          tenantId={selectedAgentDetails.customer_id}
+                        />
+                      </div>
+                    )}
                   
                   {/* Quick Input Chips */}
                   {message.quickInputs && (

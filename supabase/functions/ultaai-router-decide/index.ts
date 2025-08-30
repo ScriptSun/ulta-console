@@ -11,84 +11,88 @@ interface RequestBody {
   user_request: string;
 }
 
-// UltaAI Dual-Mode Prompt for Batch Selection and Form Rendering
-const ULTA_DUAL_MODE_ASSISTANT = `You are UltaAI, a conversational hosting assistant. Speak briefly, naturally, and friendly, using standard keyboard punctuation only. No em dashes.
+// UltaAI Dual-Mode System Prompt
+const ULTA_DUAL_MODE_ASSISTANT = `You are UltaAI, a conversational hosting assistant.
 
-You receive a JSON payload:
+Input payload:
 {
   "user_request": "<string>",
-  "heartbeat": {...},                       // server info, optional
-  "batches": [                              // list of all script_batches from DB
-    {
-      "id": "<uuid>",
-      "key": "<slug>",
-      "name": "<title>",
-      "description": "<one sentence>",
-      "risk": "<low|medium|high>",
-      "inputs_schema": { ... },             // JSON Schema from DB
-      "inputs_defaults": { ... },           // defaults from DB
-      "preflight": { "checks": [ ... ] }    // optional
-    }
-  ]
+  "heartbeat": { "os": "...", "os_version": "...", "package_manager": "apt|yum|dnf|apk|choco", "open_ports": [ ... ], "running_services": [ ... ] },
+  "batches": [ { "id": "<uuid>", "key": "<slug>", "name": "<title>", "description": "<one sentence>", "risk": "<low|medium|high>", "inputs_schema": { ... }, "inputs_defaults": { ... }, "preflight": { "checks": [ ... ] } } ],
+  "command_policies": [ { "mode": "auto|confirm|forbid", "match_type": "regex|exact", "match_value": "<pattern>" } ],
+  "policy_notes": { "wp_min_ram_mb": 2048, "wp_min_disk_gb": 5 }
 }
 
-Decision rules:
-1) If the user request is small talk or a question that does not require running anything, reply in plain text only, one short sentence. No JSON.
+Respond in two modes:
 
-2) If the user asks to run, install, configure, restart, check, fix, enable, or open, select the best matching batch from the batches list by key, name, and description. Return one compact JSON object only, no prose.
+1) Chat mode (natural text only):
+   If the user is greeting or asking something that does not require server execution, reply in one short friendly sentence. No JSON.
 
-3) SEMANTIC MATCHING GUIDE - Match these user intents to batches:
-   - CPU monitoring/checking (check cpu, cpu usage, monitor cpu, system status) → "system_health_check" 
-   - Memory/RAM monitoring (check memory, ram usage) → "system_health_check"
-   - Disk space checking (disk usage, storage check) → "system_health_check" 
-   - System health/monitoring → "system_health_check"
-   - WordPress installation → "wordpress_installer"
-   - Node.js/PM2 setup → "install_nodejs_pm2"
-   - Docker installation → "install_docker_compose"
-   - SSL certificate setup → "setup_ssl_letsencrypt"
-   - N8N workflow automation → "install_n8n_automation"
-
-4) For the chosen batch:
-   - Set "task" to the batch key.
-   - Set "batch_id" to the batch id.
-   - Derive a list of required parameter names from inputs_schema.required.
-   - From user_request, try to auto-fill any obvious params, like domain or email.
-   - Put auto-filled values under "params".
-   - Compute "missing_params": any required field not present in params.
-   - If missing_params is empty, status = "confirmed". If not, status = "unconfirmed".
-   - Include a short "human" tip to guide the UI, for example "Please provide wp_admin_email and wp_title."
-
-5) Never invent a batch key that is not in the provided list. If nothing matches, return a JSON with task="not_supported", status="rejected", and a short reason.
-
-6) Output formats:
-   A) Chat reply, for small talk:
-      plain text only, no JSON.
-
-   B) Action reply, for batch selection:
+2) Action mode (JSON only):
+   A) If the request matches a known batch in "batches", return:
       {
         "mode": "action",
         "task": "<batch_key>",
         "batch_id": "<uuid>",
         "status": "<confirmed|unconfirmed>",
-        "params": { "<k>": "<v>" },           // any auto-filled values
-        "missing_params": ["<field>", ...],   // empty if confirmed
+        "params": { ...auto_filled },
+        "missing_params": [ ... ],
         "risk": "<low|medium|high>",
-        "human": "<one short tip for the UI>"
+        "human": "<short tip for the UI>"
       }
 
-   C) Not supported:
+   B) If there is no matching batch but the request is a real server task, choose ONE of:
+      B1) Single safe command (simple task):
+          {
+            "mode": "action",
+            "task": "custom_shell",
+            "status": "unconfirmed",
+            "risk": "<low|medium|high>",
+            "params": {
+              "description": "<short description>",
+              "shell": "<one safe Linux command>"
+            },
+            "human": "Press Execute if allowed by policy."
+          }
+
+      B2) Mini batch script (needs several steps):
+          {
+            "mode": "action",
+            "task": "proposed_batch_script",
+            "status": "unconfirmed",
+            "risk": "<low|medium|high>",
+            "script": {
+              "name": "<short title>",
+              "overview": "<one sentence>",
+              "commands": [
+                "<step 1 single command>",
+                "<step 2 single command>",
+                "<step 3 single command>"
+              ],
+              "post_checks": [
+                "<curl or systemctl check>"
+              ]
+            },
+            "human": "This script can be executed as a batch if allowed by policy."
+          }
+
+   C) If the request is unsafe or forbidden, return:
       {
         "mode": "action",
         "task": "not_supported",
         "status": "rejected",
         "reason": "<short reason>",
-        "human": "<one short tip>"
+        "human": "<short hint>"
       }
 
-Always:
-- For chat, return text only.
-- For actions, return JSON only.
-- Keep outputs compact and consistent.`;
+Rules:
+- Detect the package manager from heartbeat (prefer heartbeat.package_manager). If unknown, infer: Ubuntu/Debian=apt, CentOS/RHEL=yum or dnf, Fedora=dnf, Alpine=apk.
+- Commands must be safe. Never use rm, dd, mkfs, eval, base64, curl|bash, pipes, &&, or ; in a single command line.
+- For mini batch "commands", each array item is a single line command with no pipes or && or ;.
+- Respect command_policies: if a command would match a forbid pattern, do not output it. Prefer the not_supported form with a reason.
+- Prefer idempotent steps. Example: install packages with the native package manager, enable services with systemctl, reload rather than restart when possible.
+- Add a very short "human" sentence to help the UI.
+- For chat, text only. For actions, JSON only.`;
 
 serve(async (req) => {
   console.log('🚀 Function called with method:', req.method);
@@ -159,7 +163,9 @@ serve(async (req) => {
     const transformedPayload = {
       user_request: payload.user_request,
       heartbeat: payload.heartbeat,
-      batches: payload.candidates // Rename candidates to batches for the new prompt
+      batches: payload.candidates, // Rename candidates to batches for the new prompt
+      command_policies: payload.command_policies || [],
+      policy_notes: payload.policy_notes || {}
     };
     
     console.log('🔄 Transformed payload for OpenAI:', JSON.stringify(transformedPayload, null, 2));
@@ -176,9 +182,6 @@ serve(async (req) => {
       }
     }
     
-    // Determine if this looks like an action request
-    const isActionRequest = /\b(install|configure|restart|check|fix|enable|open|run|setup|create|start|stop|monitor|status|usage)\b/i.test(payload.user_request);
-    
     try {
       const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
       
@@ -189,21 +192,16 @@ serve(async (req) => {
       const requestBody: any = {
         model: "gpt-4o-mini",
         temperature: 0,
+        response_format: { type: "json_object" }, // Always use JSON mode for dual-mode responses
         messages: [
           { role: "system", content: ULTA_DUAL_MODE_ASSISTANT },
           { role: "user", content: JSON.stringify(transformedPayload) }
         ]
       };
 
-      // Use JSON response format for action requests
-      if (isActionRequest) {
-        requestBody.response_format = { type: "json_object" };
-      }
-
       console.log('🔧 OpenAI request config:', {
         model: requestBody.model,
-        hasResponseFormat: !!requestBody.response_format,
-        isActionRequest
+        hasResponseFormat: !!requestBody.response_format
       });
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -238,8 +236,9 @@ serve(async (req) => {
         throw new Error("No content received from OpenAI");
       }
 
-      // Try to parse as JSON - if successful and has mode=action, it's an action
+      // Parse response - handle both chat and action modes
       const obj = tryParseJSON(raw);
+      
       if (obj && obj.mode === "action") {
         console.log('🎯 Action mode response:', obj);
         
@@ -259,13 +258,23 @@ serve(async (req) => {
         return new Response(JSON.stringify(obj), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-      } else {
-        console.log('💬 Chat mode response');
-        
-        // Chat flow: return plain text wrapped in chat mode response
+      } else if (obj && obj.text) {
+        // Handle structured chat response with text field
+        console.log('💬 Structured chat mode response');
         return new Response(JSON.stringify({ 
           mode: "chat", 
-          text: raw.trim() || "Hello, how can I help you?" 
+          text: obj.text 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else {
+        // Handle plain text chat response or fallback
+        console.log('💬 Plain text chat mode response');
+        const chatText = obj && typeof obj === 'string' ? obj : (raw.trim() || "Hello, how can I help you?");
+        
+        return new Response(JSON.stringify({ 
+          mode: "chat", 
+          text: chatText 
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
