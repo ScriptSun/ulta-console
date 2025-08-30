@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -20,11 +20,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, X, AlertCircle, Save, Copy } from 'lucide-react';
+import { AlertCircle, Save, X, Eye, EyeOff } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plan, 
   CreatePlanRequest, 
@@ -32,12 +32,15 @@ import {
   BillingPeriod, 
   SupportLevel, 
   AnalyticsLevel,
-  BILLING_PERIOD_LABELS,
   SUPPORT_LEVEL_LABELS,
   ANALYTICS_LEVEL_LABELS
 } from '@/types/planTypes';
 import { planStorage } from '@/utils/planStorage';
 import { useToast } from '@/hooks/use-toast';
+import { FeaturesManager } from './FeaturesManager';
+import { PeriodsChooser } from './PeriodsChooser';
+import { PlanPreviewCard } from './PlanPreviewCard';
+import { cn } from '@/lib/utils';
 
 interface PlansEditorDrawerProps {
   isOpen: boolean;
@@ -63,13 +66,29 @@ export function PlansEditorDrawer({
     analyticsLevel: 'basic',
     enabled: true,
   });
-  const [newFeature, setNewFeature] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const { toast } = useToast();
 
   const isEditing = !!plan;
   const isEnabled = 'enabled' in formData ? formData.enabled : true;
+
+  // Keyboard shortcuts
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onClose();
+    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      handleSave();
+    }
+  }, [onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleKeyDown]);
 
   useEffect(() => {
     if (plan) {
@@ -90,7 +109,7 @@ export function PlansEditorDrawer({
       });
     }
     setErrors([]);
-    setNewFeature('');
+    setShowPreview(false);
   }, [plan, isOpen]);
 
   // Auto-generate slug from name
@@ -119,28 +138,14 @@ export function PlansEditorDrawer({
     setErrors([]);
   };
 
-  const handleBillingPeriodToggle = (period: BillingPeriod) => {
-    const current = formData.allowedBillingPeriods || [];
-    const updated = current.includes(period)
-      ? current.filter(i => i !== period)
-      : [...current, period];
-    
-    setFormData(prev => ({ ...prev, allowedBillingPeriods: updated }));
+  const handleFeaturesChange = (features: string[]) => {
+    setFormData(prev => ({ ...prev, features }));
     setErrors([]);
   };
 
-  const handleAddFeature = () => {
-    if (newFeature.trim()) {
-      const features = [...(formData.features || []), newFeature.trim()];
-      setFormData(prev => ({ ...prev, features }));
-      setNewFeature('');
-    }
-  };
-
-  const handleRemoveFeature = (index: number) => {
-    const features = [...(formData.features || [])];
-    features.splice(index, 1);
-    setFormData(prev => ({ ...prev, features }));
+  const handlePeriodsChange = (periods: BillingPeriod[]) => {
+    setFormData(prev => ({ ...prev, allowedBillingPeriods: periods }));
+    setErrors([]);
   };
 
   const handleSave = async () => {
@@ -187,229 +192,210 @@ export function PlansEditorDrawer({
     }
   };
 
-  const billingPeriods: BillingPeriod[] = ['monthly', '3months', '6months', '1year', '2years', '3years'];
   const supportLevels: SupportLevel[] = ['community', 'basic', 'priority', 'dedicated'];
   const analyticsLevels: AnalyticsLevel[] = ['basic', 'advanced'];
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="sm:max-w-2xl">
+      <SheetContent className="sm:max-w-6xl">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            {isEditing ? (
-              <>
-                <span>Edit Plan</span>
-                {plan && <Badge variant="outline">v{plan.version}</Badge>}
-              </>
-            ) : (
-              'Create New Plan'
-            )}
-          </SheetTitle>
-          <SheetDescription>
-            {isEditing 
-              ? 'Update plan configuration. Version will increment if limits, periods, features, or support level change.'
-              : 'Configure a new subscription plan for your company.'
-            }
-          </SheetDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle className="flex items-center gap-2">
+                {isEditing ? (
+                  <>
+                    <span>Edit Plan</span>
+                    {plan && <Badge variant="outline">v{plan.version}</Badge>}
+                  </>
+                ) : (
+                  'Create New Plan'
+                )}
+              </SheetTitle>
+              <SheetDescription>
+                {isEditing 
+                  ? 'Update plan configuration. Version will increment if limits, periods, features, or support level change.'
+                  : 'Configure a new subscription plan for your company.'
+                }
+              </SheetDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+              {showPreview ? 'Hide Preview' : 'Show Preview'}
+            </Button>
+          </div>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-180px)] mt-6">
-          <div className="space-y-6">
-            {errors.length > 0 && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  <ul className="list-disc list-inside space-y-1">
-                    {errors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
+        <div className="flex gap-6 h-[calc(100vh-180px)] mt-6">
+          {/* Editor Form */}
+          <div className={cn("transition-all duration-300", showPreview ? "w-3/5" : "w-full")}>
+            <ScrollArea className="h-full">
+              <div className="space-y-6 pr-4">
+                {errors.length > 0 && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <ul className="list-disc list-inside space-y-1">
+                        {errors.map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-            {/* Basic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Basic Information</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Plan Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name || ''}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="e.g., Professional"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="slug">Slug *</Label>
-                  <Input
-                    id="slug"
-                    value={formData.slug || ''}
-                    onChange={(e) => handleInputChange('slug', e.target.value)}
-                    placeholder="e.g., professional"
-                  />
-                </div>
-              </div>
+                <Tabs defaultValue="basic" className="w-full">
+                  <TabsList className="grid grid-cols-4 w-full">
+                    <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                    <TabsTrigger value="periods">Billing</TabsTrigger>
+                    <TabsTrigger value="limits">Limits</TabsTrigger>
+                    <TabsTrigger value="features">Features</TabsTrigger>
+                  </TabsList>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description || ''}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Brief description of this plan..."
-                  rows={2}
-                />
-              </div>
-
-              {isEditing && (
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enabled"
-                    checked={isEnabled}
-                    onCheckedChange={(checked) => handleInputChange('enabled', checked)}
-                  />
-                  <Label htmlFor="enabled">Plan Enabled</Label>
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Billing Periods */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Billing Periods *</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {billingPeriods.map((period) => (
-                  <div key={period} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={period}
-                      checked={formData.allowedBillingPeriods?.includes(period)}
-                      onCheckedChange={() => handleBillingPeriodToggle(period)}
-                    />
-                    <Label htmlFor={period}>
-                      {BILLING_PERIOD_LABELS[period]}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Limits */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Usage Limits *</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ai_requests">AI Requests (per month)</Label>
-                  <Input
-                    id="ai_requests"
-                    type="number"
-                    min="1"
-                    value={formData.limits?.ai_requests || ''}
-                    onChange={(e) => handleLimitChange('ai_requests', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="server_events">Server Events (per month)</Label>
-                  <Input
-                    id="server_events"
-                    type="number"
-                    min="1"
-                    value={formData.limits?.server_events || ''}
-                    onChange={(e) => handleLimitChange('server_events', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Features */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Features</h3>
-              
-              <div className="flex gap-2">
-                <Input
-                  value={newFeature}
-                  onChange={(e) => setNewFeature(e.target.value)}
-                  placeholder="Add a feature..."
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddFeature()}
-                />
-                <Button onClick={handleAddFeature} size="sm">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {formData.features && formData.features.length > 0 && (
-                <div className="space-y-2">
-                  {formData.features.map((feature, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                      <span className="text-sm">{feature}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFeature(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                  <TabsContent value="basic" className="space-y-4 mt-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Plan Name *</Label>
+                        <Input
+                          id="name"
+                          value={formData.name || ''}
+                          onChange={(e) => handleInputChange('name', e.target.value)}
+                          placeholder="e.g., Professional"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="slug">Slug *</Label>
+                        <Input
+                          id="slug"
+                          value={formData.slug || ''}
+                          onChange={(e) => handleInputChange('slug', e.target.value)}
+                          placeholder="e.g., professional"
+                        />
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            <Separator />
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description || ''}
+                        onChange={(e) => handleInputChange('description', e.target.value)}
+                        placeholder="Brief description of this plan..."
+                        rows={3}
+                      />
+                    </div>
 
-            {/* Support & Analytics */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Service Levels</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="supportLevel">Support Level</Label>
-                  <Select
-                    value={formData.supportLevel}
-                    onValueChange={(value) => handleInputChange('supportLevel', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {supportLevels.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {SUPPORT_LEVEL_LABELS[level]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    {isEditing && (
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="enabled"
+                          checked={isEnabled}
+                          onCheckedChange={(checked) => handleInputChange('enabled', checked)}
+                        />
+                        <Label htmlFor="enabled">Plan Enabled</Label>
+                      </div>
+                    )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="analyticsLevel">Analytics Level</Label>
-                  <Select
-                    value={formData.analyticsLevel}
-                    onValueChange={(value) => handleInputChange('analyticsLevel', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {analyticsLevels.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {ANALYTICS_LEVEL_LABELS[level]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="supportLevel">Support Level</Label>
+                        <Select
+                          value={formData.supportLevel}
+                          onValueChange={(value) => handleInputChange('supportLevel', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {supportLevels.map((level) => (
+                              <SelectItem key={level} value={level}>
+                                {SUPPORT_LEVEL_LABELS[level]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="analyticsLevel">Analytics Level</Label>
+                        <Select
+                          value={formData.analyticsLevel}
+                          onValueChange={(value) => handleInputChange('analyticsLevel', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {analyticsLevels.map((level) => (
+                              <SelectItem key={level} value={level}>
+                                {ANALYTICS_LEVEL_LABELS[level]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="periods" className="mt-6">
+                    <PeriodsChooser
+                      selectedPeriods={formData.allowedBillingPeriods || []}
+                      onChange={handlePeriodsChange}
+                      error={errors.find(e => e.includes('billing period'))}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="limits" className="space-y-4 mt-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="ai_requests">AI Requests (per month) *</Label>
+                        <Input
+                          id="ai_requests"
+                          type="number"
+                          min="1"
+                          value={formData.limits?.ai_requests || ''}
+                          onChange={(e) => handleLimitChange('ai_requests', e.target.value)}
+                          placeholder="25"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="server_events">Server Events (per month) *</Label>
+                        <Input
+                          id="server_events"
+                          type="number"
+                          min="1"
+                          value={formData.limits?.server_events || ''}
+                          onChange={(e) => handleLimitChange('server_events', e.target.value)}
+                          placeholder="25"
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="features" className="mt-6">
+                    <FeaturesManager
+                      features={formData.features || []}
+                      onChange={handleFeaturesChange}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </ScrollArea>
+          </div>
+
+          {/* Preview Panel */}
+          {showPreview && (
+            <div className="w-2/5 border-l pl-6">
+              <div className="sticky top-0">
+                <h4 className="text-sm font-medium mb-4 text-muted-foreground">Live Preview</h4>
+                <PlanPreviewCard plan={formData} />
               </div>
             </div>
-          </div>
-        </ScrollArea>
+          )}
+        </div>
 
         <SheetFooter className="border-t pt-4 mt-4">
           <div className="flex justify-between items-center w-full">
@@ -417,9 +403,13 @@ export function PlansEditorDrawer({
               {isEditing && plan && (
                 <span>Created {new Date(plan.createdAt).toLocaleDateString()}</span>
               )}
+              <div className="text-xs mt-1">
+                Press Esc to close • Ctrl+Enter to save
+              </div>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={onClose} disabled={loading}>
+                <X className="h-4 w-4 mr-2" />
                 Cancel
               </Button>
               <Button onClick={handleSave} disabled={loading}>
