@@ -208,15 +208,29 @@ export default function Plans() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Plans</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
             <Badge className="bg-success/10 text-success border-success/20">
               Active
             </Badge>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {plans.filter(p => p.enabled).length}
+              {(() => {
+                // Mock data: Total agents using all plans
+                const mockAgentsByPlan = {
+                  'free_plan': 150,
+                  'basic_plan': 75,
+                  'pro_plan': 40,
+                  'premium_plan': 25
+                };
+                
+                const totalAgents = Object.values(mockAgentsByPlan).reduce((sum, count) => sum + count, 0);
+                return totalAgents.toLocaleString();
+              })()}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Total agents using all plans
+            </p>
           </CardContent>
         </Card>
 
