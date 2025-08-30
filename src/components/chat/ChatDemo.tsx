@@ -1326,13 +1326,34 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
 
                       {/* AI Advice Display */}
                       {message.adviceResult && (
-                        <div className="mt-3 p-3 rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200">
-                          <div className="text-sm font-medium mb-2 text-yellow-900 dark:text-yellow-100">💡 AI Suggestions:</div>
-                          {message.adviceResult.suggested_fixes.map((fix, index) => (
-                            <div key={index} className="text-xs bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded mb-1 text-yellow-800 dark:text-yellow-200">
-                              {fix}
+                        <div className="mt-4 relative overflow-hidden rounded-xl backdrop-blur-sm bg-gradient-to-br from-accent/80 to-secondary/80 border border-accent-foreground/20 shadow-md shadow-primary/10 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+                          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>
+                          <div className="relative p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center mt-0.5">
+                                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                </svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-semibold text-foreground mb-3 tracking-tight">
+                                  💡 AI Suggestions
+                                </h4>
+                                <div className="space-y-2.5">
+                                  {message.adviceResult.suggested_fixes.map((fix, index) => (
+                                    <div key={index} className="group">
+                                      <div className="flex items-start gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 mt-2 flex-shrink-0 group-hover:scale-110 transition-transform duration-200"></div>
+                                        <div className="flex-1 text-sm text-muted-foreground leading-relaxed">
+                                          {fix}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             </div>
-                          ))}
+                          </div>
                         </div>
                       )}
                       
