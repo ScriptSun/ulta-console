@@ -12,6 +12,7 @@ export interface PlanLimits {
 export interface Plan {
   id: string;
   name: string;
+  key: string;
   slug: string;
   description: string;
   version: number;
@@ -27,6 +28,7 @@ export interface Plan {
 
 export interface CreatePlanRequest {
   name: string;
+  key: string;
   slug: string;
   description: string;
   allowedBillingPeriods: BillingPeriod[];

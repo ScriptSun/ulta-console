@@ -80,11 +80,13 @@ export default function Plans() {
 
     try {
       const newName = `${duplicateDialog.plan.name} (Copy)`;
+      const newKey = `${duplicateDialog.plan.key}_copy`;
       const newSlug = `${duplicateDialog.plan.slug}-copy`;
       
       planStorage.duplicatePlan(
         duplicateDialog.plan.id,
         newName,
+        newKey,
         newSlug
       );
       

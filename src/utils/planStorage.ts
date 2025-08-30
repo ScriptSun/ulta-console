@@ -14,6 +14,7 @@ const STORAGE_KEY = 'company_subscription_plans';
 const SEED_PLANS: Omit<Plan, 'id' | 'createdAt' | 'updatedAt'>[] = [
   {
     name: 'Free',
+    key: 'free_plan',
     slug: 'free',
     description: 'Perfect for getting started with basic features',
     version: 1,
@@ -29,6 +30,7 @@ const SEED_PLANS: Omit<Plan, 'id' | 'createdAt' | 'updatedAt'>[] = [
   },
   {
     name: 'Basic',
+    key: 'basic_plan',
     slug: 'basic',
     description: 'Ideal for small teams and growing projects',
     version: 1,
@@ -44,6 +46,7 @@ const SEED_PLANS: Omit<Plan, 'id' | 'createdAt' | 'updatedAt'>[] = [
   },
   {
     name: 'Pro',
+    key: 'pro_plan',
     slug: 'pro',
     description: 'Best for professional teams and advanced workflows',
     version: 1,
@@ -59,6 +62,7 @@ const SEED_PLANS: Omit<Plan, 'id' | 'createdAt' | 'updatedAt'>[] = [
   },
   {
     name: 'Premium',
+    key: 'premium_plan',
     slug: 'premium',
     description: 'For enterprise-level requirements and maximum flexibility',
     version: 1,
@@ -156,9 +160,14 @@ export const planStorage = {
   createPlan: (request: CreatePlanRequest): Plan => {
     const plans = getStorageData();
     
-    // Check for slug uniqueness across all plans
-    const existingPlan = plans.find(p => p.slug === request.slug);
-    if (existingPlan) {
+    // Check for key and slug uniqueness across all plans
+    const existingKey = plans.find(p => p.key === request.key);
+    if (existingKey) {
+      throw new Error(`Plan with key "${request.key}" already exists`);
+    }
+    
+    const existingSlug = plans.find(p => p.slug === request.slug);
+    if (existingSlug) {
       throw new Error(`Plan with slug "${request.slug}" already exists`);
     }
 
@@ -194,7 +203,14 @@ export const planStorage = {
 
     const existingPlan = plans[planIndex];
     
-    // Check for slug uniqueness (excluding current plan)
+    // Check for key and slug uniqueness (excluding current plan)
+    if (request.key && request.key !== existingPlan.key) {
+      const duplicateKey = plans.find(p => p.key === request.key && p.id !== request.id);
+      if (duplicateKey) {
+        throw new Error(`Plan with key "${request.key}" already exists`);
+      }
+    }
+    
     if (request.slug && request.slug !== existingPlan.slug) {
       const duplicateSlug = plans.find(p => p.slug === request.slug && p.id !== request.id);
       if (duplicateSlug) {
@@ -233,7 +249,7 @@ export const planStorage = {
    * @returns Newly created Plan object (duplicate)
    * @throws Error if original plan not found or slug conflict exists
    */
-  duplicatePlan: (planId: string, newName: string, newSlug: string): Plan => {
+  duplicatePlan: (planId: string, newName: string, newKey: string, newSlug: string): Plan => {
     const plans = getStorageData();
     
     const originalPlan = plans.find(p => p.id === planId);
@@ -241,9 +257,14 @@ export const planStorage = {
       throw new Error('Plan not found');
     }
 
-    // Check for slug uniqueness
-    const existingPlan = plans.find(p => p.slug === newSlug);
-    if (existingPlan) {
+    // Check for key and slug uniqueness
+    const existingKey = plans.find(p => p.key === newKey);
+    if (existingKey) {
+      throw new Error(`Plan with key "${newKey}" already exists`);
+    }
+    
+    const existingSlug = plans.find(p => p.slug === newSlug);
+    if (existingSlug) {
       throw new Error(`Plan with slug "${newSlug}" already exists`);
     }
 
@@ -251,6 +272,7 @@ export const planStorage = {
       ...originalPlan,
       id: generatePlanId(),
       name: newName,
+      key: newKey,
       slug: newSlug,
       version: 1, // Reset version for new plan
       createdAt: new Date().toISOString(),
@@ -319,6 +341,12 @@ export const planStorage = {
 
     if (!plan.name?.trim()) {
       errors.push('Plan name is required');
+    }
+
+    if (!plan.key?.trim()) {
+      errors.push('Plan key is required');
+    } else if (!/^[a-z0-9_]+$/.test(plan.key)) {
+      errors.push('Plan key must contain only lowercase letters, numbers, and underscores');
     }
 
     if (!plan.slug?.trim()) {

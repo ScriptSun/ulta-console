@@ -57,6 +57,7 @@ export function PlansEditorDrawer({
 }: PlansEditorDrawerProps) {
   const [formData, setFormData] = useState<Partial<CreatePlanRequest | UpdatePlanRequest>>({
     name: '',
+    key: '',
     slug: '',
     description: '',
     allowedBillingPeriods: ['monthly'],
@@ -98,6 +99,7 @@ export function PlansEditorDrawer({
     } else {
       setFormData({
         name: '',
+        key: '',
         slug: '',
         description: '',
         allowedBillingPeriods: ['monthly'],
@@ -112,17 +114,26 @@ export function PlansEditorDrawer({
     setShowPreview(false);
   }, [plan, isOpen]);
 
-  // Auto-generate slug from name
+  // Auto-generate key and slug from name
   useEffect(() => {
-    if (!isEditing && formData.name && !formData.slug) {
+    if (!isEditing && formData.name && (!formData.key || !formData.slug)) {
+      const key = formData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, '_')
+        .trim() + '_plan';
       const slug = formData.name
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
         .trim();
-      setFormData(prev => ({ ...prev, slug }));
+      setFormData(prev => ({ 
+        ...prev, 
+        key: !prev.key ? key : prev.key,
+        slug: !prev.slug ? slug : prev.slug 
+      }));
     }
-  }, [formData.name, isEditing, formData.slug]);
+  }, [formData.name, isEditing, formData.key, formData.slug]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -267,14 +278,24 @@ export function PlansEditorDrawer({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="slug">Slug *</Label>
+                        <Label htmlFor="key">Plan Key *</Label>
                         <Input
-                          id="slug"
-                          value={formData.slug || ''}
-                          onChange={(e) => handleInputChange('slug', e.target.value)}
-                          placeholder="e.g., professional"
+                          id="key"
+                          value={formData.key || ''}
+                          onChange={(e) => handleInputChange('key', e.target.value)}
+                          placeholder="e.g., professional_plan"
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="slug">Slug *</Label>
+                      <Input
+                        id="slug"
+                        value={formData.slug || ''}
+                        onChange={(e) => handleInputChange('slug', e.target.value)}
+                        placeholder="e.g., professional"
+                      />
                     </div>
 
                     <div className="space-y-2">
