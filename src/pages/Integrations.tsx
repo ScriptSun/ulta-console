@@ -1,9 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Puzzle, CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react'
+import { Puzzle, CheckCircle, XCircle, Clock, ExternalLink, Key, Copy, Code2 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Integrations() {
+  const { toast } = useToast()
+
+  const plans = [
+    { name: 'Starter', slug: 'starter', periods: ['monthly', '6-months'] },
+    { name: 'Professional', slug: 'professional', periods: ['monthly', '6-months', '1-year'] },
+    { name: 'Enterprise', slug: 'enterprise', periods: ['monthly', '1-year', '2-years'] },
+    { name: 'Custom', slug: 'custom', periods: ['monthly', '3-months', '6-months', '1-year'] }
+  ]
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast({ title: `${label} copied to clipboard` })
+  }
   const integrations = [
     {
       id: 'chat-widget',
@@ -92,14 +106,147 @@ export default function Integrations() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Integrations</h1>
           <p className="text-muted-foreground">
-            Monitor widget status and external service connections
+            Connect your billing platform to our UltaAI services
           </p>
         </div>
-        <Button className="bg-gradient-primary hover:bg-primary-dark shadow-glow">
-          <Puzzle className="h-4 w-4 mr-2" />
-          Add Integration
+        <Button className="bg-gradient-primary hover:bg-primary-dark shadow-glow" asChild>
+          <a href="/api-keys">
+            <Key className="h-4 w-4 mr-2" />
+            Generate Partner Key
+          </a>
         </Button>
       </div>
+
+      {/* Billing API Integration Guide */}
+      <Card className="bg-gradient-primary border-primary shadow-glow">
+        <CardHeader className="text-white">
+          <CardTitle className="flex items-center gap-2">
+            <Code2 className="h-5 w-5" />
+            Billing Platform Integration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-white space-y-4">
+          <p className="text-white/90">
+            Integrate your billing platform with UltaAI using our Partner API. Follow these steps to get started:
+          </p>
+          
+          {/* Integration Checklist */}
+          <div className="space-y-3">
+            <h4 className="font-medium text-white">Integration Checklist:</h4>
+            <div className="space-y-2 text-sm text-white/90">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-white" />
+                <span>✓ Create subscription plans in the Plans section</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-white" />
+                <span>✓ Map your billing SKUs to plan slugs and periods</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Key className="h-4 w-4 text-white" />
+                <span>• Generate a Partner API key with billing permissions</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Code2 className="h-4 w-4 text-white" />
+                <span>• Call Activate Plan on successful purchase</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Code2 className="h-4 w-4 text-white" />
+                <span>• Call Renew Plan on successful charge renewal</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Puzzle className="h-4 w-4 text-white" />
+                <span>• Monitor usage limits in your dashboard</span>
+              </div>
+            </div>
+          </div>
+
+          {/* API Endpoints */}
+          <div className="space-y-3 pt-4 border-t border-white/20">
+            <h4 className="font-medium text-white">Partner API Endpoints:</h4>
+            
+            <div className="space-y-3">
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <code className="text-sm font-mono text-white">POST /activate-plan</code>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 text-white hover:bg-white/20"
+                    onClick={() => copyToClipboard('POST /activate-plan', 'Endpoint')}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <p className="text-xs text-white/80 mb-2">Activate a subscription plan for a user</p>
+                <div className="text-xs text-white/70">
+                  <strong>Required fields:</strong> partner_key, plan_slug, period, user_email, agent_id, external_reference
+                </div>
+              </div>
+
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <code className="text-sm font-mono text-white">POST /renew-plan</code>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 text-white hover:bg-white/20"
+                    onClick={() => copyToClipboard('POST /renew-plan', 'Endpoint')}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <p className="text-xs text-white/80 mb-2">Extend an existing subscription</p>
+                <div className="text-xs text-white/70">
+                  <strong>Required fields:</strong> partner_key, activation_id (or external_reference), extend_days
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Available Plans */}
+          <div className="space-y-3 pt-4 border-t border-white/20">
+            <h4 className="font-medium text-white">Available Plans:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {plans.map((plan) => (
+                <div key={plan.slug} className="bg-white/10 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-white">{plan.name}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-5 w-5 text-white hover:bg-white/20"
+                      onClick={() => copyToClipboard(plan.slug, 'Plan slug')}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <code className="text-xs text-white/80 bg-white/10 px-2 py-1 rounded">
+                    {plan.slug}
+                  </code>
+                  <div className="text-xs text-white/70 mt-1">
+                    Periods: {plan.periods.join(', ')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-4">
+            <Button variant="secondary" size="sm" asChild>
+              <a href="/api-keys">
+                <Key className="h-4 w-4 mr-1" />
+                Generate Partner Key
+              </a>
+            </Button>
+            <Button variant="secondary" size="sm" asChild>
+              <a href="/plans">
+                View Plans
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Integration Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

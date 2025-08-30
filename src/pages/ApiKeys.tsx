@@ -91,14 +91,15 @@ export default function ApiKeys() {
     }
   }
 
-  const getPermissionColor = (permission: string) => {
-    switch (permission) {
-      case 'admin': return 'bg-destructive/10 text-destructive border-destructive/20'
-      case 'write': return 'bg-warning/10 text-warning border-warning/20'
-      case 'read': return 'bg-success/10 text-success border-success/20'
-      default: return 'bg-muted/10 text-muted-foreground border-muted/20'
-    }
-  }
+   const getPermissionColor = (permission: string) => {
+     switch (permission) {
+       case 'admin': return 'bg-destructive/10 text-destructive border-destructive/20'
+       case 'partner': return 'bg-primary/10 text-primary border-primary/20'
+       case 'write': return 'bg-warning/10 text-warning border-warning/20'
+       case 'read': return 'bg-success/10 text-success border-success/20'
+       default: return 'bg-muted/10 text-muted-foreground border-muted/20'
+     }
+   }
 
   return (
     <div className="space-y-6">
@@ -133,17 +134,19 @@ export default function ApiKeys() {
               </div>
               <div>
                 <Label>Permissions</Label>
-                <div className="space-y-2 mt-2">
-                  {['read', 'write', 'admin'].map((permission) => (
-                    <div key={permission} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={permission}
-                        checked={newKeyPermissions.includes(permission)}
-                        onCheckedChange={(checked) => handlePermissionChange(permission, !!checked)}
-                      />
-                      <Label htmlFor={permission} className="capitalize">{permission}</Label>
-                    </div>
-                  ))}
+                 <div className="space-y-2 mt-2">
+                   {['read', 'write', 'admin', 'partner'].map((permission) => (
+                     <div key={permission} className="flex items-center space-x-2">
+                       <Checkbox
+                         id={permission}
+                         checked={newKeyPermissions.includes(permission)}
+                         onCheckedChange={(checked) => handlePermissionChange(permission, !!checked)}
+                       />
+                       <Label htmlFor={permission} className="capitalize">
+                         {permission === 'partner' ? 'Partner (Billing API)' : permission}
+                       </Label>
+                     </div>
+                   ))}
                 </div>
               </div>
               <Button onClick={handleGenerateKey} className="w-full">
