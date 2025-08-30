@@ -29,10 +29,10 @@ import {
   Plan, 
   CreatePlanRequest, 
   UpdatePlanRequest, 
-  BillingInterval, 
+  BillingPeriod, 
   SupportLevel, 
   AnalyticsLevel,
-  BILLING_INTERVAL_LABELS,
+  BILLING_PERIOD_LABELS,
   SUPPORT_LEVEL_LABELS,
   ANALYTICS_LEVEL_LABELS
 } from '@/types/planTypes';
@@ -43,7 +43,6 @@ interface PlansEditorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   plan: Plan | null;
-  tenantId: string;
   onSuccess: () => void;
 }
 
@@ -51,15 +50,13 @@ export function PlansEditorDrawer({
   isOpen, 
   onClose, 
   plan, 
-  tenantId, 
   onSuccess 
 }: PlansEditorDrawerProps) {
   const [formData, setFormData] = useState<Partial<CreatePlanRequest | UpdatePlanRequest>>({
-    tenantId,
     name: '',
     slug: '',
     description: '',
-    allowedBillingIntervals: ['monthly'],
+    allowedBillingPeriods: ['monthly'],
     limits: { ai_requests: 25, server_events: 25 },
     features: [],
     supportLevel: 'community',
@@ -78,15 +75,13 @@ export function PlansEditorDrawer({
     if (plan) {
       setFormData({
         ...plan,
-        tenantId,
       });
     } else {
       setFormData({
-        tenantId,
         name: '',
         slug: '',
         description: '',
-        allowedBillingIntervals: ['monthly'],
+        allowedBillingPeriods: ['monthly'],
         limits: { ai_requests: 25, server_events: 25 },
         features: [],
         supportLevel: 'community',
@@ -96,7 +91,7 @@ export function PlansEditorDrawer({
     }
     setErrors([]);
     setNewFeature('');
-  }, [plan, tenantId, isOpen]);
+  }, [plan, isOpen]);
 
   // Auto-generate slug from name
   useEffect(() => {
@@ -124,13 +119,13 @@ export function PlansEditorDrawer({
     setErrors([]);
   };
 
-  const handleBillingIntervalToggle = (interval: BillingInterval) => {
-    const current = formData.allowedBillingIntervals || [];
-    const updated = current.includes(interval)
-      ? current.filter(i => i !== interval)
-      : [...current, interval];
+  const handleBillingPeriodToggle = (period: BillingPeriod) => {
+    const current = formData.allowedBillingPeriods || [];
+    const updated = current.includes(period)
+      ? current.filter(i => i !== period)
+      : [...current, period];
     
-    setFormData(prev => ({ ...prev, allowedBillingIntervals: updated }));
+    setFormData(prev => ({ ...prev, allowedBillingPeriods: updated }));
     setErrors([]);
   };
 
@@ -192,9 +187,9 @@ export function PlansEditorDrawer({
     }
   };
 
-  const billingIntervals: BillingInterval[] = ['monthly', 'annual', '36m'];
-  const supportLevels: SupportLevel[] = ['community', 'email', 'priority', 'dedicated'];
-  const analyticsLevels: AnalyticsLevel[] = ['basic', 'standard', 'advanced', 'premium'];
+  const billingPeriods: BillingPeriod[] = ['monthly', '3months', '6months', '1year', '2years', '3years'];
+  const supportLevels: SupportLevel[] = ['community', 'basic', 'priority', 'dedicated'];
+  const analyticsLevels: AnalyticsLevel[] = ['basic', 'advanced'];
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -212,8 +207,8 @@ export function PlansEditorDrawer({
           </SheetTitle>
           <SheetDescription>
             {isEditing 
-              ? 'Update plan configuration. Version will increment if limits, intervals, features, or support level change.'
-              : 'Configure a new subscription plan for your tenant.'
+              ? 'Update plan configuration. Version will increment if limits, periods, features, or support level change.'
+              : 'Configure a new subscription plan for your company.'
             }
           </SheetDescription>
         </SheetHeader>
@@ -283,19 +278,19 @@ export function PlansEditorDrawer({
 
             <Separator />
 
-            {/* Billing Intervals */}
+            {/* Billing Periods */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Billing Intervals *</h3>
+              <h3 className="text-lg font-semibold">Billing Periods *</h3>
               <div className="grid grid-cols-3 gap-4">
-                {billingIntervals.map((interval) => (
-                  <div key={interval} className="flex items-center space-x-2">
+                {billingPeriods.map((period) => (
+                  <div key={period} className="flex items-center space-x-2">
                     <Checkbox
-                      id={interval}
-                      checked={formData.allowedBillingIntervals?.includes(interval)}
-                      onCheckedChange={() => handleBillingIntervalToggle(interval)}
+                      id={period}
+                      checked={formData.allowedBillingPeriods?.includes(period)}
+                      onCheckedChange={() => handleBillingPeriodToggle(period)}
                     />
-                    <Label htmlFor={interval}>
-                      {BILLING_INTERVAL_LABELS[interval]}
+                    <Label htmlFor={period}>
+                      {BILLING_PERIOD_LABELS[period]}
                     </Label>
                   </div>
                 ))}

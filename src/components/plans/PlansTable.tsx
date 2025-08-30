@@ -62,13 +62,16 @@ export function PlansTable({
     return 0;
   });
 
-  const formatBillingIntervals = (intervals: string[]) => {
+  const formatBillingPeriods = (periods: string[]) => {
     const labels = {
       monthly: 'M',
-      annual: 'A',
-      '36m': '36M'
+      '3months': '3M',
+      '6months': '6M',
+      '1year': '1Y',
+      '2years': '2Y',
+      '3years': '3Y'
     };
-    return intervals.map(interval => labels[interval as keyof typeof labels]).join(', ');
+    return periods.map(period => labels[period as keyof typeof labels]).join(', ');
   };
 
   if (plans.length === 0) {
@@ -144,7 +147,7 @@ export function PlansTable({
               </TableCell>
               <TableCell>
                 <span className="text-sm font-mono">
-                  {formatBillingIntervals(plan.allowedBillingIntervals)}
+                  {formatBillingPeriods(plan.allowedBillingPeriods)}
                 </span>
               </TableCell>
               <TableCell>

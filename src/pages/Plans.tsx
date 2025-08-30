@@ -1,19 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Plus, 
   Settings2, 
-  Building2, 
   Copy, 
   AlertCircle,
   Trash2
@@ -23,7 +15,6 @@ import { PlansEditorDrawer } from '@/components/plans/PlansEditorDrawer';
 import { Plan } from '@/types/planTypes';
 import { planStorage } from '@/utils/planStorage';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,8 +28,6 @@ import {
 
 export default function Plans() {
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [currentTenant, setCurrentTenant] = useState<string>('');
-  const [tenantOptions, setTenantOptions] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; plan: Plan | null }>({
@@ -53,64 +42,13 @@ export default function Plans() {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadTenants();
+    loadPlans();
   }, []);
-
-  useEffect(() => {
-    if (currentTenant) {
-      loadPlans();
-    }
-  }, [currentTenant]);
-
-  const loadTenants = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select('customer_id')
-        .eq('user_id', user.id);
-
-      if (userRoles) {
-        // Get customer information separately
-        const customerIds = userRoles.map(role => role.customer_id);
-        const { data: customers } = await supabase
-          .from('customers')
-          .select('id, name')
-          .in('id', customerIds);
-
-        const tenants = userRoles.map(role => {
-          const customer = customers?.find(c => c.id === role.customer_id);
-          return {
-            id: role.customer_id,
-            name: customer?.name || `Tenant ${role.customer_id.slice(0, 8)}`
-          };
-        });
-        
-        setTenantOptions(tenants);
-        
-        // Set default tenant if not set
-        if (!currentTenant && tenants.length > 0) {
-          setCurrentTenant(tenants[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading tenants:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load tenant information',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadPlans = () => {
     try {
-      const tenantPlans = planStorage.getPlans(currentTenant);
-      setPlans(tenantPlans);
+      const allPlans = planStorage.getPlans();
+      setPlans(allPlans);
     } catch (error) {
       console.error('Error loading plans:', error);
       toast({
@@ -118,6 +56,8 @@ export default function Plans() {
         description: 'Failed to load plans',
         variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -144,7 +84,6 @@ export default function Plans() {
       
       planStorage.duplicatePlan(
         duplicateDialog.plan.id,
-        currentTenant,
         newName,
         newSlug
       );
@@ -169,7 +108,7 @@ export default function Plans() {
 
   const handleToggleStatus = (plan: Plan) => {
     try {
-      planStorage.togglePlanStatus(plan.id, currentTenant);
+      planStorage.togglePlanStatus(plan.id);
       toast({
         title: 'Plan Updated',
         description: `Plan "${plan.name}" has been ${plan.enabled ? 'disabled' : 'enabled'}`,
@@ -192,7 +131,7 @@ export default function Plans() {
     if (!deleteDialog.plan) return;
 
     try {
-      planStorage.deletePlan(deleteDialog.plan.id, currentTenant);
+      planStorage.deletePlan(deleteDialog.plan.id);
       toast({
         title: 'Plan Deleted',
         description: `Plan "${deleteDialog.plan.name}" has been deleted`,
@@ -224,56 +163,20 @@ export default function Plans() {
     );
   }
 
-  if (tenantOptions.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Plans Management</h1>
-          <p className="text-muted-foreground">
-            Configure subscription plans for your organization
-          </p>
-        </div>
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            No tenant access found. Please contact your administrator.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Plans Management</h1>
+          <h1 className="text-3xl font-bold text-foreground">Subscription Plans</h1>
           <p className="text-muted-foreground">
-            Configure subscription plans for your organization
+            Configure subscription plans for your company
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <Select value={currentTenant} onValueChange={setCurrentTenant}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select tenant" />
-              </SelectTrigger>
-              <SelectContent>
-                {tenantOptions.map((tenant) => (
-                  <SelectItem key={tenant.id} value={tenant.id}>
-                    {tenant.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={handleCreatePlan}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Plan
-          </Button>
-        </div>
+        <Button onClick={handleCreatePlan}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Plan
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -342,7 +245,6 @@ export default function Plans() {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         plan={selectedPlan}
-        tenantId={currentTenant}
         onSuccess={handleSuccess}
       />
 

@@ -1,8 +1,8 @@
-export type BillingInterval = 'monthly' | 'annual' | '36m';
+export type BillingPeriod = 'monthly' | '3months' | '6months' | '1year' | '2years' | '3years';
 
-export type SupportLevel = 'community' | 'email' | 'priority' | 'dedicated';
+export type SupportLevel = 'community' | 'basic' | 'priority' | 'dedicated';
 
-export type AnalyticsLevel = 'basic' | 'standard' | 'advanced' | 'premium';
+export type AnalyticsLevel = 'basic' | 'advanced';
 
 export interface PlanLimits {
   ai_requests: number;
@@ -11,13 +11,12 @@ export interface PlanLimits {
 
 export interface Plan {
   id: string;
-  tenantId: string;
   name: string;
   slug: string;
   description: string;
   version: number;
   enabled: boolean;
-  allowedBillingIntervals: BillingInterval[];
+  allowedBillingPeriods: BillingPeriod[];
   limits: PlanLimits;
   features: string[];
   supportLevel: SupportLevel;
@@ -27,11 +26,10 @@ export interface Plan {
 }
 
 export interface CreatePlanRequest {
-  tenantId: string;
   name: string;
   slug: string;
   description: string;
-  allowedBillingIntervals: BillingInterval[];
+  allowedBillingPeriods: BillingPeriod[];
   limits: PlanLimits;
   features: string[];
   supportLevel: SupportLevel;
@@ -43,22 +41,23 @@ export interface UpdatePlanRequest extends Partial<CreatePlanRequest> {
   enabled?: boolean;
 }
 
-export const BILLING_INTERVAL_LABELS = {
+export const BILLING_PERIOD_LABELS = {
   monthly: 'Monthly',
-  annual: 'Annual',
-  '36m': '36 Months'
+  '3months': '3 Months',
+  '6months': '6 Months',
+  '1year': '1 Year',
+  '2years': '2 Years',
+  '3years': '3 Years'
 } as const;
 
 export const SUPPORT_LEVEL_LABELS = {
   community: 'Community',
-  email: 'Email',
+  basic: 'Basic',
   priority: 'Priority',
   dedicated: 'Dedicated'
 } as const;
 
 export const ANALYTICS_LEVEL_LABELS = {
   basic: 'Basic',
-  standard: 'Standard',
-  advanced: 'Advanced',
-  premium: 'Premium'
+  advanced: 'Advanced'
 } as const;
