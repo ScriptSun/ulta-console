@@ -78,17 +78,12 @@ export function PlansTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {plan.features.map((feature, index) => (
-                      <Badge 
-                        key={index} 
-                        variant="outline" 
-                        className="bg-purple-500/10 text-purple-700 border-purple-500/20 dark:text-purple-300"
-                      >
-                        {feature}
-                      </Badge>
-                    ))}
-                  </div>
+                  <Badge 
+                    variant="outline" 
+                    className="bg-purple-500/10 text-purple-700 border-purple-500/20 dark:text-purple-300 font-mono"
+                  >
+                    {plan.key}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm font-medium">
