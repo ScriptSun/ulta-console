@@ -1463,6 +1463,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          key: string
           monthly_ai_requests: number
           monthly_server_events: number
           name: string
@@ -1475,6 +1476,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          key: string
           monthly_ai_requests?: number
           monthly_server_events?: number
           name: string
@@ -1487,6 +1489,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          key?: string
           monthly_ai_requests?: number
           monthly_server_events?: number
           name?: string
