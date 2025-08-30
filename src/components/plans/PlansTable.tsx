@@ -94,18 +94,12 @@ export function PlansTable({
             >
               Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
             </TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Periods</TableHead>
+            <TableHead>AI Limit</TableHead>
+            <TableHead>Server Limit</TableHead>
             <TableHead>Version</TableHead>
-            <TableHead>Limits</TableHead>
-            <TableHead>Intervals</TableHead>
-            <TableHead>Support</TableHead>
-            <TableHead 
-              className="cursor-pointer hover:text-foreground"
-              onClick={() => handleSort('updatedAt')}
-            >
-              Updated {sortBy === 'updatedAt' && (sortOrder === 'asc' ? '↑' : '↓')}
-            </TableHead>
-            <TableHead className="w-[50px]"></TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="w-[50px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -123,6 +117,26 @@ export function PlansTable({
                 </div>
               </TableCell>
               <TableCell>
+                <span className="text-sm font-mono">
+                  {formatBillingPeriods(plan.allowedBillingPeriods)}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-sm font-medium">
+                  {plan.limits.ai_requests.toLocaleString()}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-sm font-medium">
+                  {plan.limits.server_events.toLocaleString()}
+                </span>
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" className="font-mono">
+                  v{plan.version}
+                </Badge>
+              </TableCell>
+              <TableCell>
                 <Badge 
                   variant={plan.enabled ? 'default' : 'secondary'}
                   className={cn(
@@ -133,30 +147,6 @@ export function PlansTable({
                 >
                   {plan.enabled ? 'Active' : 'Disabled'}
                 </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" className="font-mono">
-                  v{plan.version}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <div className="text-sm">
-                  <div>AI: {plan.limits.ai_requests.toLocaleString()}</div>
-                  <div>Events: {plan.limits.server_events.toLocaleString()}</div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm font-mono">
-                  {formatBillingPeriods(plan.allowedBillingPeriods)}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm capitalize">{plan.supportLevel}</span>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground">
-                  {new Date(plan.updatedAt).toLocaleDateString()}
-                </span>
               </TableCell>
               <TableCell>
                 <DropdownMenu>
