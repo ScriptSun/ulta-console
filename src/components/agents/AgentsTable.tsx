@@ -122,10 +122,7 @@ export function AgentsTable({
             <TableHead>Status</TableHead>
             <TableHead>OS</TableHead>
             <TableHead>Version</TableHead>
-            <TableHead>CPU %</TableHead>
-            <TableHead>Memory Usage</TableHead>
             <TableHead>Tasks</TableHead>
-            <TableHead>Uptime</TableHead>
             <TableHead className="w-[50px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -153,24 +150,7 @@ export function AgentsTable({
               <TableCell>{getStatusBadge(agent.status)}</TableCell>
               <TableCell className="capitalize">{agent.os || 'Unknown'}</TableCell>
               <TableCell>{agent.version || 'N/A'}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <span>{agent.cpu_usage.toFixed(1)}%</span>
-                  <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${Math.min(agent.cpu_usage, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">{formatMemoryUsage(agent.memory_usage)}</span>
-                </div>
-              </TableCell>
               <TableCell>{agent.tasks_completed}</TableCell>
-              <TableCell>{formatUptime(agent.uptime_seconds)}</TableCell>
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
