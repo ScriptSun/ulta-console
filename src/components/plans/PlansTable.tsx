@@ -57,6 +57,7 @@ export function PlansTable({
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Plan Keys</TableHead>
+              <TableHead>Total Subscribers</TableHead>
               <TableHead>AI Limit</TableHead>
               <TableHead>Server Limit</TableHead>
               <TableHead>Status</TableHead>
@@ -83,6 +84,23 @@ export function PlansTable({
                   >
                     {plan.key}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-foreground">
+                      {(() => {
+                        // Mock data: subscribers count by plan key
+                        const subscribersByPlan: Record<string, number> = {
+                          'free_plan': 150,
+                          'basic_plan': 75,
+                          'pro_plan': 40,
+                          'premium_plan': 25
+                        };
+                        return (subscribersByPlan[plan.key] || 0).toLocaleString();
+                      })()}
+                    </div>
+                    <div className="text-xs text-muted-foreground">agents</div>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm font-medium">
