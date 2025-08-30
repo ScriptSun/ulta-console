@@ -1,374 +1,403 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { CreditCard, Check, Zap, Crown, Star } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/integrations/supabase/client'
-import { useToast } from '@/hooks/use-toast'
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Plus, 
+  Settings2, 
+  Building2, 
+  Copy, 
+  AlertCircle,
+  Trash2
+} from 'lucide-react';
+import { PlansTable } from '@/components/plans/PlansTable';
+import { PlansEditorDrawer } from '@/components/plans/PlansEditorDrawer';
+import { Plan } from '@/types/planTypes';
+import { planStorage } from '@/utils/planStorage';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Plans() {
-  const [currentPlan, setCurrentPlan] = useState<any>(null)
-  const [usage, setUsage] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const { toast } = useToast()
-
-  const availablePlans = [
-    {
-      name: 'Free',
-      price: '$0',
-      period: 'per month',
-      description: 'Perfect for getting started with agents',
-      features: [
-        '25 AI requests per month',
-        '25 server events per month',
-        'Basic support',
-        'Community access'
-      ],
-      monthly_ai_requests: 25,
-      monthly_server_events: 25,
-      popular: false,
-      current: false
-    },
-    {
-      name: 'Basic',
-      price: '$10',
-      period: 'per month',
-      description: 'Ideal for small projects and teams',
-      features: [
-        '70 AI requests per month',
-        '70 server events per month',
-        'Email support',
-        'Basic analytics'
-      ],
-      monthly_ai_requests: 70,
-      monthly_server_events: 70,
-      popular: false,
-      current: false
-    },
-    {
-      name: 'Pro',
-      price: '$16',
-      period: 'per month',
-      description: 'Best for growing businesses',
-      features: [
-        '125 AI requests per month',
-        '125 server events per month',
-        'Priority support',
-        'Advanced analytics',
-        'Custom integrations'
-      ],
-      monthly_ai_requests: 125,
-      monthly_server_events: 125,
-      popular: true,
-      current: false
-    },
-    {
-      name: 'Premium',
-      price: '$19',
-      period: 'per month',
-      description: 'For high-volume agent operations',
-      features: [
-        '200 AI requests per month',
-        '200 server events per month',
-        'Dedicated support',
-        'Advanced analytics',
-        'Custom integrations',
-        'Priority processing'
-      ],
-      monthly_ai_requests: 200,
-      monthly_server_events: 200,
-      popular: false,
-      current: false
-    }
-  ]
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [currentTenant, setCurrentTenant] = useState<string>('');
+  const [tenantOptions, setTenantOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; plan: Plan | null }>({
+    open: false,
+    plan: null
+  });
+  const [duplicateDialog, setDuplicateDialog] = useState<{ open: boolean; plan: Plan | null }>({
+    open: false,
+    plan: null
+  });
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    fetchCurrentPlan()
-    fetchUsage()
-  }, [])
+    loadTenants();
+  }, []);
 
-  const fetchCurrentPlan = async () => {
+  useEffect(() => {
+    if (currentTenant) {
+      loadPlans();
+    }
+  }, [currentTenant]);
+
+  const loadTenants = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      // Get user's customer IDs
       const { data: userRoles } = await supabase
         .from('user_roles')
         .select('customer_id')
-        .eq('user_id', user.id)
-        .limit(1)
+        .eq('user_id', user.id);
 
-      if (!userRoles?.[0]) return
+      if (userRoles) {
+        // Get customer information separately
+        const customerIds = userRoles.map(role => role.customer_id);
+        const { data: customers } = await supabase
+          .from('customers')
+          .select('id, name')
+          .in('id', customerIds);
 
-      const customerId = userRoles[0].customer_id
-
-      // Get current subscription
-      const { data: subscription } = await supabase
-        .from('user_subscriptions')
-        .select(`
-          *,
-          subscription_plans (*)
-        `)
-        .eq('user_id', user.id)
-        .eq('customer_id', customerId)
-        .eq('status', 'active')
-        .single()
-
-      if (subscription) {
-        setCurrentPlan({
-          name: subscription.subscription_plans.name,
-          price: subscription.subscription_plans.name === 'Free' ? 'Free' : `$${(subscription.subscription_plans.price_cents / 100)}/month`,
-          status: subscription.status,
-          renewalDate: subscription.current_period_end,
-          monthly_ai_requests: subscription.subscription_plans.monthly_ai_requests,
-          monthly_server_events: subscription.subscription_plans.monthly_server_events
-        })
-      } else {
-        // Default to free plan
-        setCurrentPlan({
-          name: 'Free',
-          price: 'Free',
-          status: 'active',
-          renewalDate: null,
-          monthly_ai_requests: 25,
-          monthly_server_events: 25
-        })
+        const tenants = userRoles.map(role => {
+          const customer = customers?.find(c => c.id === role.customer_id);
+          return {
+            id: role.customer_id,
+            name: customer?.name || `Tenant ${role.customer_id.slice(0, 8)}`
+          };
+        });
+        
+        setTenantOptions(tenants);
+        
+        // Set default tenant if not set
+        if (!currentTenant && tenants.length > 0) {
+          setCurrentTenant(tenants[0].id);
+        }
       }
     } catch (error) {
-      console.error('Error fetching current plan:', error)
+      console.error('Error loading tenants:', error);
       toast({
-        title: "Error",
-        description: "Failed to load current plan",
-        variant: "destructive"
-      })
+        title: 'Error',
+        description: 'Failed to load tenant information',
+        variant: 'destructive',
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const fetchUsage = async () => {
+  const loadPlans = () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select('customer_id')
-        .eq('user_id', user.id)
-        .limit(1)
-
-      if (!userRoles?.[0]) return
-
-      const customerId = userRoles[0].customer_id
-
-      // Get current month usage
-      const today = new Date().toISOString().split('T')[0]
-      const { data: usageData } = await supabase
-        .from('usage_tracking')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('customer_id', customerId)
-        .eq('usage_date', today)
-
-      const aiUsage = usageData?.find(u => u.usage_type === 'ai_request')?.count || 0
-      const serverUsage = usageData?.find(u => u.usage_type === 'server_event')?.count || 0
-
-      setUsage({
-        ai_requests: aiUsage,
-        server_events: serverUsage
-      })
+      const tenantPlans = planStorage.getPlans(currentTenant);
+      setPlans(tenantPlans);
     } catch (error) {
-      console.error('Error fetching usage:', error)
+      console.error('Error loading plans:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load plans',
+        variant: 'destructive',
+      });
     }
+  };
+
+  const handleCreatePlan = () => {
+    setSelectedPlan(null);
+    setIsDrawerOpen(true);
+  };
+
+  const handleEditPlan = (plan: Plan) => {
+    setSelectedPlan(plan);
+    setIsDrawerOpen(true);
+  };
+
+  const handleDuplicatePlan = (plan: Plan) => {
+    setDuplicateDialog({ open: true, plan });
+  };
+
+  const confirmDuplicate = () => {
+    if (!duplicateDialog.plan) return;
+
+    try {
+      const newName = `${duplicateDialog.plan.name} (Copy)`;
+      const newSlug = `${duplicateDialog.plan.slug}-copy`;
+      
+      planStorage.duplicatePlan(
+        duplicateDialog.plan.id,
+        currentTenant,
+        newName,
+        newSlug
+      );
+      
+      toast({
+        title: 'Plan Duplicated',
+        description: `Plan "${newName}" has been created`,
+      });
+      
+      loadPlans();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to duplicate plan';
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setDuplicateDialog({ open: false, plan: null });
+    }
+  };
+
+  const handleToggleStatus = (plan: Plan) => {
+    try {
+      planStorage.togglePlanStatus(plan.id, currentTenant);
+      toast({
+        title: 'Plan Updated',
+        description: `Plan "${plan.name}" has been ${plan.enabled ? 'disabled' : 'enabled'}`,
+      });
+      loadPlans();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update plan status',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeletePlan = (plan: Plan) => {
+    setDeleteDialog({ open: true, plan });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteDialog.plan) return;
+
+    try {
+      planStorage.deletePlan(deleteDialog.plan.id, currentTenant);
+      toast({
+        title: 'Plan Deleted',
+        description: `Plan "${deleteDialog.plan.name}" has been deleted`,
+      });
+      loadPlans();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete plan',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteDialog({ open: false, plan: null });
+    }
+  };
+
+  const handleSuccess = () => {
+    loadPlans();
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-48 mb-2"></div>
+          <div className="h-4 bg-muted rounded w-96"></div>
+        </div>
+      </div>
+    );
   }
 
-  const billingHistory = [
-    {
-      date: '2024-01-15',
-      plan: 'Pro',
-      amount: '$49.00',
-      status: 'paid',
-      invoice: 'INV-2024-001'
-    },
-    {
-      date: '2023-12-15',
-      plan: 'Pro',
-      amount: '$49.00',
-      status: 'paid',
-      invoice: 'INV-2023-012'
-    },
-    {
-      date: '2023-11-15',
-      plan: 'Starter',
-      amount: '$19.00',
-      status: 'paid',
-      invoice: 'INV-2023-011'
-    }
-  ]
+  if (tenantOptions.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Plans Management</h1>
+          <p className="text-muted-foreground">
+            Configure subscription plans for your organization
+          </p>
+        </div>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No tenant access found. Please contact your administrator.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Plans & Billing</h1>
+          <h1 className="text-3xl font-bold text-foreground">Plans Management</h1>
           <p className="text-muted-foreground">
-            Manage your subscription and billing information
+            Configure subscription plans for your organization
           </p>
         </div>
-        <Button variant="outline">
-          <CreditCard className="h-4 w-4 mr-2" />
-          Update Payment Method
-        </Button>
-      </div>
-
-      {/* Current Plan */}
-      {loading ? (
-        <Card className="bg-gradient-primary border-primary shadow-glow">
-          <CardContent className="text-white p-8 text-center">
-            <Zap className="h-8 w-8 mx-auto mb-4 animate-pulse" />
-            <p>Loading your plan...</p>
-          </CardContent>
-        </Card>
-      ) : currentPlan ? (
-        <Card className="bg-gradient-primary border-primary shadow-glow">
-          <CardHeader className="text-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Crown className="h-6 w-6" />
-                <div>
-                  <CardTitle className="text-xl">Current Plan: {currentPlan.name}</CardTitle>
-                  <p className="text-white/80">{currentPlan.price}</p>
-                </div>
-              </div>
-              <Badge className="bg-white/20 text-white border-white/30">
-                {currentPlan.status}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="text-white space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-white/80">Plan limits:</p>
-                <ul className="mt-2 space-y-1">
-                  <li className="flex items-center gap-2 text-sm">
-                    <Check className="h-3 w-3" />
-                    {currentPlan.monthly_ai_requests} AI requests per month
-                  </li>
-                  <li className="flex items-center gap-2 text-sm">
-                    <Check className="h-3 w-3" />
-                    {currentPlan.monthly_server_events} server events per month
-                  </li>
-                </ul>
-              </div>
-              <div className="space-y-2">
-                {usage && (
-                  <div>
-                    <p className="text-sm text-white/80">Current usage:</p>
-                    <p className="font-medium">AI Requests: {usage.ai_requests}/{currentPlan.monthly_ai_requests}</p>
-                    <p className="font-medium">Server Events: {usage.server_events}/{currentPlan.monthly_server_events}</p>
-                  </div>
-                )}
-                {currentPlan.renewalDate && (
-                  <div>
-                    <p className="text-sm text-white/80">Next billing date</p>
-                    <p className="font-medium">{new Date(currentPlan.renewalDate).toLocaleDateString()}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {/* Available Plans */}
-      <div>
-        <h2 className="text-2xl font-bold text-foreground mb-4">Available Plans</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {availablePlans.map((plan) => (
-            <Card 
-              key={plan.name} 
-              className={`relative bg-gradient-card border-card-border shadow-card ${
-                plan.popular ? 'ring-2 ring-primary' : ''
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-gradient-primary text-white shadow-glow">
-                    <Star className="h-3 w-3 mr-1" />
-                    Most Popular
-                  </Badge>
-                </div>
-              )}
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-xl">{plan.name}</CardTitle>
-                <div className="mt-2">
-                  <span className="text-3xl font-bold text-foreground">{plan.price}</span>
-                  <span className="text-muted-foreground">/{plan.period.split(' ')[1]}</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2 text-sm">
-                      <Check className="h-4 w-4 text-success flex-shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button 
-                  className={`w-full ${
-                    currentPlan?.name === plan.name
-                      ? 'bg-muted text-muted-foreground cursor-not-allowed' 
-                      : plan.popular 
-                        ? 'bg-gradient-primary hover:bg-primary-dark shadow-glow' 
-                        : ''
-                  }`}
-                  disabled={currentPlan?.name === plan.name}
-                >
-                  {currentPlan?.name === plan.name ? 'Current Plan' : `Contact for ${plan.name}`}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <Select value={currentTenant} onValueChange={setCurrentTenant}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select tenant" />
+              </SelectTrigger>
+              <SelectContent>
+                {tenantOptions.map((tenant) => (
+                  <SelectItem key={tenant.id} value={tenant.id}>
+                    {tenant.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleCreatePlan}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Plan
+          </Button>
         </div>
       </div>
 
-      {/* Billing History */}
-      <Card className="bg-gradient-card border-card-border shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-primary" />
-            Billing History
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-5 gap-4 text-sm font-medium text-muted-foreground">
-              <span>Date</span>
-              <span>Plan</span>
-              <span>Amount</span>
-              <span>Status</span>
-              <span>Invoice</span>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Plans</CardTitle>
+            <Settings2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{plans.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Plans</CardTitle>
+            <Badge className="bg-success/10 text-success border-success/20">
+              Active
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {plans.filter(p => p.enabled).length}
             </div>
-            {billingHistory.map((entry, index) => (
-              <div key={index} className="grid grid-cols-5 gap-4 text-sm py-3 border-b border-border last:border-b-0">
-                <span className="text-foreground">{entry.date}</span>
-                <span className="text-muted-foreground">{entry.plan}</span>
-                <span className="text-muted-foreground">{entry.amount}</span>
-                <Badge variant="outline" className="bg-success/10 text-success border-success/20 w-fit">
-                  {entry.status}
-                </Badge>
-                <Button variant="link" size="sm" className="p-0 h-auto justify-start">
-                  {entry.invoice}
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg AI Limit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {plans.length > 0 
+                ? Math.round(plans.reduce((sum, p) => sum + p.limits.ai_requests, 0) / plans.length).toLocaleString()
+                : '0'
+              }
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Latest Version</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              v{plans.length > 0 ? Math.max(...plans.map(p => p.version)) : '0'}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Plans Table */}
+      <PlansTable
+        plans={plans}
+        onEdit={handleEditPlan}
+        onDuplicate={handleDuplicatePlan}
+        onToggleStatus={handleToggleStatus}
+        onDelete={handleDeletePlan}
+      />
+
+      {/* Plans Editor Drawer */}
+      <PlansEditorDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        plan={selectedPlan}
+        tenantId={currentTenant}
+        onSuccess={handleSuccess}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={deleteDialog.open} 
+        onOpenChange={(open) => setDeleteDialog({ open, plan: deleteDialog.plan })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Delete Plan
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the plan "{deleteDialog.plan?.name}"? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Plan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Duplicate Confirmation Dialog */}
+      <AlertDialog 
+        open={duplicateDialog.open} 
+        onOpenChange={(open) => setDuplicateDialog({ open, plan: duplicateDialog.plan })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Copy className="h-5 w-5 text-primary" />
+              Duplicate Plan
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will create a copy of "{duplicateDialog.plan?.name}" with the name 
+              "{duplicateDialog.plan?.name} (Copy)". You can edit the details after creation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDuplicate}>
+              Duplicate Plan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-  )
+  );
 }
