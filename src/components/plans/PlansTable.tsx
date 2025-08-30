@@ -69,7 +69,6 @@ export function PlansTable({
                 <TableCell>
                   <div>
                     <div className="font-medium">{plan.name}</div>
-                    <div className="text-sm text-muted-foreground">{plan.slug}</div>
                     {plan.description && (
                       <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
                         {plan.description}
