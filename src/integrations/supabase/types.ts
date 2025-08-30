@@ -1493,6 +1493,30 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          ai_suggestions_mode: string
+          created_at: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ai_suggestions_mode?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ai_suggestions_mode?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           id: string
