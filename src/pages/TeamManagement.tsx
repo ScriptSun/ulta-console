@@ -12,21 +12,19 @@ import { AddMemberDialog } from '@/components/teams/AddMemberDialog';
 import { ManageRolesDialog } from '@/components/teams/ManageRolesDialog';
 
 const ROLE_COLORS = {
-  owner: 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm',
-  admin: 'bg-gradient-to-r from-red-600/10 to-pink-600/10 text-red-100 border border-red-500/30 shadow-lg shadow-red-500/20 backdrop-blur-sm',
-  approver: 'bg-gradient-to-r from-blue-600/10 to-cyan-600/10 text-blue-100 border border-blue-500/30 shadow-lg shadow-blue-500/20 backdrop-blur-sm',
-  editor: 'bg-gradient-to-r from-green-600/10 to-emerald-600/10 text-green-100 border border-green-500/30 shadow-lg shadow-green-500/20 backdrop-blur-sm',
-  viewer: 'bg-gradient-to-r from-amber-600/10 to-yellow-600/10 text-amber-100 border border-amber-500/30 shadow-lg shadow-amber-500/20 backdrop-blur-sm',
-  guest: 'bg-gradient-to-r from-slate-600/10 to-gray-600/10 text-slate-100 border border-slate-500/30 shadow-lg shadow-slate-500/20 backdrop-blur-sm',
+  Owner: 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm',
+  Admin: 'bg-gradient-to-r from-red-600/10 to-pink-600/10 text-red-100 border border-red-500/30 shadow-lg shadow-red-500/20 backdrop-blur-sm',
+  Developer: 'bg-gradient-to-r from-green-600/10 to-emerald-600/10 text-green-100 border border-green-500/30 shadow-lg shadow-green-500/20 backdrop-blur-sm',
+  Analyst: 'bg-gradient-to-r from-blue-600/10 to-cyan-600/10 text-blue-100 border border-blue-500/30 shadow-lg shadow-blue-500/20 backdrop-blur-sm',
+  ReadOnly: 'bg-gradient-to-r from-amber-600/10 to-yellow-600/10 text-amber-100 border border-amber-500/30 shadow-lg shadow-amber-500/20 backdrop-blur-sm',
 };
 
 const ROLE_DESCRIPTIONS = {
-  owner: 'Full access to all resources and can manage everything',
-  admin: 'Can manage users, teams, and most resources',
-  approver: 'Can approve and activate changes made by editors',
-  editor: 'Can create and modify content but cannot activate changes',
-  viewer: 'Can view all resources but cannot make changes',
-  guest: 'Limited read-only access to basic resources',
+  Owner: 'Full access to all resources and can manage everything including team settings',
+  Admin: 'Can manage team members and most resources within the team',
+  Developer: 'Can create and modify development resources and configurations',
+  Analyst: 'Can access analytics, reports and data analysis features',
+  ReadOnly: 'Can view all resources but cannot make any changes',
 };
 
 export default function TeamManagement() {
@@ -38,36 +36,52 @@ export default function TeamManagement() {
   const [showManageRoles, setShowManageRoles] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
 
-  // Fetch teams
-  const { data: teams, isLoading: teamsLoading } = useQuery({
-    queryKey: ['teams'],
+  // Fetch current user's teams
+  const { data: currentUserTeams, isLoading: userTeamsLoading } = useQuery({
+    queryKey: ['console-teams', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
-        .from('teams')
-        .select('*')
+        .from('console_team_members')
+        .select(`
+          team_id,
+          role,
+          console_teams!inner(*)
+        `)
+        .eq('admin_id', user.id);
+      
+      if (error) throw error;
+      return data?.map(item => ({
+        ...item.console_teams,
+        userRole: item.role
+      })) || [];
+    },
+    enabled: !!user?.id
+  });
+
+  // Fetch team members for user's teams
+  const { data: teamMembers, isLoading: membersLoading } = useQuery({
+    queryKey: ['console-team-members', user?.id],
+    queryFn: async () => {
+      if (!user?.id || !currentUserTeams?.length) return [];
+      
+      const teamIds = currentUserTeams.map(team => team.id);
+      
+      const { data, error } = await supabase
+        .from('console_team_members')
+        .select(`
+          *,
+          admin_profiles!inner(email, full_name),
+          console_teams!inner(name)
+        `)
+        .in('team_id', teamIds)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
     },
-  });
-
-  // Fetch team members with profiles
-  const { data: teamMembers, isLoading: membersLoading } = useQuery({
-    queryKey: ['team-members'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('team_members')
-        .select(`
-          *,
-          profiles!inner(username, full_name),
-          teams!inner(name)
-        `)
-        .order('joined_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
+    enabled: !!user?.id && !!currentUserTeams?.length
   });
 
   const handleTeamAction = (action: string, team: any) => {
@@ -82,7 +96,7 @@ export default function TeamManagement() {
     }
   };
 
-  if (teamsLoading || membersLoading) {
+  if (userTeamsLoading || membersLoading) {
     return (
       <div className="container mx-auto p-6 space-y-6">
         <div className="animate-pulse space-y-4">
@@ -103,13 +117,16 @@ export default function TeamManagement() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Team Management</h1>
           <p className="text-muted-foreground">
-            Manage teams and assign roles with our 6-tier permission system
+            Manage console admin teams and assign roles with our 5-tier permission system
           </p>
         </div>
-        <Button onClick={() => setShowCreateTeam(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Team
-        </Button>
+        {/* Only show create team if user has no teams or is an owner/admin of at least one team  */}
+        {(!currentUserTeams?.length || currentUserTeams?.some(team => ['Owner', 'Admin'].includes(team.userRole))) && (
+          <Button onClick={() => setShowCreateTeam(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Team
+          </Button>
+        )}
       </div>
 
       {/* Role System Overview */}
@@ -120,7 +137,7 @@ export default function TeamManagement() {
             Permission System Overview
           </CardTitle>
           <CardDescription>
-            Six-tier role system with granular permissions
+            Five-tier role system for console admin staff
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -139,13 +156,15 @@ export default function TeamManagement() {
 
       {/* Teams Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {teams?.map((team) => {
+        {currentUserTeams?.map((team) => {
           const members = teamMembers?.filter(member => member.team_id === team.id) || [];
           const memberCount = members.length;
           const roleDistribution = members.reduce((acc, member) => {
             acc[member.role] = (acc[member.role] || 0) + 1;
             return acc;
           }, {} as Record<string, number>);
+
+          const canManageTeam = team.userRole === 'Owner' || team.userRole === 'Admin';
 
           return (
             <Card key={team.id} className="hover:shadow-md transition-shadow">
@@ -155,9 +174,14 @@ export default function TeamManagement() {
                     <Users className="h-5 w-5" />
                     {team.name}
                   </span>
-                  <Badge variant="secondary">{memberCount} members</Badge>
+                  <div className="flex gap-2">
+                    <Badge variant="secondary">{memberCount} members</Badge>
+                    <Badge className={ROLE_COLORS[team.userRole as keyof typeof ROLE_COLORS]}>
+                      {team.userRole}
+                    </Badge>
+                  </div>
                 </CardTitle>
-                <CardDescription>{team.description || 'No description'}</CardDescription>
+                <CardDescription>Console team for staff collaboration</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Role Distribution */}
@@ -177,25 +201,50 @@ export default function TeamManagement() {
                 </div>
 
                 {/* Team Actions */}
-                <div className="flex gap-2 pt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleTeamAction('addMember', team)}
-                    className="gap-1"
-                  >
-                    <UserPlus className="h-3 w-3" />
-                    Add Member
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleTeamAction('manageRoles', team)}
-                    className="gap-1"
-                  >
-                    <Settings className="h-3 w-3" />
-                    Manage Roles
-                  </Button>
+                {canManageTeam && (
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleTeamAction('addMember', team)}
+                      className="gap-1"
+                    >
+                      <UserPlus className="h-3 w-3" />
+                      Add Member
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleTeamAction('manageRoles', team)}
+                      className="gap-1"
+                    >
+                      <Settings className="h-3 w-3" />
+                      Manage Roles
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Member List */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Team Members</h4>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {members.slice(0, 5).map((member) => (
+                      <div key={member.id} className="flex items-center justify-between text-xs p-2 rounded bg-card/30 border border-border/50">
+                        <span className="truncate">{member.admin_profiles.full_name || member.admin_profiles.email}</span>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs px-1 py-0 ${ROLE_COLORS[member.role as keyof typeof ROLE_COLORS]}`}
+                        >
+                          {member.role}
+                        </Badge>
+                      </div>
+                    ))}
+                    {members.length > 5 && (
+                      <div className="text-xs text-muted-foreground text-center py-1">
+                        +{members.length - 5} more members
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

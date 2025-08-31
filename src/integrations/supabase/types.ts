@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       agent_deployment_tokens: {
         Row: {
           agent_id: string | null
@@ -1071,6 +1092,63 @@ export type Database = {
           timeout_sec?: number | null
           updated_at?: string
           updated_by?: string
+        }
+        Relationships: []
+      }
+      console_team_members: {
+        Row: {
+          admin_id: string | null
+          created_at: string | null
+          id: string
+          role: string
+          team_id: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string | null
+          id?: string
+          role: string
+          team_id?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string | null
+          id?: string
+          role?: string
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "console_team_members_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admin_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "console_team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "console_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      console_teams: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }

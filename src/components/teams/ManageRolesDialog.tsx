@@ -22,28 +22,26 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
-const ROLES = ['owner', 'admin', 'approver', 'editor', 'viewer', 'guest'] as const;
+const ROLES = ['Owner', 'Admin', 'Developer', 'Analyst', 'ReadOnly'] as const;
 
 type TeamMemberWithProfile = {
   id: string;
   team_id: string;
-  user_id: string;
+  admin_id: string;
   role: typeof ROLES[number];
-  invited_by: string;
-  joined_at: string;
-  profiles: {
-    username: string | null;
+  created_at: string;
+  admin_profiles: {
+    email: string;
     full_name: string | null;
   } | null;
 };
 
 const ROLE_COLORS = {
-  owner: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  admin: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  approver: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  editor: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  viewer: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  guest: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
+  Owner: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+  Admin: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+  Developer: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  Analyst: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  ReadOnly: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
 };
 
 interface ManageRolesDialogProps {
@@ -57,20 +55,20 @@ export function ManageRolesDialog({ open, onOpenChange, team }: ManageRolesDialo
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch team members with profiles
+  // Fetch team members with admin profiles
   const { data: teamMembers, isLoading } = useQuery<TeamMemberWithProfile[]>({
-    queryKey: ['team-members', team?.id],
+    queryKey: ['console-team-members', team?.id],
     queryFn: async () => {
       if (!team?.id) return [];
       
       const { data, error } = await supabase
-        .from('team_members')
+        .from('console_team_members')
         .select(`
           *,
-          profiles(username, full_name)
+          admin_profiles(email, full_name)
         `)
         .eq('team_id', team.id)
-        .order('joined_at', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data as any;
@@ -81,7 +79,7 @@ export function ManageRolesDialog({ open, onOpenChange, team }: ManageRolesDialo
   const updateRoleMutation = useMutation({
     mutationFn: async ({ memberId, newRole }: { memberId: string; newRole: typeof ROLES[number] }) => {
       const { error } = await supabase
-        .from('team_members')
+        .from('console_team_members')
         .update({ role: newRole })
         .eq('id', memberId);
 
@@ -92,7 +90,7 @@ export function ManageRolesDialog({ open, onOpenChange, team }: ManageRolesDialo
         title: 'Success',
         description: 'Member role updated successfully',
       });
-      queryClient.invalidateQueries({ queryKey: ['team-members'] });
+      queryClient.invalidateQueries({ queryKey: ['console-team-members'] });
     },
     onError: (error: any) => {
       toast({
@@ -106,7 +104,7 @@ export function ManageRolesDialog({ open, onOpenChange, team }: ManageRolesDialo
   const removeMemberMutation = useMutation({
     mutationFn: async (memberId: string) => {
       const { error } = await supabase
-        .from('team_members')
+        .from('console_team_members')
         .delete()
         .eq('id', memberId);
 
@@ -117,7 +115,7 @@ export function ManageRolesDialog({ open, onOpenChange, team }: ManageRolesDialo
         title: 'Success',
         description: 'Member removed from team successfully',
       });
-      queryClient.invalidateQueries({ queryKey: ['team-members'] });
+      queryClient.invalidateQueries({ queryKey: ['console-team-members'] });
     },
     onError: (error: any) => {
       toast({
@@ -168,21 +166,21 @@ export function ManageRolesDialog({ open, onOpenChange, team }: ManageRolesDialo
                     </div>
                     <div>
                       <p className="font-medium">
-                        {member.profiles?.full_name || member.profiles?.username || 'Unnamed User'}
+                        {member.admin_profiles?.full_name || member.admin_profiles?.email || 'Unnamed User'}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Joined {new Date(member.joined_at).toLocaleDateString()}
+                        Joined {new Date(member.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Badge className={ROLE_COLORS[(member.role || 'guest') as keyof typeof ROLE_COLORS]}>
-                      {member.role ? member.role.charAt(0).toUpperCase() + member.role.slice(1) : 'Guest'}
+                    <Badge className={ROLE_COLORS[(member.role || 'ReadOnly') as keyof typeof ROLE_COLORS]}>
+                      {member.role ? member.role : 'ReadOnly'}
                     </Badge>
 
                     <Select
-                      value={member.role || 'guest'}
+                      value={member.role || 'ReadOnly'}
                        onValueChange={(newRole: typeof ROLES[number]) => handleRoleChange(member.id, newRole)}
                      >
                       <SelectTrigger className="w-32">
@@ -191,7 +189,7 @@ export function ManageRolesDialog({ open, onOpenChange, team }: ManageRolesDialo
                       <SelectContent>
                         {ROLES.map((role) => (
                           <SelectItem key={role} value={role}>
-                            <span className="capitalize">{role}</span>
+                            <span>{role}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -211,7 +209,7 @@ export function ManageRolesDialog({ open, onOpenChange, team }: ManageRolesDialo
                         <AlertDialogHeader>
                           <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to remove {member.profiles?.full_name || member.profiles?.username} from {team?.name}? 
+                            Are you sure you want to remove {member.admin_profiles?.full_name || member.admin_profiles?.email} from {team?.name}? 
                             This action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>

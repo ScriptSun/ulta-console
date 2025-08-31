@@ -29,7 +29,6 @@ import { Loader2 } from 'lucide-react';
 
 const createTeamSchema = z.object({
   name: z.string().min(2, 'Team name must be at least 2 characters'),
-  description: z.string().optional(),
 });
 
 type CreateTeamForm = z.infer<typeof createTeamSchema>;
@@ -48,29 +47,41 @@ export function CreateTeamDialog({ open, onOpenChange }: CreateTeamDialogProps) 
     resolver: zodResolver(createTeamSchema),
     defaultValues: {
       name: '',
-      description: '',
     },
   });
 
   const createTeamMutation = useMutation({
     mutationFn: async (data: CreateTeamForm) => {
-      const { error } = await supabase
-        .from('teams')
+      // First create the team
+      const { data: teamData, error: teamError } = await supabase
+        .from('console_teams')
         .insert({
           name: data.name,
-          description: data.description,
-          customer_id: '22222222-2222-2222-2222-222222222222', // Default customer ID
-          created_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (teamError) throw teamError;
+
+      // Then add the creator as Owner
+      const { error: memberError } = await supabase
+        .from('console_team_members')
+        .insert({
+          team_id: teamData.id,
+          admin_id: user?.id,
+          role: 'Owner'
         });
 
-      if (error) throw error;
+      if (memberError) throw memberError;
+      
+      return teamData;
     },
     onSuccess: () => {
       toast({
         title: 'Success',
         description: 'Team created successfully',
       });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      queryClient.invalidateQueries({ queryKey: ['console-teams'] });
       form.reset();
       onOpenChange(false);
     },
@@ -93,7 +104,7 @@ export function CreateTeamDialog({ open, onOpenChange }: CreateTeamDialogProps) 
         <DialogHeader>
           <DialogTitle>Create New Team</DialogTitle>
           <DialogDescription>
-            Create a new team to organize users and manage permissions.
+            Create a new console admin team for staff collaboration.
           </DialogDescription>
         </DialogHeader>
 
@@ -107,24 +118,6 @@ export function CreateTeamDialog({ open, onOpenChange }: CreateTeamDialogProps) 
                   <FormLabel>Team Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter team name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Describe the team's purpose..."
-                      rows={3}
-                      {...field} 
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

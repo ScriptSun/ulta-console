@@ -33,7 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-const ROLES = ['owner', 'admin', 'approver', 'editor', 'viewer', 'guest'] as const;
+const ROLES = ['Owner', 'Admin', 'Developer', 'Analyst', 'ReadOnly'] as const;
 
 const addMemberSchema = z.object({
   userId: z.string().min(1, 'Please select a user'),
@@ -57,16 +57,16 @@ export function AddMemberDialog({ open, onOpenChange, team }: AddMemberDialogPro
     resolver: zodResolver(addMemberSchema),
     defaultValues: {
       userId: '',
-      role: 'guest',
+      role: 'ReadOnly',
     },
   });
 
-  // Fetch available users (profiles)
+  // Fetch available admin profiles
   const { data: profiles, isLoading: profilesLoading } = useQuery({
-    queryKey: ['profiles'],
+    queryKey: ['admin-profiles'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('admin_profiles')
         .select('*')
         .order('full_name', { ascending: true });
       
@@ -78,17 +78,17 @@ export function AddMemberDialog({ open, onOpenChange, team }: AddMemberDialogPro
 
   // Fetch existing team members to exclude them
   const { data: existingMembers } = useQuery({
-    queryKey: ['team-members', team?.id],
+    queryKey: ['console-team-members', team?.id],
     queryFn: async () => {
       if (!team?.id) return [];
       
       const { data, error } = await supabase
-        .from('team_members')
-        .select('user_id')
+        .from('console_team_members')
+        .select('admin_id')
         .eq('team_id', team.id);
       
       if (error) throw error;
-      return data.map(m => m.user_id);
+      return data.map(m => m.admin_id);
     },
     enabled: open && !!team?.id,
   });
@@ -96,12 +96,11 @@ export function AddMemberDialog({ open, onOpenChange, team }: AddMemberDialogPro
   const addMemberMutation = useMutation({
     mutationFn: async (data: AddMemberForm) => {
       const { error } = await supabase
-        .from('team_members')
+        .from('console_team_members')
         .insert({
           team_id: team.id,
-          user_id: data.userId,
+          admin_id: data.userId,
           role: data.role,
-          invited_by: user?.id,
         });
 
       if (error) throw error;
@@ -111,7 +110,7 @@ export function AddMemberDialog({ open, onOpenChange, team }: AddMemberDialogPro
         title: 'Success',
         description: 'Member added to team successfully',
       });
-      queryClient.invalidateQueries({ queryKey: ['team-members'] });
+      queryClient.invalidateQueries({ queryKey: ['console-team-members'] });
       form.reset();
       onOpenChange(false);
     },
@@ -166,7 +165,7 @@ export function AddMemberDialog({ open, onOpenChange, team }: AddMemberDialogPro
                           <SelectItem key={profile.id} value={profile.id}>
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4" />
-                              <span>{profile.full_name || profile.username || 'Unnamed User'}</span>
+                              <span>{profile.full_name || profile.email || 'Unnamed User'}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -195,12 +194,11 @@ export function AddMemberDialog({ open, onOpenChange, team }: AddMemberDialogPro
                             <div className="flex items-center justify-between w-full">
                               <span className="capitalize">{role}</span>
                               <Badge variant="outline" className="ml-2 text-xs">
-                                {role === 'owner' && 'Full Access'}
-                                {role === 'admin' && 'Manage All'}
-                                {role === 'approver' && 'Approve Changes'}
-                                {role === 'editor' && 'Create & Edit'}
-                                {role === 'viewer' && 'Read Only'}
-                                {role === 'guest' && 'Limited Access'}
+                                {role === 'Owner' && 'Full Access'}
+                                {role === 'Admin' && 'Manage Team'}
+                                {role === 'Developer' && 'Development'}
+                                {role === 'Analyst' && 'Analytics'}
+                                {role === 'ReadOnly' && 'Read Only'}
                               </Badge>
                             </div>
                           </SelectItem>
