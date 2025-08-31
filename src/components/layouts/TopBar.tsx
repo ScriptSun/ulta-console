@@ -1,4 +1,5 @@
 import { Search, Bell, User, MenuIcon, LogOut, Settings, Shield } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -122,13 +123,17 @@ export function TopBar() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                Profile Settings
+              <DropdownMenuItem asChild>
+                <Link to="/profile-settings" className="flex items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  Profile Settings
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                System Settings
+              <DropdownMenuItem asChild>
+                <Link to="/system-settings" className="flex items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  System Settings
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Shield className="mr-2 h-4 w-4" />

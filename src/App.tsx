@@ -36,6 +36,8 @@ import QAChecklist from "./pages/QAChecklist";
 import WidgetDeploymentChecklist from "./pages/WidgetDeploymentChecklist";
 import RouterDemo from "./pages/_demo/Router";
 import WidgetTest from "./pages/WidgetTest";
+import ProfileSettings from "./pages/ProfileSettings";
+import SystemSettings from "./pages/SystemSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -258,6 +260,20 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <WidgetTest />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/profile-settings" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <ProfileSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/system-settings" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <SystemSettings />
                 </RootLayout>
               </ProtectedRoute>
             } />
