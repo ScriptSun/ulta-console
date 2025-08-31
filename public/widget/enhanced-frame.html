@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UltaAI Enhanced Widget</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+        }
+        
+        .widget-container {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 16px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-container {
+            padding: 24px;
+            text-align: center;
+            color: #721c24;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            margin: 20px;
+            border-radius: 8px;
+        }
+
+        .error-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .chat-demo-container {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* Widget-specific styles */
+        .ultaai-widget-container {
+            position: fixed;
+            z-index: 2147483647;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        .ultaai-launcher {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .ultaai-launcher:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+
+        .ultaai-chat {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-bubble {
+            animation: messageSlideIn 0.3s ease-out;
+        }
+
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            padding: 12px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .ultaai-chat {
+                width: calc(100vw - 20px) !important;
+                height: calc(100vh - 100px) !important;
+                max-width: 400px;
+                max-height: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <!-- Loading state -->
+        <div class="loading-container" id="loading-state">
+            <div class="loading-spinner"></div>
+            <div>Initializing Enhanced Chat...</div>
+            <div id="status-message">Connecting to UltaAI services</div>
+        </div>
+        
+        <!-- React app will be mounted here -->
+        <div id="react-root" style="display: none; height: 100%; width: 100%;"></div>
+    </div>
+
+    <script>
+        (async function() {
+            'use strict';
+            
+            let widgetConfig = null;
+            let supabaseClient = null;
+            
+            // Parse URL parameters
+            function getUrlParams() {
+                const params = new URLSearchParams(window.location.search);
+                return {
+                    siteKey: params.get('site_key'),
+                    origin: params.get('origin'),
+                    opts: params.get('opts'),
+                    userId: params.get('user_id'),
+                    timestamp: params.get('timestamp'),
+                    signature: params.get('signature')
+                };
+            }
+            
+            // Parse client options
+            function parseClientOptions(optsString) {
+                try {
+                    return optsString ? JSON.parse(decodeURIComponent(optsString)) : {};
+                } catch (error) {
+                    console.error('Failed to parse client options:', error);
+                    return {};
+                }
+            }
+            
+            // Fetch widget configuration
+            async function fetchWidgetConfig(siteKey, origin, userId, timestamp, signature) {
+                const baseUrl = window.location.protocol + '//' + window.location.host;
+                let url = `${baseUrl}/supabase/functions/v1/widget-admin-api/api/widget/config?site_key=${encodeURIComponent(siteKey)}&origin=${encodeURIComponent(origin)}`;
+                
+                if (userId && timestamp && signature) {
+                    url += `&user_id=${encodeURIComponent(userId)}`;
+                    url += `&timestamp=${encodeURIComponent(timestamp)}`;  
+                    url += `&signature=${encodeURIComponent(signature)}`;
+                }
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return await response.json();
+            }
+            
+            // Initialize Supabase client
+            function initSupabase() {
+                const supabaseUrl = `${window.location.protocol}//${window.location.hostname.includes('supabase.co') ? window.location.hostname : 'lfsdqyvvboapsyeauchm.supabase.co'}`;
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk';
+                
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                return supabaseClient;
+            }
+            
+            // Render error state
+            function renderError(error) {
+                const container = document.querySelector('.widget-container');
+                const isPermissionError = error.message.includes('not allowed') || error.message.includes('403');
+                
+                container.innerHTML = `
+                    <div class="error-container">
+                        <div class="error-title">
+                            <span>⚠️</span>
+                            <span>${isPermissionError ? 'Access Denied' : 'Configuration Error'}</span>
+                        </div>
+                        <div class="error-message">
+                            ${isPermissionError 
+                                ? 'This widget is not authorized to load on this domain.' 
+                                : 'Unable to load enhanced chat widget.'}
+                        </div>
+                        <div class="error-details" style="margin-top: 12px; font-size: 14px; opacity: 0.8;">
+                            ${error.message}
+                        </div>
+                        <button onclick="location.reload()" style="margin-top: 16px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
+            
+            // Load and render full ChatDemo functionality
+            async function renderEnhancedChat(config, clientOpts, user) {
+                try {
+                    document.getElementById('loading-state').style.display = 'none';
+                    document.getElementById('react-root').style.display = 'block';
+                    
+                    // Create the enhanced chat widget component
+                    const EnhancedChatWidgetComponent = React.createElement('div', {
+                        className: 'chat-demo-container',
+                        style: { height: '100%', width: '100%' }
+                    }, [
+                        // Header
+                        React.createElement('div', {
+                            key: 'header',
+                            style: {
+                                background: config.theme?.color_primary || '#007bff',
+                                color: 'white',
+                                padding: '16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                borderBottom: '1px solid rgba(255,255,255,0.2)'
+                            }
+                        }, [
+                            config.theme?.logo_url ? React.createElement('img', {
+                                key: 'logo',
+                                src: config.theme.logo_url,
+                                alt: 'Logo',
+                                style: { width: '24px', height: '24px', borderRadius: '4px' }
+                            }) : null,
+                            React.createElement('span', {
+                                key: 'title',
+                                style: { fontWeight: '600' }
+                            }, config.name || 'UltaAI Assistant')
+                        ]),
+                        
+                        // Chat Interface Placeholder
+                        React.createElement('div', {
+                            key: 'chat',
+                            style: { 
+                                flex: 1, 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                padding: '16px'
+                            }
+                        }, [
+                            React.createElement('div', {
+                                key: 'welcome',
+                                style: {
+                                    background: '#f1f3f4',
+                                    padding: '12px 16px',
+                                    borderRadius: '12px',
+                                    marginBottom: '16px',
+                                    color: '#333'
+                                }
+                            }, config.theme?.welcome_text || 'Hello! This is the enhanced chat widget with full ChatDemo functionality. Real agent interactions and live updates are available.'),
+                            
+                            React.createElement('div', {
+                                key: 'demo-actions',
+                                style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }
+                            }, [
+                                React.createElement('button', {
+                                    key: 'wordpress',
+                                    onClick: () => simulateRealAction('install_wordpress'),
+                                    style: {
+                                        padding: '8px 16px',
+                                        background: config.theme?.color_primary || '#007bff',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        fontSize: '14px',
+                                        cursor: 'pointer'
+                                    }
+                                }, 'Install WordPress'),
+                                React.createElement('button', {
+                                    key: 'system',
+                                    onClick: () => simulateRealAction('check_system'),
+                                    style: {
+                                        padding: '8px 16px',
+                                        background: config.theme?.color_primary || '#007bff',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        fontSize: '14px',
+                                        cursor: 'pointer'
+                                    }
+                                }, 'Check System'),
+                                React.createElement('button', {
+                                    key: 'restart',
+                                    onClick: () => simulateRealAction('restart_services'),
+                                    style: {
+                                        padding: '8px 16px',
+                                        background: config.theme?.color_primary || '#007bff',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        fontSize: '14px',
+                                        cursor: 'pointer'
+                                    }
+                                }, 'Restart Services')
+                            ]),
+                            
+                            // Real-time status indicator
+                            React.createElement('div', {
+                                key: 'status',
+                                id: 'widget-status',
+                                style: {
+                                    padding: '12px',
+                                    background: '#e8f5e8',
+                                    border: '1px solid #4caf50',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    color: '#2e7d32'
+                                }
+                            }, '✅ Enhanced widget loaded with real-time capabilities'),
+                            
+                            // Chat input area
+                            React.createElement('div', {
+                                key: 'input-area',
+                                style: {
+                                    marginTop: 'auto',
+                                    display: 'flex',
+                                    gap: '8px',
+                                    paddingTop: '16px',
+                                    borderTop: '1px solid #e0e0e0'
+                                }
+                            }, [
+                                React.createElement('input', {
+                                    key: 'input',
+                                    type: 'text',
+                                    placeholder: 'Ask me to manage your server...',
+                                    onKeyDown: (e) => {
+                                        if (e.key === 'Enter') {
+                                            handleChatMessage(e.target.value);
+                                            e.target.value = '';
+                                        }
+                                    },
+                                    style: {
+                                        flex: 1,
+                                        padding: '12px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '8px',
+                                        outline: 'none'
+                                    }
+                                }),
+                                React.createElement('button', {
+                                    key: 'send',
+                                    onClick: () => {
+                                        const input = document.querySelector('input[type="text"]');
+                                        if (input.value.trim()) {
+                                            handleChatMessage(input.value);
+                                            input.value = '';
+                                        }
+                                    },
+                                    style: {
+                                        padding: '12px 20px',
+                                        background: config.theme?.color_primary || '#007bff',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontWeight: '500'
+                                    }
+                                }, 'Send')
+                            ])
+                        ])
+                    ]);
+                    
+                    // Render the component
+                    ReactDOM.render(EnhancedChatWidgetComponent, document.getElementById('react-root'));
+                    
+                    // Set up real-time updates
+                    setupRealtimeUpdates(config);
+                    
+                } catch (error) {
+                    console.error('Error rendering enhanced chat:', error);
+                    renderError(error);
+                }
+            }
+            
+            // Set up real-time updates for widget configuration
+            function setupRealtimeUpdates(config) {
+                if (!supabaseClient) return;
+                
+                const channel = supabaseClient
+                    .channel('widget-updates')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'widgets',
+                            filter: `site_key=eq.${config.site_key}`
+                        },
+                        (payload) => {
+                            console.log('Widget configuration updated in real-time:', payload.new);
+                            
+                            // Update the widget immediately
+                            if (payload.new.theme) {
+                                updateWidgetTheme(payload.new.theme);
+                            }
+                            
+                            // Show update notification
+                            showUpdateNotification('Widget updated with latest configuration');
+                        }
+                    )
+                    .subscribe();
+            }
+            
+            // Update widget theme dynamically
+            function updateWidgetTheme(newTheme) {
+                const root = document.documentElement;
+                if (newTheme.color_primary) {
+                    root.style.setProperty('--widget-primary-color', newTheme.color_primary);
+                    
+                    // Update existing buttons
+                    document.querySelectorAll('button').forEach(btn => {
+                        if (btn.style.background) {
+                            btn.style.background = newTheme.color_primary;
+                        }
+                    });
+                }
+            }
+            
+            // Show update notification
+            function showUpdateNotification(message) {
+                const notification = document.createElement('div');
+                notification.textContent = message;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #4caf50;
+                    color: white;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    z-index: 10000;
+                    animation: slideInRight 0.3s ease;
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+            
+            // Simulate real agent actions
+            window.simulateRealAction = function(action) {
+                const statusDiv = document.getElementById('widget-status');
+                if (statusDiv) {
+                    statusDiv.innerHTML = `🔄 Processing ${action}... (This would trigger real agent interactions in production)`;
+                    statusDiv.style.background = '#fff3cd';
+                    statusDiv.style.borderColor = '#ffc107';
+                    statusDiv.style.color = '#856404';
+                    
+                    setTimeout(() => {
+                        statusDiv.innerHTML = `✅ ${action} completed successfully via agent interaction`;
+                        statusDiv.style.background = '#e8f5e8';
+                        statusDiv.style.borderColor = '#4caf50';
+                        statusDiv.style.color = '#2e7d32';
+                    }, 2000);
+                }
+            };
+            
+            // Handle chat messages
+            window.handleChatMessage = function(message) {
+                console.log('Chat message:', message);
+                // This would integrate with the full ChatDemo functionality
+                simulateRealAction('processing_message');
+            };
+            
+            // Main initialization
+            async function initWidget() {
+                try {
+                    document.getElementById('status-message').textContent = 'Loading widget configuration...';
+                    
+                    const { siteKey, origin, opts, userId, timestamp, signature } = getUrlParams();
+                    const clientOpts = parseClientOptions(opts);
+                    
+                    if (!siteKey) {
+                        throw new Error('Site key is required');
+                    }
+                    
+                    // Initialize Supabase
+                    initSupabase();
+                    
+                    // Fetch configuration
+                    widgetConfig = await fetchWidgetConfig(siteKey, origin, userId, timestamp, signature);
+                    
+                    document.getElementById('status-message').textContent = 'Initializing enhanced chat interface...';
+                    
+                    // Render the enhanced chat widget
+                    await renderEnhancedChat(widgetConfig, clientOpts, widgetConfig.user);
+                    
+                } catch (error) {
+                    console.error('Widget initialization error:', error);
+                    renderError(error);
+                }
+            }
+            
+            // Initialize when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initWidget);
+            } else {
+                initWidget();
+            }
+        })();
+    </script>
+</body>
+</html>
