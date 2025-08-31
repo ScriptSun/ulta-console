@@ -255,36 +255,72 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
         {enrichedCostData.length > 0 ? (
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-muted-foreground mb-3">Cost by Model</h4>
-            {enrichedCostData.map((item, index) => (
-              <div
-                key={item.model}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-semibold text-xs">
-                    {index + 1}
-                  </div>
-                  <div className="space-y-1">
-                    <div className="font-medium text-foreground">
-                      {item.displayName}
+            <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+              {enrichedCostData.slice(0, 3).map((item, index) => (
+                <div
+                  key={item.model}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-semibold text-xs">
+                      {index + 1}
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>{item.totalRequests} requests</span>
-                      <span>{item.promptTokens.toLocaleString()} prompt</span>
-                      <span>{item.completionTokens.toLocaleString()} completion</span>
+                    <div className="space-y-1">
+                      <div className="font-medium text-foreground">
+                        {item.displayName}
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>{item.totalRequests} requests</span>
+                        <span>{item.promptTokens.toLocaleString()} prompt</span>
+                        <span>{item.completionTokens.toLocaleString()} completion</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-primary">
+                      ${item.cost.toFixed(4)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {totalCost > 0 ? `${((item.cost / totalCost) * 100).toFixed(1)}%` : '0%'}
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-semibold text-primary">
-                    ${item.cost.toFixed(4)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {totalCost > 0 ? `${((item.cost / totalCost) * 100).toFixed(1)}%` : '0%'}
-                  </div>
+              ))}
+              {enrichedCostData.length > 3 && (
+                <div className="space-y-3 pt-2 border-t border-border/30">
+                  {enrichedCostData.slice(3).map((item, index) => (
+                    <div
+                      key={item.model}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-semibold text-xs">
+                          {index + 4}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="font-medium text-foreground">
+                            {item.displayName}
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span>{item.totalRequests} requests</span>
+                            <span>{item.promptTokens.toLocaleString()} prompt</span>
+                            <span>{item.completionTokens.toLocaleString()} completion</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-semibold text-primary">
+                          ${item.cost.toFixed(4)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {totalCost > 0 ? `${((item.cost / totalCost) * 100).toFixed(1)}%` : '0%'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
         ) : (
           <div className="flex items-center justify-center h-32">
