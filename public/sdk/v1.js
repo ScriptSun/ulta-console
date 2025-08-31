@@ -789,7 +789,7 @@
             // Merge theme from config with options
             const mergedOptions = {
               ...options,
-              theme: { ...config.theme, ...options.theme }
+              theme: { ...config.theme, ...(options.theme || {}) }
             };
             
             createWidget(siteKey, mergedOptions);
