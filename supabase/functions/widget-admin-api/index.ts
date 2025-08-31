@@ -194,20 +194,32 @@ async function authenticateRequest(req: Request): Promise<{ valid: boolean, cust
       return { valid: false, error: 'Invalid token' }
     }
 
-    // Get user's customer_id
+    // Get user's customer_ids - use the first one that has widgets, or fallback to first one
     const { data: userRoles, error: rolesError } = await supabase
       .from('user_roles')
       .select('customer_id')
       .eq('user_id', user.id)
-      .limit(1)
-      .maybeSingle()
 
-    if (rolesError || !userRoles) {
+    if (rolesError || !userRoles || userRoles.length === 0) {
       console.error('User roles error:', rolesError)
       return { valid: false, error: 'User not associated with any customer' }
     }
 
-    return { valid: true, customer_id: userRoles.customer_id }
+    // Check which customer_id has widgets for this user
+    for (const role of userRoles) {
+      const { data: widgetCheck } = await supabase
+        .from('widgets')
+        .select('id')
+        .eq('customer_id', role.customer_id)
+        .limit(1)
+
+      if (widgetCheck && widgetCheck.length > 0) {
+        return { valid: true, customer_id: role.customer_id }
+      }
+    }
+
+    // If no customer has widgets, use the first customer_id
+    return { valid: true, customer_id: userRoles[0].customer_id }
   } catch (error) {
     console.error('Authentication error:', error)
     return { valid: false, error: 'Authentication failed' }
