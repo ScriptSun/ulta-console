@@ -252,36 +252,36 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
             <div className="space-y-6 mt-6">
               {/* Display Mode Radio Group */}
               <div>
-                <div className="mb-3">
+                <div className="flex items-center justify-between mb-3">
                   <Label className="text-base font-semibold flex items-center gap-2">
                     <Settings className="h-4 w-4" />
                     Display Mode
                   </Label>
+                  <RadioGroup
+                    value={displayMode}
+                    onValueChange={setDisplayMode}
+                    className="flex gap-6"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="standard" id="standard" />
+                      <Label htmlFor="standard" className="font-normal text-sm">
+                        Standard Mode
+                        <span className="block text-xs text-muted-foreground">
+                          Widget appears as a button
+                        </span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="open" id="open" />
+                      <Label htmlFor="open" className="font-normal text-sm">
+                        Open Mode
+                        <span className="block text-xs text-muted-foreground">
+                          Widget opens automatically
+                        </span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-                <RadioGroup
-                  value={displayMode}
-                  onValueChange={setDisplayMode}
-                  className="flex gap-6"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="standard" id="standard" />
-                    <Label htmlFor="standard" className="font-normal">
-                      Standard Mode
-                      <span className="block text-xs text-muted-foreground">
-                        Widget appears as a button
-                      </span>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="open" id="open" />
-                    <Label htmlFor="open" className="font-normal">
-                      Open Mode
-                      <span className="block text-xs text-muted-foreground">
-                        Widget opens automatically
-                      </span>
-                    </Label>
-                  </div>
-                </RadioGroup>
               </div>
 
               {/* Size Control Options */}
