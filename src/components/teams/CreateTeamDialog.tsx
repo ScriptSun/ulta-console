@@ -81,7 +81,9 @@ export function CreateTeamDialog({ open, onOpenChange }: CreateTeamDialogProps) 
         title: 'Success',
         description: 'Team created successfully',
       });
+      // Invalidate both teams and team members queries to refresh the UI
       queryClient.invalidateQueries({ queryKey: ['console-teams'] });
+      queryClient.invalidateQueries({ queryKey: ['console-team-members'] });
       form.reset();
       onOpenChange(false);
     },
