@@ -343,49 +343,34 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving, onPreviewUpda
               </div>
             </div>
 
-            {/* Typography */}
+            {/* Typography - Simplified without Select for now */}
             <div className="space-y-4">
               <Label className="text-sm font-medium">Typography</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="fontFamily">Font Family</Label>
-                  <Select
+                  <Input
+                    id="fontFamily"
                     value={formData.theme.font_family}
-                    onValueChange={(value) => updateFormData({
-                      theme: { ...formData.theme, font_family: value }
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, font_family: e.target.value }
                     })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="system-ui, -apple-system, sans-serif">System Default</SelectItem>
-                      <SelectItem value="'Inter', sans-serif">Inter</SelectItem>
-                      <SelectItem value="'Roboto', sans-serif">Roboto</SelectItem>
-                      <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
-                      <SelectItem value="'Poppins', sans-serif">Poppins</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="system-ui, -apple-system, sans-serif"
+                  />
+                  <p className="text-xs text-muted-foreground">CSS font-family value</p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="fontSize">Font Size</Label>
-                  <Select
+                  <Input
+                    id="fontSize"
                     value={formData.theme.font_size}
-                    onValueChange={(value) => updateFormData({
-                      theme: { ...formData.theme, font_size: value }
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, font_size: e.target.value }
                     })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="12px">Small (12px)</SelectItem>
-                      <SelectItem value="14px">Medium (14px)</SelectItem>
-                      <SelectItem value="16px">Large (16px)</SelectItem>
-                      <SelectItem value="18px">Extra Large (18px)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="14px"
+                  />
+                  <p className="text-xs text-muted-foreground">Base font size (e.g., 14px, 1rem)</p>
                 </div>
               </div>
             </div>
@@ -442,68 +427,47 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving, onPreviewUpda
               </div>
             </div>
 
-            {/* Layout & Styling */}
+            {/* Layout & Styling - Simplified */}
             <div className="space-y-4">
               <Label className="text-sm font-medium">Layout & Styling</Label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="borderRadius">Border Radius</Label>
-                  <Select
+                  <Input
+                    id="borderRadius"
                     value={formData.theme.border_radius}
-                    onValueChange={(value) => updateFormData({
-                      theme: { ...formData.theme, border_radius: value }
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, border_radius: e.target.value }
                     })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="4px">Sharp (4px)</SelectItem>
-                      <SelectItem value="8px">Medium (8px)</SelectItem>
-                      <SelectItem value="12px">Rounded (12px)</SelectItem>
-                      <SelectItem value="20px">Very Rounded (20px)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="8px"
+                  />
+                  <p className="text-xs text-muted-foreground">e.g., 4px, 8px, 12px</p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="shadowIntensity">Shadow Intensity</Label>
-                  <Select
+                  <Input
+                    id="shadowIntensity"
                     value={formData.theme.shadow_intensity}
-                    onValueChange={(value) => updateFormData({
-                      theme: { ...formData.theme, shadow_intensity: value }
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, shadow_intensity: e.target.value }
                     })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="heavy">Heavy</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="medium"
+                  />
+                  <p className="text-xs text-muted-foreground">none, light, medium, heavy</p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="animationSpeed">Animation Speed</Label>
-                  <Select
+                  <Input
+                    id="animationSpeed"
                     value={formData.theme.animation_speed}
-                    onValueChange={(value) => updateFormData({
-                      theme: { ...formData.theme, animation_speed: value }
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, animation_speed: e.target.value }
                     })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0.1s">Fast (0.1s)</SelectItem>
-                      <SelectItem value="0.2s">Normal (0.2s)</SelectItem>
-                      <SelectItem value="0.3s">Slow (0.3s)</SelectItem>
-                      <SelectItem value="0.5s">Very Slow (0.5s)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="0.2s"
+                  />
+                  <p className="text-xs text-muted-foreground">e.g., 0.1s, 0.2s, 0.3s</p>
                 </div>
               </div>
             </div>
