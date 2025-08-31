@@ -111,24 +111,24 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="rounded-lg border bg-background p-2 shadow-md">
+                      <div className="rounded-lg border border-slate-600 bg-slate-800/95 p-3 shadow-xl">
                         <div className="grid gap-2">
                           <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
+                            <span className="text-[0.70rem] uppercase text-slate-400">
                               {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </span>
-                            <span className="font-bold text-muted-foreground">
+                            <span className="font-bold text-white">
                               {label}
                             </span>
                           </div>
                           {payload.map((entry: any, index: number) => (
                             <div key={index} className="flex flex-col">
-                              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                              <span className="text-[0.70rem] uppercase text-slate-400">
                                 {entry.dataKey === 'active' ? 'Active' : 
                                  entry.dataKey === 'suspended' ? 'Suspended' : 
                                  entry.dataKey === 'terminated' ? 'Terminated' : 'Total'} Agents
                               </span>
-                              <span className="font-bold" style={{ color: entry.color }}>
+                              <span className="font-bold text-white">
                                 {entry.value}
                               </span>
                             </div>
@@ -175,21 +175,21 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="rounded-lg border bg-background p-2 shadow-md">
+                      <div className="rounded-lg border border-slate-600 bg-slate-800/95 p-3 shadow-xl">
                         <div className="grid gap-2">
                           <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
+                            <span className="text-[0.70rem] uppercase text-slate-400">
                               Status
                             </span>
-                            <span className="font-bold text-muted-foreground">
+                            <span className="font-bold text-white">
                               {payload[0]?.name}
                             </span>
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
+                            <span className="text-[0.70rem] uppercase text-slate-400">
                               Count
                             </span>
-                            <span className="font-bold">
+                            <span className="font-bold text-white">
                               {payload[0]?.value} agents
                             </span>
                           </div>
@@ -229,25 +229,25 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="rounded-lg border bg-background p-2 shadow-md">
+                      <div className="rounded-lg border border-slate-600 bg-slate-800/95 p-3 shadow-xl">
                         <div className="grid gap-2">
                           <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
+                            <span className="text-[0.70rem] uppercase text-slate-400">
                               {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </span>
-                            <span className="font-bold text-muted-foreground">
+                            <span className="font-bold text-white">
                               {label}
                             </span>
                           </div>
                           {payload.map((entry: any, index: number) => (
                             <div key={index} className="flex flex-col">
-                              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                              <span className="text-[0.70rem] uppercase text-slate-400">
                                 {entry.dataKey === 'active' ? 'Active' : 
                                  entry.dataKey === 'suspended' ? 'Suspended' : 
                                  entry.dataKey === 'terminated' ? 'Terminated' :
                                  'Total'} Agents
                               </span>
-                              <span className="font-bold" style={{ color: entry.color }}>
+                              <span className="font-bold text-white">
                                 {entry.value}
                               </span>
                             </div>
@@ -292,25 +292,25 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="rounded-lg border bg-background p-2 shadow-md">
+                      <div className="rounded-lg border border-slate-600 bg-slate-800/95 p-3 shadow-xl">
                         <div className="grid gap-2">
                           <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
+                            <span className="text-[0.70rem] uppercase text-slate-400">
                               {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </span>
-                            <span className="font-bold text-muted-foreground">
+                            <span className="font-bold text-white">
                               {label}
                             </span>
                           </div>
                           {payload.map((entry: any, index: number) => (
                             <div key={index} className="flex flex-col">
-                              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                              <span className="text-[0.70rem] uppercase text-slate-400">
                                {entry.dataKey === 'active' ? 'Active' : 
                                  entry.dataKey === 'suspended' ? 'Suspended' : 
                                  entry.dataKey === 'terminated' ? 'Terminated' :
                                  'Total'} Agents
                               </span>
-                              <span className="font-bold" style={{ color: entry.color }}>
+                              <span className="font-bold text-white">
                                 {entry.value}
                               </span>
                             </div>
@@ -349,19 +349,19 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
   }
 
   return (
-    <Card className="bg-gradient-card border-card-border shadow-card">
+    <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 shadow-card relative overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
+        <CardTitle className="flex items-center gap-2 text-white">
+          <BarChart3 className="h-5 w-5 text-blue-400" />
           Agent Status from {dateRange.label}
         </CardTitle>
         <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40 bg-slate-800/50 border-slate-600 text-white">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-slate-800 border-slate-600">
             {CHART_TYPES.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
+              <SelectItem key={type.value} value={type.value} className="text-white hover:bg-slate-700">
                 <div className="flex items-center gap-2">
                   <type.icon className="h-4 w-4" />
                   {type.label}
@@ -371,9 +371,11 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
           </SelectContent>
         </Select>
       </CardHeader>
+      {/* Blue gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10 pointer-events-none"></div>
       <CardContent>
-        <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm justify-items-center">
+        <div className="mb-4 p-4 rounded-lg bg-gradient-to-br from-slate-800 to-slate-700 border border-slate-600 relative overflow-hidden">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm justify-items-center relative z-10">
             <div 
               className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
                 !visibleSeries.active ? 'opacity-50' : ''
@@ -381,7 +383,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
               onClick={() => toggleSeries('active')}
             >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.active }}></div>
-              <span className="text-muted-foreground">Active: <span className="font-semibold text-foreground">{totals.active}</span></span>
+              <span className="text-slate-300">Active: <span className="font-semibold text-white">{totals.active}</span></span>
             </div>
             <div 
               className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
@@ -390,7 +392,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
               onClick={() => toggleSeries('suspended')}
             >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.suspended }}></div>
-              <span className="text-muted-foreground">Suspended: <span className="font-semibold text-foreground">{totals.suspended}</span></span>
+              <span className="text-slate-300">Suspended: <span className="font-semibold text-white">{totals.suspended}</span></span>
             </div>
             <div 
               className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
@@ -399,7 +401,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
               onClick={() => toggleSeries('terminated')}
             >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
-              <span className="text-muted-foreground">Terminated: <span className="font-semibold text-foreground">{totals.terminated}</span></span>
+              <span className="text-slate-300">Terminated: <span className="font-semibold text-white">{totals.terminated}</span></span>
             </div>
             <div 
               className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
@@ -408,9 +410,11 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
               onClick={() => toggleSeries('total')}
             >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.total }}></div>
-              <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{totals.total}</span></span>
+              <span className="text-slate-300">Total: <span className="font-semibold text-white">{totals.total}</span></span>
             </div>
           </div>
+          {/* Legend gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-600/20 via-transparent to-slate-500/20 pointer-events-none"></div>
         </div>
         
         {renderChart()}
