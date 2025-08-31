@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AltaAI Widget SDK Example</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f8f9fa;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .example-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .example-section h3 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button.secondary {
+            background: #6c757d;
+        }
+        
+        button.secondary:hover {
+            background: #545b62;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AltaAI Widget SDK Example</h1>
+        
+        <div class="example-section">
+            <h3>📋 Basic Usage</h3>
+            <p>Load the SDK and initialize with your site key:</p>
+            <pre><code>&lt;script src="/sdk/v1.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  AltaAIWidget.load('your-site-key-here', {
+    position: 'bottom-right',
+    width: '400px',
+    height: '600px'
+  });
+&lt;/script&gt;</code></pre>
+        </div>
+        
+        <div class="example-section">
+            <h3>🎛️ Interactive Demo</h3>
+            
+            <div class="control-group">
+                <label for="siteKey">Site Key:</label>
+                <input type="text" id="siteKey" placeholder="Enter your site key (e.g., abc123def456...)" value="">
+            </div>
+            
+            <div class="two-column">
+                <div class="control-group">
+                    <label for="position">Position:</label>
+                    <select id="position">
+                        <option value="bottom-right">Bottom Right</option>
+                        <option value="bottom-left">Bottom Left</option>
+                        <option value="top-right">Top Right</option>
+                        <option value="top-left">Top Left</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="width">Width:</label>
+                    <input type="text" id="width" value="400px">
+                </div>
+                
+                <div class="control-group">
+                    <label for="height">Height:</label>
+                    <input type="text" id="height" value="600px">
+                </div>
+                
+                <div class="control-group">
+                    <label for="borderRadius">Border Radius:</label>
+                    <input type="text" id="borderRadius" value="12px">
+                </div>
+                
+                <div class="control-group">
+                    <label for="colorPrimary">Primary Color:</label>
+                    <input type="color" id="colorPrimary" value="#007bff">
+                </div>
+                
+                <div class="control-group">
+                    <label for="textColor">Text Color:</label>
+                    <input type="color" id="textColor" value="#333333">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="welcomeText">Welcome Text:</label>
+                <input type="text" id="welcomeText" value="Hello! How can I help you today?">
+            </div>
+            
+            <div class="control-group">
+                <label for="logoUrl">Logo URL (optional):</label>
+                <input type="url" id="logoUrl" placeholder="https://example.com/logo.png">
+            </div>
+            
+            <div class="control-group">
+                <button onclick="loadWidget()">🚀 Load Widget</button>
+                <button onclick="unloadWidget()" class="secondary">❌ Unload Widget</button>
+                <button onclick="showCode()" class="secondary">📄 Show Code</button>
+            </div>
+            
+            <div id="status"></div>
+            <div id="generatedCode" style="display: none;"></div>
+        </div>
+        
+        <div class="example-section">
+            <h3>🔧 Auto-load with Data Attributes</h3>
+            <p>You can also auto-load the widget using data attributes on the script tag:</p>
+            <pre><code>&lt;script 
+  src="/sdk/v1.js"
+  data-altaai-site-key="your-site-key"
+  data-altaai-position="bottom-right"
+  data-altaai-width="400px"
+  data-altaai-height="600px"
+  data-altaai-colorprimary="#007bff"
+&gt;&lt;/script&gt;</code></pre>
+        </div>
+        
+        <div class="example-section">
+            <h3>📖 API Reference</h3>
+            <p><strong>AltaAIWidget.load(siteKey, opts)</strong></p>
+            <ul>
+                <li><code>siteKey</code> (string, required): Your widget's site key</li>
+                <li><code>opts</code> (object, optional): Configuration options</li>
+            </ul>
+            
+            <p><strong>Available Options:</strong></p>
+            <ul>
+                <li><code>position</code>: 'top-left', 'top-right', 'bottom-left', 'bottom-right'</li>
+                <li><code>width</code>: CSS width value (e.g., '400px', '25vw')</li>
+                <li><code>height</code>: CSS height value (e.g., '600px', '80vh')</li>
+                <li><code>borderRadius</code>: CSS border radius (e.g., '12px', '0')</li>
+                <li><code>zIndex</code>: CSS z-index value (default: '9999')</li>
+                <li><code>colorPrimary</code>: Primary color for the widget header</li>
+                <li><code>textColor</code>: Text color for the widget content</li>
+                <li><code>logoUrl</code>: URL to a logo image for the header</li>
+                <li><code>welcomeText</code>: Custom welcome message</li>
+            </ul>
+            
+            <p><strong>Other Methods:</strong></p>
+            <ul>
+                <li><code>AltaAIWidget.unload()</code>: Remove the widget</li>
+                <li><code>AltaAIWidget.isLoaded()</code>: Check if widget is loaded</li>
+                <li><code>AltaAIWidget.updateOptions(siteKey, opts)</code>: Update widget options</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Load the SDK -->
+    <script src="/sdk/v1.js"></script>
+    
+    <script>
+        function showStatus(message, type = 'success') {
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status ${type}`;
+            statusEl.textContent = message;
+        }
+        
+        function loadWidget() {
+            const siteKey = document.getElementById('siteKey').value.trim();
+            
+            if (!siteKey) {
+                showStatus('Please enter a site key', 'error');
+                return;
+            }
+            
+            const opts = {
+                position: document.getElementById('position').value,
+                width: document.getElementById('width').value,
+                height: document.getElementById('height').value,
+                borderRadius: document.getElementById('borderRadius').value,
+                colorPrimary: document.getElementById('colorPrimary').value,
+                textColor: document.getElementById('textColor').value,
+                welcomeText: document.getElementById('welcomeText').value,
+                logoUrl: document.getElementById('logoUrl').value || undefined
+            };
+            
+            try {
+                AltaAIWidget.load(siteKey, opts);
+                showStatus('Widget loaded successfully! Check the corner of your screen.');
+            } catch (error) {
+                showStatus('Failed to load widget: ' + error.message, 'error');
+            }
+        }
+        
+        function unloadWidget() {
+            AltaAIWidget.unload();
+            showStatus('Widget unloaded successfully.');
+        }
+        
+        function showCode() {
+            const siteKey = document.getElementById('siteKey').value.trim() || 'your-site-key-here';
+            const opts = {
+                position: document.getElementById('position').value,
+                width: document.getElementById('width').value,
+                height: document.getElementById('height').value,
+                borderRadius: document.getElementById('borderRadius').value,
+                colorPrimary: document.getElementById('colorPrimary').value,
+                textColor: document.getElementById('textColor').value,
+                welcomeText: document.getElementById('welcomeText').value,
+                logoUrl: document.getElementById('logoUrl').value || undefined
+            };
+            
+            // Remove undefined values for cleaner code
+            Object.keys(opts).forEach(key => opts[key] === undefined && delete opts[key]);
+            
+            const code = `<script src="/sdk/v1.js"></script>
+<script>
+AltaAIWidget.load('${siteKey}', ${JSON.stringify(opts, null, 2)});
+</script>`;
+            
+            const codeEl = document.getElementById('generatedCode');
+            codeEl.innerHTML = `<h4>Generated Code:</h4><pre><code>${escapeHtml(code)}</code></pre>`;
+            codeEl.style.display = 'block';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Generate a demo site key for testing
+        document.getElementById('siteKey').value = 'demo-' + Math.random().toString(36).substr(2, 16);
+    </script>
+</body>
+</html>
