@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   BarChart, 
@@ -353,7 +354,10 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" />
-          Agent Status from {dateRange.label}
+          Agents Status
+          <Badge variant="outline" className="ml-auto">
+            {dateRange.label}
+          </Badge>
         </CardTitle>
         <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
           <SelectTrigger className="w-40">
