@@ -379,7 +379,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
           <TabsContent value="advanced" className="space-y-4">
             {/* Display Mode and Advanced Options */}
-            <div className="space-y-6">
+            <div className="space-y-6 mt-6">
               {/* Display Mode Radio Group */}
               <div>
                 <div className="mb-3">
@@ -391,7 +391,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                 <RadioGroup
                   value={displayMode}
                   onValueChange={setDisplayMode}
-                  className="grid grid-cols-2 gap-3"
+                  className="flex gap-6"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="standard" id="standard" />
