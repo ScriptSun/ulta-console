@@ -5,13 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Users, UserPlus, Settings, Mail, X, Shield } from 'lucide-react';
+import { Plus, Users, UserPlus, Settings, Mail, X, Shield, Layout } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CreateTeamDialog } from '@/components/teams/CreateTeamDialog';
 import { AddMemberDialog } from '@/components/teams/AddMemberDialog';
 import { ManageRolesDialog } from '@/components/teams/ManageRolesDialog';
 import { InviteStaffDialog } from '@/components/teams/InviteStaffDialog';
 import { PagePermissionsDialog } from '@/components/teams/PagePermissionsDialog';
+import { WidgetScopeDialog } from '@/components/teams/WidgetScopeDialog';
 
 const ROLE_COLORS = {
   Owner: 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm',
@@ -38,6 +39,7 @@ export default function TeamManagement() {
   const [showManageRoles, setShowManageRoles] = useState(false);
   const [showInviteStaff, setShowInviteStaff] = useState(false);
   const [showPagePermissions, setShowPagePermissions] = useState(false);
+  const [showWidgetScope, setShowWidgetScope] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
 
@@ -318,20 +320,34 @@ export default function TeamManagement() {
                             {member.role}
                           </Badge>
                         </div>
-                        {canManageTeam && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedMember(member);
-                              setShowPagePermissions(true);
-                            }}
-                            className="h-6 px-2 text-xs gap-1"
-                          >
-                            <Shield className="h-3 w-3" />
-                            Page access
-                          </Button>
-                        )}
+                         {canManageTeam && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedMember(member);
+                                setShowPagePermissions(true);
+                              }}
+                              className="h-6 px-2 text-xs gap-1"
+                            >
+                              <Shield className="h-3 w-3" />
+                              Page access
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedMember(member);
+                                setShowWidgetScope(true);
+                              }}
+                              className="h-6 px-2 text-xs gap-1"
+                            >
+                              <Layout className="h-3 w-3" />
+                              Limit widgets
+                            </Button>
+                          </div>
+                         )}
                       </div>
                     ))}
                     {members.length > 5 && (
@@ -430,6 +446,13 @@ export default function TeamManagement() {
       <PagePermissionsDialog 
         open={showPagePermissions} 
         onOpenChange={setShowPagePermissions}
+        member={selectedMember}
+        currentUserRole={currentUserTeams?.find(t => t.id === selectedMember?.team_id)?.userRole || 'ReadOnly'}
+      />
+      
+      <WidgetScopeDialog 
+        open={showWidgetScope} 
+        onOpenChange={setShowWidgetScope}
         member={selectedMember}
         currentUserRole={currentUserTeams?.find(t => t.id === selectedMember?.team_id)?.userRole || 'ReadOnly'}
       />

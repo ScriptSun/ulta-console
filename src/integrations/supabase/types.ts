@@ -1194,6 +1194,45 @@ export type Database = {
           },
         ]
       }
+      console_member_widget_scopes: {
+        Row: {
+          created_at: string | null
+          id: string
+          member_id: string
+          updated_at: string | null
+          widget_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          member_id: string
+          updated_at?: string | null
+          widget_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          updated_at?: string | null
+          widget_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "console_member_widget_scopes_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "console_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "console_member_widget_scopes_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "widgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       console_pages: {
         Row: {
           created_at: string | null
