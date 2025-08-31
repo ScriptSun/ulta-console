@@ -73,10 +73,8 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
   // Generate embed code based on current settings
   const generateBasicEmbedCode = () => {
-    // Use the deployed domain for the SDK URL
-    const sdkUrl = window.location.hostname.includes('lovable.dev') || window.location.hostname.includes('sandbox.lovable.dev')
-      ? 'https://your-deployed-domain.com/sdk/v1.js' // Replace with actual deployed domain
-      : `${window.location.origin}/sdk/v1.js`;
+    // Use the deployed Lovable domain for the SDK URL
+    const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
     
     return `<script src="${sdkUrl}"></script>
 <script>
@@ -85,10 +83,8 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
   };
 
   const generateAdvancedEmbedCode = () => {
-    // Use the deployed domain for the SDK URL
-    const sdkUrl = window.location.hostname.includes('lovable.dev') || window.location.hostname.includes('sandbox.lovable.dev')
-      ? 'https://your-deployed-domain.com/sdk/v1.js' // Replace with actual deployed domain
-      : `${window.location.origin}/sdk/v1.js`;
+    // Use the deployed Lovable domain for the SDK URL
+    const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
     const opts: any = {};
     
     if (overrides.enabled) {
@@ -111,10 +107,8 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
   };
 
   const generateAutoLoadCode = () => {
-    // Use the deployed domain for the SDK URL
-    const sdkUrl = window.location.hostname.includes('lovable.dev') || window.location.hostname.includes('sandbox.lovable.dev')
-      ? 'https://your-deployed-domain.com/sdk/v1.js' // Replace with actual deployed domain
-      : `${window.location.origin}/sdk/v1.js`;
+    // Use the deployed Lovable domain for the SDK URL
+    const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
     const dataAttrs = [];
     dataAttrs.push(`data-altaai-site-key="${widget.site_key}"`);
     
