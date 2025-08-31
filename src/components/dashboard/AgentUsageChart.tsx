@@ -53,6 +53,19 @@ const STATUS_COLORS = {
 
 export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartProps) {
   const [chartType, setChartType] = useState<ChartType>('line'); // Default to line chart
+  const [visibleSeries, setVisibleSeries] = useState({
+    active: true,
+    suspended: true,
+    terminated: true,
+    total: true
+  });
+
+  const toggleSeries = (series: keyof typeof visibleSeries) => {
+    setVisibleSeries(prev => ({
+      ...prev,
+      [series]: !prev[series]
+    }));
+  };
 
   // Prepare data for charts - show agents by time period and status
   const chartData = data.map((item) => ({
@@ -127,18 +140,18 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                   return null;
                 }}
               />
-              <Bar dataKey="active" stackId="a" fill={STATUS_COLORS.active} />
-              <Bar dataKey="suspended" stackId="a" fill={STATUS_COLORS.suspended} />
-              <Bar dataKey="terminated" stackId="a" fill={STATUS_COLORS.terminated} />
+              {visibleSeries.active && <Bar dataKey="active" stackId="a" fill={STATUS_COLORS.active} />}
+              {visibleSeries.suspended && <Bar dataKey="suspended" stackId="a" fill={STATUS_COLORS.suspended} />}
+              {visibleSeries.terminated && <Bar dataKey="terminated" stackId="a" fill={STATUS_COLORS.terminated} />}
             </BarChart>
           </ResponsiveContainer>
         );
 
       case 'pie':
         const pieData = [
-          { name: 'Active', value: totals.active, color: STATUS_COLORS.active },
-          { name: 'Suspended', value: totals.suspended, color: STATUS_COLORS.suspended },
-          { name: 'Terminated', value: totals.terminated, color: STATUS_COLORS.terminated }
+          ...(visibleSeries.active ? [{ name: 'Active', value: totals.active, color: STATUS_COLORS.active }] : []),
+          ...(visibleSeries.suspended ? [{ name: 'Suspended', value: totals.suspended, color: STATUS_COLORS.suspended }] : []),
+          ...(visibleSeries.terminated ? [{ name: 'Terminated', value: totals.terminated, color: STATUS_COLORS.terminated }] : [])
         ];
         
         return (
@@ -244,10 +257,10 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                   return null;
                 }}
               />
-              <Line type="monotone" dataKey="active" stroke={STATUS_COLORS.active} strokeWidth={3} dot={{ fill: STATUS_COLORS.active, r: 4 }} />
-              <Line type="monotone" dataKey="suspended" stroke={STATUS_COLORS.suspended} strokeWidth={3} dot={{ fill: STATUS_COLORS.suspended, r: 4 }} />
-              <Line type="monotone" dataKey="terminated" stroke={STATUS_COLORS.terminated} strokeWidth={3} dot={{ fill: STATUS_COLORS.terminated, r: 4 }} />
-              <Line type="monotone" dataKey="total" stroke={STATUS_COLORS.total} strokeWidth={4} dot={{ fill: STATUS_COLORS.total, r: 5 }} />
+              {visibleSeries.active && <Line type="monotone" dataKey="active" stroke={STATUS_COLORS.active} strokeWidth={3} dot={{ fill: STATUS_COLORS.active, r: 4 }} />}
+              {visibleSeries.suspended && <Line type="monotone" dataKey="suspended" stroke={STATUS_COLORS.suspended} strokeWidth={3} dot={{ fill: STATUS_COLORS.suspended, r: 4 }} />}
+              {visibleSeries.terminated && <Line type="monotone" dataKey="terminated" stroke={STATUS_COLORS.terminated} strokeWidth={3} dot={{ fill: STATUS_COLORS.terminated, r: 4 }} />}
+              {visibleSeries.total && <Line type="monotone" dataKey="total" stroke={STATUS_COLORS.total} strokeWidth={4} dot={{ fill: STATUS_COLORS.total, r: 5 }} />}
             </LineChart>
           </ResponsiveContainer>
         );
@@ -306,9 +319,9 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                   return null;
                 }}
               />
-              <Area type="monotone" dataKey="terminated" stackId="1" stroke={STATUS_COLORS.terminated} fill={STATUS_COLORS.terminated} fillOpacity={0.6} />
-              <Area type="monotone" dataKey="suspended" stackId="1" stroke={STATUS_COLORS.suspended} fill={STATUS_COLORS.suspended} fillOpacity={0.6} />
-              <Area type="monotone" dataKey="active" stackId="1" stroke={STATUS_COLORS.active} fill={STATUS_COLORS.active} fillOpacity={0.6} />
+              {visibleSeries.terminated && <Area type="monotone" dataKey="terminated" stackId="1" stroke={STATUS_COLORS.terminated} fill={STATUS_COLORS.terminated} fillOpacity={0.6} />}
+              {visibleSeries.suspended && <Area type="monotone" dataKey="suspended" stackId="1" stroke={STATUS_COLORS.suspended} fill={STATUS_COLORS.suspended} fillOpacity={0.6} />}
+              {visibleSeries.active && <Area type="monotone" dataKey="active" stackId="1" stroke={STATUS_COLORS.active} fill={STATUS_COLORS.active} fillOpacity={0.6} />}
             </AreaChart>
           </ResponsiveContainer>
         );
@@ -357,19 +370,39 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
       <CardContent>
         <div className="mb-4 p-3 bg-muted/50 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center gap-2">
+            <div 
+              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+                !visibleSeries.active ? 'opacity-50' : ''
+              }`}
+              onClick={() => toggleSeries('active')}
+            >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.active }}></div>
               <span className="text-muted-foreground">Active: <span className="font-semibold text-foreground">{totals.active}</span></span>
             </div>
-            <div className="flex items-center gap-2">
+            <div 
+              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+                !visibleSeries.suspended ? 'opacity-50' : ''
+              }`}
+              onClick={() => toggleSeries('suspended')}
+            >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.suspended }}></div>
               <span className="text-muted-foreground">Suspended: <span className="font-semibold text-foreground">{totals.suspended}</span></span>
             </div>
-            <div className="flex items-center gap-2">
+            <div 
+              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+                !visibleSeries.terminated ? 'opacity-50' : ''
+              }`}
+              onClick={() => toggleSeries('terminated')}
+            >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
               <span className="text-muted-foreground">Terminated: <span className="font-semibold text-foreground">{totals.terminated}</span></span>
             </div>
-            <div className="flex items-center gap-2">
+            <div 
+              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+                !visibleSeries.total ? 'opacity-50' : ''
+              }`}
+              onClick={() => toggleSeries('total')}
+            >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.total }}></div>
               <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{totals.total}</span></span>
             </div>
@@ -380,19 +413,39 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
         
         {/* Chart Legend */}
         <div className="mt-4 flex flex-wrap gap-4 justify-center">
-          <div className="flex items-center gap-2">
+          <div 
+            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+              !visibleSeries.active ? 'opacity-50' : ''
+            }`}
+            onClick={() => toggleSeries('active')}
+          >
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.active }}></div>
             <span className="text-xs text-muted-foreground">Active</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div 
+            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+              !visibleSeries.suspended ? 'opacity-50' : ''
+            }`}
+            onClick={() => toggleSeries('suspended')}
+          >
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.suspended }}></div>
             <span className="text-xs text-muted-foreground">Suspended</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div 
+            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+              !visibleSeries.terminated ? 'opacity-50' : ''
+            }`}
+            onClick={() => toggleSeries('terminated')}
+          >
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
             <span className="text-xs text-muted-foreground">Terminated</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div 
+            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+              !visibleSeries.total ? 'opacity-50' : ''
+            }`}
+            onClick={() => toggleSeries('total')}
+          >
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.total }}></div>
             <span className="text-xs text-muted-foreground">Total</span>
           </div>
