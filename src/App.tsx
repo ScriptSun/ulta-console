@@ -14,7 +14,6 @@ import AgentDetail from "./pages/AgentDetail";
 import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
 import ApiKeys from "./pages/ApiKeys";
-import Quotas from "./pages/Quotas";
 import Plans from "./pages/Plans";
 import Security from "./pages/Security";
 import Audit from "./pages/Audit";
@@ -119,13 +118,6 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <ApiKeys />
-                </RootLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/quotas" element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <Quotas />
                 </RootLayout>
               </ProtectedRoute>
             } />

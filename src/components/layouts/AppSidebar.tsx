@@ -4,7 +4,6 @@ import {
   Bot, 
   CheckSquare, 
   Key, 
-  BarChart3, 
   CreditCard,
   Shield,
   Puzzle,
@@ -40,11 +39,6 @@ const mainItems = [
   { title: 'Tasks', url: '/tasks', icon: CheckSquare, pageKey: 'tasks' },
 ]
 
-const monitoringItems = [
-  { title: 'Quotas & Usage', url: '/quotas', icon: BarChart3, pageKey: 'quotas' },
-  { title: 'Plans', url: '/plans', icon: CreditCard, pageKey: 'plans' },
-]
-
 const securityItems = [
   { title: 'Security Dashboard', url: '/security/dashboard', icon: Shield, pageKey: 'security' },
   { title: 'Command Policies', url: '/security/command-policies', icon: Shield, pageKey: 'policies' },
@@ -53,6 +47,7 @@ const securityItems = [
 ]
 
 const toolsItems = [
+  { title: 'Plans', url: '/plans', icon: CreditCard, pageKey: 'plans' },
   { title: 'Widget Management', url: '/widget-management', icon: Globe, pageKey: 'widgets' },
   { title: 'Deployment Checklist', url: '/deployment-checklist', icon: Rocket, pageKey: 'deployment' },
   { title: 'Integrations', url: '/integrations', icon: Puzzle, pageKey: 'integrations' },
@@ -149,22 +144,6 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {/* Monitoring */}
-          <SidebarGroup>
-            {!collapsed && (
-              <SidebarGroupLabel className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-6 mb-2">
-                Monitoring
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {monitoringItems.map((item) => (
-                  <NavItem key={item.title} item={item} />
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
           {/* Security */}
           <SidebarGroup>
             {!collapsed && (
@@ -181,7 +160,7 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {/* Tools */}
+          {/* Configure */}
           <SidebarGroup>
             {!collapsed && (
               <SidebarGroupLabel className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-6 mb-2">
