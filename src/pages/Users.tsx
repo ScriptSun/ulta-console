@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Plus, User, Mail, Calendar, Eye } from 'lucide-react';
+import { Search, Plus, User, Mail, Calendar, Eye, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CreateUserDialog } from '@/components/users/CreateUserDialog';
-import { UserProfileDialog } from '@/components/users/UserProfileDialog';
 
 interface User {
   id: string;
@@ -22,10 +22,9 @@ interface User {
 }
 
 export default function Users() {
+  const navigate = useNavigate();
   const [searchEmail, setSearchEmail] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: users, isLoading, refetch } = useQuery({
@@ -55,8 +54,41 @@ export default function Users() {
   });
 
   const handleViewProfile = (user: User) => {
-    setSelectedUser(user);
-    setProfileDialogOpen(true);
+    navigate(`/users/${user.id}`);
+  };
+
+  const handleEditUser = (user: User) => {
+    // TODO: Implement edit functionality
+    toast({
+      title: 'Edit User',
+      description: 'Edit functionality will be implemented',
+    });
+  };
+
+  const handleDeleteUser = async (user: User) => {
+    if (window.confirm(`Are you sure you want to delete user ${user.email}?`)) {
+      try {
+        const { error } = await supabase
+          .from('users')
+          .delete()
+          .eq('id', user.id);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'User deleted successfully',
+        });
+        
+        refetch();
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to delete user',
+          variant: 'destructive',
+        });
+      }
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -157,14 +189,30 @@ export default function Users() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewProfile(user)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewProfile(user)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -180,14 +228,6 @@ export default function Users() {
           )}
         </CardContent>
       </Card>
-
-      {selectedUser && (
-        <UserProfileDialog
-          user={selectedUser}
-          open={profileDialogOpen}
-          onOpenChange={setProfileDialogOpen}
-        />
-      )}
     </div>
   );
 }

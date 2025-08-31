@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import RootLayout from "./components/layouts/RootLayout";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
+import UserDetail from "./pages/UserDetail";
 import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
 import ApiKeys from "./pages/ApiKeys";
@@ -71,6 +72,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <Users />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/users/:userId" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <UserDetail />
                 </RootLayout>
               </ProtectedRoute>
             } />
