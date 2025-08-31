@@ -117,7 +117,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* MRR */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-success/30 relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-slate-400">Monthly Recurring Revenue</div>
+              <div className="text-sm font-medium text-slate-400">Recurring Revenue ({data.periodLabel})</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/20 text-success text-xs font-medium">
                 {getTrendIcon(mrrTrend)}
                 <span>
@@ -142,7 +142,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* ARPU */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-primary/30 relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-slate-400">Average Revenue Per User</div>
+              <div className="text-sm font-medium text-slate-400">Avg Revenue Per User ({data.periodLabel})</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium">
                 {getTrendIcon(arpuTrend)}
                 <span>
@@ -167,7 +167,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* Churn Rate */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-destructive/30 relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-slate-400">Churn Rate</div>
+              <div className="text-sm font-medium text-slate-400">Churn Rate ({data.periodLabel})</div>
                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-destructive/20 text-destructive text-xs font-medium">
                  {getTrendIcon(churnTrend, true)}
                  <span>For {data.periodLabel.toLowerCase()}</span>

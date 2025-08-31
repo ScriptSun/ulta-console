@@ -146,8 +146,26 @@ export function useRevenueData(dateRange: DateRange) {
           return sum + planPrice;
         }, 0) || 0;
 
-        // Get churn data for this point (simplified for performance)
-        const pointChurnRate = 0; // Simplified churn calculation for trend
+        // Get churn data for this point - calculate actual churn for the period
+        const { data: pointCancelledSubs, error: churnError } = await supabase
+          .from('user_subscriptions')
+          .select('*')
+          .eq('status', 'cancelled')
+          .gte('cancelled_at', pointDateFormatted)
+          .lt('cancelled_at', nextPointDateFormatted);
+
+        if (churnError) throw churnError;
+
+        const { data: pointActiveSubs, error: activeError } = await supabase
+          .from('user_subscriptions')
+          .select('*')
+          .eq('status', 'active')
+          .lte('started_at', pointDateFormatted);
+
+        if (activeError) throw activeError;
+
+        const pointChurnRate = pointActiveSubs?.length ? 
+          (pointCancelledSubs?.length || 0) / pointActiveSubs.length * 100 : 0;
 
         mrrTrend.push({
           date: pointDateFormatted,
