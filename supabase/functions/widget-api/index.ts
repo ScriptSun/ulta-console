@@ -21,14 +21,14 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     
     console.log('Widget API - Environment check:', {
       hasSupabaseUrl: !!supabaseUrl,
-      hasSupabaseKey: !!supabaseAnonKey
+      hasSupabaseServiceKey: !!supabaseServiceKey
     })
     
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Widget API - Missing environment variables')
       return Response.json(
         { success: false, error: 'Server configuration error', code: 'ENV_MISSING' },
@@ -36,8 +36,8 @@ Deno.serve(async (req) => {
       )
     }
     
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    // Create Supabase client with service role key to bypass RLS for public widget access
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     let requestBody
     try {
