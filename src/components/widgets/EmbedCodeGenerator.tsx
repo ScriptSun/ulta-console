@@ -129,63 +129,71 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     if (advancedOptions.hideOnMobile) opts.hideOnMobile = true;
     if (!advancedOptions.showBadge) opts.showBadge = false;
     
-    // Add event handlers if enabled
-    let eventHandlers = '';
-    if (advancedOptions.enableEvents) {
-      eventHandlers = `,
-    onReady: function() {
-      console.log('🤖 UltaAI widget is ready');
-    },
-    onOpen: function() {
-      console.log('Widget opened');
-      // Track widget open event
-      // gtag('event', 'widget_open', { event_category: 'engagement' });
-    },
-    onClose: function() {
-      console.log('Widget closed');
-    },
-    onMessage: function(message) {
-      console.log('New message:', message);
-    },
-    onError: function(error) {
-      console.error('Widget error:', error);
-    }`;
-    }
-
-    // Add user identification if enabled
-    let userIdCode = '';
-    if (advancedOptions.userIdentification) {
-      userIdCode = `,
-    userId: 'user_12345',
-    userEmail: 'user@example.com',
-    userName: 'John Doe'`;
-    }
-
-    const hasOverrides = Object.keys(opts).length > 0 || eventHandlers || userIdCode;
-
-    let baseCode = `<script src="${sdkUrl}"></script>
+    const hasOptions = Object.keys(opts).length > 0;
+    const hasEvents = advancedOptions.enableEvents;
+    const hasUserData = advancedOptions.userIdentification;
+    
+    let code = `<script src="${sdkUrl}"></script>
 <script>
   // 🤖 UltaAI Widget Configuration
-  UltaAIWidget.load('${widget.site_key}'${hasOverrides ? `,
-    ${JSON.stringify(opts, null, 4).slice(1, -1)}${eventHandlers}${userIdCode}
-  }` : ''});`;
+  UltaAIWidget.load('${widget.site_key}'`;
+
+    if (hasOptions || hasEvents || hasUserData) {
+      code += `, {`;
+      
+      // Add basic options
+      const optionsArray = [];
+      Object.entries(opts).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          optionsArray.push(`    "${key}": "${value}"`);
+        } else {
+          optionsArray.push(`    "${key}": ${value}`);
+        }
+      });
+      
+      // Add user identification
+      if (hasUserData) {
+        optionsArray.push(`    "userId": "user_12345"`);
+        optionsArray.push(`    "userEmail": "user@example.com"`);
+        optionsArray.push(`    "userName": "John Doe"`);
+      }
+      
+      // Add event handlers
+      if (hasEvents) {
+        optionsArray.push(`    "onReady": function() {
+      console.log('🤖 UltaAI widget is ready');
+    }`);
+        optionsArray.push(`    "onOpen": function() {
+      console.log('Widget opened');
+    }`);
+        optionsArray.push(`    "onClose": function() {
+      console.log('Widget closed');
+    }`);
+        optionsArray.push(`    "onMessage": function(message) {
+      console.log('New message:', message);
+    }`);
+      }
+      
+      code += `\n${optionsArray.join(',\n')}\n  }`;
+    }
+    
+    code += `);`;
 
     if (advancedOptions.programmaticControl) {
-      baseCode += `
+      code += `
   
   // Programmatic control methods (available after widget loads)
   setTimeout(() => {
     // UltaAIWidget.open();  // Open widget
     // UltaAIWidget.close(); // Close widget
     // UltaAIWidget.sendMessage('Hello from website!'); // Send message
-    // UltaAIWidget.setUser({ userId: 'new_user', email: 'user@site.com' }); // Update user
   }, 1000);`;
     }
 
-    baseCode += `
+    code += `
 </script>`;
 
-    return baseCode;
+    return code;
   };
 
   const generateAutoLoadCode = () => {
