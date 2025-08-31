@@ -140,17 +140,28 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           </div>
 
           {/* ARPU */}
-          <div className="p-4 rounded-lg bg-muted/30">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Average Revenue Per User</div>
-              {getTrendIcon(arpuTrend)}
+          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-primary/30 relative overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-medium text-slate-400">Average Revenue Per User</div>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium">
+                {getTrendIcon(arpuTrend)}
+                <span>
+                  {data.previousPeriodArpu > 0 
+                    ? (((data.arpu - data.previousPeriodArpu) / data.previousPeriodArpu) * 100).toFixed(2)
+                    : '0.00'
+                  }%
+                </span>
+              </div>
             </div>
-            <div className="text-2xl font-bold text-foreground">
+            <div className="text-4xl font-bold text-white mb-2">
               {formatCurrency(data.arpu)}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-slate-400">
               vs {formatCurrency(data.previousPeriodArpu)} prev period
             </div>
+            {/* Blue gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-primary/30 to-transparent pointer-events-none"></div>
           </div>
 
           {/* Churn Rate */}
