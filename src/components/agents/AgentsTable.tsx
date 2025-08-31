@@ -100,8 +100,18 @@ const formatMemoryUsage = (usage: number) => {
   return `${gb} GB (${usage.toFixed(1)}%)`;
 };
 
-const getHashId = (fingerprint?: string) => {
-  return fingerprint ? fingerprint.slice(0, 8) : 'N/A';
+const getPlanDisplayName = (planKey: string) => {
+  const planNames: { [key: string]: string } = {
+    'free_plan': 'Free Plan',
+    'basic_plan': 'Basic Plan',
+    'pro_plan': 'Pro Plan',
+    'enterprise_plan': 'Enterprise Plan',
+    'starter': 'Starter Plan',
+    'professional': 'Professional Plan',
+    'enterprise': 'Enterprise Plan'
+  };
+  
+  return planNames[planKey] || planKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
 export function AgentsTable({
@@ -123,7 +133,6 @@ export function AgentsTable({
           <TableRow>
             <TableHead>Server / Hostname</TableHead>
             <TableHead>Agent ID</TableHead>
-            <TableHead>Hash ID</TableHead>
             <TableHead>User</TableHead>
             <TableHead>Plan</TableHead>
             <TableHead>IP Address</TableHead>
@@ -150,11 +159,6 @@ export function AgentsTable({
                 </code>
               </TableCell>
               <TableCell>
-                <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                  {getHashId(agent.certificate_fingerprint)}
-                </code>
-              </TableCell>
-              <TableCell>
                 {agent.users ? (
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">{agent.users.full_name || 'Unnamed User'}</span>
@@ -172,7 +176,7 @@ export function AgentsTable({
               </TableCell>
               <TableCell>
                 <Badge variant="outline" className="text-xs">
-                  {agent.plan_key || 'No Plan'}
+                  {agent.plan_key ? getPlanDisplayName(agent.plan_key) : 'Free Plan'}
                 </Badge>
               </TableCell>
               <TableCell>{agent.ip_address || 'N/A'}</TableCell>
