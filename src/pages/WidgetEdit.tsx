@@ -109,9 +109,9 @@ export default function WidgetEdit() {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Left Column - Edit Form */}
-        <div className="space-y-6">
+        <div>
           <WidgetEditForm
             widget={widget}
             onSave={handleSave}
