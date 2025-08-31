@@ -30,6 +30,7 @@ interface AgentUsageChartProps {
   dateRange: {
     start: Date;
     end: Date;
+    label: string;
   };
   groupBy: 'day' | 'week' | 'month';
 }
@@ -335,7 +336,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" />
-          Agents Status from Date range: {dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()}
+          Agent Status from {dateRange.label}
         </CardTitle>
         <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
           <SelectTrigger className="w-40">
