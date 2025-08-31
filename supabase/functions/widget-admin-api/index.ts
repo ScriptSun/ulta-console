@@ -31,6 +31,11 @@ function validateDomains(domains: string[]): string | null {
   const urlRegex = /^https?:\/\/[a-zA-Z0-9][a-zA-Z0-9\-._]*[a-zA-Z0-9]+(:\d+)?$/
   
   for (const domain of domains) {
+    // Reject wildcards explicitly
+    if (domain.includes('*') || domain.includes('//') || domain.endsWith('/*')) {
+      return `Wildcard domains not allowed: "${domain}". Use exact origins like https://client.whmcs.com`
+    }
+    
     if (!urlRegex.test(domain)) {
       return `Invalid domain format: "${domain}". Must be exact origins like https://client.whmcs.com`
     }
@@ -38,8 +43,86 @@ function validateDomains(domains: string[]): string | null {
   return null
 }
 
+// Rate limiting function using rate_limit_buckets table
+async function checkRateLimit(ip: string, endpoint: string, limit: number = 60): Promise<{ allowed: boolean, retryAfter?: number }> {
+  const bucketKey = `${ip}:${endpoint}`
+  const windowStart = new Date()
+  windowStart.setSeconds(0, 0) // Round to start of minute
+  
+  try {
+    // Get or create rate limit bucket for this minute
+    const { data: bucket, error: selectError } = await supabase
+      .from('rate_limit_buckets')
+      .select('count, window_start')
+      .eq('bucket_key', bucketKey)
+      .eq('bucket_type', 'api_endpoint')
+      .eq('window_start', windowStart.toISOString())
+      .single()
+
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.error('Rate limit check error:', selectError)
+      return { allowed: true } // Allow on error to avoid blocking legitimate requests
+    }
+
+    if (!bucket) {
+      // Create new bucket
+      await supabase
+        .from('rate_limit_buckets')
+        .insert({
+          bucket_key: bucketKey,
+          bucket_type: 'api_endpoint',
+          window_start: windowStart.toISOString(),
+          count: 1
+        })
+      return { allowed: true }
+    }
+
+    if (bucket.count >= limit) {
+      const nextWindow = new Date(windowStart)
+      nextWindow.setMinutes(nextWindow.getMinutes() + 1)
+      const retryAfter = Math.ceil((nextWindow.getTime() - Date.now()) / 1000)
+      return { allowed: false, retryAfter }
+    }
+
+    // Increment counter
+    await supabase
+      .from('rate_limit_buckets')
+      .update({ count: bucket.count + 1 })
+      .eq('bucket_key', bucketKey)
+      .eq('bucket_type', 'api_endpoint')
+      .eq('window_start', windowStart.toISOString())
+
+    return { allowed: true }
+  } catch (error) {
+    console.error('Rate limit error:', error)
+    return { allowed: true } // Allow on error
+  }
+}
+
+// Log audit events for widget changes
+async function logAuditEvent(customerId: string, action: string, widgetId: string, changes: any, apiKeyId?: string) {
+  try {
+    await supabase
+      .from('audit_logs')
+      .insert({
+        customer_id: customerId,
+        actor: apiKeyId ? `api_key:${apiKeyId}` : 'system',
+        action: `widget_${action}`,
+        target: `widget:${widgetId}`,
+        meta: {
+          widget_id: widgetId,
+          changes: changes,
+          timestamp: new Date().toISOString()
+        }
+      })
+  } catch (error) {
+    console.error('Audit log error:', error)
+    // Don't fail the main operation if audit logging fails
+  }
+}
+
 // Authenticate request using API key
-async function authenticateApiKey(req: Request): Promise<{ valid: boolean, customer_id?: string, error?: string }> {
+async function authenticateApiKey(req: Request): Promise<{ valid: boolean, customer_id?: string, api_key_id?: string, error?: string }> {
   const apiKey = req.headers.get('X-API-Key')
   
   if (!apiKey) {
@@ -83,7 +166,7 @@ async function authenticateApiKey(req: Request): Promise<{ valid: boolean, custo
       _api_key_id: apiKeyData.id
     })
 
-    return { valid: true, customer_id: keyData.customer_id }
+    return { valid: true, customer_id: keyData.customer_id, api_key_id: apiKeyData.id }
   } catch (error) {
     console.error('Authentication error:', error)
     return { valid: false, error: 'Authentication failed' }
@@ -91,7 +174,7 @@ async function authenticateApiKey(req: Request): Promise<{ valid: boolean, custo
 }
 
 // Handle POST /api/admin/widgets - Create new widget
-async function createWidget(req: Request, customerId: string): Promise<Response> {
+async function createWidget(req: Request, customerId: string, apiKeyId?: string): Promise<Response> {
   try {
     const body = await req.json()
     const { name, allowed_domains, theme } = body
@@ -132,6 +215,13 @@ async function createWidget(req: Request, customerId: string): Promise<Response>
       return errorResponse('Failed to create widget', 500)
     }
 
+    // Log audit event
+    await logAuditEvent(customerId, 'created', data.id, {
+      name,
+      allowed_domains,
+      theme
+    }, apiKeyId)
+
     return jsonResponse({
       id: data.id,
       site_key: data.site_key
@@ -165,7 +255,7 @@ async function listWidgets(customerId: string): Promise<Response> {
 }
 
 // Handle PATCH /api/admin/widgets/:id - Update widget
-async function updateWidget(req: Request, widgetId: string, customerId: string): Promise<Response> {
+async function updateWidget(req: Request, widgetId: string, customerId: string, apiKeyId?: string): Promise<Response> {
   try {
     const body = await req.json()
     const allowedFields = ['name', 'allowed_domains', 'theme']
@@ -220,6 +310,9 @@ async function updateWidget(req: Request, widgetId: string, customerId: string):
       return errorResponse('Failed to update widget', 500)
     }
 
+    // Log audit event with changes
+    await logAuditEvent(customerId, 'updated', widgetId, updates, apiKeyId)
+
     return jsonResponse(data)
   } catch (error) {
     console.error('Update widget error:', error)
@@ -237,8 +330,33 @@ function parseOrigin(originStr: string): string | null {
   }
 }
 
+// Get client IP for rate limiting
+function getClientIP(req: Request): string {
+  return req.headers.get('cf-connecting-ip') || 
+         req.headers.get('x-forwarded-for')?.split(',')[0] || 
+         req.headers.get('x-real-ip') || 
+         'unknown'
+}
+
 // Handle GET /api/widget/config - Public endpoint for iframe config
 async function getWidgetConfig(req: Request): Promise<Response> {
+  // Rate limit by IP
+  const clientIP = getClientIP(req)
+  const rateLimit = await checkRateLimit(clientIP, 'widget_config', 60)
+  
+  if (!rateLimit.allowed) {
+    return new Response(JSON.stringify({
+      error: 'Rate limit exceeded',
+      status: 429
+    }), {
+      status: 429,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Retry-After': rateLimit.retryAfter?.toString() || '60'
+      }
+    })
+  }
   const url = new URL(req.url)
   const siteKey = url.searchParams.get('site_key')
   const originParam = url.searchParams.get('origin')
@@ -378,11 +496,12 @@ serve(async (req) => {
     }
 
     const customerId = auth.customer_id!
+    const apiKeyId = auth.api_key_id
 
     // Admin route handlers
     if (path === '/api/admin/widgets') {
       if (req.method === 'POST') {
-        return await createWidget(req, customerId)
+        return await createWidget(req, customerId, apiKeyId)
       } else if (req.method === 'GET') {
         return await listWidgets(customerId)
       }
@@ -393,7 +512,7 @@ serve(async (req) => {
       }
 
       if (req.method === 'PATCH') {
-        return await updateWidget(req, widgetId, customerId)
+        return await updateWidget(req, widgetId, customerId, apiKeyId)
       }
     }
 
