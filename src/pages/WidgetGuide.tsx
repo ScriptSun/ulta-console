@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Plus, RefreshCw, TestTube } from "lucide-react";
+import { Settings, RefreshCw, TestTube } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWidgets, Widget, NewWidget } from "@/hooks/useWidgets";
 import { WidgetList } from "@/components/widgets/WidgetList";
@@ -11,12 +11,11 @@ import { WidgetPreview } from "@/components/widgets/WidgetPreview";
 import { EmbedCodeGenerator } from "@/components/widgets/EmbedCodeGenerator";
 
 export default function WidgetGuide() {
-  const { widgets, loading, createWidget, updateWidget, refetch } = useWidgets();
+  const { widgets, loading, updateWidget, refetch } = useWidgets();
   const { toast } = useToast();
   
   const [selectedWidget, setSelectedWidget] = useState<Widget | null>(null);
   const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewConfig, setPreviewConfig] = useState<any>(null);
 
@@ -27,24 +26,9 @@ export default function WidgetGuide() {
     }
   }, [widgets, selectedWidget]);
 
-  const handleCreateWidget = () => {
-    setIsCreating(true);
-    setEditingWidget(null);
-    setSelectedWidget(null);
-    setPreviewConfig({
-      name: 'New Widget',
-      theme: {
-        color_primary: '#007bff',
-        text_color: '#333333',
-        logo_url: '',
-        welcome_text: 'Hello! How can I help you today?'
-      }
-    });
-  };
 
   const handleEditWidget = (widget: Widget) => {
     setEditingWidget(widget);
-    setIsCreating(false);
     setSelectedWidget(widget);
     setPreviewConfig(null);
   };
@@ -59,18 +43,9 @@ export default function WidgetGuide() {
         if (updatedWidget) {
           setSelectedWidget({ ...updatedWidget, ...data });
         }
-      } else {
-        // Create new widget
-        const result = await createWidget(data);
-        if (result) {
-          // Find the newly created widget and select it
-          await refetch();
-          // The new widget will be selected automatically via useEffect
-        }
       }
       
       setEditingWidget(null);
-      setIsCreating(false);
       setPreviewConfig(null);
       
       // Refresh preview after 1 second
@@ -87,7 +62,6 @@ export default function WidgetGuide() {
 
   const handleCancelEdit = () => {
     setEditingWidget(null);
-    setIsCreating(false);
     setPreviewConfig(null);
     
     // Restore previous selection
@@ -131,19 +105,15 @@ export default function WidgetGuide() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button onClick={handleCreateWidget}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Widget
-          </Button>
         </div>
       </div>
 
       {/* Main Content */}
-      <Tabs value={isCreating || editingWidget ? "edit" : "list"} className="w-full">
+      <Tabs value={editingWidget ? "edit" : "list"} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="list">Widget List</TabsTrigger>
-          <TabsTrigger value="edit" disabled={!isCreating && !editingWidget}>
-            {isCreating ? 'Create Widget' : 'Edit Widget'}
+          <TabsTrigger value="edit" disabled={!editingWidget}>
+            Edit Widget
           </TabsTrigger>
           <TabsTrigger value="preview" disabled={!selectedWidget && !previewConfig}>
             Preview
@@ -179,7 +149,7 @@ export default function WidgetGuide() {
       </Tabs>
 
       {/* Side Panel for Preview (when editing) */}
-      {(isCreating || editingWidget) && (
+      {editingWidget && (
         <div className="fixed right-4 top-4 bottom-4 w-96 z-50">
           <div className="h-full bg-background border rounded-lg shadow-lg overflow-hidden">
             <div className="p-4 border-b">
