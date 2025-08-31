@@ -1,11 +1,17 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors.ts'
-import { Logger } from '../_shared/logger.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-)
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface BulkInviteRequest {
+  team_id: string;
+  invites: Array<{
+    email: string;
+    role: string;
+  }>;
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -14,174 +20,147 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const pathSegments = url.pathname.split('/').filter(Boolean);
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { team_id, invites } = await req.json() as BulkInviteRequest;
+
+    if (!team_id || !invites || !Array.isArray(invites)) {
+      return new Response(
+        JSON.stringify({ error: 'Missing team_id or invites array' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Processing bulk invite for team ${team_id} with ${invites.length} emails`);
+
+    const results = [];
     
-    Logger.request(req.method, url.pathname);
+    for (const invite of invites) {
+      const { email, role } = invite;
+      
+      try {
+        // Find user in auth.users by email
+        const { data: authUser, error: userError } = await supabase.auth.admin.listUsers();
+        
+        if (userError) {
+          console.error(`Error fetching users: ${userError.message}`);
+          results.push({ email, status: 'error', message: userError.message });
+          continue;
+        }
 
-    // Get auth token
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+        const user = authUser.users.find(u => u.email === email);
+        
+        if (!user) {
+          console.log(`User not found: ${email}`);
+          results.push({ email, status: 'skipped', message: 'User not found in auth.users' });
+          continue;
+        }
+
+        // Upsert admin_profiles
+        const { error: profileError } = await supabase
+          .from('admin_profiles')
+          .upsert({
+            id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.email
+          }, {
+            onConflict: 'id'
+          });
+
+        if (profileError) {
+          console.error(`Error upserting profile for ${email}: ${profileError.message}`);
+          results.push({ email, status: 'error', message: `Profile error: ${profileError.message}` });
+          continue;
+        }
+
+        // Check if team member already exists
+        const { data: existingMember } = await supabase
+          .from('console_team_members')
+          .select('id, role')
+          .eq('team_id', team_id)
+          .eq('admin_id', user.id)
+          .single();
+
+        if (existingMember) {
+          // Update role if different
+          if (existingMember.role !== role) {
+            const { error: updateError } = await supabase
+              .from('console_team_members')
+              .update({ role })
+              .eq('id', existingMember.id);
+
+            if (updateError) {
+              console.error(`Error updating member role for ${email}: ${updateError.message}`);
+              results.push({ email, status: 'error', message: `Update error: ${updateError.message}` });
+            } else {
+              console.log(`Updated role for ${email} to ${role}`);
+              results.push({ email, status: 'updated', message: `Role updated to ${role}` });
+            }
+          } else {
+            console.log(`Member ${email} already exists with correct role`);
+            results.push({ email, status: 'exists', message: 'Already a member with correct role' });
+          }
+        } else {
+          // Insert new team member
+          const { error: memberError } = await supabase
+            .from('console_team_members')
+            .insert({
+              team_id,
+              admin_id: user.id,
+              role
+            });
+
+          if (memberError) {
+            console.error(`Error inserting team member for ${email}: ${memberError.message}`);
+            results.push({ email, status: 'error', message: `Member error: ${memberError.message}` });
+          } else {
+            console.log(`Added ${email} as ${role} to team ${team_id}`);
+            results.push({ email, status: 'added', message: `Added as ${role}` });
+          }
+        }
+
+      } catch (error) {
+        console.error(`Unexpected error processing ${email}:`, error);
+        results.push({ 
+          email, 
+          status: 'error', 
+          message: `Unexpected error: ${error.message}` 
+        });
+      }
     }
 
-    // Set auth for supabase client
-    const token = authHeader.replace('Bearer ', '');
-    await supabase.auth.setSession({ access_token: token, refresh_token: '' });
+    console.log(`Bulk invite completed. Results:`, results);
 
-    if (req.method === 'POST' && pathSegments.length === 0) {
-      // POST /console-invites - Create invite
-      const { team_id, email, role } = await req.json();
-      
-      if (!team_id || !email || !role) {
-        return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        results,
+        summary: {
+          total: invites.length,
+          added: results.filter(r => r.status === 'added').length,
+          updated: results.filter(r => r.status === 'updated').length,
+          exists: results.filter(r => r.status === 'exists').length,
+          errors: results.filter(r => r.status === 'error').length,
+          skipped: results.filter(r => r.status === 'skipped').length,
+        }
+      }),
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
-
-      // Check if user can invite to this team
-      const { data: membership } = await supabase
-        .from('console_team_members')
-        .select('role')
-        .eq('team_id', team_id)
-        .eq('admin_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!membership || !['Owner', 'Admin'].includes(membership.role)) {
-        return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      // Check if already invited or member
-      const { data: existingInvite } = await supabase
-        .from('console_invites')
-        .select('id')
-        .eq('team_id', team_id)
-        .eq('email', email)
-        .eq('status', 'pending')
-        .maybeSingle();
-
-      if (existingInvite) {
-        return new Response(JSON.stringify({ error: 'Already invited' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      // Check if already a member
-      const { data: existingMember } = await supabase
-        .from('admin_profiles')
-        .select(`
-          console_team_members!inner(id)
-        `)
-        .eq('console_team_members.team_id', team_id)
-        .eq('email', email)
-        .maybeSingle();
-
-      if (existingMember) {
-        return new Response(JSON.stringify({ error: 'Already a team member' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      // Create invite
-      const { data, error } = await supabase
-        .from('console_invites')
-        .insert({
-          team_id,
-          email,
-          role,
-          created_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .select()
-        .single();
-
-      if (error) {
-        Logger.error('Failed to create invite', error);
-        return new Response(JSON.stringify({ error: 'Failed to create invite' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      Logger.info('Invite created', { inviteId: data.id, email, role });
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-
-    } else if (req.method === 'GET') {
-      // GET /console-invites?team_id=... - List invites
-      const team_id = url.searchParams.get('team_id');
-      
-      if (!team_id) {
-        return new Response(JSON.stringify({ error: 'team_id required' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const { data, error } = await supabase
-        .from('console_invites')
-        .select('*')
-        .eq('team_id', team_id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        Logger.error('Failed to fetch invites', error);
-        return new Response(JSON.stringify({ error: 'Failed to fetch invites' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-
-    } else if (req.method === 'POST' && pathSegments[1] === 'cancel') {
-      // POST /console-invites/:id/cancel - Cancel invite
-      const inviteId = pathSegments[0];
-      
-      const { data, error } = await supabase
-        .from('console_invites')
-        .update({ status: 'canceled' })
-        .eq('id', inviteId)
-        .select()
-        .single();
-
-      if (error) {
-        Logger.error('Failed to cancel invite', error);
-        return new Response(JSON.stringify({ error: 'Failed to cancel invite' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      Logger.info('Invite canceled', { inviteId });
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-
-    } else {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    );
 
   } catch (error) {
-    Logger.error('Unexpected error in console-invites', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    console.error('Edge function error:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 });
