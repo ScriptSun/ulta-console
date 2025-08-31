@@ -182,7 +182,11 @@ export function AIInsightsCard({ dateRange }: AIInsightsCardProps) {
       </Card>
 
       {/* Agent Usage Chart */}
-      <AgentUsageChart data={data?.topAgents || []} />
+      <AgentUsageChart 
+        data={data?.topAgents || []} 
+        totalActiveAgents={data?.totalActiveAgents || 0}
+        dateRange={dateRange}
+      />
     </div>
   );
 }

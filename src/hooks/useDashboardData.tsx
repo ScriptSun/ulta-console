@@ -97,13 +97,29 @@ export function useAIInsights(dateRange: DateRange) {
   return useQuery({
     queryKey: ['ai-insights', dateRange.start, dateRange.end],
     queryFn: async () => {
-      // Top agents by usage
+      // Get active agents in the date range
+      const { data: agents, error: agentsError } = await supabase
+        .from('agents')
+        .select(`
+          id,
+          hostname,
+          status,
+          last_seen,
+          created_at
+        `)
+        .eq('status', 'active')
+        .gte('created_at', dateRange.start.toISOString())
+        .lte('created_at', dateRange.end.toISOString());
+
+      if (agentsError) throw agentsError;
+
+      // Get usage data for active agents
       const { data: agentUsage, error: usageError } = await supabase
         .from('agent_usage')
         .select(`
           agent_id,
           count,
-          agents(hostname)
+          agents(hostname, status, last_seen)
         `)
         .gte('usage_date', dateRange.start.toISOString().split('T')[0])
         .lte('usage_date', dateRange.end.toISOString().split('T')[0]);
@@ -119,19 +135,17 @@ export function useAIInsights(dateRange: DateRange) {
             id: agentId,
             name: usage.agents?.hostname || 'Unknown',
             usage: 0,
-            promptTokens: 0,
-            completionTokens: 0
+            status: usage.agents?.status || 'unknown',
+            last_seen: usage.agents?.last_seen
           });
         }
         const agent = agentMap.get(agentId);
         agent.usage += usage.count || 0;
-        agent.promptTokens += 0; // Will be added when columns exist
-        agent.completionTokens += 0; // Will be added when columns exist
       });
 
       const topAgents = Array.from(agentMap.values())
         .sort((a, b) => b.usage - a.usage)
-        .slice(0, 5);
+        .slice(0, 10);
 
       // Agent errors
       const { data: agentErrors, error: errorError } = await supabase
@@ -149,15 +163,16 @@ export function useAIInsights(dateRange: DateRange) {
 
       // Calculate total cost (simplified pricing)
       const totalCost = Array.from(agentMap.values()).reduce((total, agent) => {
-        return total + (agent.promptTokens * 0.000003) + (agent.completionTokens * 0.000015);
+        return total + (agent.usage * 0.01); // Simple cost calculation
       }, 0);
 
       return {
         topAgents,
+        totalActiveAgents: agents?.length || 0,
         agentErrors: agentErrors || [],
         totalCost,
         totalTokens: Array.from(agentMap.values()).reduce((total, agent) => 
-          total + agent.promptTokens + agent.completionTokens, 0)
+          total + agent.usage, 0)
       };
     }
   });

@@ -21,11 +21,17 @@ import { BarChart3, PieChart as PieChartIcon, TrendingUp, AreaChart as AreaChart
 
 interface AgentUsageChartProps {
   data: Array<{
-    month: string;
-    year: number;
-    count: number;
-    date: Date;
+    id: string;
+    name: string;
+    usage: number;
+    status: string;
+    last_seen?: string;
   }>;
+  totalActiveAgents: number;
+  dateRange: {
+    start: Date;
+    end: Date;
+  };
 }
 
 type ChartType = 'bar' | 'pie' | 'line' | 'area';
@@ -46,13 +52,14 @@ const COLORS = [
   'hsl(240, 5%, 65%)'    // muted-foreground
 ];
 
-export function AgentUsageChart({ data }: AgentUsageChartProps) {
+export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsageChartProps) {
   const [chartType, setChartType] = useState<ChartType>('bar');
 
-  // Prepare data for charts
-  const chartData = data.slice(0, 12).map((item, index) => ({
-    name: `${item.month} ${item.year}`,
-    count: item.count,
+  // Prepare data for charts - show agent usage data
+  const chartData = data.slice(0, 12).map((agent, index) => ({
+    name: agent.name || `Agent ${agent.id.slice(0, 8)}`,
+    usage: agent.usage,
+    status: agent.status,
     color: COLORS[index % COLORS.length]
   }));
 
@@ -87,7 +94,7 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
                         <div className="grid gap-2">
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Month
+                              Agent
                             </span>
                             <span className="font-bold text-muted-foreground">
                               {label}
@@ -95,10 +102,10 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Agents Created
+                              Usage Count
                             </span>
                             <span className="font-bold">
-                              {payload[0]?.value} agents
+                              {payload[0]?.value} requests
                             </span>
                           </div>
                         </div>
@@ -109,7 +116,7 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
                 }}
               />
               <Bar 
-                dataKey="count" 
+                dataKey="usage" 
                 fill="hsl(250, 70%, 60%)"
                 radius={[4, 4, 0, 0]}
               />
@@ -126,7 +133,7 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
                 cx="50%"
                 cy="50%"
                 outerRadius={100}
-                dataKey="count"
+                dataKey="usage"
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
               >
                 {chartData.map((entry, index) => (
@@ -141,7 +148,7 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
                         <div className="grid gap-2">
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Month
+                              Agent
                             </span>
                             <span className="font-bold text-muted-foreground">
                               {payload[0]?.name}
@@ -149,10 +156,10 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Agents Created
+                              Usage Count
                             </span>
                             <span className="font-bold">
-                              {payload[0]?.value} agents
+                              {payload[0]?.value} requests
                             </span>
                           </div>
                         </div>
@@ -195,7 +202,7 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
                         <div className="grid gap-2">
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Month
+                              Agent
                             </span>
                             <span className="font-bold text-muted-foreground">
                               {label}
@@ -203,10 +210,10 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Agents Created
+                              Usage Count
                             </span>
                             <span className="font-bold">
-                              {payload[0]?.value} agents
+                              {payload[0]?.value} requests
                             </span>
                           </div>
                         </div>
@@ -218,7 +225,7 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
               />
               <Line 
                 type="monotone" 
-                dataKey="count" 
+                dataKey="usage" 
                 stroke="hsl(250, 70%, 60%)" 
                 strokeWidth={3}
                 dot={{ fill: 'hsl(250, 70%, 60%)', r: 6 }}
@@ -256,7 +263,7 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
                         <div className="grid gap-2">
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Month
+                              Agent
                             </span>
                             <span className="font-bold text-muted-foreground">
                               {label}
@@ -264,10 +271,10 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Agents Created
+                              Usage Count
                             </span>
                             <span className="font-bold">
-                              {payload[0]?.value} agents
+                              {payload[0]?.value} requests
                             </span>
                           </div>
                         </div>
@@ -279,7 +286,7 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
               />
               <Area 
                 type="monotone" 
-                dataKey="count" 
+                dataKey="usage" 
                 stroke="hsl(250, 70%, 60%)" 
                 fill="hsl(250, 70%, 60%)"
                 fillOpacity={0.3}
@@ -297,10 +304,10 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
     return (
       <Card className="bg-gradient-card border-card-border shadow-card">
         <CardHeader>
-          <CardTitle>Agents Created by Month</CardTitle>
+          <CardTitle>Active Agents in Selected Range</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[300px]">
-          <p className="text-muted-foreground">No agent creation data available</p>
+          <p className="text-muted-foreground">No active agents found in the selected date range</p>
         </CardContent>
       </Card>
     );
@@ -311,7 +318,7 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" />
-          Agents Created by Month
+          Active Agents ({totalActiveAgents} total)
         </CardTitle>
         <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
           <SelectTrigger className="w-40">
@@ -330,6 +337,13 @@ export function AgentUsageChart({ data }: AgentUsageChartProps) {
         </Select>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            Showing <span className="font-semibold text-foreground">{totalActiveAgents}</span> total active agents
+            in the selected date range ({dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()})
+          </p>
+        </div>
+        
         {renderChart()}
         
         {/* Chart Legend */}
