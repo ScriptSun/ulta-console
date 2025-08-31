@@ -36,10 +36,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Handle additional logic after auth state changes
         if (session?.user && event === 'SIGNED_IN') {
-          setTimeout(() => {
+          setTimeout(async () => {
             // Auto-assign admin role to admin@admin.com
             if (session.user.email === 'admin@admin.com') {
               assignAdminRole(session.user.id);
+            }
+            
+            // Track user session
+            try {
+              await supabase.rpc('track_user_session', {
+                user_uuid: session.user.id,
+                client_ip: null, // In production, you'd get this from request headers
+                client_user_agent: navigator.userAgent
+              });
+            } catch (error) {
+              console.error('Failed to track session:', error);
             }
           }, 0);
         }

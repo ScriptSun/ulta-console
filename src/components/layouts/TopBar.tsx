@@ -15,10 +15,37 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { supabase } from '@/integrations/supabase/client'
+import { useState, useEffect } from 'react'
+import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 
 export function TopBar() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+
+  // Load user avatar from profile
+  useEffect(() => {
+    if (user) {
+      loadUserAvatar();
+    }
+  }, [user]);
+
+  const loadUserAvatar = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_profiles')
+        .select('avatar_url')
+        .eq('id', user?.id)
+        .maybeSingle();
+
+      if (data?.avatar_url) {
+        setAvatarUrl(data.avatar_url);
+      }
+    } catch (error) {
+      console.error('Error loading avatar:', error);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -83,18 +110,7 @@ export function TopBar() {
           </div>
 
           {/* Notifications */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="relative hover-scale group transition-all duration-300 hover:bg-accent hover:shadow-glow rounded-xl p-2"
-          >
-            <Bell className="h-5 w-5 transition-all duration-300 group-hover:rotate-12 group-hover:text-primary" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center p-0 text-[10px] font-bold bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg border-2 border-card min-w-[20px]">
-              <span className="leading-none">3</span>
-            </Badge>
-            {/* Notification indicator dot */}
-            <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-white rounded-full"></div>
-          </Button>
+          <NotificationCenter />
         </div>
 
         {/* Right Side - User Menu */}
@@ -103,7 +119,7 @@ export function TopBar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 h-10 px-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg" />
+                  <AvatarImage src={avatarUrl} />
                   <AvatarFallback className="bg-gradient-primary text-white">
                     {getUserInitials()}
                   </AvatarFallback>

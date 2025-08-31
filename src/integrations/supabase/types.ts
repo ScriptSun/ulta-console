@@ -16,18 +16,21 @@ export type Database = {
     Tables: {
       admin_profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           email: string
           full_name: string | null
           id: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           email: string
           full_name?: string | null
           id: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           email?: string
           full_name?: string | null
@@ -2065,6 +2068,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          agent_notifications: boolean
+          created_at: string
+          email_alerts: boolean
+          id: string
+          security_alerts: boolean
+          system_updates: boolean
+          theme_preference: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_notifications?: boolean
+          created_at?: string
+          email_alerts?: boolean
+          id?: string
+          security_alerts?: boolean
+          system_updates?: boolean
+          theme_preference?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_notifications?: boolean
+          created_at?: string
+          email_alerts?: boolean
+          id?: string
+          security_alerts?: boolean
+          system_updates?: boolean
+          theme_preference?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2088,6 +2127,48 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          created_at: string
+          device_type: string | null
+          id: string
+          ip_address: unknown | null
+          is_active: boolean
+          location: string | null
+          session_end: string | null
+          session_start: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean
+          location?: string | null
+          session_end?: string | null
+          session_start?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean
+          location?: string | null
+          session_end?: string | null
+          session_start?: string
+          updated_at?: string
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
@@ -2777,6 +2858,14 @@ export type Database = {
       track_api_key_usage: {
         Args: { _api_key_id: string }
         Returns: undefined
+      }
+      track_user_session: {
+        Args: {
+          client_ip?: unknown
+          client_user_agent?: string
+          user_uuid: string
+        }
+        Returns: string
       }
       validate_api_key: {
         Args: { _api_key: string }
