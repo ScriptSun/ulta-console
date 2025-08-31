@@ -249,105 +249,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
           <TabsContent value="advanced" className="space-y-4">
             {/* Display Mode and Advanced Options */}
             <div className="space-y-6 mt-6">
-              {/* Display Mode Radio Group */}
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Display Mode
-                </Label>
-                <div className="flex items-center gap-6">
-                  <RadioGroup
-                    value={displayMode}
-                    onValueChange={setDisplayMode}
-                    className="flex gap-6"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="standard" id="standard" />
-                      <Label htmlFor="standard" className="font-normal text-sm">
-                        Standard Mode
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="open" id="open" />
-                      <Label htmlFor="open" className="font-normal text-sm">
-                        Open Mode
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </div>
-
-              {/* Size Control Options */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold flex items-center gap-2">
-                    <Palette className="h-4 w-4" />
-                    Widget Size Control
-                  </Label>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="customSize"
-                      checked={sizeOptions.customSize}
-                      onCheckedChange={(checked) =>
-                        setSizeOptions(prev => ({ ...prev, customSize: checked as boolean }))
-                      }
-                    />
-                    <Label htmlFor="customSize" className="font-normal text-sm">
-                      Enable Custom Size
-                    </Label>
-                  </div>
-                </div>
-
-                {sizeOptions.customSize && (
-                  <div className="grid grid-cols-3 gap-3 p-3 bg-muted rounded-lg">
-                    <div className="space-y-1">
-                      <Label htmlFor="widgetWidth" className="text-sm">Width (px)</Label>
-                      <Input
-                        id="widgetWidth"
-                        type="number"
-                        value={sizeOptions.width}
-                        onChange={(e) => setSizeOptions(prev => ({ ...prev, width: e.target.value }))}
-                        placeholder="400"
-                        min="200"
-                        max="800"
-                        className="h-8"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="widgetHeight" className="text-sm">Height (px)</Label>
-                      <Input
-                        id="widgetHeight"
-                        type="number"
-                        value={sizeOptions.height}
-                        onChange={(e) => setSizeOptions(prev => ({ ...prev, height: e.target.value }))}
-                        placeholder="600"
-                        min="300"
-                        max="800"
-                        className="h-8"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="widgetPosition" className="text-sm">Position</Label>
-                      <select
-                        id="widgetPosition"
-                        value={sizeOptions.position}
-                        onChange={(e) => setSizeOptions(prev => ({ ...prev, position: e.target.value }))}
-                        className="w-full px-2 py-1 h-8 border border-input bg-background rounded-md text-sm"
-                      >
-                        <option value="bottom-right">Bottom Right</option>
-                        <option value="bottom-left">Bottom Left</option>
-                        <option value="top-right">Top Right</option>
-                        <option value="top-left">Top Left</option>
-                        <option value="center">Center</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Advanced Options Checkboxes */}
+              {/* Advanced Options */}
               <div>
                 <div className="mb-3">
                   <Label className="text-base font-semibold flex items-center gap-2">
@@ -355,70 +257,165 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                     Advanced Options
                   </Label>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="hideOnMobile"
-                      checked={advancedOptions.hideOnMobile}
-                      onCheckedChange={(checked) =>
-                        setAdvancedOptions(prev => ({ ...prev, hideOnMobile: checked as boolean }))
-                      }
-                    />
-                    <Label htmlFor="hideOnMobile" className="font-normal text-sm">
-                      Hide on Mobile
-                    </Label>
+                <div className="space-y-4">
+                  {/* Display Mode Options */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Display Mode</span>
+                    <div className="flex items-center gap-6">
+                      <RadioGroup
+                        value={displayMode}
+                        onValueChange={setDisplayMode}
+                        className="flex gap-6"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="standard" id="standard" />
+                          <Label htmlFor="standard" className="font-normal text-sm">
+                            Standard Mode
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="open" id="open" />
+                          <Label htmlFor="open" className="font-normal text-sm">
+                            Open Mode
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="showBadge"
-                      checked={advancedOptions.showBadge}
-                      onCheckedChange={(checked) =>
-                        setAdvancedOptions(prev => ({ ...prev, showBadge: checked as boolean }))
-                      }
-                    />
-                    <Label htmlFor="showBadge" className="font-normal text-sm">
-                      Show Badge
-                    </Label>
+                  {/* Widget Size Control */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Widget Size Control</span>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="customSize"
+                          checked={sizeOptions.customSize}
+                          onCheckedChange={(checked) =>
+                            setSizeOptions(prev => ({ ...prev, customSize: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="customSize" className="font-normal text-sm">
+                          Enable Custom Size
+                        </Label>
+                      </div>
+                    </div>
+
+                    {sizeOptions.customSize && (
+                      <div className="grid grid-cols-3 gap-3 p-3 bg-muted rounded-lg">
+                        <div className="space-y-1">
+                          <Label htmlFor="widgetWidth" className="text-sm">Width (px)</Label>
+                          <Input
+                            id="widgetWidth"
+                            type="number"
+                            value={sizeOptions.width}
+                            onChange={(e) => setSizeOptions(prev => ({ ...prev, width: e.target.value }))}
+                            placeholder="400"
+                            min="200"
+                            max="800"
+                            className="h-8"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="widgetHeight" className="text-sm">Height (px)</Label>
+                          <Input
+                            id="widgetHeight"
+                            type="number"
+                            value={sizeOptions.height}
+                            onChange={(e) => setSizeOptions(prev => ({ ...prev, height: e.target.value }))}
+                            placeholder="600"
+                            min="300"
+                            max="800"
+                            className="h-8"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="widgetPosition" className="text-sm">Position</Label>
+                          <select
+                            id="widgetPosition"
+                            value={sizeOptions.position}
+                            onChange={(e) => setSizeOptions(prev => ({ ...prev, position: e.target.value }))}
+                            className="w-full px-2 py-1 h-8 border border-input bg-background rounded-md text-sm"
+                          >
+                            <option value="bottom-right">Bottom Right</option>
+                            <option value="bottom-left">Bottom Left</option>
+                            <option value="top-right">Top Right</option>
+                            <option value="top-left">Top Left</option>
+                            <option value="center">Center</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="enableEvents"
-                      checked={advancedOptions.enableEvents}
-                      onCheckedChange={(checked) =>
-                        setAdvancedOptions(prev => ({ ...prev, enableEvents: checked as boolean }))
-                      }
-                    />
-                    <Label htmlFor="enableEvents" className="font-normal text-sm">
-                      Event Handlers
-                    </Label>
-                  </div>
+                  {/* Other Advanced Options */}
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/50">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="hideOnMobile"
+                        checked={advancedOptions.hideOnMobile}
+                        onCheckedChange={(checked) =>
+                          setAdvancedOptions(prev => ({ ...prev, hideOnMobile: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="hideOnMobile" className="font-normal text-sm">
+                        Hide on Mobile
+                      </Label>
+                    </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="userIdentification"
-                      checked={advancedOptions.userIdentification}
-                      onCheckedChange={(checked) =>
-                        setAdvancedOptions(prev => ({ ...prev, userIdentification: checked as boolean }))
-                      }
-                    />
-                    <Label htmlFor="userIdentification" className="font-normal text-sm">
-                      User Identification
-                    </Label>
-                  </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showBadge"
+                        checked={advancedOptions.showBadge}
+                        onCheckedChange={(checked) =>
+                          setAdvancedOptions(prev => ({ ...prev, showBadge: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="showBadge" className="font-normal text-sm">
+                        Show Badge
+                      </Label>
+                    </div>
 
-                  <div className="flex items-center space-x-2 col-span-2">
-                    <Checkbox
-                      id="programmaticControl"
-                      checked={advancedOptions.programmaticControl}
-                      onCheckedChange={(checked) =>
-                        setAdvancedOptions(prev => ({ ...prev, programmaticControl: checked as boolean }))
-                      }
-                    />
-                    <Label htmlFor="programmaticControl" className="font-normal text-sm">
-                      Programmatic Control
-                    </Label>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="enableEvents"
+                        checked={advancedOptions.enableEvents}
+                        onCheckedChange={(checked) =>
+                          setAdvancedOptions(prev => ({ ...prev, enableEvents: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="enableEvents" className="font-normal text-sm">
+                        Event Handlers
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="userIdentification"
+                        checked={advancedOptions.userIdentification}
+                        onCheckedChange={(checked) =>
+                          setAdvancedOptions(prev => ({ ...prev, userIdentification: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="userIdentification" className="font-normal text-sm">
+                        User Identification
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2 col-span-2">
+                      <Checkbox
+                        id="programmaticControl"
+                        checked={advancedOptions.programmaticControl}
+                        onCheckedChange={(checked) =>
+                          setAdvancedOptions(prev => ({ ...prev, programmaticControl: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="programmaticControl" className="font-normal text-sm">
+                        Programmatic Control
+                      </Label>
+                    </div>
                   </div>
                 </div>
               </div>
