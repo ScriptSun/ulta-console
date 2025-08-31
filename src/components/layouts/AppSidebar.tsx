@@ -9,7 +9,6 @@ import {
   Shield,
   Puzzle,
   TestTube,
-  FileText,
   Users,
   Package,
   MessageSquare,
@@ -128,7 +127,7 @@ export function AppSidebar() {
         {/* Logo Section */}
         <div className="flex items-center gap-3 px-6 mb-8">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <FileText className="h-5 w-5 text-white" />
+            <Bot className="h-5 w-5 text-white" />
           </div>
           {!collapsed && (
             <div className="flex flex-col">
