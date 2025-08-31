@@ -183,71 +183,71 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
         {/* Summary Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {/* Total Cost */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-yellow-500/30 relative overflow-hidden">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">
-              <DollarSign className="h-4 w-4" />
+          <div className="p-3 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-yellow-500/30 relative overflow-hidden">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-2">
+              <DollarSign className="h-3 w-3" />
               Total Cost
             </div>
-            <div className="text-4xl font-bold text-white mb-2">
+            <div className="text-2xl font-bold text-white mb-1">
               ${totalCost.toFixed(4)}
             </div>
-            <div className="text-sm text-slate-400">
+            <div className="text-xs text-slate-400">
               For {dateRange.label.toLowerCase()}
             </div>
             {/* Gold gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/20 via-yellow-500/10 to-transparent pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-yellow-500/30 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-radial from-yellow-500/30 to-transparent pointer-events-none"></div>
           </div>
           
           {/* Total Tokens */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-teal-500/30 relative overflow-hidden">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">
-              <Zap className="h-4 w-4" />
+          <div className="p-3 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-teal-500/30 relative overflow-hidden">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-2">
+              <Zap className="h-3 w-3" />
               Total Tokens
             </div>
-            <div className="text-4xl font-bold text-white mb-2">
+            <div className="text-2xl font-bold text-white mb-1">
               {totalTokens.toLocaleString()}
             </div>
-            <div className="text-sm text-slate-400">
+            <div className="text-xs text-slate-400">
               Processed tokens
             </div>
             {/* Teal gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/20 via-teal-500/10 to-transparent pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-teal-500/30 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-radial from-teal-500/30 to-transparent pointer-events-none"></div>
           </div>
           
           {/* Requests */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-orange-500/30 relative overflow-hidden">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">
-              <BarChart className="h-4 w-4" />
+          <div className="p-3 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-orange-500/30 relative overflow-hidden">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-2">
+              <BarChart className="h-3 w-3" />
               Requests
             </div>
-            <div className="text-4xl font-bold text-white mb-2">
+            <div className="text-2xl font-bold text-white mb-1">
               {totalRequests.toLocaleString()}
             </div>
-            <div className="text-sm text-slate-400">
+            <div className="text-xs text-slate-400">
               API calls made
             </div>
             {/* Orange gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 via-orange-500/10 to-transparent pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-orange-500/30 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-radial from-orange-500/30 to-transparent pointer-events-none"></div>
           </div>
           
           {/* Avg/Request */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-indigo-500/30 relative overflow-hidden">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">
-              <TrendingUp className="h-4 w-4" />
+          <div className="p-3 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-indigo-500/30 relative overflow-hidden">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-2">
+              <TrendingUp className="h-3 w-3" />
               Avg/Request
             </div>
-            <div className="text-4xl font-bold text-white mb-2">
+            <div className="text-2xl font-bold text-white mb-1">
               ${avgCostPerRequest.toFixed(4)}
             </div>
-            <div className="text-sm text-slate-400">
+            <div className="text-xs text-slate-400">
               Cost efficiency
             </div>
             {/* Indigo gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-indigo-500/10 to-transparent pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-indigo-500/30 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-radial from-indigo-500/30 to-transparent pointer-events-none"></div>
           </div>
         </div>
 
