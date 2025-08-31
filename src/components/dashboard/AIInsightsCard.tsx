@@ -34,16 +34,6 @@ export function AIInsightsCard({ dateRange }: AIInsightsCardProps) {
 
   return (
     <div className="col-span-full space-y-6">
-      {/* Main Container Header */}
-      <Card className="bg-gradient-card border-card-border shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-primary" />
-            AI & Agent Insights
-          </CardTitle>
-        </CardHeader>
-      </Card>
-
       {/* Two Components Grid - AI Cost Monitor + Agent Status Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* AI Cost Monitor */}
