@@ -2113,6 +2113,150 @@ export type Database = {
         }
         Relationships: []
       }
+      widget_analytics_enhanced: {
+        Row: {
+          created_at: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          page_url: string | null
+          referrer: string | null
+          site_key: string
+          timestamp: string | null
+          user_agent: string | null
+          user_session: string | null
+          widget_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          page_url?: string | null
+          referrer?: string | null
+          site_key: string
+          timestamp?: string | null
+          user_agent?: string | null
+          user_session?: string | null
+          widget_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          page_url?: string | null
+          referrer?: string | null
+          site_key?: string
+          timestamp?: string | null
+          user_agent?: string | null
+          user_session?: string | null
+          widget_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_analytics_enhanced_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "widgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widget_config_updates: {
+        Row: {
+          auto_deployed: boolean | null
+          created_at: string | null
+          deployed_at: string | null
+          id: string
+          new_config: Json
+          old_config: Json | null
+          update_type: string | null
+          updated_by: string | null
+          widget_id: string
+        }
+        Insert: {
+          auto_deployed?: boolean | null
+          created_at?: string | null
+          deployed_at?: string | null
+          id?: string
+          new_config: Json
+          old_config?: Json | null
+          update_type?: string | null
+          updated_by?: string | null
+          widget_id: string
+        }
+        Update: {
+          auto_deployed?: boolean | null
+          created_at?: string | null
+          deployed_at?: string | null
+          id?: string
+          new_config?: Json
+          old_config?: Json | null
+          update_type?: string | null
+          updated_by?: string | null
+          widget_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_config_updates_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "widgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widget_deployments: {
+        Row: {
+          config: Json
+          created_at: string | null
+          deployed_at: string | null
+          deployed_by: string | null
+          deployment_type: string | null
+          id: string
+          notes: string | null
+          status: string | null
+          version: number
+          widget_id: string
+        }
+        Insert: {
+          config: Json
+          created_at?: string | null
+          deployed_at?: string | null
+          deployed_by?: string | null
+          deployment_type?: string | null
+          id?: string
+          notes?: string | null
+          status?: string | null
+          version: number
+          widget_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string | null
+          deployed_at?: string | null
+          deployed_by?: string | null
+          deployment_type?: string | null
+          id?: string
+          notes?: string | null
+          status?: string | null
+          version?: number
+          widget_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_deployments_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "widgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       widget_metrics: {
         Row: {
           created_at: string
@@ -2218,42 +2362,54 @@ export type Database = {
       widgets: {
         Row: {
           allowed_domains: string[]
+          auto_update_enabled: boolean | null
           created_at: string
           created_by: string
           customer_id: string
+          deployment_status: string | null
           id: string
+          last_deployed_at: string | null
           name: string
           secret_hash: string | null
           site_key: string
           theme: Json
           updated_at: string
           updated_by: string
+          version: number | null
         }
         Insert: {
           allowed_domains?: string[]
+          auto_update_enabled?: boolean | null
           created_at?: string
           created_by?: string
           customer_id: string
+          deployment_status?: string | null
           id?: string
+          last_deployed_at?: string | null
           name: string
           secret_hash?: string | null
           site_key?: string
           theme?: Json
           updated_at?: string
           updated_by?: string
+          version?: number | null
         }
         Update: {
           allowed_domains?: string[]
+          auto_update_enabled?: boolean | null
           created_at?: string
           created_by?: string
           customer_id?: string
+          deployment_status?: string | null
           id?: string
+          last_deployed_at?: string | null
           name?: string
           secret_hash?: string | null
           site_key?: string
           theme?: Json
           updated_at?: string
           updated_by?: string
+          version?: number | null
         }
         Relationships: []
       }
