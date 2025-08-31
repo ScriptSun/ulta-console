@@ -251,48 +251,44 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
             {/* Display Mode and Advanced Options */}
             <div className="space-y-6 mt-6">
               {/* Display Mode Radio Group */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <Label className="text-base font-semibold flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Display Mode
-                  </Label>
-                  <RadioGroup
-                    value={displayMode}
-                    onValueChange={setDisplayMode}
-                    className="flex gap-6"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="standard" id="standard" />
-                      <Label htmlFor="standard" className="font-normal text-sm">
-                        Standard Mode
-                        <span className="block text-xs text-muted-foreground">
-                          Widget appears as a button
-                        </span>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="open" id="open" />
-                      <Label htmlFor="open" className="font-normal text-sm">
-                        Open Mode
-                        <span className="block text-xs text-muted-foreground">
-                          Widget opens automatically
-                        </span>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Display Mode
+                </Label>
+                <RadioGroup
+                  value={displayMode}
+                  onValueChange={setDisplayMode}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="standard" id="standard" />
+                    <Label htmlFor="standard" className="font-normal text-sm">
+                      Standard Mode
+                      <span className="block text-xs text-muted-foreground">
+                        Widget appears as a button
+                      </span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="open" id="open" />
+                    <Label htmlFor="open" className="font-normal text-sm">
+                      Open Mode
+                      <span className="block text-xs text-muted-foreground">
+                        Widget opens automatically
+                      </span>
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
 
               {/* Size Control Options */}
-              <div>
-                <div className="mb-3">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
                   <Label className="text-base font-semibold flex items-center gap-2">
                     <Palette className="h-4 w-4" />
                     Widget Size Control
                   </Label>
-                </div>
-                <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="customSize"
@@ -301,59 +297,59 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                         setSizeOptions(prev => ({ ...prev, customSize: checked as boolean }))
                       }
                     />
-                    <Label htmlFor="customSize" className="font-normal">
+                    <Label htmlFor="customSize" className="font-normal text-sm">
                       Enable Custom Size
                     </Label>
                   </div>
-
-                  {sizeOptions.customSize && (
-                    <div className="grid grid-cols-3 gap-3 p-3 bg-muted rounded-lg">
-                      <div className="space-y-1">
-                        <Label htmlFor="widgetWidth" className="text-sm">Width (px)</Label>
-                        <Input
-                          id="widgetWidth"
-                          type="number"
-                          value={sizeOptions.width}
-                          onChange={(e) => setSizeOptions(prev => ({ ...prev, width: e.target.value }))}
-                          placeholder="400"
-                          min="200"
-                          max="800"
-                          className="h-8"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label htmlFor="widgetHeight" className="text-sm">Height (px)</Label>
-                        <Input
-                          id="widgetHeight"
-                          type="number"
-                          value={sizeOptions.height}
-                          onChange={(e) => setSizeOptions(prev => ({ ...prev, height: e.target.value }))}
-                          placeholder="600"
-                          min="300"
-                          max="800"
-                          className="h-8"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label htmlFor="widgetPosition" className="text-sm">Position</Label>
-                        <select
-                          id="widgetPosition"
-                          value={sizeOptions.position}
-                          onChange={(e) => setSizeOptions(prev => ({ ...prev, position: e.target.value }))}
-                          className="w-full px-2 py-1 h-8 border border-input bg-background rounded-md text-sm"
-                        >
-                          <option value="bottom-right">Bottom Right</option>
-                          <option value="bottom-left">Bottom Left</option>
-                          <option value="top-right">Top Right</option>
-                          <option value="top-left">Top Left</option>
-                          <option value="center">Center</option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
                 </div>
+
+                {sizeOptions.customSize && (
+                  <div className="grid grid-cols-3 gap-3 p-3 bg-muted rounded-lg">
+                    <div className="space-y-1">
+                      <Label htmlFor="widgetWidth" className="text-sm">Width (px)</Label>
+                      <Input
+                        id="widgetWidth"
+                        type="number"
+                        value={sizeOptions.width}
+                        onChange={(e) => setSizeOptions(prev => ({ ...prev, width: e.target.value }))}
+                        placeholder="400"
+                        min="200"
+                        max="800"
+                        className="h-8"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="widgetHeight" className="text-sm">Height (px)</Label>
+                      <Input
+                        id="widgetHeight"
+                        type="number"
+                        value={sizeOptions.height}
+                        onChange={(e) => setSizeOptions(prev => ({ ...prev, height: e.target.value }))}
+                        placeholder="600"
+                        min="300"
+                        max="800"
+                        className="h-8"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="widgetPosition" className="text-sm">Position</Label>
+                      <select
+                        id="widgetPosition"
+                        value={sizeOptions.position}
+                        onChange={(e) => setSizeOptions(prev => ({ ...prev, position: e.target.value }))}
+                        className="w-full px-2 py-1 h-8 border border-input bg-background rounded-md text-sm"
+                      >
+                        <option value="bottom-right">Bottom Right</option>
+                        <option value="bottom-left">Bottom Left</option>
+                        <option value="top-right">Top Right</option>
+                        <option value="top-left">Top Left</option>
+                        <option value="center">Center</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Advanced Options Checkboxes */}
