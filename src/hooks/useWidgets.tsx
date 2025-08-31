@@ -45,9 +45,8 @@ export function useWidgets() {
         throw new Error('User not authenticated');
       }
 
-      // Call the widget admin API with proper path
-      const supabaseUrl = 'https://lfsdqyvvboapsyeauchm.supabase.co';
-      const response = await fetch(`${supabaseUrl}/functions/v1/widget-admin-api/api/admin/widgets`, {
+      // Call the widget admin API with proper Supabase functions URL
+      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/widget-admin-api`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -89,10 +88,9 @@ export function useWidgets() {
         throw new Error('User not authenticated');
       }
 
-      // Call the widget admin API with proper path
+      // Call the widget admin API with proper Supabase functions URL
       console.log('Calling widget-admin-api...');
-      const supabaseUrl = 'https://lfsdqyvvboapsyeauchm.supabase.co';
-      const response = await fetch(`${supabaseUrl}/functions/v1/widget-admin-api/api/admin/widgets`, {
+      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/widget-admin-api`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -146,9 +144,8 @@ export function useWidgets() {
         throw new Error('User not authenticated');
       }
 
-      // Call the widget admin API with proper path
-      const supabaseUrl = 'https://lfsdqyvvboapsyeauchm.supabase.co';
-      const response = await fetch(`${supabaseUrl}/functions/v1/widget-admin-api/api/admin/widgets/${widgetId}`, {
+      // Call the widget admin API with proper Supabase functions URL  
+      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/widget-admin-api/${widgetId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,

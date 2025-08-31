@@ -167,10 +167,11 @@ async function authenticateRequest(req: Request): Promise<{ valid: boolean, cust
   const token = authHeader.replace('Bearer ', '')
   
   try {
-    // Verify the JWT token
+    // Verify the JWT token with the service role client
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
     if (authError || !user) {
+      console.error('Auth error:', authError)
       return { valid: false, error: 'Invalid token' }
     }
 
@@ -183,6 +184,7 @@ async function authenticateRequest(req: Request): Promise<{ valid: boolean, cust
       .maybeSingle()
 
     if (rolesError || !userRoles) {
+      console.error('User roles error:', rolesError)
       return { valid: false, error: 'User not associated with any customer' }
     }
 
@@ -548,7 +550,7 @@ serve(async (req) => {
       return await getWidgetConfig(req)
     }
 
-    // All admin endpoints require authentication
+    // Admin endpoints require authentication - handle both root and /api/admin paths
     const auth = await authenticateRequest(req)
     if (!auth.valid) {
       return errorResponse(auth.error || 'Unauthorized', 401)
@@ -557,7 +559,25 @@ serve(async (req) => {
     const customerId = auth.customer_id!
     const apiKeyId = auth.api_key_id
 
-    // Admin route handlers
+    // Handle requests to root path as list widgets
+    if (path === '/' && req.method === 'GET') {
+      return await listWidgets(customerId)
+    }
+
+    // Handle requests to root path as create widget  
+    if (path === '/' && req.method === 'POST') {
+      return await createWidget(req, customerId, apiKeyId)
+    }
+
+    // Handle widget update at root level with ID
+    if (path !== '/' && path !== '/api/widget/config' && req.method === 'PATCH') {
+      const widgetId = path.substring(1) // Remove leading slash
+      if (widgetId) {
+        return await updateWidget(req, widgetId, customerId, apiKeyId)
+      }
+    }
+
+    // Admin route handlers for /api/admin paths
     if (path === '/api/admin/widgets') {
       if (req.method === 'POST') {
         return await createWidget(req, customerId, apiKeyId)

@@ -41,7 +41,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.widget-admin-api]
-verify_jwt = false
+verify_jwt = true
 
 [functions.chat-router]
 verify_jwt = false
