@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -361,7 +361,7 @@ export function InputFieldBuilder({
     }
   };
 
-  const existingKeys = fields.map(f => f.key);
+  const existingKeys = useMemo(() => fields.map(f => f.key), [fields]);
 
   const handleModalOpenChange = (open: boolean) => {
     console.log('Modal open change:', open);
@@ -377,8 +377,13 @@ export function InputFieldBuilder({
     }
   };
 
-  const FieldModal = () => {
+  // Memoized FieldModal component to prevent excessive re-renders
+  const FieldModal = useMemo(() => {
     console.log('FieldModal render - isModalOpen:', isModalOpen, 'isCreatingNew:', isCreatingNew);
+    
+    if (!isModalOpen && !isCreatingNew && !editingField) {
+      return null; // Don't render anything when modal is closed
+    }
     
     const content = (
       <FieldEditor
@@ -424,7 +429,7 @@ export function InputFieldBuilder({
         </DialogContent>
       </Dialog>
     );
-  };
+  }, [isModalOpen, isCreatingNew, editingField, existingKeys, isMobile]);
 
   return (
     <div className="space-y-6">
@@ -450,7 +455,7 @@ export function InputFieldBuilder({
       </div>
 
       {/* Field Editor Modal */}
-      <FieldModal />
+      {FieldModal}
 
       {/* Live Preview - Only show when there are form fields */}
       {generatedSchema && Object.keys(generatedSchema.properties || {}).length > 0 && (
