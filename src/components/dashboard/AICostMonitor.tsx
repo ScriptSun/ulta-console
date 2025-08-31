@@ -4,8 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, Zap, BarChart } from 'lucide-react';
 import { DateRange } from '@/hooks/useDateRangeFilter';
 
-// OpenAI model pricing configuration
+// AI model pricing configuration
 const MODEL_PRICING = {
+  // OpenAI Models
   'gpt-4o-mini': {
     prompt_cost_per_1k: 0.000150,
     completion_cost_per_1k: 0.000600,
@@ -25,6 +26,48 @@ const MODEL_PRICING = {
     prompt_cost_per_1k: 0.010000,
     completion_cost_per_1k: 0.030000,
     displayName: 'GPT-5'
+  },
+  // Claude Models
+  'claude-3-5-sonnet-20241022': {
+    prompt_cost_per_1k: 0.003000,
+    completion_cost_per_1k: 0.015000,
+    displayName: 'Claude 3.5 Sonnet'
+  },
+  'claude-3-5-haiku-20241022': {
+    prompt_cost_per_1k: 0.000250,
+    completion_cost_per_1k: 0.001250,
+    displayName: 'Claude 3.5 Haiku'
+  },
+  'claude-3-opus-20240229': {
+    prompt_cost_per_1k: 0.015000,
+    completion_cost_per_1k: 0.075000,
+    displayName: 'Claude 3 Opus'
+  },
+  'claude-sonnet-4-20250514': {
+    prompt_cost_per_1k: 0.005000,
+    completion_cost_per_1k: 0.025000,
+    displayName: 'Claude 4 Sonnet'
+  },
+  'claude-opus-4-20250514': {
+    prompt_cost_per_1k: 0.020000,
+    completion_cost_per_1k: 0.100000,
+    displayName: 'Claude 4 Opus'
+  },
+  // Gemini Models
+  'gemini-1.5-pro': {
+    prompt_cost_per_1k: 0.003500,
+    completion_cost_per_1k: 0.010500,
+    displayName: 'Gemini 1.5 Pro'
+  },
+  'gemini-1.5-flash': {
+    prompt_cost_per_1k: 0.000075,
+    completion_cost_per_1k: 0.000300,
+    displayName: 'Gemini 1.5 Flash'
+  },
+  'gemini-2.0-flash-exp': {
+    prompt_cost_per_1k: 0.000075,
+    completion_cost_per_1k: 0.000300,
+    displayName: 'Gemini 2.0 Flash'
   }
 } as const;
 
