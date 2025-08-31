@@ -74,12 +74,6 @@ function WidgetList() {
       ) : (
         <div className="grid gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Widget Configurations</CardTitle>
-              <CardDescription>
-                Manage your widget settings, domains, and themes
-              </CardDescription>
-            </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
