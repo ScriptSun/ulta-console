@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Copy, CheckCircle, Code, Settings, Palette } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Widget } from "@/hooks/useWidgets";
@@ -30,6 +32,16 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     textColor: widget?.theme.text_color || '#333333',
     welcomeText: widget?.theme.welcome_text || '',
     logoUrl: widget?.theme.logo_url || ''
+  });
+
+  // Advanced options state
+  const [displayMode, setDisplayMode] = useState('standard'); // 'standard' or 'open'
+  const [advancedOptions, setAdvancedOptions] = useState({
+    hideOnMobile: false,
+    showBadge: true,
+    enableEvents: false,
+    userIdentification: false,
+    programmaticControl: false
   });
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -97,13 +109,61 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
       if (overrides.logoUrl && overrides.logoUrl !== widget.theme.logo_url) opts.logoUrl = overrides.logoUrl;
     }
 
-    const hasOverrides = Object.keys(opts).length > 0;
+    // Add advanced options
+    if (displayMode === 'open') opts.autoOpen = true;
+    if (advancedOptions.hideOnMobile) opts.hideOnMobile = true;
+    if (!advancedOptions.showBadge) opts.showBadge = false;
+    
+    // Add event handlers if enabled
+    let eventHandlers = '';
+    if (advancedOptions.enableEvents) {
+      eventHandlers = `,
+    onReady: function() {
+      console.log('🤖 UltaAI widget is ready');
+    },
+    onOpen: function() {
+      console.log('Widget opened');
+    },
+    onClose: function() {
+      console.log('Widget closed');
+    },
+    onMessage: function(message) {
+      console.log('New message:', message);
+    }`;
+    }
 
-    return `<script src="${sdkUrl}"></script>
+    // Add user identification if enabled
+    let userIdCode = '';
+    if (advancedOptions.userIdentification) {
+      userIdCode = `,
+    userId: 'user_12345',
+    userEmail: 'user@example.com',
+    userName: 'John Doe'`;
+    }
+
+    const hasOverrides = Object.keys(opts).length > 0 || eventHandlers || userIdCode;
+
+    let baseCode = `<script src="${sdkUrl}"></script>
 <script>
   UltaAIWidget.load('${widget.site_key}'${hasOverrides ? `,
-    ${JSON.stringify(opts, null, 4)}` : ''});
+    ${JSON.stringify(opts, null, 4).slice(1, -1)}${eventHandlers}${userIdCode}
+  }` : ''});`;
+
+    if (advancedOptions.programmaticControl) {
+      baseCode += `
+  
+  // Programmatic control (available after widget loads)
+  setTimeout(() => {
+    // UltaAIWidget.open();  // Open widget
+    // UltaAIWidget.close(); // Close widget
+    // UltaAIWidget.sendMessage('Hello!'); // Send message
+  }, 1000);`;
+    }
+
+    baseCode += `
 </script>`;
+
+    return baseCode;
   };
 
   const generateAutoLoadCode = () => {
@@ -249,6 +309,136 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
               </div>
             </div>
           )}
+        </div>
+
+        <Separator />
+
+        {/* Display Mode and Advanced Options */}
+        <div className="space-y-6">
+          {/* Display Mode Radio Group */}
+          <div>
+            <div className="mb-4">
+              <Label className="text-base font-semibold">Display Mode</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose how the widget appears to visitors
+              </p>
+            </div>
+            <RadioGroup
+              value={displayMode}
+              onValueChange={setDisplayMode}
+              className="grid grid-cols-2 gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="standard" id="standard" />
+                <Label htmlFor="standard" className="font-normal">
+                  Standard Mode
+                  <span className="block text-xs text-muted-foreground">
+                    Widget appears as a button
+                  </span>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="open" id="open" />
+                <Label htmlFor="open" className="font-normal">
+                  Open Mode
+                  <span className="block text-xs text-muted-foreground">
+                    Widget opens automatically
+                  </span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Advanced Options Checkboxes */}
+          <div>
+            <div className="mb-4">
+              <Label className="text-base font-semibold">Advanced Options</Label>
+              <p className="text-sm text-muted-foreground">
+                Select additional features for your widget
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="hideOnMobile"
+                  checked={advancedOptions.hideOnMobile}
+                  onCheckedChange={(checked) =>
+                    setAdvancedOptions(prev => ({ ...prev, hideOnMobile: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="hideOnMobile" className="font-normal">
+                  Hide on Mobile
+                  <span className="block text-xs text-muted-foreground">
+                    Don't show widget on mobile devices
+                  </span>
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="showBadge"
+                  checked={advancedOptions.showBadge}
+                  onCheckedChange={(checked) =>
+                    setAdvancedOptions(prev => ({ ...prev, showBadge: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="showBadge" className="font-normal">
+                  Show Badge
+                  <span className="block text-xs text-muted-foreground">
+                    Display "Powered by 🤖 UltaAI" badge
+                  </span>
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="enableEvents"
+                  checked={advancedOptions.enableEvents}
+                  onCheckedChange={(checked) =>
+                    setAdvancedOptions(prev => ({ ...prev, enableEvents: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="enableEvents" className="font-normal">
+                  Event Handlers
+                  <span className="block text-xs text-muted-foreground">
+                    Include event tracking callbacks
+                  </span>
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="userIdentification"
+                  checked={advancedOptions.userIdentification}
+                  onCheckedChange={(checked) =>
+                    setAdvancedOptions(prev => ({ ...prev, userIdentification: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="userIdentification" className="font-normal">
+                  User Identification
+                  <span className="block text-xs text-muted-foreground">
+                    Include user ID and contact info
+                  </span>
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2 md:col-span-2">
+                <Checkbox
+                  id="programmaticControl"
+                  checked={advancedOptions.programmaticControl}
+                  onCheckedChange={(checked) =>
+                    setAdvancedOptions(prev => ({ ...prev, programmaticControl: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="programmaticControl" className="font-normal">
+                  Programmatic Control
+                  <span className="block text-xs text-muted-foreground">
+                    Include JavaScript methods to control widget
+                  </span>
+                </Label>
+              </div>
+            </div>
+          </div>
         </div>
 
         <Separator />
