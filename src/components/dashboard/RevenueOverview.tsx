@@ -117,7 +117,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* MRR */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-success/30 relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-slate-400">Recurring Revenue ({data.periodLabel})</div>
+              <div className="text-sm font-medium text-slate-400">Monthly Recurring Revenue</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/20 text-success text-xs font-medium">
                 {getTrendIcon(mrrTrend)}
                 <span>
@@ -142,7 +142,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* ARPU */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-primary/30 relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-slate-400">Avg Revenue Per User ({data.periodLabel})</div>
+              <div className="text-sm font-medium text-slate-400">Average Revenue Per User</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium">
                 {getTrendIcon(arpuTrend)}
                 <span>
@@ -167,7 +167,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* Net Revenue */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-purple-500/30 relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-slate-400">Net Revenue ({data.periodLabel})</div>
+              <div className="text-sm font-medium text-slate-400">Net Revenue After AI Costs</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-medium">
                 {getTrendIcon(data.netRevenue > data.previousPeriodNetRevenue ? 'up' : data.netRevenue < data.previousPeriodNetRevenue ? 'down' : 'same')}
                 <span>
@@ -192,17 +192,17 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* Churn Rate */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-destructive/30 relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-slate-400">Churn Rate ({data.periodLabel})</div>
+              <div className="text-sm font-medium text-slate-400">Churn Rate</div>
                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-destructive/20 text-destructive text-xs font-medium">
                  {getTrendIcon(churnTrend, true)}
-                 <span>For {data.periodLabel.toLowerCase()}</span>
+                 <span>Trend</span>
                </div>
              </div>
              <div className="text-4xl font-bold text-white mb-2">
                {data.churnRate.toFixed(1)}%
              </div>
              <div className="text-sm text-slate-400">
-               Churn rate for {data.periodLabel.toLowerCase()}
+               Current churn rate
              </div>
             {/* Red gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-destructive/20 via-destructive/10 to-transparent pointer-events-none"></div>
@@ -216,9 +216,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 relative overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-lg font-semibold text-white">MRR Trend</h4>
-            <div className="text-sm text-slate-400">
-              {data.periodLabel}
-            </div>
+            <div className="text-sm text-slate-400">MRR Trend</div>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -273,7 +271,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 relative overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-semibold text-white">Churn Trend</h4>
-            <div className="text-sm text-slate-400">{data.periodLabel}</div>
+            <div className="text-sm text-slate-400">Churn Trend</div>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
