@@ -92,9 +92,11 @@ export default function WidgetEdit() {
             Back to Widgets
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Edit Widget</h1>
+            <h1 className="text-3xl font-bold">
+              Edit widget / <span className="text-purple-600">{widget.name}</span>
+            </h1>
             <p className="text-muted-foreground">
-              Configure "{widget.name}" settings, domains, and theme
+              Configure settings, domains, and theme
             </p>
           </div>
         </div>
