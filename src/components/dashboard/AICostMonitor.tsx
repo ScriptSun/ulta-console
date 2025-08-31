@@ -140,7 +140,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
   // Show only specific models as requested
   const selectedModels = [
     'gpt-5-mini-2025-08-07',  // GPT-5 Mini
-    'gpt-5-2025-08-07',       // GPT-5
+    'gpt-4o-mini',            // GPT-4o Mini
     'claude-sonnet-4-20250514', // Claude 4 Sonnet
     'gemini-2.0-flash-exp'    // Gemini 2.0 Flash
   ];
