@@ -120,18 +120,20 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditF
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <div>
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold flex items-center gap-2">
           <Palette className="h-5 w-5" />
           {widget ? 'Edit Widget' : 'Create New Widget'}
-        </CardTitle>
-        <CardDescription>
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
           Configure widget settings, allowed domains, and theme customization
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        </p>
+      </div>
+      
+      <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
           {/* Widget Name */}
           <div className="space-y-2">
             <Label htmlFor="name">Widget Name *</Label>
@@ -342,8 +344,9 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditF
               )}
             </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

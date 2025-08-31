@@ -150,35 +150,17 @@ function WidgetList() {
 
           {selectedWidget && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Edit Widget</CardTitle>
-                  <CardDescription>
-                    Update widget settings and theme
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <WidgetEditForm
-                    widget={selectedWidget}
-                    onSave={handleUpdateWidget}
-                    onCancel={() => setSelectedWidget(null)}
-                    saving={saving}
-                  />
-                </CardContent>
-              </Card>
+              <div>
+                <WidgetEditForm
+                  widget={selectedWidget}
+                  onSave={handleUpdateWidget}
+                  onCancel={() => setSelectedWidget(null)}
+                  saving={saving}
+                />
+              </div>
 
               <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Live Preview</CardTitle>
-                    <CardDescription>
-                      See how your widget will look
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <WidgetPreview widget={selectedWidget} />
-                  </CardContent>
-                </Card>
+                <WidgetPreview widget={selectedWidget} />
 
                 <Card>
                   <CardHeader>
@@ -198,19 +180,21 @@ function WidgetList() {
       )}
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Widget</DialogTitle>
             <DialogDescription>
               Create a new chat widget for your website
             </DialogDescription>
           </DialogHeader>
-          <WidgetEditForm
-            widget={null}
-            onSave={handleCreateWidget}
-            onCancel={() => setIsCreateDialogOpen(false)}
-            saving={saving}
-          />
+          <div className="mt-4">
+            <WidgetEditForm
+              widget={null}
+              onSave={handleCreateWidget}
+              onCancel={() => setIsCreateDialogOpen(false)}
+              saving={saving}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 
