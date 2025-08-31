@@ -5,11 +5,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Users, UserPlus, Settings } from 'lucide-react';
+import { Plus, Users, UserPlus, Settings, Mail, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CreateTeamDialog } from '@/components/teams/CreateTeamDialog';
 import { AddMemberDialog } from '@/components/teams/AddMemberDialog';
 import { ManageRolesDialog } from '@/components/teams/ManageRolesDialog';
+import { InviteStaffDialog } from '@/components/teams/InviteStaffDialog';
 
 const ROLE_COLORS = {
   Owner: 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm',
@@ -34,6 +35,7 @@ export default function TeamManagement() {
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showManageRoles, setShowManageRoles] = useState(false);
+  const [showInviteStaff, setShowInviteStaff] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
 
   // Fetch current user's teams
@@ -84,6 +86,68 @@ export default function TeamManagement() {
     enabled: !!user?.id && !!currentUserTeams?.length
   });
 
+  // Fetch pending invites for user's teams
+  const { data: pendingInvites, isLoading: invitesLoading } = useQuery({
+    queryKey: ['console-invites', currentUserTeams?.map(t => t.id)],
+    queryFn: async () => {
+      if (!currentUserTeams?.length) return [];
+      
+      const allInvites = await Promise.all(
+        currentUserTeams.map(async (team) => {
+          const url = `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/console-invites?team_id=${team.id}`;
+          const { data: session } = await supabase.auth.getSession();
+          
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${session.session?.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) throw new Error('Failed to fetch invites');
+          const data = await response.json();
+          
+          return (data || []).map((invite: any) => ({ ...invite, teamName: team.name }));
+        })
+      );
+      
+      return allInvites.flat();
+    },
+    enabled: !!currentUserTeams?.length
+  });
+
+  const cancelInviteMutation = useMutation({
+    mutationFn: async (inviteId: string) => {
+      const url = `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/console-invites/${inviteId}/cancel`;
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.session?.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to cancel invite');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invitation canceled",
+        description: "The invitation has been canceled successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['console-invites'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to cancel invitation",
+        description: error.message || "There was an error canceling the invitation.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleTeamAction = (action: string, team: any) => {
     setSelectedTeam(team);
     switch (action) {
@@ -92,6 +156,9 @@ export default function TeamManagement() {
         break;
       case 'manageRoles':
         setShowManageRoles(true);
+        break;
+      case 'inviteStaff':
+        setShowInviteStaff(true);
         break;
     }
   };
@@ -202,7 +269,16 @@ export default function TeamManagement() {
 
                 {/* Team Actions */}
                 {canManageTeam && (
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleTeamAction('inviteStaff', team)}
+                      className="gap-1"
+                    >
+                      <Mail className="h-3 w-3" />
+                      Invite Staff
+                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -252,6 +328,62 @@ export default function TeamManagement() {
         })}
       </div>
 
+      {/* Pending Invites Section */}
+      {currentUserTeams?.some(team => ['Owner', 'Admin'].includes(team.userRole)) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Pending Invitations
+            </CardTitle>
+            <CardDescription>
+              Staff invitations that are waiting to be accepted
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {invitesLoading ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-16 bg-muted animate-pulse rounded"></div>
+                ))}
+              </div>
+            ) : pendingInvites?.length ? (
+              <div className="space-y-3">
+                {pendingInvites.map((invite: any) => (
+                  <div key={invite.id} className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-card/30">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{invite.email}</span>
+                        <Badge className={ROLE_COLORS[invite.role as keyof typeof ROLE_COLORS]}>
+                          {invite.role}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Invited to {invite.teamName} • Expires {new Date(invite.expires_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => cancelInviteMutation.mutate(invite.id)}
+                      disabled={cancelInviteMutation.isPending}
+                      className="gap-1"
+                    >
+                      <X className="h-3 w-3" />
+                      Cancel
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                No pending invitations
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Dialogs */}
       <CreateTeamDialog 
         open={showCreateTeam} 
@@ -267,6 +399,12 @@ export default function TeamManagement() {
       <ManageRolesDialog 
         open={showManageRoles} 
         onOpenChange={setShowManageRoles}
+        team={selectedTeam}
+      />
+      
+      <InviteStaffDialog 
+        open={showInviteStaff} 
+        onOpenChange={setShowInviteStaff}
         team={selectedTeam}
       />
     </div>
