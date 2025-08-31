@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { AICostTracker } from '../_shared/ai-cost-tracker.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -73,7 +74,10 @@ async function callGPT({
     throw new Error("No content received from OpenAI");
   }
 
-  return JSON.parse(content);
+  const result = JSON.parse(content);
+  // Include usage data for cost tracking
+  result._usage = completion.usage;
+  return result;
 }
 
 serve(async (req) => {
@@ -90,7 +94,8 @@ serve(async (req) => {
   }
 
   try {
-    const { inputs_schema, inputs_defaults, params }: RequestBody = await req.json();
+    const body = await req.json();
+    const { inputs_schema, inputs_defaults, params, tenant_id, agent_id } = body;
 
     if (!inputs_schema || !inputs_defaults || !params) {
       return new Response(JSON.stringify({ error: 'Missing inputs_schema, inputs_defaults, or params' }), {
@@ -98,6 +103,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Initialize cost tracker
+    const costTracker = new AICostTracker();
 
     console.log('Filling inputs with GPT:', {
       schema_keys: Object.keys(inputs_schema),
@@ -130,11 +138,27 @@ serve(async (req) => {
       schema: responseSchema
     });
 
+    // Log AI usage if tenant_id is provided
+    if (tenant_id && result._usage) {
+      await costTracker.logUsage(
+        tenant_id,
+        agent_id || null,
+        'gpt-5-thinking',
+        result._usage.prompt_tokens || 0,
+        result._usage.completion_tokens || 0,
+        'input_filling',
+        { schema_fields: Object.keys(inputs_schema).length }
+      );
+    }
+
+    // Remove usage info from response
+    const { _usage, ...cleanResult } = result;
+
     console.log('GPT filled inputs successfully:', {
-      filled_keys: Object.keys(result.inputs || {})
+      filled_keys: Object.keys(cleanResult.inputs || {})
     });
 
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify(cleanResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

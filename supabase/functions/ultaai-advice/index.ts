@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { AICostTracker } from '../_shared/ai-cost-tracker.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -73,7 +74,10 @@ async function callGPT({
     throw new Error("No content received from OpenAI");
   }
 
-  return JSON.parse(content);
+  const result = JSON.parse(content);
+  // Include usage data for cost tracking
+  result._usage = completion.usage;
+  return result;
 }
 
 serve(async (req) => {
@@ -90,7 +94,8 @@ serve(async (req) => {
   }
 
   try {
-    const { reason, heartbeat_small }: RequestBody = await req.json();
+    const body = await req.json();
+    const { reason, heartbeat_small, tenant_id, agent_id } = body;
 
     if (!reason || !heartbeat_small) {
       return new Response(JSON.stringify({ error: 'Missing reason or heartbeat_small' }), {
@@ -100,6 +105,9 @@ serve(async (req) => {
     }
 
     console.log('Generating advice for reason:', reason);
+
+    // Initialize cost tracker
+    const costTracker = new AICostTracker();
 
     // Define the response schema
     const responseSchema = {
@@ -133,9 +141,25 @@ serve(async (req) => {
       schema: responseSchema
     });
 
+    // Log AI usage if tenant_id is provided
+    if (tenant_id && advice._usage) {
+      await costTracker.logUsage(
+        tenant_id,
+        agent_id || null,
+        'gpt-4o',
+        advice._usage.prompt_tokens || 0,
+        advice._usage.completion_tokens || 0,
+        'advice_generation',
+        { reason_type: reason }
+      );
+    }
+
+    // Remove usage info from response
+    const { _usage, ...cleanAdvice } = advice;
+
     console.log('Generated advice successfully');
 
-    return new Response(JSON.stringify(advice), {
+    return new Response(JSON.stringify(cleanAdvice), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

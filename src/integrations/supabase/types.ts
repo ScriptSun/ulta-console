@@ -347,6 +347,48 @@ export type Database = {
           },
         ]
       }
+      ai_usage_logs: {
+        Row: {
+          agent_id: string | null
+          completion_tokens: number
+          cost_usd: number
+          created_at: string
+          id: string
+          metadata: Json | null
+          model: string
+          prompt_tokens: number
+          request_type: string
+          tenant_id: string
+          total_tokens: number
+        }
+        Insert: {
+          agent_id?: string | null
+          completion_tokens?: number
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          model: string
+          prompt_tokens?: number
+          request_type: string
+          tenant_id: string
+          total_tokens?: number
+        }
+        Update: {
+          agent_id?: string | null
+          completion_tokens?: number
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          model?: string
+          prompt_tokens?: number
+          request_type?: string
+          tenant_id?: string
+          total_tokens?: number
+        }
+        Relationships: []
+      }
       allowlist_batch_steps: {
         Row: {
           batch_id: string
@@ -2696,6 +2738,19 @@ export type Database = {
       is_team_owner_or_admin_simple: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_ai_usage: {
+        Args: {
+          _agent_id: string
+          _completion_tokens: number
+          _cost_usd: number
+          _metadata?: Json
+          _model: string
+          _prompt_tokens: number
+          _request_type: string
+          _tenant_id: string
+        }
+        Returns: string
       }
       log_team_audit_event: {
         Args: {

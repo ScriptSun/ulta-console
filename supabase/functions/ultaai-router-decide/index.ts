@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { AICostTracker } from '../_shared/ai-cost-tracker.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +10,7 @@ const corsHeaders = {
 interface RequestBody {
   agent_id: string;
   user_request: string;
+  tenant_id?: string;
 }
 
 // UltaAI Dual-Mode System Prompt
@@ -124,7 +126,7 @@ serve(async (req) => {
       hasOpenAIKey: !!Deno.env.get('OPENAI_API_KEY')
     });
 
-    const { agent_id, user_request }: RequestBody = await req.json();
+    const { agent_id, user_request, tenant_id }: RequestBody = await req.json();
 
     if (!agent_id || !user_request) {
       console.error('❌ Missing required parameters:', { agent_id: !!agent_id, user_request: !!user_request });
@@ -133,6 +135,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Initialize cost tracker
+    const costTracker = new AICostTracker();
 
     console.log(`🎯 Processing router decision for agent_id: ${agent_id}, user_request: ${user_request}`);
 
@@ -228,6 +233,19 @@ serve(async (req) => {
         usage: completion.usage,
         finish_reason: completion.choices[0]?.finish_reason
       });
+
+      // Log AI usage if tenant_id is provided
+      if (tenant_id && completion.usage) {
+        await costTracker.logUsage(
+          tenant_id,
+          agent_id,
+          'gpt-4o-mini',
+          completion.usage.prompt_tokens || 0,
+          completion.usage.completion_tokens || 0,
+          'router_decision',
+          { user_request_length: user_request.length }
+        );
+      }
 
       const raw = completion.choices[0]?.message?.content ?? "";
       console.log('📝 OpenAI Content:', raw);

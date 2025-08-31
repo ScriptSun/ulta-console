@@ -97,162 +97,202 @@ export function useAIInsights(dateRange: DateRange) {
   return useQuery({
     queryKey: ['ai-insights', dateRange.start, dateRange.end],
     queryFn: async () => {
-      // Get all agents with their status in the date range
+      console.log('Fetching AI insights data...');
+      
+      // Fetch agents and their usage data
       const { data: agents, error: agentsError } = await supabase
         .from('agents')
         .select(`
           id,
           hostname,
           status,
-          last_seen,
-          created_at
+          created_at,
+          customer_id,
+          plan_key
         `)
         .gte('created_at', dateRange.start.toISOString())
         .lte('created_at', dateRange.end.toISOString());
 
       if (agentsError) throw agentsError;
 
-      // Generate all days in the date range for agent status chart
-      const agentsByPeriod: Array<{
-        period: string;
-        active: number;
-        suspended: number;
-        terminated: number;
-        total: number;
-      }> = [];
+      // Fetch real AI usage logs
+      const { data: aiUsageLogs, error: aiLogsError } = await supabase
+        .from('ai_usage_logs')
+        .select('*')
+        .gte('created_at', dateRange.start.toISOString())
+        .lte('created_at', dateRange.end.toISOString())
+        .order('created_at', { ascending: false });
 
-      // Create entries for every day in the date range
-      const currentDate = new Date(dateRange.start);
-      const endDate = new Date(dateRange.end);
-      
-      while (currentDate <= endDate) {
-        const dateStr = currentDate.toLocaleDateString();
-        const dayAgents = agents?.filter(agent => {
-          const agentDate = new Date(agent.created_at);
-          return agentDate.toLocaleDateString() === dateStr;
-        }) || [];
+      if (aiLogsError) throw aiLogsError;
 
-        const counts = {
-          active: dayAgents.filter(a => a.status === 'active').length,
-          suspended: dayAgents.filter(a => a.status === 'suspended').length,
-          terminated: dayAgents.filter(a => a.status === 'terminated').length,
-          total: dayAgents.length
-        };
-
-        agentsByPeriod.push({
-          period: dateStr,
-          ...counts
-        });
-
-        // Move to next day
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      // Get usage data with tokens for top active agents and cost calculation
-      const { data: agentUsage, error: usageError } = await supabase
-        .from('agent_usage')
-        .select(`
-          agent_id,
-          count,
-          prompt_tokens,
-          completion_tokens,
-          model,
-          agents(hostname, status, last_seen)
-        `)
-        .gte('usage_date', dateRange.start.toISOString().split('T')[0])
-        .lte('usage_date', dateRange.end.toISOString().split('T')[0]);
-
-      if (usageError) throw usageError;
-
-      // Aggregate usage by agent for top active agents
-      const agentMap = new Map();
-      agentUsage?.forEach((usage: any) => {
-        const agentId = usage.agent_id;
-        if (!agentMap.has(agentId)) {
-          agentMap.set(agentId, {
-            id: agentId,
-            name: usage.agents?.hostname || 'Unknown',
-            usage: 0,
-            status: usage.agents?.status || 'unknown',
-            last_seen: usage.agents?.last_seen,
-            promptTokens: 0,
-            completionTokens: 0
-          });
-        }
-        const agent = agentMap.get(agentId);
-        agent.usage += usage.count || 0;
-        agent.promptTokens += usage.prompt_tokens || 0;
-        agent.completionTokens += usage.completion_tokens || 0;
-      });
-
-      const topAgents = Array.from(agentMap.values())
-        .sort((a, b) => b.usage - a.usage)
-        .slice(0, 10);
-
-      // Aggregate cost data by model
-      const modelCostMap = new Map();
-      agentUsage?.forEach((usage: any) => {
-        const model = usage.model || 'gpt-4o-mini';
-        if (!modelCostMap.has(model)) {
-          modelCostMap.set(model, {
-            model,
-            promptTokens: 0,
-            completionTokens: 0,
-            totalRequests: 0,
-            cost: 0
-          });
-        }
-        const modelData = modelCostMap.get(model);
-        modelData.promptTokens += usage.prompt_tokens || 0;
-        modelData.completionTokens += usage.completion_tokens || 0;
-        modelData.totalRequests += usage.count || 0;
-      });
-
-      const costData = Array.from(modelCostMap.values());
-
-      // Agent errors
-      const { data: agentErrors, error: errorError } = await supabase
+      // Fetch agent logs for errors
+      const { data: logs, error: logsError } = await supabase
         .from('agent_logs')
-        .select(`
-          agent_id,
-          agents!inner(hostname),
-          timestamp
-        `)
+        .select('agent_id, level, created_at')
         .eq('level', 'error')
-        .gte('timestamp', dateRange.start.toISOString())
-        .lte('timestamp', dateRange.end.toISOString());
+        .gte('created_at', dateRange.start.toISOString())
+        .lte('created_at', dateRange.end.toISOString());
 
-      if (errorError) throw errorError;
+      if (logsError) throw logsError;
 
-      // Calculate total cost using model pricing
-      const MODEL_PRICING = {
-        'gpt-4o-mini': { prompt_cost_per_1k: 0.000150, completion_cost_per_1k: 0.000600 },
-        'gpt-4o': { prompt_cost_per_1k: 0.005000, completion_cost_per_1k: 0.015000 },
-        'gpt-5-mini-2025-08-07': { prompt_cost_per_1k: 0.000200, completion_cost_per_1k: 0.000800 },
-        'gpt-5-2025-08-07': { prompt_cost_per_1k: 0.010000, completion_cost_per_1k: 0.030000 }
-      } as const;
-
-      const totalCost = costData.reduce((total, model) => {
-        const pricing = MODEL_PRICING[model.model as keyof typeof MODEL_PRICING];
-        if (!pricing) return total;
-        return total + 
-               (model.promptTokens / 1000) * pricing.prompt_cost_per_1k +
-               (model.completionTokens / 1000) * pricing.completion_cost_per_1k;
-      }, 0);
-
+      // Process agents by period
+      const agentsByPeriod = processAgentsByPeriod(agents || [], dateRange);
+      
+      // Calculate top agents by usage (from AI logs)
+      const topAgents = calculateTopAgentsFromAILogs(agents || [], aiUsageLogs || []);
+      
+      // Calculate cost data from real AI usage logs
+      const costData = calculateCostDataFromAILogs(aiUsageLogs || []);
+      
       return {
         topAgents,
         agentsByPeriod,
         costData,
         totalActiveAgents: agents?.filter(a => a.status === 'active').length || 0,
-        agentErrors: agentErrors || [],
-        totalCost,
-        totalTokens: costData.reduce((total, model) => 
-          total + model.promptTokens + model.completionTokens, 0)
+        agentErrors: logs?.length || 0,
+        totalCost: costData.reduce((sum, item) => sum + item.cost, 0),
+        totalTokens: costData.reduce((sum, item) => sum + item.promptTokens + item.completionTokens, 0)
       };
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
+
+// Helper function to process agents by period (existing function)
+const processAgentsByPeriod = (agents: any[], dateRange: DateRange) => {
+  const agentsByPeriod: Array<{
+    period: string;
+    active: number;
+    suspended: number;
+    terminated: number;
+    total: number;
+  }> = [];
+
+  // Create entries for every day in the date range
+  const currentDate = new Date(dateRange.start);
+  const endDate = new Date(dateRange.end);
+  
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toLocaleDateString();
+    const dayAgents = agents.filter(agent => {
+      const agentDate = new Date(agent.created_at);
+      return agentDate.toLocaleDateString() === dateStr;
+    });
+
+    const counts = {
+      active: dayAgents.filter(a => a.status === 'active').length,
+      suspended: dayAgents.filter(a => a.status === 'suspended').length,
+      terminated: dayAgents.filter(a => a.status === 'terminated').length,
+      total: dayAgents.length
+    };
+
+    agentsByPeriod.push({
+      period: dateStr,
+      ...counts
+    });
+
+    // Move to next day
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return agentsByPeriod;
+};
+
+// Helper function to calculate top agents from AI logs
+const calculateTopAgentsFromAILogs = (agents: any[], aiUsageLogs: any[]) => {
+  const agentUsage: Record<string, {
+    requests: number;
+    tokens: number;
+    cost: number;
+  }> = {};
+
+  // Aggregate usage by agent
+  aiUsageLogs.forEach(log => {
+    if (log.agent_id) {
+      if (!agentUsage[log.agent_id]) {
+        agentUsage[log.agent_id] = { requests: 0, tokens: 0, cost: 0 };
+      }
+      agentUsage[log.agent_id].requests += 1;
+      agentUsage[log.agent_id].tokens += log.total_tokens || 0;
+      agentUsage[log.agent_id].cost += parseFloat(log.cost_usd || 0);
+    }
+  });
+
+  // Map to agent details
+  return agents
+    .map(agent => {
+      const usage = agentUsage[agent.id] || { requests: 0, tokens: 0, cost: 0 };
+      return {
+        id: agent.id,
+        name: agent.hostname || `Agent ${agent.id.slice(0, 8)}`,
+        usage: usage.requests,
+        status: agent.status,
+        last_seen: agent.created_at,
+        promptTokens: usage.tokens,
+        completionTokens: 0, // We track total tokens, split for display
+      };
+    })
+    .sort((a, b) => b.usage - a.usage)
+    .slice(0, 5);
+};
+
+// Helper function to calculate cost data from real AI usage logs
+const calculateCostDataFromAILogs = (aiUsageLogs: any[]) => {
+  const costByModel: Record<string, {
+    requests: number;
+    promptTokens: number;
+    completionTokens: number;
+    totalCost: number;
+  }> = {};
+
+  aiUsageLogs.forEach(log => {
+    const model = log.model;
+    if (!costByModel[model]) {
+      costByModel[model] = {
+        requests: 0,
+        promptTokens: 0,
+        completionTokens: 0,
+        totalCost: 0,
+      };
+    }
+
+    costByModel[model].requests += 1;
+    costByModel[model].promptTokens += log.prompt_tokens || 0;
+    costByModel[model].completionTokens += log.completion_tokens || 0;
+    costByModel[model].totalCost += parseFloat(log.cost_usd || 0);
+  });
+
+  return Object.entries(costByModel).map(([model, data]) => ({
+    model,
+    displayName: getModelDisplayName(model),
+    totalRequests: data.requests,
+    promptTokens: data.promptTokens,
+    completionTokens: data.completionTokens,
+    cost: data.totalCost,
+  }));
+};
+
+// Helper function to get model display name
+const getModelDisplayName = (model: string): string => {
+  const displayNames: Record<string, string> = {
+    'gpt-4o-mini': 'GPT-4o Mini',
+    'gpt-4o': 'GPT-4o',
+    'gpt-5-2025-08-07': 'GPT-5',
+    'gpt-5-mini-2025-08-07': 'GPT-5 Mini',
+    'gpt-5-nano-2025-08-07': 'GPT-5 Nano',
+    'gpt-4.1-2025-04-14': 'GPT-4.1',
+    'gpt-4.1-mini-2025-04-14': 'GPT-4.1 Mini',
+    'o3-2025-04-16': 'O3',
+    'o4-mini-2025-04-16': 'O4 Mini',
+    'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
+    'claude-3-opus-20240229': 'Claude 3 Opus',
+    'claude-3-haiku-20240307': 'Claude 3 Haiku',
+    'gemini-pro': 'Gemini Pro',
+    'gemini-pro-vision': 'Gemini Pro Vision'
+  };
+  
+  return displayNames[model] || model;
+};
 
 // Recent Logins Hook
 export function useRecentLogins(dateRange: DateRange) {
