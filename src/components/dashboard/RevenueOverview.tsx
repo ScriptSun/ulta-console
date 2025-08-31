@@ -1,143 +1,208 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, DollarSign, Users, PercentIcon, Download } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useRevenueOverview } from '@/hooks/useDashboardData';
+import { Badge } from '@/components/ui/badge';
+import { DollarSign, Users, TrendingDown, TrendingUp } from 'lucide-react';
 import { DateRange } from '@/hooks/useDateRangeFilter';
+import { useRevenueData } from '@/hooks/useRevenueData';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface RevenueOverviewProps {
   dateRange: DateRange;
 }
 
 export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
-  const { data, isLoading, error } = useRevenueOverview(dateRange);
-
-  const exportCSV = () => {
-    if (!data) return;
-    
-    const csvData = [
-      ['Metric', 'Value'],
-      ['MRR', `$${data.mrr.toFixed(2)}`],
-      ['ARPU', `$${data.arpu.toFixed(2)}`],
-      ['Churn Rate', `${(data.churnRate * 100).toFixed(2)}%`],
-      ['Active Subscriptions', data.activeSubscriptions.toString()],
-      ['Active Users', data.activeUsers.toString()]
-    ];
-    
-    const csv = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `revenue-overview-${dateRange.label.toLowerCase().replace(/\s+/g, '-')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const { data, isLoading, error } = useRevenueData(dateRange);
 
   if (error) {
     return (
       <Card className="bg-gradient-card border-card-border shadow-card">
         <CardHeader>
-          <CardTitle className="text-destructive">Revenue Overview - Error</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Revenue Overview
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Failed to load revenue data</p>
+        <CardContent className="flex items-center justify-center h-32">
+          <p className="text-destructive">Failed to load revenue data</p>
         </CardContent>
       </Card>
     );
   }
 
-  return (
-    <Card className="bg-gradient-card border-card-border shadow-card">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-success" />
-          Revenue Overview
-        </CardTitle>
-        <Button variant="outline" size="sm" onClick={exportCSV} disabled={!data}>
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  if (isLoading) {
+    return (
+      <Card className="bg-gradient-card border-card-border shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Revenue Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-8 w-24" />
-                <Skeleton className="h-3 w-16" />
+              <div key={i} className="p-4 rounded-lg bg-muted/30 animate-pulse">
+                <div className="h-4 bg-muted rounded w-20 mb-2"></div>
+                <div className="h-8 bg-muted rounded w-16 mb-2"></div>
+                <div className="h-3 bg-muted rounded w-24"></div>
               </div>
             ))}
           </div>
-        ) : data ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-success" />
-                  <span className="text-sm font-medium text-muted-foreground">MRR</span>
-                </div>
-                <div className="text-2xl font-bold text-foreground">
-                  ${data.mrr.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </div>
-                <div className="flex items-center gap-1 text-xs">
-                  <TrendingUp className="h-3 w-3 text-success" />
-                  <span className="text-success">+12%</span>
-                  <span className="text-muted-foreground">vs prev period</span>
-                </div>
-              </div>
+          <div className="h-64 bg-muted/30 rounded-lg animate-pulse"></div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-muted-foreground">ARPU</span>
-                </div>
-                <div className="text-2xl font-bold text-foreground">
-                  ${data.arpu.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </div>
-                <div className="flex items-center gap-1 text-xs">
-                  <TrendingUp className="h-3 w-3 text-success" />
-                  <span className="text-success">+8%</span>
-                  <span className="text-muted-foreground">vs prev period</span>
-                </div>
-              </div>
+  if (!data) {
+    return (
+      <Card className="bg-gradient-card border-card-border shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Revenue Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-32">
+          <p className="text-muted-foreground">No subscription data</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <PercentIcon className="h-4 w-4 text-warning" />
-                  <span className="text-sm font-medium text-muted-foreground">Churn Rate</span>
-                </div>
-                <div className="text-2xl font-bold text-foreground">
-                  {(data.churnRate * 100).toFixed(1)}%
-                </div>
-                <div className="flex items-center gap-1 text-xs">
-                  <TrendingDown className="h-3 w-3 text-success" />
-                  <span className="text-success">-2%</span>
-                  <span className="text-muted-foreground">vs prev period</span>
-                </div>
-              </div>
+  // Calculate trend indicators
+  const mrrTrend = data.mrr > data.previousPeriodMrr ? 'up' : data.mrr < data.previousPeriodMrr ? 'down' : 'same';
+  const arpuTrend = data.arpu > data.previousPeriodArpu ? 'up' : data.arpu < data.previousPeriodArpu ? 'down' : 'same';
+  const churnTrend = data.churnRate < data.previousPeriodChurn ? 'up' : data.churnRate > data.previousPeriodChurn ? 'down' : 'same';
+
+  const getTrendIcon = (trend: string, isChurn = false) => {
+    if (trend === 'up') {
+      return isChurn ? (
+        <TrendingUp className="h-4 w-4 text-destructive" />
+      ) : (
+        <TrendingUp className="h-4 w-4 text-green-600" />
+      );
+    }
+    if (trend === 'down') {
+      return isChurn ? (
+        <TrendingDown className="h-4 w-4 text-green-600" />
+      ) : (
+        <TrendingDown className="h-4 w-4 text-destructive" />
+      );
+    }
+    return null;
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(value);
+  };
+
+  return (
+    <Card className="bg-gradient-card border-card-border shadow-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-primary" />
+          Revenue Overview
+          <Badge variant="outline" className="ml-auto">
+            {dateRange.label}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* MRR */}
+          <div className="p-4 rounded-lg bg-muted/30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm text-muted-foreground">Monthly Recurring Revenue</div>
+              {getTrendIcon(mrrTrend)}
             </div>
-
-            <div className="pt-4 border-t border-border">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Active Subscriptions:</span>
-                  <span className="ml-2 font-medium text-foreground">{data.activeSubscriptions}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Active Users:</span>
-                  <span className="ml-2 font-medium text-foreground">{data.activeUsers}</span>
-                </div>
-              </div>
+            <div className="text-2xl font-bold text-foreground">
+              {formatCurrency(data.mrr)}
             </div>
-          </>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No subscription data available for this range</p>
+            <div className="text-xs text-muted-foreground">
+              vs {formatCurrency(data.previousPeriodMrr)} prev period
+            </div>
           </div>
-        )}
+
+          {/* ARPU */}
+          <div className="p-4 rounded-lg bg-muted/30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm text-muted-foreground">Average Revenue Per User</div>
+              {getTrendIcon(arpuTrend)}
+            </div>
+            <div className="text-2xl font-bold text-foreground">
+              {formatCurrency(data.arpu)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              vs {formatCurrency(data.previousPeriodArpu)} prev period
+            </div>
+          </div>
+
+          {/* Churn Rate */}
+          <div className="p-4 rounded-lg bg-muted/30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm text-muted-foreground">Churn Rate</div>
+              {getTrendIcon(churnTrend, true)}
+            </div>
+            <div className="text-2xl font-bold text-foreground">
+              {data.churnRate.toFixed(1)}%
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Last 30 days
+            </div>
+          </div>
+        </div>
+
+        {/* MRR Trend Chart */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-muted-foreground">MRR Trend (Last 6 Months)</h4>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data.mrrTrend}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => {
+                    const date = new Date(value);
+                    return date.toLocaleDateString('en-US', { month: 'short' });
+                  }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => `$${value}`}
+                />
+                <Tooltip 
+                  formatter={(value) => [formatCurrency(Number(value)), 'MRR']}
+                  labelFormatter={(value) => {
+                    const date = new Date(value);
+                    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="mrr" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: 'hsl(var(--primary))', strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Additional Stats */}
+        <div className="mt-6 pt-4 border-t border-border/50">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Active Subscriptions</span>
+            <span className="font-medium text-foreground">{data.activeSubscriptions}</span>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

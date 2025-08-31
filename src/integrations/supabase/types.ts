@@ -1801,6 +1801,8 @@ export type Database = {
           monthly_server_events: number
           name: string
           price_cents: number
+          price_monthly: number | null
+          slug: string | null
           stripe_price_id: string | null
           updated_at: string
         }
@@ -1814,6 +1816,8 @@ export type Database = {
           monthly_server_events?: number
           name: string
           price_cents?: number
+          price_monthly?: number | null
+          slug?: string | null
           stripe_price_id?: string | null
           updated_at?: string
         }
@@ -1827,6 +1831,8 @@ export type Database = {
           monthly_server_events?: number
           name?: string
           price_cents?: number
+          price_monthly?: number | null
+          slug?: string | null
           stripe_price_id?: string | null
           updated_at?: string
         }
@@ -2046,12 +2052,15 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
+          cancelled_at: string | null
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
           customer_id: string
+          expires_at: string | null
           id: string
           plan_id: string
+          started_at: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -2059,12 +2068,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancelled_at?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
           customer_id: string
+          expires_at?: string | null
           id?: string
           plan_id: string
+          started_at?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -2072,12 +2084,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancelled_at?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
           customer_id?: string
+          expires_at?: string | null
           id?: string
           plan_id?: string
+          started_at?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
