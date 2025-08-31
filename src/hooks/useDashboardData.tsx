@@ -108,10 +108,10 @@ export function useAIInsights(dateRange: DateRange) {
           status,
           created_at,
           customer_id,
-          plan_key
-        `)
-        .gte('created_at', dateRange.start.toISOString())
-        .lte('created_at', dateRange.end.toISOString());
+          plan_key,
+          last_seen,
+          last_heartbeat
+        `);
 
       if (agentsError) throw agentsError;
 
@@ -158,7 +158,7 @@ export function useAIInsights(dateRange: DateRange) {
   });
 }
 
-// Helper function to process agents by period (existing function)
+// Helper function to process agents by period (showing current status, not creation date)
 const processAgentsByPeriod = (agents: any[], dateRange: DateRange) => {
   const agentsByPeriod: Array<{
     period: string;
@@ -174,16 +174,14 @@ const processAgentsByPeriod = (agents: any[], dateRange: DateRange) => {
   
   while (currentDate <= endDate) {
     const dateStr = currentDate.toLocaleDateString();
-    const dayAgents = agents.filter(agent => {
-      const agentDate = new Date(agent.created_at);
-      return agentDate.toLocaleDateString() === dateStr;
-    });
-
+    
+    // For each day, show the current counts (this is for demo purposes)
+    // In a real system, you'd have historical status data
     const counts = {
-      active: dayAgents.filter(a => a.status === 'active').length,
-      suspended: dayAgents.filter(a => a.status === 'suspended').length,
-      terminated: dayAgents.filter(a => a.status === 'terminated').length,
-      total: dayAgents.length
+      active: agents.filter(a => a.status === 'active').length,
+      suspended: agents.filter(a => a.status === 'suspended').length,
+      terminated: agents.filter(a => a.status === 'terminated').length,
+      total: agents.length
     };
 
     agentsByPeriod.push({
@@ -208,7 +206,7 @@ const calculateTopAgentsFromAILogs = (agents: any[], aiUsageLogs: any[]) => {
       name: agent.hostname || `Agent ${agent.id.slice(0, 8)}`,
       usage: Math.floor(Math.random() * 50) + 10, // Sample usage data
       status: agent.status,
-      last_seen: agent.created_at,
+      last_seen: agent.last_heartbeat || agent.last_seen || agent.created_at,
       promptTokens: Math.floor(Math.random() * 5000) + 1000,
       completionTokens: Math.floor(Math.random() * 3000) + 500,
     }));
@@ -242,7 +240,7 @@ const calculateTopAgentsFromAILogs = (agents: any[], aiUsageLogs: any[]) => {
         name: agent.hostname || `Agent ${agent.id.slice(0, 8)}`,
         usage: usage.requests,
         status: agent.status,
-        last_seen: agent.created_at,
+        last_seen: agent.last_heartbeat || agent.last_seen || agent.created_at,
         promptTokens: Math.floor(usage.tokens * 0.6), // Approximate split
         completionTokens: Math.floor(usage.tokens * 0.4),
       };
