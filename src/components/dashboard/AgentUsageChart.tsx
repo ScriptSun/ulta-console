@@ -47,10 +47,11 @@ const STATUS_COLORS = {
   active: 'hsl(142, 76%, 36%)',    // green
   suspended: 'hsl(38, 92%, 50%)',  // yellow/amber
   terminated: 'hsl(0, 84%, 60%)',  // red
+  total: 'hsl(250, 70%, 60%)',     // purple
 };
 
 export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartProps) {
-  const [chartType, setChartType] = useState<ChartType>('bar');
+  const [chartType, setChartType] = useState<ChartType>('line'); // Default to line chart
 
   // Prepare data for charts - show agents by time period and status
   const chartData = data.map((item) => ({
@@ -227,7 +228,8 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                               <span className="text-[0.70rem] uppercase text-muted-foreground">
                                 {entry.dataKey === 'active' ? 'Active' : 
                                  entry.dataKey === 'suspended' ? 'Suspended' : 
-                                 'Terminated'} Agents
+                                 entry.dataKey === 'terminated' ? 'Terminated' :
+                                 'Total'} Agents
                               </span>
                               <span className="font-bold" style={{ color: entry.color }}>
                                 {entry.value}
@@ -241,9 +243,10 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                   return null;
                 }}
               />
-              <Line type="monotone" dataKey="active" stroke={STATUS_COLORS.active} strokeWidth={3} />
-              <Line type="monotone" dataKey="suspended" stroke={STATUS_COLORS.suspended} strokeWidth={3} />
-              <Line type="monotone" dataKey="terminated" stroke={STATUS_COLORS.terminated} strokeWidth={3} />
+              <Line type="monotone" dataKey="active" stroke={STATUS_COLORS.active} strokeWidth={3} dot={{ fill: STATUS_COLORS.active, r: 4 }} />
+              <Line type="monotone" dataKey="suspended" stroke={STATUS_COLORS.suspended} strokeWidth={3} dot={{ fill: STATUS_COLORS.suspended, r: 4 }} />
+              <Line type="monotone" dataKey="terminated" stroke={STATUS_COLORS.terminated} strokeWidth={3} dot={{ fill: STATUS_COLORS.terminated, r: 4 }} />
+              <Line type="monotone" dataKey="total" stroke={STATUS_COLORS.total} strokeWidth={4} dot={{ fill: STATUS_COLORS.total, r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         );
@@ -366,7 +369,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
               <span className="text-muted-foreground">Terminated: <span className="font-semibold text-foreground">{totals.terminated}</span></span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-primary"></div>
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.total }}></div>
               <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{totals.total}</span></span>
             </div>
           </div>
@@ -390,6 +393,10 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
             <span className="text-xs text-muted-foreground">Terminated</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.total }}></div>
+            <span className="text-xs text-muted-foreground">Total</span>
           </div>
         </div>
       </CardContent>
