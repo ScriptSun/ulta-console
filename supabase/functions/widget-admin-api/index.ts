@@ -547,33 +547,45 @@ serve(async (req) => {
   const path = url.pathname
 
   console.log(`Widget Admin API called: ${req.method} ${path}`)
+  console.log('Full URL:', req.url)
+  console.log('Headers:', Object.fromEntries(req.headers.entries()))
 
   try {
     // Public endpoint - no authentication required
     if (path === '/api/widget/config' && req.method === 'GET') {
+      console.log('Routing to getWidgetConfig')
       return await getWidgetConfig(req)
     }
 
     // All other endpoints require authentication
+    console.log('Attempting authentication...')
     const auth = await authenticateRequest(req)
+    console.log('Auth result:', { valid: auth.valid, error: auth.error, customer_id: auth.customer_id })
+    
     if (!auth.valid) {
+      console.log('Authentication failed:', auth.error)
       return errorResponse(auth.error || 'Unauthorized', 401)
     }
 
     const customerId = auth.customer_id!
     const apiKeyId = auth.api_key_id
 
+    console.log(`Authenticated user with customer_id: ${customerId}`)
+
     // Handle all widget admin operations - support both root and API paths
     if ((path === '/' || path === '/api/admin/widgets') && req.method === 'GET') {
+      console.log('Routing to listWidgets')
       return await listWidgets(customerId)
     }
     
     if ((path === '/' || path === '/api/admin/widgets') && req.method === 'POST') {
+      console.log('Routing to createWidget')
       return await createWidget(req, customerId, apiKeyId)
     }
 
     // Handle widget updates - both root level and API path
     if (path.startsWith('/api/admin/widgets/') && req.method === 'PATCH') {
+      console.log('Routing to updateWidget')
       const widgetId = path.split('/').pop()
       if (!widgetId) {
         return errorResponse('Invalid widget ID', 400)
@@ -583,13 +595,16 @@ serve(async (req) => {
 
     // Handle widget updates at root level (for new style)
     if (path !== '/' && path !== '/api/widget/config' && !path.startsWith('/api/') && req.method === 'PATCH') {
+      console.log('Routing to updateWidget (root level)')
       const widgetId = path.substring(1) // Remove leading slash
       if (widgetId) {
         return await updateWidget(req, widgetId, customerId, apiKeyId)
       }
     }
 
-    return errorResponse('Not found', 404)
+    console.log(`No route matched for ${req.method} ${path}`)
+    return errorResponse(`Route not found: ${req.method} ${path}`, 404)
+
   } catch (error) {
     console.error('Request error:', error)
     return errorResponse('Internal server error', 500)
