@@ -213,24 +213,48 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
 
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          Interactive Chat Preview
-          {widget && (
-            <Badge variant="secondary" className="text-xs">
-              {widget.name}
-            </Badge>
-          )}
-          {previewConfig && !widget && (
-            <Badge variant="outline" className="text-xs">
-              Live Demo
-            </Badge>
-          )}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Test your widget theme by chatting with agents in real-time
-        </p>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Interactive Chat Preview
+            {widget && (
+              <Badge variant="secondary" className="text-xs">
+                {widget.name}
+              </Badge>
+            )}
+            {previewConfig && !widget && (
+              <Badge variant="outline" className="text-xs">
+                Live Demo
+              </Badge>
+            )}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Test your widget theme by chatting with agents in real-time
+          </p>
+        </div>
+        
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center border rounded-lg p-1 bg-white/90 backdrop-blur-sm">
+            <Button
+              variant={viewMode === 'desktop' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('desktop')}
+              className="h-8 px-3"
+            >
+              <Monitor className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'mobile' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('mobile')}
+              className="h-8 px-3"
+            >
+              <Smartphone className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       <Card>
@@ -251,28 +275,6 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
                 : 'w-full h-[600px] max-w-[380px] mx-auto'
             }`}
           >
-            {/* View Mode Toggle */}
-            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-              <div className="flex items-center border rounded-lg p-1 bg-white/90 backdrop-blur-sm">
-                <Button
-                  variant={viewMode === 'desktop' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('desktop')}
-                  className="h-8 px-3"
-                >
-                  <Monitor className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'mobile' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('mobile')}
-                  className="h-8 px-3"
-                >
-                  <Smartphone className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
             {/* Chat Interface */}
             <div className="flex flex-col h-full bg-background border rounded-lg overflow-hidden">
               {/* Header */}
