@@ -5,7 +5,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Bot, Activity, Globe, Server, User, Mail, Calendar, HardDrive, Cpu, MemoryStick } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { 
+  ArrowLeft, 
+  Bot, 
+  Activity, 
+  Globe, 
+  Server, 
+  User, 
+  Mail, 
+  Calendar, 
+  HardDrive, 
+  Cpu, 
+  MemoryStick,
+  CreditCard,
+  TrendingUp
+} from 'lucide-react';
 
 interface HeartbeatData {
   ram_mb?: number;
@@ -37,11 +52,42 @@ export default function AgentDetail() {
             full_name
           )
         `)
-        .eq('id', agentId)
-        .single();
+        .eq('id', agentId!)
+        .maybeSingle();
       
       if (error) throw error;
       return data;
+    },
+    enabled: !!agentId,
+  });
+
+  // Fetch agent usage data
+  const { data: usageData, isLoading: usageLoading } = useQuery({
+    queryKey: ['agent-usage', agentId],
+    queryFn: async () => {
+      if (!agentId) return null;
+      
+      // Get current usage for today
+      const { data: usage } = await supabase
+        .from('agent_usage')
+        .select('usage_type, count')
+        .eq('agent_id', agentId)
+        .eq('usage_date', new Date().toISOString().split('T')[0]);
+
+      // Mock plan data for now
+      const planLimits = {
+        name: agent?.plan_key === 'pro_plan' ? 'Pro Plan' : 
+              agent?.plan_key === 'enterprise_plan' ? 'Enterprise Plan' : 'Free Plan',
+        monthly_ai_requests: agent?.plan_key === 'pro_plan' ? 1000 : 
+                           agent?.plan_key === 'enterprise_plan' ? 10000 : 25,
+        monthly_server_events: agent?.plan_key === 'pro_plan' ? 5000 : 
+                             agent?.plan_key === 'enterprise_plan' ? 50000 : 100
+      };
+
+      return {
+        usage: usage || [],
+        planLimits
+      };
     },
     enabled: !!agentId,
   });
@@ -216,6 +262,97 @@ export default function AgentDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Plan Usage */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Plan Usage & Limits
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {usageLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Current Plan</label>
+                  <div className="mt-1">
+                    <Badge variant="outline" className="text-sm">
+                      {usageData?.planLimits?.name || 'Free Plan'}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Usage Period</label>
+                  <div className="flex items-center gap-1 mt-1">
+                    <Calendar className="h-3 w-3" />
+                    <span className="text-sm">Today ({new Date().toLocaleDateString()})</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* AI Requests Usage */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      AI Requests
+                    </label>
+                    <span className="text-sm text-muted-foreground">
+                      {usageData?.usage?.find(u => u.usage_type === 'ai_request')?.count || 0} / {usageData?.planLimits?.monthly_ai_requests || 25}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={((usageData?.usage?.find(u => u.usage_type === 'ai_request')?.count || 0) / (usageData?.planLimits?.monthly_ai_requests || 25)) * 100} 
+                    className="h-2"
+                  />
+                </div>
+
+                {/* Server Events Usage */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                      <Activity className="h-3 w-3" />
+                      Server Events
+                    </label>
+                    <span className="text-sm text-muted-foreground">
+                      {usageData?.usage?.find(u => u.usage_type === 'server_event')?.count || 0} / {usageData?.planLimits?.monthly_server_events || 100}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={((usageData?.usage?.find(u => u.usage_type === 'server_event')?.count || 0) / (usageData?.planLimits?.monthly_server_events || 100)) * 100} 
+                    className="h-2"
+                  />
+                </div>
+              </div>
+
+              {/* Usage Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-lg font-semibold">{usageData?.usage?.reduce((sum, u) => sum + u.count, 0) || 0}</div>
+                  <div className="text-xs text-muted-foreground">Total Requests Today</div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-lg font-semibold">{agent?.tasks_completed || 0}</div>
+                  <div className="text-xs text-muted-foreground">Tasks Completed</div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-lg font-semibold">
+                    {Math.max(0, (usageData?.planLimits?.monthly_ai_requests || 25) - (usageData?.usage?.find(u => u.usage_type === 'ai_request')?.count || 0))}
+                  </div>
+                  <div className="text-xs text-muted-foreground">AI Requests Remaining</div>
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* System Information */}
       {heartbeat && Object.keys(heartbeat).length > 0 && (
