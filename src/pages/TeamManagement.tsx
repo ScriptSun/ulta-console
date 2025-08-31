@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Users, UserPlus, Settings, Mail, X, Shield, Layout, Trash2, ChevronDown, ChevronUp, CheckCircle, XCircle, Bug } from 'lucide-react';
+import { Plus, Users, UserPlus, Settings, Mail, X, Shield, Layout, Trash2, ChevronDown, ChevronUp, CheckCircle, XCircle, Bug, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CreateTeamDialog } from '@/components/teams/CreateTeamDialog';
 import { AddMemberDialog } from '@/components/teams/AddMemberDialog';
@@ -21,6 +21,7 @@ import { useTeamRateLimits } from '@/hooks/useTeamRateLimits';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageGuard } from '@/components/auth/PageGuard';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Textarea } from '@/components/ui/textarea';
 
 const ROLE_COLORS = {
   Owner: 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm',
@@ -200,6 +201,10 @@ export default function TeamManagement() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [bulkAdminOpen, setBulkAdminOpen] = useState(false);
+  const [bulkEmails, setBulkEmails] = useState('');
+  const [bulkRole, setBulkRole] = useState('Developer');
+  const [bulkTeamId, setBulkTeamId] = useState('');
 
   const dismissRateLimitBanner = (bannerId: string) => {
     setRateLimitBanners(prev => prev.filter(banner => banner.id !== bannerId));
@@ -349,6 +354,58 @@ export default function TeamManagement() {
     },
     enabled: !!user?.id && !!isOwnerAnywhere
   });
+
+  // Bulk admin member creation mutation
+  const bulkAddMembersMutation = useMutation({
+    mutationFn: async ({ teamId, emails, role }: { teamId: string; emails: string; role: string }) => {
+      const emailList = emails.split(',').map(e => e.trim()).filter(e => e);
+      const invites = emailList.map(email => ({ email, role }));
+      
+      const { data, error } = await supabase.rpc('bulk_invite_team_members', {
+        _team_id: teamId,
+        _invites: invites
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      const summary = data.summary;
+      toast({
+        title: 'Bulk operation completed',
+        description: `Added: ${summary.added}, Updated: ${summary.updated}, Existing: ${summary.exists}, Skipped: ${summary.skipped}`,
+      });
+      
+      // Clear form and refresh data
+      setBulkEmails('');
+      setBulkTeamId('');
+      queryClient.invalidateQueries({ queryKey: ['console-team-members'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Bulk operation failed',
+        description: error.message || 'Failed to process bulk member addition',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleBulkSubmit = () => {
+    if (!bulkEmails.trim() || !bulkTeamId || !bulkRole) {
+      toast({
+        title: 'Missing information',
+        description: 'Please fill in all fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    bulkAddMembersMutation.mutate({
+      teamId: bulkTeamId,
+      emails: bulkEmails,
+      role: bulkRole
+    });
+  };
 
   // Update the InviteStaffDialog to use the new edge function with rate limiting
   const handleInviteStaff = async (email: string, role: string, teamId: string) => {
@@ -692,6 +749,105 @@ export default function TeamManagement() {
                             </div>
                           );
                         })}
+                      </div>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+
+          {/* Bulk Admin Tool - Only for Owners */}
+          {isOwnerAnywhere && (
+            <Collapsible open={bulkAdminOpen} onOpenChange={setBulkAdminOpen}>
+              <Card className="border-blue-200 bg-blue-50/30 dark:border-blue-800 dark:bg-blue-950/30">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/50 transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="h-5 w-5 text-blue-600" />
+                        Bulk Admin Tool
+                        <Badge variant="outline" className="text-xs">Owner Only</Badge>
+                        <Badge variant="secondary" className="text-xs">Temporary</Badge>
+                      </div>
+                      {bulkAdminOpen ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      Bulk create admin profiles and team memberships from email list
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Team</label>
+                        <Select value={bulkTeamId} onValueChange={setBulkTeamId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select team" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border border-border shadow-md z-50">
+                            {currentUserTeams?.filter(team => team.userRole === 'Owner').map(team => (
+                              <SelectItem key={team.id} value={team.id}>
+                                {team.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Role</label>
+                        <Select value={bulkRole} onValueChange={setBulkRole}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border border-border shadow-md z-50">
+                            <SelectItem value="Admin">Admin</SelectItem>
+                            <SelectItem value="Developer">Developer</SelectItem>
+                            <SelectItem value="Analyst">Analyst</SelectItem>
+                            <SelectItem value="ReadOnly">ReadOnly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Emails (comma-separated)</label>
+                      <Textarea
+                        placeholder="user1@example.com, user2@example.com, user3@example.com"
+                        value={bulkEmails}
+                        onChange={(e) => setBulkEmails(e.target.value)}
+                        rows={4}
+                        className="resize-none"
+                      />
+                      <div className="text-xs text-muted-foreground">
+                        Enter email addresses separated by commas. Users must already exist in auth.users.
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 pt-2">
+                      <Button 
+                        onClick={handleBulkSubmit}
+                        disabled={bulkAddMembersMutation.isPending || !bulkEmails.trim() || !bulkTeamId}
+                        className="gap-2"
+                      >
+                        {bulkAddMembersMutation.isPending ? (
+                          <>Processing...</>
+                        ) : (
+                          <>
+                            <UserCheck className="h-4 w-4" />
+                            Process Members
+                          </>
+                        )}
+                      </Button>
+                      
+                      <div className="text-xs text-muted-foreground">
+                        Operation is idempotent - safe to re-run
                       </div>
                     </div>
                   </CardContent>
