@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Users, UserPlus, Settings, Mail, X, Shield, Layout, Trash2 } from 'lucide-react';
+import { Plus, Users, UserPlus, Settings, Mail, X, Shield, Layout, Trash2, ChevronDown, ChevronUp, CheckCircle, XCircle, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CreateTeamDialog } from '@/components/teams/CreateTeamDialog';
 import { AddMemberDialog } from '@/components/teams/AddMemberDialog';
@@ -20,6 +20,7 @@ import { RateLimitBanner } from '@/components/teams/RateLimitBanner';
 import { useTeamRateLimits } from '@/hooks/useTeamRateLimits';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageGuard } from '@/components/auth/PageGuard';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const ROLE_COLORS = {
   Owner: 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm',
@@ -198,6 +199,7 @@ export default function TeamManagement() {
   const [showWidgetScope, setShowWidgetScope] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
 
   const dismissRateLimitBanner = (bannerId: string) => {
     setRateLimitBanners(prev => prev.filter(banner => banner.id !== bannerId));
@@ -279,6 +281,73 @@ export default function TeamManagement() {
       return allInvites.flat();
     },
     enabled: !!currentUserTeams?.length
+  });
+
+  // RBAC Diagnostics - only for Owners
+  const isOwnerAnywhere = currentUserTeams?.some(team => team.userRole === 'Owner');
+  
+  const { data: diagnosticsData } = useQuery({
+    queryKey: ['rbac-diagnostics', user?.id],
+    queryFn: async () => {
+      if (!user?.id || !isOwnerAnywhere) return null;
+      
+      // Get console pages count
+      const { data: pagesData, error: pagesError } = await supabase
+        .from('console_pages')
+        .select('key, label')
+        .order('key');
+      
+      if (pagesError) throw pagesError;
+      
+      // Get role templates
+      const { data: templatesData, error: templatesError } = await supabase
+        .from('console_role_templates')
+        .select('role, page_key, can_view, can_edit, can_delete')
+        .order('role, page_key');
+      
+      if (templatesError) throw templatesError;
+      
+      // Get user's detailed team memberships with permissions
+      const { data: membershipData, error: membershipError } = await supabase
+        .from('console_team_members')
+        .select(`
+          id,
+          team_id,
+          role,
+          console_teams!inner(name),
+          console_member_page_perms(page_key, can_view, can_edit, can_delete)
+        `)
+        .eq('admin_id', user.id);
+      
+      if (membershipError) throw membershipError;
+      
+      // Analyze role coverage
+      const availableRoles = ['Owner', 'Admin', 'Developer', 'Analyst', 'ReadOnly'];
+      const roleTemplatesCoverage = availableRoles.map(role => {
+        const templatesForRole = templatesData?.filter(t => t.role === role) || [];
+        const pagesWithTemplates = new Set(templatesForRole.map(t => t.page_key));
+        const totalPages = pagesData?.length || 0;
+        const coveredPages = pagesWithTemplates.size;
+        
+        return {
+          role,
+          hasTemplates: templatesForRole.length > 0,
+          coveredPages,
+          totalPages,
+          coverage: totalPages > 0 ? (coveredPages / totalPages) * 100 : 0
+        };
+      });
+      
+      return {
+        adminId: user.id,
+        totalPages: pagesData?.length || 0,
+        pages: pagesData || [],
+        templates: templatesData || [],
+        memberships: membershipData || [],
+        roleTemplatesCoverage
+      };
+    },
+    enabled: !!user?.id && !!isOwnerAnywhere
   });
 
   // Update the InviteStaffDialog to use the new edge function with rate limiting
@@ -485,6 +554,151 @@ export default function TeamManagement() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          
+          {/* RBAC Diagnostics - Only for Owners */}
+          {isOwnerAnywhere && diagnosticsData && (
+            <Collapsible open={diagnosticsOpen} onOpenChange={setDiagnosticsOpen}>
+              <Card className="border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/50 transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bug className="h-5 w-5 text-amber-600" />
+                        RBAC Diagnostics
+                        <Badge variant="outline" className="text-xs">Owner Only</Badge>
+                      </div>
+                      {diagnosticsOpen ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      Debug role-based access control configuration and permissions
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-6">
+                    {/* Current User Info */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-muted-foreground">Current Admin ID</h4>
+                        <div className="flex items-center gap-2">
+                          <code className="bg-muted px-2 py-1 rounded text-xs font-mono">
+                            {diagnosticsData.adminId}
+                          </code>
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-muted-foreground">Console Pages</h4>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{diagnosticsData.totalPages} pages</span>
+                          {diagnosticsData.totalPages > 0 ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-600" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Team Memberships */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-muted-foreground">Team Memberships</h4>
+                      <div className="space-y-2">
+                        {diagnosticsData.memberships.map((membership: any) => (
+                          <div key={membership.id} className="flex items-center justify-between p-3 bg-card/50 border border-border/50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div>
+                                <div className="font-medium">{membership.console_teams.name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  Team ID: <code className="bg-muted px-1 rounded">{membership.team_id}</code>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={ROLE_COLORS[membership.role as keyof typeof ROLE_COLORS]}>
+                                {membership.role}
+                              </Badge>
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            </div>
+                          </div>
+                        ))}
+                        {diagnosticsData.memberships.length === 0 && (
+                          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <XCircle className="h-4 w-4 text-red-600" />
+                            <span className="text-red-700">No team memberships found</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Role Templates Coverage */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-muted-foreground">Role Templates Coverage</h4>
+                      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                        {diagnosticsData.roleTemplatesCoverage.map((roleCoverage: any) => (
+                          <div key={roleCoverage.role} className="p-3 bg-card/50 border border-border/50 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-sm">{roleCoverage.role}</span>
+                              {roleCoverage.hasTemplates ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {roleCoverage.coveredPages}/{roleCoverage.totalPages} pages covered
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2 mt-2">
+                              <div 
+                                className={`h-2 rounded-full transition-all ${
+                                  roleCoverage.coverage === 100 ? 'bg-green-500' : 
+                                  roleCoverage.coverage > 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                }`}
+                                style={{ width: `${roleCoverage.coverage}%` }}
+                              />
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {roleCoverage.coverage.toFixed(1)}% coverage
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Pages List */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-muted-foreground">Available Pages</h4>
+                      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                        {diagnosticsData.pages.map((page: any) => {
+                          const hasTemplates = diagnosticsData.templates.some((t: any) => t.page_key === page.key);
+                          return (
+                            <div key={page.key} className="flex items-center justify-between p-2 bg-card/30 border border-border/30 rounded">
+                              <div>
+                                <div className="font-medium text-sm">{page.label}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  <code>{page.key}</code>
+                                </div>
+                              </div>
+                              {hasTemplates ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
 
       {/* Role System Overview */}
       <Card>
