@@ -143,6 +143,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
               {visibleSeries.active && <Bar dataKey="active" stackId="a" fill={STATUS_COLORS.active} />}
               {visibleSeries.suspended && <Bar dataKey="suspended" stackId="a" fill={STATUS_COLORS.suspended} />}
               {visibleSeries.terminated && <Bar dataKey="terminated" stackId="a" fill={STATUS_COLORS.terminated} />}
+              {visibleSeries.total && <Bar dataKey="total" stackId="b" fill={STATUS_COLORS.total} />}
             </BarChart>
           </ResponsiveContainer>
         );
@@ -151,7 +152,8 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
         const pieData = [
           ...(visibleSeries.active ? [{ name: 'Active', value: totals.active, color: STATUS_COLORS.active }] : []),
           ...(visibleSeries.suspended ? [{ name: 'Suspended', value: totals.suspended, color: STATUS_COLORS.suspended }] : []),
-          ...(visibleSeries.terminated ? [{ name: 'Terminated', value: totals.terminated, color: STATUS_COLORS.terminated }] : [])
+          ...(visibleSeries.terminated ? [{ name: 'Terminated', value: totals.terminated, color: STATUS_COLORS.terminated }] : []),
+          ...(visibleSeries.total ? [{ name: 'Total', value: totals.total, color: STATUS_COLORS.total }] : [])
         ];
         
         return (
@@ -303,9 +305,10 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                           {payload.map((entry: any, index: number) => (
                             <div key={index} className="flex flex-col">
                               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                {entry.dataKey === 'active' ? 'Active' : 
+                               {entry.dataKey === 'active' ? 'Active' : 
                                  entry.dataKey === 'suspended' ? 'Suspended' : 
-                                 'Terminated'} Agents
+                                 entry.dataKey === 'terminated' ? 'Terminated' :
+                                 'Total'} Agents
                               </span>
                               <span className="font-bold" style={{ color: entry.color }}>
                                 {entry.value}
@@ -322,6 +325,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
               {visibleSeries.terminated && <Area type="monotone" dataKey="terminated" stackId="1" stroke={STATUS_COLORS.terminated} fill={STATUS_COLORS.terminated} fillOpacity={0.6} />}
               {visibleSeries.suspended && <Area type="monotone" dataKey="suspended" stackId="1" stroke={STATUS_COLORS.suspended} fill={STATUS_COLORS.suspended} fillOpacity={0.6} />}
               {visibleSeries.active && <Area type="monotone" dataKey="active" stackId="1" stroke={STATUS_COLORS.active} fill={STATUS_COLORS.active} fillOpacity={0.6} />}
+              {visibleSeries.total && <Area type="monotone" dataKey="total" stackId="2" stroke={STATUS_COLORS.total} fill={STATUS_COLORS.total} fillOpacity={0.8} />}
             </AreaChart>
           </ResponsiveContainer>
         );
