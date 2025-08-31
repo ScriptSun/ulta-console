@@ -43,8 +43,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     userIdentification: false,
     programmaticControl: false,
     debugMode: false,
-    autoCloseTimer: false,
-    soundNotifications: false
+    autoCloseTimer: false
   });
 
   // Size control options
@@ -387,18 +386,6 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="soundNotifications"
-                      checked={advancedOptions.soundNotifications}
-                      onCheckedChange={(checked) =>
-                        setAdvancedOptions(prev => ({ ...prev, soundNotifications: checked as boolean }))
-                      }
-                    />
-                    <Label htmlFor="soundNotifications" className="font-normal text-sm">
-                      Sound Notifications
-                    </Label>
-                  </div>
                 </div>
 
                 {sizeOptions.customSize && (
