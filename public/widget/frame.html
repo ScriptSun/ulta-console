@@ -4,116 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AltaAI Widget</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            height: 100vh;
-            overflow: hidden;
-            background: white;
-        }
-        
-        .widget-container {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: white;
-        }
-        
-        .widget-header {
-            padding: 16px;
-            border-bottom: 1px solid #e1e5e9;
-            background: var(--color-primary, #007bff);
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .widget-logo {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        
-        .widget-title {
-            font-weight: 600;
-            font-size: 16px;
-        }
-        
-        .widget-content {
-            flex: 1;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            color: var(--text-color, #333333);
-        }
-        
-        .welcome-message {
-            font-size: 16px;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--color-primary, #007bff);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 16px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .error-message {
-            color: #dc3545;
-            font-size: 14px;
-            padding: 16px;
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            border-radius: 4px;
-            margin: 16px;
-        }
-        
-        .status-message {
-            font-size: 14px;
-            color: #666;
-            margin-top: 12px;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="widget-container">
         <div class="widget-header">
-            <div class="widget-logo" id="widget-logo">AI</div>
+            <div class="widget-logo hidden" id="widget-logo">
+                <span>AI</span>
+            </div>
             <div class="widget-title" id="widget-title">AltaAI Assistant</div>
         </div>
-        <div class="widget-content">
-            <div class="loading-spinner"></div>
-            <div class="welcome-message" id="welcome-message">
-                Initializing chat widget...
-            </div>
-            <div class="status-message" id="status-message">
-                Connecting to AltaAI services
+        
+        <div class="widget-content" id="widget-content">
+            <!-- Loading state (initial) -->
+            <div class="loading-container" id="loading-state">
+                <div class="loading-spinner"></div>
+                <div class="welcome-message">Initializing widget...</div>
+                <div class="status-message" id="status-message">Connecting to AltaAI services</div>
             </div>
         </div>
     </div>
@@ -121,6 +28,9 @@
     <script>
         (function() {
             'use strict';
+            
+            let widgetConfig = null;
+            let clientOpts = {};
             
             // Parse URL parameters
             function getUrlParams() {
@@ -132,45 +42,58 @@
                 };
             }
             
-            // Parse and apply options
-            function applyOptions(optsString) {
+            // Parse client options from URL
+            function parseClientOptions(optsString) {
                 try {
-                    const opts = optsString ? JSON.parse(decodeURIComponent(optsString)) : {};
-                    
-                    // Apply CSS custom properties for styling
-                    if (opts.colorPrimary) {
-                        document.documentElement.style.setProperty('--color-primary', opts.colorPrimary);
-                    }
-                    if (opts.textColor) {
-                        document.documentElement.style.setProperty('--text-color', opts.textColor);
-                    }
-                    
-                    // Update welcome text
-                    if (opts.welcomeText) {
-                        document.getElementById('welcome-message').textContent = opts.welcomeText;
-                    }
-                    
-                    // Update logo
-                    const logoEl = document.getElementById('widget-logo');
-                    if (opts.logoUrl) {
-                        logoEl.innerHTML = `<img src="${opts.logoUrl}" alt="Logo" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-                    }
-                    
-                    return opts;
+                    return optsString ? JSON.parse(decodeURIComponent(optsString)) : {};
                 } catch (error) {
-                    console.error('Failed to parse widget options:', error);
+                    console.error('Failed to parse client options:', error);
                     return {};
                 }
             }
             
-            // Fetch widget configuration
+            // Merge server theme with client options (client wins)
+            function mergeThemeWithOptions(serverConfig, clientOptions) {
+                const serverTheme = serverConfig.theme || {};
+                
+                return {
+                    colorPrimary: clientOptions.colorPrimary || serverTheme.color_primary || '#007bff',
+                    textColor: clientOptions.textColor || serverTheme.text_color || '#333333',
+                    logoUrl: clientOptions.logoUrl || serverTheme.logo_url || '',
+                    welcomeText: clientOptions.welcomeText || serverTheme.welcome_text || 'Hello! How can I help you today?'
+                };
+            }
+            
+            // Apply theme to the widget
+            function applyTheme(theme) {
+                const root = document.documentElement;
+                
+                // Apply CSS custom properties
+                root.style.setProperty('--color-primary', theme.colorPrimary);
+                root.style.setProperty('--text-color', theme.textColor);
+                
+                // Apply logo
+                const logoEl = document.getElementById('widget-logo');
+                if (theme.logoUrl && theme.logoUrl.trim()) {
+                    logoEl.innerHTML = `<img src="${theme.logoUrl}" alt="Logo" onerror="this.parentElement.classList.add('hidden')">`;
+                    logoEl.classList.remove('hidden');
+                } else {
+                    logoEl.innerHTML = '<span>AI</span>';
+                    logoEl.classList.add('hidden');
+                }
+            }
+            
+            // Fetch widget configuration from server
             async function fetchWidgetConfig(siteKey, origin) {
+                const baseUrl = window.location.protocol + '//' + window.location.host;
+                const url = `${baseUrl}/supabase/functions/v1/widget-admin-api/api/widget/config?site_key=${encodeURIComponent(siteKey)}&origin=${encodeURIComponent(origin)}`;
+                
                 try {
-                    const response = await fetch(`${window.location.origin}/supabase/functions/v1/widget-admin-api/api/widget/config?site_key=${encodeURIComponent(siteKey)}&origin=${encodeURIComponent(origin)}`);
+                    const response = await fetch(url);
                     
                     if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || `HTTP ${response.status}`);
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
                     }
                     
                     return await response.json();
@@ -180,43 +103,59 @@
                 }
             }
             
-            // Update UI with error
-            function showError(message) {
-                const container = document.querySelector('.widget-content');
-                container.innerHTML = `
-                    <div class="error-message">
-                        <strong>Configuration Error</strong><br>
-                        ${message}
+            // Render error state
+            function renderError(error, canRetry = true) {
+                const contentEl = document.getElementById('widget-content');
+                const isPermissionError = error.message.includes('not allowed') || error.message.includes('403');
+                
+                contentEl.innerHTML = `
+                    <div class="error-container">
+                        <div class="error-title">
+                            <span>⚠️</span>
+                            <span>${isPermissionError ? 'Access Denied' : 'Configuration Error'}</span>
+                        </div>
+                        <div class="error-message">
+                            ${isPermissionError 
+                                ? 'This widget is not authorized to load on this domain.' 
+                                : 'Unable to load widget configuration.'}
+                        </div>
+                        ${canRetry ? `<button class="retry-button" onclick="initWidget()">Retry</button>` : ''}
+                        <div class="error-details">${error.message}</div>
                     </div>
                 `;
             }
             
-            // Update UI with success
-            function showReady(config) {
-                document.getElementById('widget-title').textContent = config.name || 'AltaAI Assistant';
+            // Render success state with content
+            function renderWidget(config, theme) {
+                const contentEl = document.getElementById('widget-content');
                 
-                const container = document.querySelector('.widget-content');
-                container.innerHTML = `
-                    <div class="welcome-message">
-                        ${config.theme?.welcome_text || 'Hello! How can I help you today?'}
+                contentEl.innerHTML = `
+                    <div class="welcome-section">
+                        <div class="welcome-message">${theme.welcomeText}</div>
+                        <div class="welcome-subtitle">I'm here to help you with any questions.</div>
                     </div>
-                    <div class="status-message">
-                        Widget ready to use
+                    
+                    <div class="action-buttons">
+                        <button class="action-button" onclick="startChat()">
+                            <span>💬</span>
+                            <span>Start Chat</span>
+                        </button>
+                        <button class="action-button secondary" onclick="showSupport()">
+                            <span>📧</span>
+                            <span>Contact Support</span>
+                        </button>
                     </div>
                 `;
                 
-                // Apply theme colors if available
-                if (config.theme) {
-                    if (config.theme.color_primary) {
-                        document.documentElement.style.setProperty('--color-primary', config.theme.color_primary);
-                    }
-                    if (config.theme.text_color) {
-                        document.documentElement.style.setProperty('--text-color', config.theme.text_color);
-                    }
-                    if (config.theme.logo_url) {
-                        const logoEl = document.getElementById('widget-logo');
-                        logoEl.innerHTML = `<img src="${config.theme.logo_url}" alt="Logo" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-                    }
+                // Update title
+                document.getElementById('widget-title').textContent = config.name || 'AltaAI Assistant';
+            }
+            
+            // Update loading status
+            function updateStatus(message) {
+                const statusEl = document.getElementById('status-message');
+                if (statusEl) {
+                    statusEl.textContent = message;
                 }
             }
             
@@ -224,34 +163,61 @@
             async function initWidget() {
                 const params = getUrlParams();
                 
+                // Validate required parameters
                 if (!params.siteKey) {
-                    showError('Missing site key parameter');
+                    renderError(new Error('Missing site_key parameter'), false);
                     return;
                 }
                 
                 if (!params.origin) {
-                    showError('Missing origin parameter');
+                    renderError(new Error('Missing origin parameter'), false);
                     return;
                 }
                 
-                // Apply initial options from URL
-                const opts = applyOptions(params.opts);
+                // Parse client options
+                clientOpts = parseClientOptions(params.opts);
                 
                 try {
-                    // Update status
-                    document.getElementById('status-message').textContent = 'Verifying permissions...';
+                    // Update loading status
+                    updateStatus('Verifying permissions...');
                     
-                    // Fetch widget configuration
-                    const config = await fetchWidgetConfig(params.siteKey, params.origin);
+                    // Fetch configuration from server
+                    widgetConfig = await fetchWidgetConfig(params.siteKey, params.origin);
                     
-                    // Show ready state
-                    showReady(config);
+                    // Merge theme with client options
+                    const mergedTheme = mergeThemeWithOptions(widgetConfig, clientOpts);
+                    
+                    // Apply theme
+                    updateStatus('Applying theme...');
+                    applyTheme(mergedTheme);
+                    
+                    // Small delay to show the loading state
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Render the widget interface
+                    renderWidget(widgetConfig, mergedTheme);
                     
                 } catch (error) {
                     console.error('Widget initialization failed:', error);
-                    showError(error.message);
+                    renderError(error);
                 }
             }
+            
+            // Button action handlers (placeholder functions)
+            window.startChat = function() {
+                console.log('Start chat clicked');
+                // This will be implemented later for actual chat functionality
+                alert('Chat functionality coming soon!');
+            };
+            
+            window.showSupport = function() {
+                console.log('Contact support clicked');
+                // This will be implemented later for support functionality
+                alert('Support functionality coming soon!');
+            };
+            
+            // Make initWidget globally available for retry functionality
+            window.initWidget = initWidget;
             
             // Start initialization when DOM is ready
             if (document.readyState === 'loading') {

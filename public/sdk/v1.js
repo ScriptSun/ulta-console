@@ -71,7 +71,7 @@
     const origin = window.location.origin;
     const optsParam = encodeURIComponent(JSON.stringify(opts));
     
-    // Build the iframe source URL
+    // Build the iframe source URL using absolute path to prevent mixed content issues
     const baseUrl = window.location.origin;
     return `${baseUrl}/public/widget/frame.html?site_key=${encodeURIComponent(siteKey)}&origin=${encodeURIComponent(origin)}&opts=${optsParam}`;
   }

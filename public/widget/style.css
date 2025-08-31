@@ -1,0 +1,344 @@
+/* AltaAI Widget Frame Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --color-primary: #007bff;
+    --text-color: #333333;
+    --background-color: #ffffff;
+    --border-color: #e1e5e9;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --error-color: #dc3545;
+    --error-bg: #f8d7da;
+    --error-border: #f5c6cb;
+    --success-color: #28a745;
+    --success-bg: #d4edda;
+    --success-border: #c3e6cb;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+.widget-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--background-color);
+}
+
+/* Header Styles */
+.widget-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--color-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.widget-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.widget-logo img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.widget-logo.hidden {
+    display: none;
+}
+
+.widget-title {
+    font-weight: 600;
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Content Area */
+.widget-content {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    background: var(--background-color);
+    overflow-y: auto;
+}
+
+.welcome-section {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.welcome-message {
+    font-size: 16px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+    color: var(--text-color);
+}
+
+.welcome-subtitle {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.action-button {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-align: center;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.action-button:hover {
+    background: color-mix(in srgb, var(--color-primary) 85%, black);
+    transform: translateY(-1px);
+}
+
+.action-button:active {
+    transform: translateY(0);
+}
+
+.action-button.secondary {
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+}
+
+.action-button.secondary:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.action-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.action-button:disabled:hover {
+    transform: none;
+    background: var(--color-primary);
+}
+
+/* Loading State */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.status-message {
+    font-size: 14px;
+    color: #666;
+    margin-top: 12px;
+}
+
+/* Error State */
+.error-container {
+    padding: 16px;
+    margin: 16px;
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    border-radius: 8px;
+    color: var(--error-color);
+}
+
+.error-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.error-message {
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 12px;
+}
+
+.error-details {
+    font-size: 12px;
+    color: #666;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+    word-break: break-all;
+}
+
+.retry-button {
+    background: var(--error-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-top: 12px;
+}
+
+.retry-button:hover {
+    background: color-mix(in srgb, var(--error-color) 85%, black);
+}
+
+/* Success State */
+.success-container {
+    padding: 12px 16px;
+    margin: 16px;
+    background: var(--success-bg);
+    border: 1px solid var(--success-border);
+    border-radius: 8px;
+    color: var(--success-color);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 350px) {
+    .widget-header {
+        padding: 12px;
+    }
+    
+    .widget-content {
+        padding: 16px;
+    }
+    
+    .widget-title {
+        font-size: 14px;
+    }
+    
+    .welcome-message {
+        font-size: 14px;
+    }
+    
+    .action-button {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+}
+
+@media (max-height: 400px) {
+    .widget-content {
+        padding: 12px;
+    }
+    
+    .welcome-section {
+        margin-bottom: 16px;
+    }
+    
+    .action-buttons {
+        gap: 8px;
+    }
+}
+
+/* Focus and Accessibility */
+.action-button:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.retry-button:focus {
+    outline: 2px solid var(--error-color);
+    outline-offset: 2px;
+}
+
+/* Animation for smooth transitions */
+.widget-content > * {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hide scrollbars but keep functionality */
+.widget-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.widget-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.widget-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+}
+
+.widget-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
