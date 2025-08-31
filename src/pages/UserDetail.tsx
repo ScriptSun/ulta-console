@@ -53,14 +53,23 @@ export default function UserDetail() {
   };
 
   const getStatusBadge = (status: string) => {
+    if (status === 'offline' || status === 'terminated') {
+      return (
+        <Badge className="bg-red-100 text-red-800 border-red-200">
+          Offline
+        </Badge>
+      );
+    }
+    
     const statusConfig = {
       online: { variant: 'default', label: 'Online' },
-      offline: { variant: 'secondary', label: 'Offline' },
+      active: { variant: 'default', label: 'Active' },
       error: { variant: 'destructive', label: 'Error' },
+      suspended: { variant: 'secondary', label: 'Suspended' },
       deploying: { variant: 'outline', label: 'Deploying' },
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
+    const config = statusConfig[status as keyof typeof statusConfig] || { variant: 'secondary', label: status };
     
     return (
       <Badge variant={config.variant as any}>
