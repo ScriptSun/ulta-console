@@ -96,10 +96,10 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     // Use the deployed Lovable domain for the SDK URL
     const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
     
-    return `<span style="color: #569cd6">&lt;script</span> <span style="color: #92c5f8">src</span>=<span style="color: #ce9178">"${sdkUrl}"</span><span style="color: #569cd6">&gt;&lt;/script&gt;</span>
-<span style="color: #569cd6">&lt;script&gt;</span>
-  <span style="color: #dcdcaa">UltaAIWidget</span>.<span style="color: #dcdcaa">load</span>(<span style="color: #ce9178">'${widget.site_key}'</span>);
-<span style="color: #569cd6">&lt;/script&gt;</span>`;
+    return `<span style="color: #4FC3F7">&lt;script</span> <span style="color: #26C6DA">src</span>=<span style="color: #FFD54F">"${sdkUrl}"</span><span style="color: #4FC3F7">&gt;&lt;/script&gt;</span>
+<span style="color: #4FC3F7">&lt;script&gt;</span>
+  <span style="color: #FFEB3B">UltaAIWidget</span>.<span style="color: #FFEB3B">load</span>(<span style="color: #FFD54F">'${widget.site_key}'</span>);
+<span style="color: #4FC3F7">&lt;/script&gt;</span>`;
   };
 
   const generateAdvancedEmbedCode = () => {
@@ -133,42 +133,42 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     const hasEvents = advancedOptions.enableEvents;
     const hasUserData = advancedOptions.userIdentification;
     
-    let code = `<span style="color: #569cd6">&lt;script</span> <span style="color: #92c5f8">src</span>=<span style="color: #ce9178">"${sdkUrl}"</span><span style="color: #569cd6">&gt;&lt;/script&gt;</span>
-<span style="color: #569cd6">&lt;script&gt;</span>
-  <span style="color: #6a9955">// 🤖 UltaAI Widget Configuration</span>
-  <span style="color: #dcdcaa">UltaAIWidget</span>.<span style="color: #dcdcaa">load</span>(<span style="color: #ce9178">'${widget.site_key}'</span>`;
+    let code = `<span style="color: #4FC3F7">&lt;script</span> <span style="color: #26C6DA">src</span>=<span style="color: #FFD54F">"${sdkUrl}"</span><span style="color: #4FC3F7">&gt;&lt;/script&gt;</span>
+<span style="color: #4FC3F7">&lt;script&gt;</span>
+  <span style="color: #81C784">// 🤖 UltaAI Widget Configuration</span>
+  <span style="color: #FFEB3B">UltaAIWidget</span>.<span style="color: #FFEB3B">load</span>(<span style="color: #FFD54F">'${widget.site_key}'</span>`;
 
     if (hasOptions || hasEvents || hasUserData) {
-      code += `, <span style="color: #d4d4d4">{</span>`;
+      code += `, <span style="color: #FFFFFF">{</span>`;
       
       // Add basic options
       const optionsArray = [];
       Object.entries(opts).forEach(([key, value]) => {
         if (typeof value === 'string') {
-          optionsArray.push(`    <span style="color: #ce9178">"${key}"</span>: <span style="color: #ce9178">"${value}"</span>`);
+          optionsArray.push(`    <span style="color: #FFD54F">"${key}"</span>: <span style="color: #FFD54F">"${value}"</span>`);
         } else {
-          optionsArray.push(`    <span style="color: #ce9178">"${key}"</span>: <span style="color: #b5cea8">${value}</span>`);
+          optionsArray.push(`    <span style="color: #FFD54F">"${key}"</span>: <span style="color: #4DD0E1">${value}</span>`);
         }
       });
       
       // Add user identification
       if (hasUserData) {
-        optionsArray.push(`    <span style="color: #ce9178">"userId"</span>: <span style="color: #ce9178">"user_12345"</span>`);
-        optionsArray.push(`    <span style="color: #ce9178">"userEmail"</span>: <span style="color: #ce9178">"user@example.com"</span>`);
-        optionsArray.push(`    <span style="color: #ce9178">"userName"</span>: <span style="color: #ce9178">"John Doe"</span>`);
+        optionsArray.push(`    <span style="color: #FFD54F">"userId"</span>: <span style="color: #FFD54F">"user_12345"</span>`);
+        optionsArray.push(`    <span style="color: #FFD54F">"userEmail"</span>: <span style="color: #FFD54F">"user@example.com"</span>`);
+        optionsArray.push(`    <span style="color: #FFD54F">"userName"</span>: <span style="color: #FFD54F">"John Doe"</span>`);
       }
       
       // Add event handlers
       if (hasEvents) {
-        optionsArray.push(`    <span style="color: #ce9178">"onReady"</span>: <span style="color: #569cd6">function</span>() {
-      <span style="color: #dcdcaa">console</span>.<span style="color: #dcdcaa">log</span>(<span style="color: #ce9178">'🤖 UltaAI widget is ready'</span>);
+        optionsArray.push(`    <span style="color: #FFD54F">"onReady"</span>: <span style="color: #BA68C8">function</span>() {
+      <span style="color: #FFEB3B">console</span>.<span style="color: #FFEB3B">log</span>(<span style="color: #FFD54F">'🤖 UltaAI widget is ready'</span>);
     }`);
-        optionsArray.push(`    <span style="color: #ce9178">"onOpen"</span>: <span style="color: #569cd6">function</span>() {
-      <span style="color: #dcdcaa">console</span>.<span style="color: #dcdcaa">log</span>(<span style="color: #ce9178">'Widget opened'</span>);
+        optionsArray.push(`    <span style="color: #FFD54F">"onOpen"</span>: <span style="color: #BA68C8">function</span>() {
+      <span style="color: #FFEB3B">console</span>.<span style="color: #FFEB3B">log</span>(<span style="color: #FFD54F">'Widget opened'</span>);
     }`);
       }
       
-      code += `\n${optionsArray.join(',\n')}\n  <span style="color: #d4d4d4">}</span>`;
+      code += `\n${optionsArray.join(',\n')}\n  <span style="color: #FFFFFF">}</span>`;
     }
     
     code += `);`;
@@ -176,16 +176,16 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     if (advancedOptions.programmaticControl) {
       code += `
   
-  <span style="color: #6a9955">// Programmatic control methods (available after widget loads)</span>
-  <span style="color: #dcdcaa">setTimeout</span>(() => {
-    <span style="color: #6a9955">// UltaAIWidget.open();  // Open widget</span>
-    <span style="color: #6a9955">// UltaAIWidget.close(); // Close widget</span>
-    <span style="color: #6a9955">// UltaAIWidget.sendMessage('Hello from website!'); // Send message</span>
-  }, <span style="color: #b5cea8">1000</span>);`;
+  <span style="color: #81C784">// Programmatic control methods (available after widget loads)</span>
+  <span style="color: #FFEB3B">setTimeout</span>(() => {
+    <span style="color: #81C784">// UltaAIWidget.open();  // Open widget</span>
+    <span style="color: #81C784">// UltaAIWidget.close(); // Close widget</span>
+    <span style="color: #81C784">// UltaAIWidget.sendMessage('Hello from website!'); // Send message</span>
+  }, <span style="color: #4DD0E1">1000</span>);`;
     }
 
     code += `
-<span style="color: #569cd6">&lt;/script&gt;</span>`;
+<span style="color: #4FC3F7">&lt;/script&gt;</span>`;
 
     return code;
   };
@@ -194,17 +194,17 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     // Use the deployed Lovable domain for the SDK URL
     const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
     const dataAttrs = [];
-    dataAttrs.push(`<span style="color: #92c5f8">data-ultaai-site-key</span>=<span style="color: #ce9178">"${widget.site_key}"</span>`);
+    dataAttrs.push(`<span style="color: #26C6DA">data-ultaai-site-key</span>=<span style="color: #FFD54F">"${widget.site_key}"</span>`);
     
     if (sizeOptions.customSize) {
-      if (sizeOptions.width !== '400') dataAttrs.push(`<span style="color: #92c5f8">data-ultaai-width</span>=<span style="color: #ce9178">"${sizeOptions.width}px"</span>`);
-      if (sizeOptions.height !== '600') dataAttrs.push(`<span style="color: #92c5f8">data-ultaai-height</span>=<span style="color: #ce9178">"${sizeOptions.height}px"</span>`);
-      if (sizeOptions.position !== 'bottom-right') dataAttrs.push(`<span style="color: #92c5f8">data-ultaai-position</span>=<span style="color: #ce9178">"${sizeOptions.position}"</span>`);
+      if (sizeOptions.width !== '400') dataAttrs.push(`<span style="color: #26C6DA">data-ultaai-width</span>=<span style="color: #FFD54F">"${sizeOptions.width}px"</span>`);
+      if (sizeOptions.height !== '600') dataAttrs.push(`<span style="color: #26C6DA">data-ultaai-height</span>=<span style="color: #FFD54F">"${sizeOptions.height}px"</span>`);
+      if (sizeOptions.position !== 'bottom-right') dataAttrs.push(`<span style="color: #26C6DA">data-ultaai-position</span>=<span style="color: #FFD54F">"${sizeOptions.position}"</span>`);
     }
 
-    return `<span style="color: #569cd6">&lt;script</span> <span style="color: #92c5f8">src</span>=<span style="color: #ce9178">"${sdkUrl}"</span>
+    return `<span style="color: #4FC3F7">&lt;script</span> <span style="color: #26C6DA">src</span>=<span style="color: #FFD54F">"${sdkUrl}"</span>
   ${dataAttrs.join('\n  ')}
-<span style="color: #569cd6">&gt;&lt;/script&gt;</span>`;
+<span style="color: #4FC3F7">&gt;&lt;/script&gt;</span>`;
   };
 
   return (
