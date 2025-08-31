@@ -223,7 +223,11 @@ export default function Users() {
                 {users?.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                      <code 
+                        className="text-xs bg-muted px-2 py-1 rounded font-mono cursor-pointer hover:bg-muted/80 transition-colors"
+                        onClick={() => handleViewProfile(user)}
+                        title="Click to view user profile"
+                      >
                         {user.id.slice(0, 8)}...
                       </code>
                     </TableCell>
