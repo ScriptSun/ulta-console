@@ -1834,25 +1834,28 @@ export type Database = {
       }
       system_settings: {
         Row: {
-          ai_suggestions_mode: string
-          created_at: string
+          created_at: string | null
+          description: string | null
           id: string
-          updated_at: string
-          updated_by: string | null
+          setting_key: string
+          setting_value: Json
+          updated_at: string | null
         }
         Insert: {
-          ai_suggestions_mode?: string
-          created_at?: string
+          created_at?: string | null
+          description?: string | null
           id?: string
-          updated_at?: string
-          updated_by?: string | null
+          setting_key: string
+          setting_value: Json
+          updated_at?: string | null
         }
         Update: {
-          ai_suggestions_mode?: string
-          created_at?: string
+          created_at?: string | null
+          description?: string | null
           id?: string
-          updated_at?: string
-          updated_by?: string | null
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string | null
         }
         Relationships: []
       }
