@@ -42,8 +42,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     enableEvents: false,
     userIdentification: false,
     programmaticControl: false,
-    debugMode: false,
-    autoCloseTimer: false
+    debugMode: false
   });
 
   // Size control options
@@ -370,19 +369,6 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                     />
                     <Label htmlFor="debugMode" className="font-normal text-sm">
                       Debug Mode
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="autoCloseTimer"
-                      checked={advancedOptions.autoCloseTimer}
-                      onCheckedChange={(checked) =>
-                        setAdvancedOptions(prev => ({ ...prev, autoCloseTimer: checked as boolean }))
-                      }
-                    />
-                    <Label htmlFor="autoCloseTimer" className="font-normal text-sm">
-                      Auto-close Timer
                     </Label>
                   </div>
 
