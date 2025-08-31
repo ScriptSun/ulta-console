@@ -414,46 +414,6 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
         </div>
         
         {renderChart()}
-        
-        {/* Chart Legend */}
-        <div className="mt-4 flex flex-wrap gap-4 justify-center">
-          <div 
-            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-              !visibleSeries.active ? 'opacity-50' : ''
-            }`}
-            onClick={() => toggleSeries('active')}
-          >
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.active }}></div>
-            <span className="text-xs text-muted-foreground">Active</span>
-          </div>
-          <div 
-            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-              !visibleSeries.suspended ? 'opacity-50' : ''
-            }`}
-            onClick={() => toggleSeries('suspended')}
-          >
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.suspended }}></div>
-            <span className="text-xs text-muted-foreground">Suspended</span>
-          </div>
-          <div 
-            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-              !visibleSeries.terminated ? 'opacity-50' : ''
-            }`}
-            onClick={() => toggleSeries('terminated')}
-          >
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
-            <span className="text-xs text-muted-foreground">Terminated</span>
-          </div>
-          <div 
-            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-              !visibleSeries.total ? 'opacity-50' : ''
-            }`}
-            onClick={() => toggleSeries('total')}
-          >
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.total }}></div>
-            <span className="text-xs text-muted-foreground">Total</span>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
