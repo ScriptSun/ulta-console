@@ -75,7 +75,18 @@ export function AppSidebar() {
   }
 
   const NavItem = ({ item }: { item: typeof mainItems[0] }) => {
-    const hasPermission = canView(item.pageKey);
+    // Safe fallback: if pageKey is missing or permission check fails, 
+    // default to showing the item to prevent blank sidebar
+    let hasPermission = true;
+    
+    try {
+      if (item.pageKey) {
+        hasPermission = canView(item.pageKey);
+      }
+    } catch (error) {
+      console.warn(`Permission check failed for pageKey: ${item.pageKey}`, error);
+      hasPermission = true; // Safe fallback - show the item
+    }
     
     if (!hasPermission) return null;
     
