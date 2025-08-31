@@ -750,6 +750,11 @@
   window.UltaAIWidget.load = function(siteKey, options = {}) {
     console.log('🤖 UltaAI Widget - Load function called with:', { siteKey: siteKey?.substring(0, 10) + '...', options });
     
+    // Immediate debug test
+    if (options.debug) {
+      console.log('🤖 UltaAI Widget DEBUG MODE ENABLED - You should see detailed logs now');
+    }
+    
     if (isLoaded) {
       console.warn('🤖 UltaAI Widget is already loaded');
       return;
