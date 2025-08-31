@@ -18,23 +18,21 @@ export function usePagePermissions() {
     queryFn: async () => {
       if (!user?.id) return {};
 
-      // Get user's team memberships
-      const { data: memberships, error: membershipError } = await supabase
-        .from('console_team_members')
-        .select(`
-          id,
-          role,
-          team_id,
-          console_member_page_perms(
-            page_key,
-            can_view,
-            can_edit,
-            can_delete
-          )
-        `)
-        .eq('admin_id', user.id);
+      // Get user's explicit page permissions
+      const { data: userPermissions, error: userPermError } = await supabase
+        .from('user_page_permissions')
+        .select('*')
+        .eq('user_id', user.id);
 
-      if (membershipError) throw membershipError;
+      if (userPermError) throw userPermError;
+
+      // Get user's roles
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      if (rolesError) throw rolesError;
 
       // Get all available pages
       const { data: pages, error: pagesError } = await supabase
@@ -50,64 +48,51 @@ export function usePagePermissions() {
 
       if (templatesError) throw templatesError;
 
-      // Aggregate permissions across all teams
-      const aggregatedPermissions: PagePermissions = {};
+      // Build permissions map
+      const finalPermissions: PagePermissions = {};
 
       // Initialize with default permissions (all false)
       pages?.forEach(page => {
-        aggregatedPermissions[page.key] = {
+        finalPermissions[page.key] = {
           can_view: false,
           can_edit: false,
           can_delete: false
         };
       });
 
-      // If user has no team memberships, provide Owner-level access as fallback
-      if (!memberships || memberships.length === 0) {
-        pages?.forEach(page => {
-          const template = roleTemplates?.find(t => t.role === 'Owner' && t.page_key === page.key);
-          if (template) {
-            aggregatedPermissions[page.key] = {
+      // First, apply explicit user permissions
+      userPermissions?.forEach(perm => {
+        finalPermissions[perm.page_key] = {
+          can_view: perm.can_view,
+          can_edit: perm.can_edit,
+          can_delete: perm.can_delete
+        };
+      });
+
+      // Then, fill in missing permissions from role templates
+      // Use the highest role (owner > admin > developer > analyst > readonly)
+      const roleHierarchy = ['owner', 'admin', 'developer', 'analyst', 'readonly'];
+      const userRoleNames = userRoles?.map(r => r.role.toLowerCase()) || [];
+      const highestRole = roleHierarchy.find(role => userRoleNames.includes(role));
+
+      if (highestRole) {
+        // Find the proper case for the role
+        const properRole = highestRole.charAt(0).toUpperCase() + highestRole.slice(1);
+        const alternativeRole = properRole === 'Owner' ? 'Owner' : properRole;
+        
+        roleTemplates?.forEach(template => {
+          const templateRole = template.role.toLowerCase();
+          if ((templateRole === highestRole || template.role === alternativeRole) && !finalPermissions[template.page_key]) {
+            finalPermissions[template.page_key] = {
               can_view: template.can_view,
               can_edit: template.can_edit,
               can_delete: template.can_delete
             };
           }
         });
-      } else {
-        // Apply permissions from each team membership
-        memberships?.forEach(membership => {
-          const memberPermissions = membership.console_member_page_perms || [];
-          
-          pages?.forEach(page => {
-            // Check for explicit permission first
-            const explicitPerm = memberPermissions.find(p => p.page_key === page.key);
-            
-            if (explicitPerm) {
-              // Use explicit permission
-              const current = aggregatedPermissions[page.key];
-              aggregatedPermissions[page.key] = {
-                can_view: current.can_view || explicitPerm.can_view,
-                can_edit: current.can_edit || explicitPerm.can_edit,
-                can_delete: current.can_delete || explicitPerm.can_delete
-              };
-            } else {
-              // Fall back to role template
-              const template = roleTemplates?.find(t => t.role === membership.role && t.page_key === page.key);
-              if (template) {
-                const current = aggregatedPermissions[page.key];
-                aggregatedPermissions[page.key] = {
-                  can_view: current.can_view || template.can_view,
-                  can_edit: current.can_edit || template.can_edit,
-                  can_delete: current.can_delete || template.can_delete
-                };
-              }
-            }
-          });
-        });
       }
 
-      return aggregatedPermissions;
+      return finalPermissions;
     },
     enabled: !!user?.id
   });

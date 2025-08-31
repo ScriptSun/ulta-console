@@ -1,24 +1,56 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Server-side permission checking utility
- * Makes a request to the check-permissions edge function
+ * Server-side permission checking utility for user-based permissions
+ * Makes a request to check user permissions directly
  */
 export async function checkServerPermission(
   pageKey: string, 
   permission: 'view' | 'edit' | 'delete'
 ): Promise<boolean> {
   try {
-    const response = await supabase.functions.invoke('check-permissions', {
-      body: { pageKey, permission }
-    });
-    
-    if (response.error) {
-      console.error('Permission check failed:', response.error);
-      return false;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    // Check explicit user permissions first
+    const { data: userPermission } = await supabase
+      .from('user_page_permissions')
+      .select(`can_${permission}`)
+      .eq('user_id', user.id)
+      .eq('page_key', pageKey)
+      .single();
+
+    if (userPermission) {
+      return userPermission[`can_${permission}`] || false;
     }
-    
-    return response.data?.hasPermission || false;
+
+    // Fall back to role templates
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+
+    if (userRoles && userRoles.length > 0) {
+      // Use the highest role
+      const roleHierarchy = ['owner', 'admin', 'developer', 'analyst', 'readonly'];
+      const userRoleNames = userRoles.map(r => r.role.toLowerCase());
+      const highestRole = roleHierarchy.find(role => userRoleNames.includes(role));
+
+      if (highestRole) {
+        const properRole = highestRole.charAt(0).toUpperCase() + highestRole.slice(1);
+        
+        const { data: roleTemplate } = await supabase
+          .from('console_role_templates')
+          .select(`can_${permission}`)
+          .eq('role', properRole)
+          .eq('page_key', pageKey)
+          .single();
+
+        return roleTemplate?.[`can_${permission}`] || false;
+      }
+    }
+
+    return false;
   } catch (error) {
     console.error('Permission check error:', error);
     return false;
