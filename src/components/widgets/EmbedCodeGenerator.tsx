@@ -382,16 +382,16 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
             <div className="space-y-6">
               {/* Display Mode Radio Group */}
               <div>
-                <div className="mb-4">
-                  <Label className="text-base font-semibold">Display Mode</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Choose how the widget appears to visitors
-                  </p>
+                <div className="mb-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Display Mode
+                  </Label>
                 </div>
                 <RadioGroup
                   value={displayMode}
                   onValueChange={setDisplayMode}
-                  className="grid grid-cols-2 gap-4"
+                  className="grid grid-cols-2 gap-3"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="standard" id="standard" />
@@ -416,13 +416,13 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
               {/* Size Control Options */}
               <div>
-                <div className="mb-4">
-                  <Label className="text-base font-semibold">Widget Size Control</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Customize widget dimensions and position
-                  </p>
+                <div className="mb-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    Widget Size Control
+                  </Label>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="customSize"
@@ -433,16 +433,13 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                     />
                     <Label htmlFor="customSize" className="font-normal">
                       Enable Custom Size
-                      <span className="block text-xs text-muted-foreground">
-                        Override default widget dimensions
-                      </span>
                     </Label>
                   </div>
 
                   {sizeOptions.customSize && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
-                      <div className="space-y-2">
-                        <Label htmlFor="widgetWidth">Width (px)</Label>
+                    <div className="grid grid-cols-3 gap-3 p-3 bg-muted rounded-lg">
+                      <div className="space-y-1">
+                        <Label htmlFor="widgetWidth" className="text-sm">Width (px)</Label>
                         <Input
                           id="widgetWidth"
                           type="number"
@@ -451,11 +448,12 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                           placeholder="400"
                           min="200"
                           max="800"
+                          className="h-8"
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="widgetHeight">Height (px)</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="widgetHeight" className="text-sm">Height (px)</Label>
                         <Input
                           id="widgetHeight"
                           type="number"
@@ -464,16 +462,17 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                           placeholder="600"
                           min="300"
                           max="800"
+                          className="h-8"
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="widgetPosition">Position</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="widgetPosition" className="text-sm">Position</Label>
                         <select
                           id="widgetPosition"
                           value={sizeOptions.position}
                           onChange={(e) => setSizeOptions(prev => ({ ...prev, position: e.target.value }))}
-                          className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                          className="w-full px-2 py-1 h-8 border border-input bg-background rounded-md text-sm"
                         >
                           <option value="bottom-right">Bottom Right</option>
                           <option value="bottom-left">Bottom Left</option>
@@ -489,13 +488,13 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
               {/* Advanced Options Checkboxes */}
               <div>
-                <div className="mb-4">
-                  <Label className="text-base font-semibold">Advanced Options</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Select additional features for your widget
-                  </p>
+                <div className="mb-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Code className="h-4 w-4" />
+                    Advanced Options
+                  </Label>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="hideOnMobile"
@@ -504,11 +503,8 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                         setAdvancedOptions(prev => ({ ...prev, hideOnMobile: checked as boolean }))
                       }
                     />
-                    <Label htmlFor="hideOnMobile" className="font-normal">
+                    <Label htmlFor="hideOnMobile" className="font-normal text-sm">
                       Hide on Mobile
-                      <span className="block text-xs text-muted-foreground">
-                        Don't show widget on mobile devices
-                      </span>
                     </Label>
                   </div>
 
@@ -520,11 +516,8 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                         setAdvancedOptions(prev => ({ ...prev, showBadge: checked as boolean }))
                       }
                     />
-                    <Label htmlFor="showBadge" className="font-normal">
+                    <Label htmlFor="showBadge" className="font-normal text-sm">
                       Show Badge
-                      <span className="block text-xs text-muted-foreground">
-                        Display "Powered by 🤖 UltaAI" badge
-                      </span>
                     </Label>
                   </div>
 
@@ -536,11 +529,8 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                         setAdvancedOptions(prev => ({ ...prev, enableEvents: checked as boolean }))
                       }
                     />
-                    <Label htmlFor="enableEvents" className="font-normal">
+                    <Label htmlFor="enableEvents" className="font-normal text-sm">
                       Event Handlers
-                      <span className="block text-xs text-muted-foreground">
-                        Include event tracking callbacks
-                      </span>
                     </Label>
                   </div>
 
@@ -552,15 +542,12 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                         setAdvancedOptions(prev => ({ ...prev, userIdentification: checked as boolean }))
                       }
                     />
-                    <Label htmlFor="userIdentification" className="font-normal">
+                    <Label htmlFor="userIdentification" className="font-normal text-sm">
                       User Identification
-                      <span className="block text-xs text-muted-foreground">
-                        Include user ID and contact info
-                      </span>
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-2 md:col-span-2">
+                  <div className="flex items-center space-x-2 col-span-2">
                     <Checkbox
                       id="programmaticControl"
                       checked={advancedOptions.programmaticControl}
@@ -568,11 +555,8 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                         setAdvancedOptions(prev => ({ ...prev, programmaticControl: checked as boolean }))
                       }
                     />
-                    <Label htmlFor="programmaticControl" className="font-normal">
+                    <Label htmlFor="programmaticControl" className="font-normal text-sm">
                       Programmatic Control
-                      <span className="block text-xs text-muted-foreground">
-                        Include JavaScript methods to control widget
-                      </span>
                     </Label>
                   </div>
                 </div>
