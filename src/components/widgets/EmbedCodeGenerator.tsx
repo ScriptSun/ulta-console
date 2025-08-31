@@ -73,13 +73,15 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
   // Generate embed code based on current settings
   const generateBasicEmbedCode = () => {
-    return `<script src="/sdk/v1.js"></script>
+    const baseUrl = window.location.origin;
+    return `<script src="${baseUrl}/sdk/v1.js"></script>
 <script>
   AltaAIWidget.load('${widget.site_key}');
 </script>`;
   };
 
   const generateAdvancedEmbedCode = () => {
+    const baseUrl = window.location.origin;
     const opts: any = {};
     
     if (overrides.enabled) {
@@ -94,7 +96,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
     const hasOverrides = Object.keys(opts).length > 0;
 
-    return `<script src="/sdk/v1.js"></script>
+    return `<script src="${baseUrl}/sdk/v1.js"></script>
 <script>
   AltaAIWidget.load('${widget.site_key}'${hasOverrides ? `,
     ${JSON.stringify(opts, null, 4)}` : ''});
@@ -102,6 +104,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
   };
 
   const generateAutoLoadCode = () => {
+    const baseUrl = window.location.origin;
     const dataAttrs = [];
     dataAttrs.push(`data-altaai-site-key="${widget.site_key}"`);
     
@@ -115,7 +118,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
       if (overrides.logoUrl && overrides.logoUrl !== widget.theme.logo_url) dataAttrs.push(`data-altaai-logourl="${overrides.logoUrl}"`);
     }
 
-    return `<script src="/sdk/v1.js"
+    return `<script src="${baseUrl}/sdk/v1.js"
   ${dataAttrs.join('\n  ')}
 ></script>`;
   };
