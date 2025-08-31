@@ -219,15 +219,6 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Code className="h-5 w-5" />
-          Embed Code Generator
-        </CardTitle>
-        <CardDescription>
-          Generate embed code for <Badge variant="secondary">{widget.name}</Badge>
-        </CardDescription>
-      </CardHeader>
       <CardContent className="space-y-6">
         {/* Client-side Overrides */}
         <div className="space-y-4">
