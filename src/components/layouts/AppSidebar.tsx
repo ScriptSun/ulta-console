@@ -61,7 +61,7 @@ const toolsItems = [
   { title: 'Assertion Check', url: '/assertion-check', icon: TestTube, pageKey: 'qa' },
 ]
 
-// AppSidebar Component - Navigation menu without Scripts section
+// AppSidebar Component - Navigation menu with Winster Hub inspired design
 export function AppSidebar() {
   const { state } = useSidebar()
   const location = useLocation()
@@ -90,18 +90,31 @@ export function AppSidebar() {
     
     if (!hasPermission) return null;
     
+    const active = isActive(item.url);
+    
     return (
       <SidebarMenuItem>
         <SidebarMenuButton asChild>
           <Link 
             to={item.url}
             className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth hover:bg-sidebar-accent',
-              isActive(item.url) && 'bg-primary text-primary-foreground shadow-glow'
+              'flex items-center gap-3 px-4 py-3 mx-2 rounded-xl transition-all duration-300 group',
+              'hover:bg-white/5 hover:backdrop-blur-sm',
+              active && 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 shadow-lg shadow-blue-500/10 backdrop-blur-sm'
             )}
           >
-            <item.icon className="h-4 w-4 flex-shrink-0" />
-            {!collapsed && <span className="truncate">{item.title}</span>}
+            <item.icon className={cn(
+              "h-5 w-5 flex-shrink-0 transition-all duration-300",
+              active ? 'text-blue-300' : 'text-gray-400 group-hover:text-gray-300'
+            )} />
+            {!collapsed && (
+              <span className={cn(
+                "truncate font-medium transition-all duration-300",
+                active ? 'text-white' : 'text-gray-300 group-hover:text-white'
+              )}>
+                {item.title}
+              </span>
+            )}
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -109,76 +122,84 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar shadow-lg">
-      <SidebarContent className="px-2 py-4">
-        {/* Logo */}
-        <div className="flex items-center gap-2 px-3 py-4 mb-6">
-          <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <FileText className="h-4 w-4 text-white" />
+    <Sidebar className="border-r-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl">
+      <SidebarContent className="px-0 py-6">
+        {/* Logo Section */}
+        <div className="flex items-center gap-3 px-6 mb-8">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <FileText className="h-5 w-5 text-white" />
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="font-semibold text-sidebar-foreground">UltaAI</span>
-              <span className="text-xs text-muted-foreground">Control</span>
+              <span className="font-bold text-white text-lg">UltaAI</span>
+              <span className="text-xs text-blue-300 font-medium">Control Hub</span>
             </div>
           )}
         </div>
 
         {/* Main Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {!collapsed && 'Main'}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {mainItems.map((item) => (
-                <NavItem key={item.title} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <div className="space-y-6">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {mainItems.map((item) => (
+                  <NavItem key={item.title} item={item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-        {/* Monitoring */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {!collapsed && 'Monitoring'}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {monitoringItems.map((item) => (
-                <NavItem key={item.title} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          {/* Monitoring */}
+          <SidebarGroup>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-6 mb-2">
+                Monitoring
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {monitoringItems.map((item) => (
+                  <NavItem key={item.title} item={item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-        {/* Security */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {!collapsed && 'Security'}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {securityItems.map((item) => (
-                <NavItem key={item.title} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          {/* Security */}
+          <SidebarGroup>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-6 mb-2">
+                Security
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {securityItems.map((item) => (
+                  <NavItem key={item.title} item={item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-        {/* Tools */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {!collapsed && 'Configure'}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {toolsItems.map((item) => (
-                <NavItem key={item.title} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          {/* Tools */}
+          <SidebarGroup>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-6 mb-2">
+                Configure
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {toolsItems.map((item) => (
+                  <NavItem key={item.title} item={item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </div>
+
+        {/* Bottom spacing */}
+        <div className="flex-1" />
       </SidebarContent>
     </Sidebar>
   )
