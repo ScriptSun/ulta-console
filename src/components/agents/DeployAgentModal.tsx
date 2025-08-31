@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Copy, 
   Check, 
@@ -23,7 +24,9 @@ import {
   RefreshCw,
   Server,
   Key,
-  Lock
+  Lock,
+  User,
+  CreditCard
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -39,12 +42,31 @@ interface DeploymentToken {
   expires_at: string;
 }
 
+interface User {
+  id: string;
+  email: string;
+  full_name: string;
+}
+
+interface Plan {
+  id: string;
+  name: string;
+  key: string;
+  monthly_ai_requests: number;
+  monthly_server_events: number;
+}
+
 export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
   const [token, setToken] = useState<DeploymentToken | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [sshDeploying, setSshDeploying] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
+  const [loadingPrerequisites, setLoadingPrerequisites] = useState(true);
   const [sshForm, setSshForm] = useState({
     hostname: '',
     username: '',
@@ -56,10 +78,58 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isOpen && !token) {
-      generateToken();
+    if (isOpen) {
+      loadPrerequisites();
     }
   }, [isOpen]);
+
+  const loadPrerequisites = async () => {
+    setLoadingPrerequisites(true);
+    try {
+      // Load users
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, email, full_name')
+        .order('full_name');
+
+      if (usersError) throw usersError;
+
+      // Load subscription plans
+      const { data: plansData, error: plansError } = await supabase
+        .from('subscription_plans')
+        .select('id, name, key, monthly_ai_requests, monthly_server_events')
+        .eq('active', true)
+        .order('name');
+
+      if (plansError) throw plansError;
+
+      setUsers(usersData || []);
+      setPlans(plansData || []);
+
+      // Set default free plan if available
+      const freePlan = plansData?.find(plan => 
+        plan.name.toLowerCase().includes('free') || 
+        plan.name.toLowerCase().includes('basic')
+      );
+      if (freePlan) {
+        setSelectedPlanId(freePlan.id);
+      }
+
+    } catch (error) {
+      console.error('Error loading prerequisites:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load users and plans. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingPrerequisites(false);
+    }
+  };
+
+  const canProceed = () => {
+    return selectedUserId && selectedPlanId && !loadingPrerequisites;
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -80,10 +150,23 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
   }, [token]);
 
   const generateToken = async () => {
+    if (!canProceed()) {
+      toast({
+        title: 'Missing Requirements',
+        description: 'Please select a user and plan before generating deployment token.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('agent-deploy', {
-        body: { action: 'generate_token' }
+        body: { 
+          action: 'generate_token',
+          user_id: selectedUserId,
+          plan_key: plans.find(p => p.id === selectedPlanId)?.key || 'free_plan'
+        }
       });
 
       if (error) throw error;
@@ -206,9 +289,102 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
             Deploy New Agent
           </DialogTitle>
           <DialogDescription>
-            Follow these steps to deploy a new agent to your infrastructure.
+            Deploy a new agent to your infrastructure. Agent must be assigned to a user and plan.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Prerequisites Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              Required Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {loadingPrerequisites ? (
+              <div className="text-center py-4">
+                <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Loading users and plans...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="user-select" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Assign to User *
+                  </Label>
+                  <Select value={selectedUserId} onValueChange={setSelectedUserId} required>
+                    <SelectTrigger id="user-select">
+                      <SelectValue placeholder="Select a user..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.length === 0 ? (
+                        <SelectItem value="" disabled>No users available</SelectItem>
+                      ) : (
+                        users.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{user.full_name}</span>
+                              <span className="text-xs text-muted-foreground">{user.email}</span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="plan-select" className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    Select Plan *
+                  </Label>
+                  <Select value={selectedPlanId} onValueChange={setSelectedPlanId} required>
+                    <SelectTrigger id="plan-select">
+                      <SelectValue placeholder="Select a plan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plans.length === 0 ? (
+                        <SelectItem value="" disabled>No plans available</SelectItem>
+                      ) : (
+                        plans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{plan.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {plan.monthly_ai_requests} AI requests/month
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            
+            {!canProceed() && !loadingPrerequisites && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                <p className="text-sm text-destructive font-medium flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Both user and plan selection are required before deploying an agent.
+                </p>
+              </div>
+            )}
+
+            {canProceed() && !token && (
+              <div className="flex justify-center pt-2">
+                <Button onClick={generateToken} disabled={loading} className="flex items-center gap-2">
+                  {loading && <RefreshCw className="h-4 w-4 animate-spin" />}
+                  <Download className="h-4 w-4" />
+                  Generate Deployment Token
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Tabs defaultValue="manual" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
@@ -274,7 +450,7 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
                     <div className="text-center py-4">
                       <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
                       <p className="text-sm text-destructive mb-3">Token has expired</p>
-                      <Button onClick={generateToken} disabled={loading} size="sm">
+                      <Button onClick={generateToken} disabled={loading || !canProceed()} size="sm">
                         <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
                         Generate New Token
                       </Button>
@@ -390,7 +566,7 @@ MIIEpAIBAAKCAQEA...
                 <div className="flex justify-end gap-3">
                   <Button 
                     onClick={deployViaSSH}
-                    disabled={sshDeploying || !token || timeLeft <= 0}
+                    disabled={sshDeploying || !token || timeLeft <= 0 || !canProceed()}
                     className="flex items-center gap-2"
                   >
                     {sshDeploying && <RefreshCw className="h-4 w-4 animate-spin" />}
@@ -450,7 +626,7 @@ MIIEpAIBAAKCAQEA...
                     <div className="text-center py-4">
                       <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
                       <p className="text-sm text-destructive mb-3">Token has expired</p>
-                      <Button onClick={generateToken} disabled={loading} size="sm">
+                      <Button onClick={generateToken} disabled={loading || !canProceed()} size="sm">
                         <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
                         Generate New Token
                       </Button>

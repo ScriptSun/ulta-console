@@ -238,7 +238,7 @@ export type Database = {
           last_seen: string | null
           memory_usage: number | null
           os: string | null
-          plan_key: string | null
+          plan_key: string
           region: string | null
           signature_key_version: number | null
           status: string
@@ -246,7 +246,7 @@ export type Database = {
           updated_at: string
           updated_by: string
           uptime_seconds: number | null
-          user_id: string | null
+          user_id: string
           version: string | null
         }
         Insert: {
@@ -267,7 +267,7 @@ export type Database = {
           last_seen?: string | null
           memory_usage?: number | null
           os?: string | null
-          plan_key?: string | null
+          plan_key: string
           region?: string | null
           signature_key_version?: number | null
           status?: string
@@ -275,7 +275,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string
           uptime_seconds?: number | null
-          user_id?: string | null
+          user_id: string
           version?: string | null
         }
         Update: {
@@ -296,7 +296,7 @@ export type Database = {
           last_seen?: string | null
           memory_usage?: number | null
           os?: string | null
-          plan_key?: string | null
+          plan_key?: string
           region?: string | null
           signature_key_version?: number | null
           status?: string
@@ -304,7 +304,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string
           uptime_seconds?: number | null
-          user_id?: string | null
+          user_id?: string
           version?: string | null
         }
         Relationships: [

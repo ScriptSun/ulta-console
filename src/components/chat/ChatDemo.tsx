@@ -220,10 +220,16 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
       if (customerRoles && customerRoles.length > 0) {
         const customerId = customerRoles[0].customer_id;
         
+          // Get current user ID
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('User not authenticated');
+
           const { data: demoAgent, error } = await supabase
             .from('agents')
             .insert({
               customer_id: customerId,
+              user_id: user.id, // Required field
+              plan_key: 'free_plan', // Required field
               hostname: 'Ubuntu Demo Server',
               agent_type: 'demo',
               os: 'ubuntu', // Explicitly set to ubuntu for test case
