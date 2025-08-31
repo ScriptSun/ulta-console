@@ -5,7 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Users, UserPlus, Settings, Mail, X, Shield, Layout } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Plus, Users, UserPlus, Settings, Mail, X, Shield, Layout, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CreateTeamDialog } from '@/components/teams/CreateTeamDialog';
 import { AddMemberDialog } from '@/components/teams/AddMemberDialog';
@@ -34,6 +36,68 @@ export default function TeamManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Role update mutation
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ memberId, newRole }: { memberId: string; newRole: string }) => {
+      // Update the member's role
+      const { error: roleError } = await supabase
+        .from('console_team_members')
+        .update({ role: newRole })
+        .eq('id', memberId);
+
+      if (roleError) throw roleError;
+
+      // Apply role template permissions for the new role
+      const { error: templateError } = await supabase.rpc('apply_role_template_permissions', {
+        _member_id: memberId,
+        _role: newRole
+      });
+
+      if (templateError) throw templateError;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Member role updated and permissions applied successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['console-team-members'] });
+      queryClient.invalidateQueries({ queryKey: ['console-member-page-perms'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update member role',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Remove member mutation
+  const removeMemberMutation = useMutation({
+    mutationFn: async (memberId: string) => {
+      const { error } = await supabase
+        .from('console_team_members')
+        .delete()
+        .eq('id', memberId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Member removed from team successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['console-team-members'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to remove member from team',
+        variant: 'destructive',
+      });
+    },
+  });
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showManageRoles, setShowManageRoles] = useState(false);
@@ -168,6 +232,61 @@ export default function TeamManagement() {
     }
   };
 
+  const handleRoleChange = (memberId: string, newRole: string) => {
+    updateRoleMutation.mutate({ memberId, newRole });
+  };
+
+  const handleRemoveMember = (memberId: string) => {
+    removeMemberMutation.mutate(memberId);
+  };
+
+  const canEditMember = (member: any, team: any) => {
+    const userRole = team.userRole;
+    const isOwnerOrAdmin = ['Owner', 'Admin'].includes(userRole);
+    
+    // Can't edit yourself if you're the only Owner
+    if (member.admin_id === user?.id) {
+      const ownerCount = teamMembers?.filter(m => 
+        m.team_id === team.id && m.role === 'Owner'
+      ).length || 0;
+      
+      if (member.role === 'Owner' && ownerCount === 1) {
+        return false;
+      }
+    }
+    
+    return isOwnerOrAdmin;
+  };
+
+  const canRemoveMember = (member: any, team: any) => {
+    const userRole = team.userRole;
+    const isOwnerOrAdmin = ['Owner', 'Admin'].includes(userRole);
+    
+    // Can't remove yourself if you're the only Owner
+    if (member.admin_id === user?.id) {
+      const ownerCount = teamMembers?.filter(m => 
+        m.team_id === team.id && m.role === 'Owner'
+      ).length || 0;
+      
+      if (member.role === 'Owner' && ownerCount === 1) {
+        return false;
+      }
+    }
+    
+    // Can't remove the last Owner
+    if (member.role === 'Owner') {
+      const ownerCount = teamMembers?.filter(m => 
+        m.team_id === team.id && m.role === 'Owner'
+      ).length || 0;
+      
+      if (ownerCount === 1) {
+        return false;
+      }
+    }
+    
+    return isOwnerOrAdmin;
+  };
+
   if (userTeamsLoading || membersLoading) {
     return (
       <div className="container mx-auto p-6 space-y-6">
@@ -293,68 +412,119 @@ export default function TeamManagement() {
                       <UserPlus className="h-3 w-3" />
                       Add Member
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleTeamAction('manageRoles', team)}
-                      className="gap-1"
-                    >
-                      <Settings className="h-3 w-3" />
-                      Manage Roles
-                    </Button>
                   </div>
                 )}
                 
                 {/* Member List */}
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Team Members</h4>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {members.slice(0, 5).map((member) => (
-                      <div key={member.id} className="flex items-center justify-between text-xs p-2 rounded bg-card/30 border border-border/50">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="truncate">{member.admin_profiles.full_name || member.admin_profiles.email}</span>
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs px-1 py-0 ${ROLE_COLORS[member.role as keyof typeof ROLE_COLORS]}`}
-                          >
-                            {member.role}
-                          </Badge>
-                        </div>
-                         {canManageTeam && (
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedMember(member);
-                                setShowPagePermissions(true);
-                              }}
-                              className="h-6 px-2 text-xs gap-1"
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {members.map((member) => {
+                      const canEdit = canEditMember(member, team);
+                      const canRemove = canRemoveMember(member, team);
+                      
+                      return (
+                        <div key={member.id} className="flex items-center justify-between p-3 rounded bg-card/30 border border-border/50">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium truncate">
+                                  {member.admin_profiles.full_name || member.admin_profiles.email}
+                                </span>
+                                {member.admin_id === user?.id && (
+                                  <Badge variant="outline" className="text-xs">You</Badge>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Joined {new Date(member.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                            
+                            {/* Role Dropdown */}
+                            <Select
+                              value={member.role}
+                              onValueChange={(newRole) => handleRoleChange(member.id, newRole)}
+                              disabled={!canEdit}
                             >
-                              <Shield className="h-3 w-3" />
-                              Page access
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedMember(member);
-                                setShowWidgetScope(true);
-                              }}
-                              className="h-6 px-2 text-xs gap-1"
-                            >
-                              <Layout className="h-3 w-3" />
-                              Limit widgets
-                            </Button>
+                              <SelectTrigger className="w-32 h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border border-border shadow-md z-50">
+                                <SelectItem value="Owner">Owner</SelectItem>
+                                <SelectItem value="Admin">Admin</SelectItem>
+                                <SelectItem value="Developer">Developer</SelectItem>
+                                <SelectItem value="Analyst">Analyst</SelectItem>
+                                <SelectItem value="ReadOnly">ReadOnly</SelectItem>
+                              </SelectContent>
+                            </Select>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-1">
+                              {canManageTeam && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedMember(member);
+                                      setShowPagePermissions(true);
+                                    }}
+                                    className="h-8 px-2 text-xs gap-1"
+                                  >
+                                    <Shield className="h-3 w-3" />
+                                    Pages
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedMember(member);
+                                      setShowWidgetScope(true);
+                                    }}
+                                    className="h-8 px-2 text-xs gap-1"
+                                  >
+                                    <Layout className="h-3 w-3" />
+                                    Widgets
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {/* Remove Button */}
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    disabled={!canRemove}
+                                    className="h-8 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to remove {member.admin_profiles?.full_name || member.admin_profiles?.email} from {team?.name}? 
+                                      This action cannot be undone and will remove all their permissions and widget access.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleRemoveMember(member.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Remove Member
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </div>
-                         )}
-                      </div>
-                    ))}
-                    {members.length > 5 && (
-                      <div className="text-xs text-muted-foreground text-center py-1">
-                        +{members.length - 5} more members
-                      </div>
-                    )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </CardContent>
