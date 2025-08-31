@@ -86,6 +86,7 @@
           justify-content: center;
           transition: all 0.3s ease;
           ${config.position === 'center' ? 'display: none;' : ''}
+          ${!config.showBadge ? 'display: none;' : ''}
         ">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: white;">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4v3c0 .6.4 1 1 1h.5c.2 0 .5-.1.7-.3L14.5 18H20c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" fill="currentColor"/>
@@ -217,10 +218,31 @@
       position: options.position || 'bottom-right',
       width: options.width || '350px',
       height: options.height || '500px',
-      autoOpen: options.autoOpen || false
+      autoOpen: options.autoOpen || false,
+      hideOnMobile: options.hideOnMobile || false,
+      showBadge: options.showBadge !== false,
+      debug: options.debug || false,
+      userId: options.userId,
+      userEmail: options.userEmail,
+      userName: options.userName,
+      onReady: options.onReady,
+      onOpen: options.onOpen,
+      onClose: options.onClose,
+      onMessage: options.onMessage
     };
     
-    console.log('🤖 UltaAI Widget - Widget config created:', config);
+    if (config.debug) {
+      console.log('🤖 UltaAI Widget - DEBUG MODE ENABLED');
+      console.log('🤖 UltaAI Widget - Widget config created:', config);
+    }
+    
+    // Check if should hide on mobile
+    if (config.hideOnMobile && window.innerWidth <= 768) {
+      if (config.debug) {
+        console.log('🤖 UltaAI Widget - Hidden on mobile device');
+      }
+      return widgetId; // Still return ID but don't create widget
+    }
     
     try {
       // Create and inject widget HTML
@@ -233,11 +255,15 @@
       }
       
       document.body.appendChild(widgetElement);
-      console.log('🤖 UltaAI Widget - Widget HTML injected into DOM');
+      if (config.debug) {
+        console.log('🤖 UltaAI Widget - Widget HTML injected into DOM');
+      }
       
       // Add event listeners
       setupWidgetEvents(config);
-      console.log('🤖 UltaAI Widget - Event listeners attached');
+      if (config.debug) {
+        console.log('🤖 UltaAI Widget - Event listeners attached');
+      }
       
       // Store instance
       widgetInstances[widgetId] = {
@@ -246,7 +272,16 @@
         messages: []
       };
       
-      console.log('🤖 UltaAI Widget - Widget instance stored:', widgetId);
+      if (config.debug) {
+        console.log('🤖 UltaAI Widget - Widget instance stored:', widgetId);
+      }
+      
+      // Call onReady callback if provided
+      if (typeof config.onReady === 'function') {
+        setTimeout(() => {
+          config.onReady();
+        }, 100);
+      }
       
       return widgetId;
     } catch (error) {
@@ -288,6 +323,7 @@
     const chat = document.getElementById(instance.config.chatId);
     if (!chat) return;
     
+    const wasOpen = instance.isOpen;
     instance.isOpen = !instance.isOpen;
     chat.style.display = instance.isOpen ? 'flex' : 'none';
     
@@ -295,6 +331,20 @@
       // Focus input when opening
       const input = document.getElementById(instance.config.inputId);
       setTimeout(() => input?.focus(), 100);
+      
+      // Call onOpen callback if provided
+      if (typeof instance.config.onOpen === 'function') {
+        instance.config.onOpen();
+      }
+    } else {
+      // Call onClose callback if provided
+      if (typeof instance.config.onClose === 'function') {
+        instance.config.onClose();
+      }
+    }
+    
+    if (instance.config.debug) {
+      console.log(`🤖 UltaAI Widget - Chat ${instance.isOpen ? 'opened' : 'closed'}`, { widgetId });
     }
   }
   
@@ -318,9 +368,26 @@
     
     if (!message) return;
     
+    // Store message in instance
+    instance.messages.push({ text: message, sender: 'user', timestamp: Date.now() });
+    
     // Add user message to chat
     addMessageToChat(widgetId, message, 'user');
     input.value = '';
+    
+    // Call onMessage callback if provided
+    if (typeof instance.config.onMessage === 'function') {
+      instance.config.onMessage(message, 'user');
+    }
+    
+    if (instance.config.debug) {
+      console.log('🤖 UltaAI Widget - User message sent:', { message, widgetId });
+      console.log('🤖 UltaAI Widget - User data:', {
+        userId: instance.config.userId,
+        userEmail: instance.config.userEmail,
+        userName: instance.config.userName
+      });
+    }
     
     // Show typing indicator
     addTypingIndicator(widgetId);
@@ -328,7 +395,14 @@
     // Send to backend (simulate for now)
     setTimeout(() => {
       removeTypingIndicator(widgetId);
-      addMessageToChat(widgetId, "Thanks for your message! Our team will get back to you soon.", 'assistant');
+      const response = "Thanks for your message! Our team will get back to you soon.";
+      instance.messages.push({ text: response, sender: 'assistant', timestamp: Date.now() });
+      addMessageToChat(widgetId, response, 'assistant');
+      
+      // Call onMessage callback for assistant response
+      if (typeof instance.config.onMessage === 'function') {
+        instance.config.onMessage(response, 'assistant');
+      }
     }, 1500);
   }
   
@@ -577,18 +651,75 @@
     }
   };
   
+  window.UltaAIWidget.open = function(widgetId) {
+    if (widgetId && widgetInstances[widgetId]) {
+      if (!widgetInstances[widgetId].isOpen) {
+        toggleChat(widgetId);
+      }
+    } else {
+      // Open first available instance
+      const firstId = Object.keys(widgetInstances)[0];
+      if (firstId && !widgetInstances[firstId].isOpen) {
+        toggleChat(firstId);
+      }
+    }
+  };
+  
+  window.UltaAIWidget.close = function(widgetId) {
+    if (widgetId && widgetInstances[widgetId]) {
+      if (widgetInstances[widgetId].isOpen) {
+        closeChat(widgetId);
+      }
+    } else {
+      // Close all instances
+      Object.keys(widgetInstances).forEach(id => {
+        if (widgetInstances[id].isOpen) {
+          closeChat(id);
+        }
+      });
+    }
+  };
+  
+  window.UltaAIWidget.sendMessage = function(message, widgetId) {
+    if (!message || typeof message !== 'string') {
+      console.error('🤖 UltaAI Widget - sendMessage requires a string message');
+      return;
+    }
+    
+    if (widgetId && widgetInstances[widgetId]) {
+      // Send to specific widget
+      const input = document.getElementById(widgetInstances[widgetId].config.inputId);
+      if (input) {
+        input.value = message;
+        sendMessage(widgetId);
+      }
+    } else {
+      // Send to first available instance
+      const firstId = Object.keys(widgetInstances)[0];
+      if (firstId) {
+        const input = document.getElementById(widgetInstances[firstId].config.inputId);
+        if (input) {
+          input.value = message;
+          sendMessage(firstId);
+        }
+      }
+    }
+  };
+
   window.UltaAIWidget.show = function(widgetId) {
     Object.keys(widgetInstances).forEach(id => {
       if (!widgetId || id === widgetId) {
-        toggleChat(id);
+        const container = document.getElementById(widgetInstances[id].config.containerId);
+        if (container) container.style.display = 'block';
       }
     });
   };
-  
+
   window.UltaAIWidget.hide = function(widgetId) {
     Object.keys(widgetInstances).forEach(id => {
       if (!widgetId || id === widgetId) {
-        closeChat(id);
+        const container = document.getElementById(widgetInstances[id].config.containerId);
+        if (container) container.style.display = 'none';
       }
     });
   };
