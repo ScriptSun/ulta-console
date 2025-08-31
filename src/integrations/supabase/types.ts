@@ -2480,6 +2480,10 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
+      is_team_owner_or_admin_simple: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
       log_team_audit_event: {
         Args: {
           _action: string
