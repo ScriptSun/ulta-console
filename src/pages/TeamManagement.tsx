@@ -5,13 +5,24 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Shield, Eye } from 'lucide-react';
+import { Users, Shield, Eye, Plus, Search, Trash2, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserPermissionsDialog } from '@/components/users/UserPermissionsDialog';
 import { PageGuard } from '@/components/auth/PageGuard';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 // Map display roles to actual enum values in user_roles table
 const ROLE_MAPPING = {
@@ -53,8 +64,13 @@ export default function TeamManagement() {
     role: string;
   } | null>(null);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+  const [showAddUserDialog, setShowAddUserDialog] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserRole, setNewUserRole] = useState<string>('ReadOnly');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [emailFilter, setEmailFilter] = useState('');
 
-  const canManageUsers = canEdit('team-management');
+  const canManageUsers = canEdit('teams');
 
   // Get default customer ID (use a fixed one for simplicity)
   const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
@@ -93,7 +109,16 @@ export default function TeamManagement() {
         })
       );
 
-      return usersWithRoles;
+      return usersWithRoles.filter(user => {
+        const matchesSearch = !searchTerm || 
+          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        const matchesEmailFilter = !emailFilter || 
+          user.email.toLowerCase().includes(emailFilter.toLowerCase());
+          
+        return matchesSearch && matchesEmailFilter;
+      });
     },
     enabled: !!defaultCustomerId
   });
@@ -145,7 +170,90 @@ export default function TeamManagement() {
     enabled: !!users
   });
 
-  // Update user role mutation
+  // Add user mutation
+  const addUserMutation = useMutation({
+    mutationFn: async ({ email, role }: { email: string; role: string }) => {
+      // First check if user exists in auth.users by trying to find their profile
+      const { data: existingProfile } = await supabase
+        .from('admin_profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+      
+      if (!existingProfile) {
+        throw new Error('User not found. User must sign up first or be added to the system.');
+      }
+
+      // Set user role
+      const enumRole = ROLE_MAPPING[role as keyof typeof ROLE_MAPPING];
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({ 
+          user_id: existingProfile.id, 
+          customer_id: defaultCustomerId,
+          role: enumRole
+        });
+
+      if (roleError) throw roleError;
+
+      return existingProfile.id;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'User added successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['user-page-access-counts'] });
+      setShowAddUserDialog(false);
+      setNewUserEmail('');
+      setNewUserRole('ReadOnly');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to add user',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Remove user mutation
+  const removeUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      // Remove user role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('customer_id', defaultCustomerId);
+
+      if (roleError) throw roleError;
+
+      // Remove user permissions
+      const { error: permError } = await supabase
+        .from('user_page_permissions')
+        .delete()
+        .eq('user_id', userId);
+
+      if (permError) throw permError;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'User removed successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ['user-page-access-counts'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to remove user',
+        variant: 'destructive',
+      });
+    },
+  });
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, newDisplayRole }: { userId: string; newDisplayRole: string }) => {
       const newEnumRole = ROLE_MAPPING[newDisplayRole as keyof typeof ROLE_MAPPING];
@@ -226,6 +334,17 @@ export default function TeamManagement() {
     updateUserRoleMutation.mutate({ userId, newDisplayRole });
   };
 
+  const handleAddUser = () => {
+    if (!newUserEmail.trim()) return;
+    addUserMutation.mutate({ email: newUserEmail.trim(), role: newUserRole });
+  };
+
+  const handleRemoveUser = (userId: string, userEmail: string) => {
+    if (window.confirm(`Are you sure you want to remove ${userEmail}?`)) {
+      removeUserMutation.mutate(userId);
+    }
+  };
+
   const handleViewPermissions = (user: any) => {
     setSelectedUser({
       id: user.id,
@@ -237,7 +356,7 @@ export default function TeamManagement() {
 
   if (isLoading) {
     return (
-      <PageGuard pageKey="team-management">
+      <PageGuard pageKey="teams">
         <div className="container mx-auto p-6">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -248,137 +367,236 @@ export default function TeamManagement() {
   }
 
   return (
-    <PageGuard pageKey="team-management">
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-            <p className="text-muted-foreground">
-              Manage user roles and permissions across the platform
-            </p>
+    <PageGuard pageKey="teams">
+        <div className="container mx-auto p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Users & Access</h1>
+              <p className="text-muted-foreground">
+                Manage user access and permissions across the platform
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              <span className="text-sm text-muted-foreground">
+                {users?.length || 0} users
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            <span className="text-sm text-muted-foreground">
-              {users?.length || 0} users
-            </span>
-          </div>
-        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Users & Roles
-            </CardTitle>
-            <CardDescription>
-              Manage user roles and view their page access permissions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Page Access</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users?.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      {user.full_name || user.email}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={user.role}
-                        onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
-                        disabled={!canManageUsers || updateUserRoleMutation.isPending}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue>
-                            <Badge 
-                              className={ROLE_COLORS[user.role as keyof typeof ROLE_COLORS]}
-                              variant="outline"
-                            >
-                              {user.role}
-                            </Badge>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border border-border shadow-lg z-50">
-                          {DISPLAY_ROLES.map((role) => (
-                            <SelectItem key={role} value={role}>
-                              <Badge 
-                                className={ROLE_COLORS[role]}
-                                variant="outline"
-                              >
-                                {role}
-                              </Badge>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <button
-                        className="flex items-center gap-2 hover:bg-accent/50 p-2 rounded-md transition-colors cursor-pointer w-full text-left"
-                        onClick={() => handleViewPermissions(user)}
-                      >
-                        <span className="text-sm text-muted-foreground">
-                          {pageAccessCounts?.[user.id]?.accessible || 0} / {pageAccessCounts?.[user.id]?.total || 0}
-                        </span>
-                        <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary transition-all"
-                            style={{ 
-                              width: `${pageAccessCounts?.[user.id] ? 
-                                (pageAccessCounts[user.id].accessible / pageAccessCounts[user.id].total) * 100 
-                                : 0}%` 
-                            }}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Users & Access
+                  </CardTitle>
+                  <CardDescription>
+                    Search, filter, and manage user access permissions
+                  </CardDescription>
+                </div>
+                {canManageUsers && (
+                  <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add User
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add User</DialogTitle>
+                        <DialogDescription>
+                          Add a user by email address. User must have an account already.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email Address</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="user@example.com"
+                            value={newUserEmail}
+                            onChange={(e) => setNewUserEmail(e.target.value)}
                           />
                         </div>
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewPermissions(user)}
-                          className="gap-1"
-                        >
-                          <Eye className="h-3 w-3" />
-                          Edit Permissions
-                        </Button>
+                        <div className="space-y-2">
+                          <Label htmlFor="role">Role</Label>
+                          <Select value={newUserRole} onValueChange={setNewUserRole}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DISPLAY_ROLES.map((role) => (
+                                <SelectItem key={role} value={role}>
+                                  <Badge className={ROLE_COLORS[role]} variant="outline">
+                                    {role}
+                                  </Badge>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            
-            {(!users || users.length === 0) && (
-              <div className="text-center py-8 text-muted-foreground">
-                No users found. Users are automatically created when they sign up.
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowAddUserDialog(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleAddUser}
+                          disabled={!newUserEmail.trim() || addUserMutation.isPending}
+                        >
+                          {addUserMutation.isPending ? 'Adding...' : 'Add User'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Search and Filter Controls */}
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name or email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="min-w-[200px]">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Filter by email..."
+                      value={emailFilter}
+                      onChange={(e) => setEmailFilter(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Page Access</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users?.map((tableUser) => (
+                    <TableRow key={tableUser.id}>
+                      <TableCell className="font-medium">
+                        {tableUser.full_name || tableUser.email}
+                      </TableCell>
+                      <TableCell>{tableUser.email}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={tableUser.role}
+                          onValueChange={(newRole) => handleRoleChange(tableUser.id, newRole)}
+                          disabled={!canManageUsers || updateUserRoleMutation.isPending}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue>
+                              <Badge 
+                                className={ROLE_COLORS[tableUser.role as keyof typeof ROLE_COLORS]}
+                                variant="outline"
+                              >
+                                {tableUser.role}
+                              </Badge>
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border border-border shadow-lg z-50">
+                            {DISPLAY_ROLES.map((role) => (
+                              <SelectItem key={role} value={role}>
+                                <Badge 
+                                  className={ROLE_COLORS[role]}
+                                  variant="outline"
+                                >
+                                  {role}
+                                </Badge>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <button
+                          className="flex items-center gap-2 hover:bg-accent/50 p-2 rounded-md transition-colors cursor-pointer w-full text-left"
+                          onClick={() => handleViewPermissions(tableUser)}
+                        >
+                          <span className="text-sm text-muted-foreground">
+                            {pageAccessCounts?.[tableUser.id]?.accessible || 0} / {pageAccessCounts?.[tableUser.id]?.total || 0}
+                          </span>
+                          <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary transition-all"
+                              style={{ 
+                                width: `${pageAccessCounts?.[tableUser.id] ? 
+                                  (pageAccessCounts[tableUser.id].accessible / pageAccessCounts[tableUser.id].total) * 100 
+                                  : 0}%` 
+                              }}
+                            />
+                          </div>
+                        </button>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewPermissions(tableUser)}
+                            className="gap-1"
+                          >
+                            <Eye className="h-3 w-3" />
+                            Edit Permissions
+                          </Button>
+                          {canManageUsers && user?.id !== tableUser.id && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemoveUser(tableUser.id, tableUser.email)}
+                              disabled={removeUserMutation.isPending}
+                              className="gap-1 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              {(!users || users.length === 0) && (
+                <div className="text-center py-8 text-muted-foreground">
+                  {searchTerm || emailFilter ? 'No users match your search criteria.' : 'No users found. Add users to get started.'}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        {selectedUser && (
-          <UserPermissionsDialog
-            open={showPermissionsDialog}
-            onOpenChange={setShowPermissionsDialog}
-            userId={selectedUser.id}
-            userEmail={selectedUser.email}
-            currentUserRole={user ? users?.find(u => u.id === user.id)?.role : undefined}
-          />
-        )}
-      </div>
+          {selectedUser && (
+            <UserPermissionsDialog
+              open={showPermissionsDialog}
+              onOpenChange={setShowPermissionsDialog}
+              userId={selectedUser.id}
+              userEmail={selectedUser.email}
+              currentUserRole={user ? users?.find(u => u.id === user.id)?.role : undefined}
+            />
+          )}
+        </div>
     </PageGuard>
   );
 }
