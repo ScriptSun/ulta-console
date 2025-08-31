@@ -44,8 +44,8 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     programmaticControl: false,
     debugMode: false,
     autoCloseTimer: false,
-    customCssClasses: false,
-    disableAnimations: false
+    sslVerification: false,
+    soundNotifications: false
   });
 
   // Size control options
@@ -390,27 +390,27 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      id="customCssClasses"
-                      checked={advancedOptions.customCssClasses}
+                      id="sslVerification"
+                      checked={advancedOptions.sslVerification}
                       onCheckedChange={(checked) =>
-                        setAdvancedOptions(prev => ({ ...prev, customCssClasses: checked as boolean }))
+                        setAdvancedOptions(prev => ({ ...prev, sslVerification: checked as boolean }))
                       }
                     />
-                    <Label htmlFor="customCssClasses" className="font-normal text-sm">
-                      Custom CSS Classes
+                    <Label htmlFor="sslVerification" className="font-normal text-sm">
+                      SSL Verification
                     </Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      id="disableAnimations"
-                      checked={advancedOptions.disableAnimations}
+                      id="soundNotifications"
+                      checked={advancedOptions.soundNotifications}
                       onCheckedChange={(checked) =>
-                        setAdvancedOptions(prev => ({ ...prev, disableAnimations: checked as boolean }))
+                        setAdvancedOptions(prev => ({ ...prev, soundNotifications: checked as boolean }))
                       }
                     />
-                    <Label htmlFor="disableAnimations" className="font-normal text-sm">
-                      Disable Animations
+                    <Label htmlFor="soundNotifications" className="font-normal text-sm">
+                      Sound Notifications
                     </Label>
                   </div>
                 </div>
