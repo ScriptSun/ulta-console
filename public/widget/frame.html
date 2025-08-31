@@ -5,6 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UltaAI Widget</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .typing-dots {
+            display: inline-flex;
+            gap: 3px;
+        }
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #666;
+            animation: typing 1.5s infinite;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+            30% { opacity: 1; transform: scale(1); }
+        }
+        
+        .message {
+            margin-bottom: 16px;
+            animation: messageSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="widget-container">
@@ -198,43 +234,12 @@
             function renderWidget(config, theme, user) {
                 const contentEl = document.getElementById('widget-content');
                 
+                // Create a container for the React app
                 contentEl.innerHTML = `
-                    <div class="chat-container">
-                        <div class="chat-messages">
-                            <div class="message assistant-message">
-                                <div class="message-bubble">
-                                    <div class="message-text">${theme.welcomeText}</div>
-                                </div>
-                            </div>
-                            <div class="message user-message">
-                                <div class="message-bubble">
-                                    <div class="message-text">I want to install WordPress on my server</div>
-                                </div>
-                            </div>
-                            <div class="message assistant-message">
-                                <div class="message-bubble">
-                                    <div class="message-text">I'd be happy to help you install WordPress! Let me guide you through the process. First, do you have a web server with PHP and MySQL set up?</div>
-                                </div>
-                            </div>
-                            <div class="message user-message">
-                                <div class="message-bubble">
-                                    <div class="message-text">Yes, I have a LAMP stack ready</div>
-                                </div>
-                            </div>
-                            <div class="message assistant-message">
-                                <div class="message-bubble">
-                                    <div class="message-text">Perfect! Here's what we'll do:<br><br>1. Download WordPress from wordpress.org<br>2. Create a MySQL database<br>3. Configure wp-config.php<br>4. Run the installation<br><br>Would you like me to start with the first step?</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="chat-input-container">
-                            <div class="chat-input">
-                                <input type="text" placeholder="Type your message..." readonly>
-                                <button class="send-button">
-                                    <span>Send</span>
-                                </button>
-                            </div>
+                    <div id="react-chat-root" style="height: 100%; display: flex; flex-direction: column;">
+                        <div class="loading-container">
+                            <div class="loading-spinner"></div>
+                            <div class="welcome-message">Loading chat interface...</div>
                         </div>
                     </div>
                 `;
@@ -249,10 +254,118 @@
                 // Update title
                 document.getElementById('widget-title').textContent = config.name || 'UltaAI Assistant';
                 
+                // Load the full React-based chat system
+                loadFullChatSystem(config, theme, user);
+                
                 // Show user debug panel if authenticated
                 if (user) {
                     showUserDebug(user);
                 }
+            }
+            
+            // Load the full chat system (same as ChatDemo)
+            function loadFullChatSystem(config, theme, user) {
+                // Import the ChatWidget React component dynamically
+                import('./ChatWidget.js').then(({ ChatWidget }) => {
+                    const root = document.getElementById('react-chat-root');
+                    
+                    // Initialize the full chat widget
+                    const widget = React.createElement(ChatWidget, {
+                        supabaseUrl: `${window.location.protocol}//${window.location.hostname.includes('supabase.co') ? window.location.hostname : 'lfsdqyvvboapsyeauchm.supabase.co'}`,
+                        supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+                        tenantId: config.customer_id,
+                        userId: user?.id,
+                        theme: 'auto',
+                        position: 'embedded',
+                        iframeSafe: true,
+                        widgetTheme: {
+                            ...theme,
+                            widget_initial_state: 'open'
+                        },
+                        embedded: true
+                    });
+                    
+                    ReactDOM.render(widget, root);
+                }).catch(error => {
+                    console.error('Failed to load ChatWidget:', error);
+                    // Fallback to the enhanced static interface
+                    renderEnhancedStaticInterface(config, theme, user);
+                });
+            }
+            
+            // Enhanced static interface with more realistic chat simulation
+            function renderEnhancedStaticInterface(config, theme, user) {
+                const contentEl = document.getElementById('widget-content');
+                
+                contentEl.innerHTML = `
+                    <div class="chat-container" style="height: 100%; display: flex; flex-direction: column;">
+                        <div class="chat-messages" style="flex: 1; overflow-y: auto; padding: 16px;">
+                            <div class="message assistant-message">
+                                <div class="message-bubble">
+                                    <div class="message-text">${theme.welcomeText}</div>
+                                    <div class="quick-actions">
+                                        <button class="quick-action" onclick="simulateTask('install_wordpress')">Install WordPress</button>
+                                        <button class="quick-action" onclick="simulateTask('check_system')">Check System</button>
+                                        <button class="quick-action" onclick="simulateTask('restart_services')">Restart Services</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-input-container" style="padding: 16px; border-top: 1px solid #e1e5e9;">
+                            <div class="chat-input" style="display: flex; gap: 8px;">
+                                <input type="text" id="message-input" placeholder="Ask me to manage your server..." 
+                                       style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                                       onkeypress="handleKeyPress(event)">
+                                <button class="send-button" onclick="sendMessage()" 
+                                        style="padding: 12px 20px; background: ${theme.colorPrimary}; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                                    Send
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <style>
+                        .quick-actions {
+                            margin-top: 12px;
+                            display: flex;
+                            gap: 8px;
+                            flex-wrap: wrap;
+                        }
+                        .quick-action {
+                            padding: 6px 12px;
+                            background: ${theme.colorPrimary}15;
+                            color: ${theme.colorPrimary};
+                            border: 1px solid ${theme.colorPrimary}30;
+                            border-radius: 16px;
+                            font-size: 12px;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        }
+                        .quick-action:hover {
+                            background: ${theme.colorPrimary}25;
+                        }
+                        .task-status {
+                            margin-top: 12px;
+                            padding: 12px;
+                            background: #f8f9fa;
+                            border-radius: 8px;
+                            border-left: 4px solid ${theme.colorPrimary};
+                        }
+                        .task-progress {
+                            height: 4px;
+                            background: #e1e5e9;
+                            border-radius: 2px;
+                            margin-top: 8px;
+                            overflow: hidden;
+                        }
+                        .task-progress-bar {
+                            height: 100%;
+                            background: ${theme.colorPrimary};
+                            transition: width 0.3s ease;
+                        }
+                    </style>
+                `;
             }
             
             // Show user debug panel if user is authenticated
@@ -350,17 +463,178 @@
                 }
             }
             
-            // Button action handlers (placeholder functions)
-            window.startChat = function() {
-                console.log('Start chat clicked');
-                // This will be implemented later for actual chat functionality
-                alert('Chat functionality coming soon!');
+            // Interactive chat functions
+            window.simulateTask = function(taskType) {
+                const messagesContainer = document.querySelector('.chat-messages');
+                const taskMessages = {
+                    'install_wordpress': {
+                        user: 'Install WordPress on my Ubuntu server',
+                        assistant: 'I\'ll help you install WordPress. Let me check your system and begin the installation.',
+                        status: 'Installing WordPress...',
+                        steps: ['Downloading WordPress', 'Creating database', 'Configuring files', 'Setting permissions']
+                    },
+                    'check_system': {
+                        user: 'Check my system status',
+                        assistant: 'Running system diagnostics to check your server health.',
+                        status: 'Checking system status...',
+                        steps: ['CPU usage', 'Memory usage', 'Disk space', 'Network status']
+                    },
+                    'restart_services': {
+                        user: 'Restart web services',
+                        assistant: 'I\'ll restart your web services safely. This will ensure optimal performance.',
+                        status: 'Restarting services...',
+                        steps: ['Stopping services', 'Checking configurations', 'Starting services', 'Verifying status']
+                    }
+                };
+                
+                const task = taskMessages[taskType];
+                if (!task) return;
+                
+                // Add user message
+                const userMsg = document.createElement('div');
+                userMsg.className = 'message user-message';
+                userMsg.innerHTML = `
+                    <div class="message-bubble">
+                        <div class="message-text">${task.user}</div>
+                    </div>
+                `;
+                messagesContainer.appendChild(userMsg);
+                
+                // Add assistant response with task status
+                setTimeout(() => {
+                    const assistantMsg = document.createElement('div');
+                    assistantMsg.className = 'message assistant-message';
+                    assistantMsg.innerHTML = `
+                        <div class="message-bubble">
+                            <div class="message-text">${task.assistant}</div>
+                            <div class="task-status">
+                                <div style="font-weight: 500; margin-bottom: 8px;">${task.status}</div>
+                                <div class="task-progress">
+                                    <div class="task-progress-bar" style="width: 0%"></div>
+                                </div>
+                                <div style="font-size: 12px; color: #666; margin-top: 4px;">Initializing...</div>
+                            </div>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(assistantMsg);
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    
+                    // Simulate progress
+                    const progressBar = assistantMsg.querySelector('.task-progress-bar');
+                    const statusText = assistantMsg.querySelector('.task-status div:last-child');
+                    let progress = 0;
+                    let stepIndex = 0;
+                    
+                    const progressInterval = setInterval(() => {
+                        progress += Math.random() * 25;
+                        if (progress > 100) progress = 100;
+                        
+                        progressBar.style.width = progress + '%';
+                        
+                        if (stepIndex < task.steps.length) {
+                            statusText.textContent = task.steps[stepIndex];
+                            if (progress > (stepIndex + 1) * 25) stepIndex++;
+                        }
+                        
+                        if (progress >= 100) {
+                            clearInterval(progressInterval);
+                            statusText.textContent = 'Completed successfully!';
+                            statusText.style.color = '#22c55e';
+                            
+                            // Add completion message
+                            setTimeout(() => {
+                                const completionMsg = document.createElement('div');
+                                completionMsg.className = 'message assistant-message';
+                                completionMsg.innerHTML = `
+                                    <div class="message-bubble">
+                                        <div class="message-text">✅ Task completed successfully! The ${taskType.replace('_', ' ')} operation has finished.</div>
+                                    </div>
+                                `;
+                                messagesContainer.appendChild(completionMsg);
+                                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                            }, 1000);
+                        }
+                    }, 500);
+                    
+                }, 1000);
+                
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
             };
             
-            window.showSupport = function() {
-                console.log('Contact support clicked');
-                // This will be implemented later for support functionality
-                alert('Support functionality coming soon!');
+            window.sendMessage = function() {
+                const input = document.getElementById('message-input');
+                const message = input.value.trim();
+                if (!message) return;
+                
+                const messagesContainer = document.querySelector('.chat-messages');
+                
+                // Add user message
+                const userMsg = document.createElement('div');
+                userMsg.className = 'message user-message';
+                userMsg.innerHTML = `
+                    <div class="message-bubble">
+                        <div class="message-text">${message}</div>
+                    </div>
+                `;
+                messagesContainer.appendChild(userMsg);
+                
+                // Clear input
+                input.value = '';
+                
+                // Add typing indicator
+                setTimeout(() => {
+                    const typingMsg = document.createElement('div');
+                    typingMsg.className = 'message assistant-message typing-indicator';
+                    typingMsg.innerHTML = `
+                        <div class="message-bubble">
+                            <div class="message-text">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div class="typing-dots">
+                                        <span></span><span></span><span></span>
+                                    </div>
+                                    <span style="font-size: 12px; color: #666;">AI is thinking...</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(typingMsg);
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    
+                    // Remove typing indicator and add response
+                    setTimeout(() => {
+                        messagesContainer.removeChild(typingMsg);
+                        
+                        const responses = [
+                            "I understand you want to " + message.toLowerCase() + ". Let me help you with that task.",
+                            "I'll analyze your request and provide the appropriate solution for your server.",
+                            "This looks like a system administration task. I can help you execute this safely.",
+                            "I'm processing your request. This will involve checking your system configuration first."
+                        ];
+                        
+                        const assistantMsg = document.createElement('div');
+                        assistantMsg.className = 'message assistant-message';
+                        assistantMsg.innerHTML = `
+                            <div class="message-bubble">
+                                <div class="message-text">${responses[Math.floor(Math.random() * responses.length)]}</div>
+                                <div class="quick-actions">
+                                    <button class="quick-action" onclick="simulateTask('check_system')">Check Prerequisites</button>
+                                    <button class="quick-action" onclick="simulateTask('install_wordpress')">Execute Task</button>
+                                </div>
+                            </div>
+                        `;
+                        messagesContainer.appendChild(assistantMsg);
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }, 2000);
+                    
+                }, 500);
+                
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            };
+            
+            window.handleKeyPress = function(event) {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
             };
             
             // Make initWidget globally available for retry functionality
