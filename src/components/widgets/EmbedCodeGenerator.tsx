@@ -120,6 +120,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     if (displayMode === 'open') opts.autoOpen = true;
     if (advancedOptions.hideOnMobile) opts.hideOnMobile = true;
     if (!advancedOptions.showBadge) opts.showBadge = false;
+    if (advancedOptions.debugMode) opts.debug = true;
     
     const hasOptions = Object.keys(opts).length > 0;
     const hasEvents = advancedOptions.enableEvents;
