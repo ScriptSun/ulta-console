@@ -5,12 +5,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Users, UserPlus, Settings, Mail, X } from 'lucide-react';
+import { Plus, Users, UserPlus, Settings, Mail, X, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CreateTeamDialog } from '@/components/teams/CreateTeamDialog';
 import { AddMemberDialog } from '@/components/teams/AddMemberDialog';
 import { ManageRolesDialog } from '@/components/teams/ManageRolesDialog';
 import { InviteStaffDialog } from '@/components/teams/InviteStaffDialog';
+import { PagePermissionsDialog } from '@/components/teams/PagePermissionsDialog';
 
 const ROLE_COLORS = {
   Owner: 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm',
@@ -36,7 +37,9 @@ export default function TeamManagement() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [showManageRoles, setShowManageRoles] = useState(false);
   const [showInviteStaff, setShowInviteStaff] = useState(false);
+  const [showPagePermissions, setShowPagePermissions] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedMember, setSelectedMember] = useState(null);
 
   // Fetch current user's teams
   const { data: currentUserTeams, isLoading: userTeamsLoading } = useQuery({
@@ -306,13 +309,29 @@ export default function TeamManagement() {
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {members.slice(0, 5).map((member) => (
                       <div key={member.id} className="flex items-center justify-between text-xs p-2 rounded bg-card/30 border border-border/50">
-                        <span className="truncate">{member.admin_profiles.full_name || member.admin_profiles.email}</span>
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs px-1 py-0 ${ROLE_COLORS[member.role as keyof typeof ROLE_COLORS]}`}
-                        >
-                          {member.role}
-                        </Badge>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="truncate">{member.admin_profiles.full_name || member.admin_profiles.email}</span>
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs px-1 py-0 ${ROLE_COLORS[member.role as keyof typeof ROLE_COLORS]}`}
+                          >
+                            {member.role}
+                          </Badge>
+                        </div>
+                        {canManageTeam && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedMember(member);
+                              setShowPagePermissions(true);
+                            }}
+                            className="h-6 px-2 text-xs gap-1"
+                          >
+                            <Shield className="h-3 w-3" />
+                            Page access
+                          </Button>
+                        )}
                       </div>
                     ))}
                     {members.length > 5 && (
@@ -406,6 +425,13 @@ export default function TeamManagement() {
         open={showInviteStaff} 
         onOpenChange={setShowInviteStaff}
         team={selectedTeam}
+      />
+      
+      <PagePermissionsDialog 
+        open={showPagePermissions} 
+        onOpenChange={setShowPagePermissions}
+        member={selectedMember}
+        currentUserRole={currentUserTeams?.find(t => t.id === selectedMember?.team_id)?.userRole || 'ReadOnly'}
       />
     </div>
   );

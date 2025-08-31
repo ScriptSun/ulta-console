@@ -1146,6 +1146,75 @@ export type Database = {
           },
         ]
       }
+      console_member_page_perms: {
+        Row: {
+          can_delete: boolean | null
+          can_edit: boolean | null
+          can_view: boolean | null
+          created_at: string | null
+          id: string
+          member_id: string
+          page_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          id?: string
+          member_id: string
+          page_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          page_key?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "console_member_page_perms_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "console_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "console_member_page_perms_page_key_fkey"
+            columns: ["page_key"]
+            isOneToOne: false
+            referencedRelation: "console_pages"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      console_pages: {
+        Row: {
+          created_at: string | null
+          id: string
+          key: string
+          label: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+          label: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+          label?: string
+        }
+        Relationships: []
+      }
       console_team_members: {
         Row: {
           admin_id: string | null
