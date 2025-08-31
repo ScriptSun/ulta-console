@@ -30,34 +30,35 @@ import {
   useSidebar
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
+import { usePagePermissions } from '@/hooks/usePagePermissions'
 
 const mainItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Users', url: '/users', icon: Users },
-  { title: 'Agents', url: '/agents', icon: Bot },
-  { title: 'Chat Inbox', url: '/chat/inbox', icon: MessageSquare },
-  { title: 'Templates & Scripts', url: '/scripts/batches', icon: Package },
-  { title: 'Tasks', url: '/tasks', icon: CheckSquare },
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, pageKey: 'dashboard' },
+  { title: 'Users', url: '/users', icon: Users, pageKey: 'users' },
+  { title: 'Agents', url: '/agents', icon: Bot, pageKey: 'agents' },
+  { title: 'Chat Inbox', url: '/chat/inbox', icon: MessageSquare, pageKey: 'chat' },
+  { title: 'Templates & Scripts', url: '/scripts/batches', icon: Package, pageKey: 'scripts' },
+  { title: 'Tasks', url: '/tasks', icon: CheckSquare, pageKey: 'tasks' },
 ]
 
 const monitoringItems = [
-  { title: 'Quotas & Usage', url: '/quotas', icon: BarChart3 },
-  { title: 'Plans', url: '/plans', icon: CreditCard },
+  { title: 'Quotas & Usage', url: '/quotas', icon: BarChart3, pageKey: 'quotas' },
+  { title: 'Plans', url: '/plans', icon: CreditCard, pageKey: 'plans' },
 ]
 
 const securityItems = [
-  { title: 'Security Dashboard', url: '/security/dashboard', icon: Shield },
-  { title: 'Command Policies', url: '/security/command-policies', icon: Shield },
-  { title: 'Security Center', url: '/security', icon: Shield },
-  { title: 'API Keys', url: '/api-keys', icon: Key },
+  { title: 'Security Dashboard', url: '/security/dashboard', icon: Shield, pageKey: 'security' },
+  { title: 'Command Policies', url: '/security/command-policies', icon: Shield, pageKey: 'policies' },
+  { title: 'Security Center', url: '/security', icon: Shield, pageKey: 'security' },
+  { title: 'API Keys', url: '/api-keys', icon: Key, pageKey: 'api_keys' },
 ]
 
 const toolsItems = [
-  { title: 'Widget Management', url: '/widget-management', icon: Globe },
-  { title: 'Deployment Checklist', url: '/deployment-checklist', icon: Rocket },
-  { title: 'Integrations', url: '/integrations', icon: Puzzle },
-  { title: 'Team Management', url: '/team-management', icon: Users },
-  { title: 'Assertion Check', url: '/assertion-check', icon: TestTube },
+  { title: 'Widget Management', url: '/widget-management', icon: Globe, pageKey: 'widgets' },
+  { title: 'Deployment Checklist', url: '/deployment-checklist', icon: Rocket, pageKey: 'deployment' },
+  { title: 'Integrations', url: '/integrations', icon: Puzzle, pageKey: 'integrations' },
+  { title: 'Team Management', url: '/team-management', icon: Users, pageKey: 'teams' },
+  { title: 'Assertion Check', url: '/assertion-check', icon: TestTube, pageKey: 'qa' },
 ]
 
 // AppSidebar Component - Navigation menu without Scripts section
@@ -66,28 +67,33 @@ export function AppSidebar() {
   const location = useLocation()
   const currentPath = location.pathname
   const collapsed = state === 'collapsed'
+  const { canView } = usePagePermissions()
 
   const isActive = (path: string) => {
     if (path === '/dashboard' && currentPath === '/') return true
     return currentPath === path
   }
 
-  const NavItem = ({ item }: { item: typeof mainItems[0] }) => (
-    <SidebarMenuItem>
-      <SidebarMenuButton asChild>
-        <Link 
-          to={item.url}
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth hover:bg-sidebar-accent',
-            isActive(item.url) && 'bg-primary text-primary-foreground shadow-glow'
-          )}
-        >
-          <item.icon className="h-4 w-4 flex-shrink-0" />
-          {!collapsed && <span className="truncate">{item.title}</span>}
-        </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  )
+  const NavItem = ({ item }: { item: typeof mainItems[0] }) => {
+    if (!canView(item.pageKey)) return null;
+    
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild>
+          <Link 
+            to={item.url}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth hover:bg-sidebar-accent',
+              isActive(item.url) && 'bg-primary text-primary-foreground shadow-glow'
+            )}
+          >
+            <item.icon className="h-4 w-4 flex-shrink-0" />
+            {!collapsed && <span className="truncate">{item.title}</span>}
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    )
+  }
 
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar shadow-lg">

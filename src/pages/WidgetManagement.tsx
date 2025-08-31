@@ -6,12 +6,14 @@ import { WidgetList } from "@/components/widgets/WidgetList";
 import { WidgetEditForm } from "@/components/widgets/WidgetEditForm";
 import { useWidgets, NewWidget } from "@/hooks/useWidgets";
 import { useState } from "react";
+import { usePermissions } from "@/components/auth/PermissionGuards";
 
 export default function WidgetManagement() {
   const { toast } = useToast();
   const { createWidget, refetch } = useWidgets();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { canEdit } = usePermissions('widgets');
 
   const handleRefresh = () => {
     window.location.reload();
@@ -61,10 +63,12 @@ export default function WidgetManagement() {
         </div>
         
         <div className="flex items-center gap-3">
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Widget
-          </Button>
+          {canEdit && (
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Widget
+            </Button>
+          )}
           <Button variant="outline" onClick={handleOpenQAChecklist}>
             <TestTube className="h-4 w-4 mr-2" />
             Test
