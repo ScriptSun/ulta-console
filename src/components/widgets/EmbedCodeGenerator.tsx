@@ -323,11 +323,11 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     // Advanced features
     autoOpen: false, // Set to true to open widget on page load
     hideOnMobile: false, // Hide widget on mobile devices
-    showBadge: true, // Show "Powered by UltaAI" badge
+    showBadge: true, // Show "Powered by 🤖 UltaAI" badge
     
     // Event handlers
     onReady: function() {
-      console.log('UltaAI widget is ready');
+      console.log('🤖 UltaAI widget is ready');
     },
     
     onOpen: function() {
@@ -402,11 +402,11 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     // Advanced features
     autoOpen: false, // Set to true to open widget on page load
     hideOnMobile: false, // Hide widget on mobile devices
-    showBadge: true, // Show "Powered by UltaAI" badge
+    showBadge: true, // Show "Powered by 🤖 UltaAI" badge
     
     // Event handlers
     onReady: function() {
-      console.log('UltaAI widget is ready');
+      console.log('🤖 UltaAI widget is ready');
     },
     
     onOpen: function() {
