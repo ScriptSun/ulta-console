@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { isFeatureEnabled } from '@/utils/featureFlags';
 
 interface RateLimitCheck {
   allowed: boolean;
@@ -17,6 +18,11 @@ export function useTeamRateLimits(teamId: string) {
     queryFn: async () => {
       if (!user?.id) return null;
 
+      // If team reading is disabled, return empty rate limits
+      if (!isFeatureEnabled('readFromTeams')) {
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('team_rate_limits')
         .select('*')
@@ -32,6 +38,11 @@ export function useTeamRateLimits(teamId: string) {
   const checkRateLimit = useMutation({
     mutationFn: async ({ limitType, maxCount }: { limitType: string; maxCount: number }) => {
       if (!user?.id) throw new Error('User not authenticated');
+
+      // If team reading is disabled, allow all operations (no rate limiting)
+      if (!isFeatureEnabled('readFromTeams')) {
+        return { allowed: true, current_count: 0, retry_after_seconds: 0 };
+      }
 
       const { data, error } = await supabase.rpc('check_and_increment_rate_limit', {
         _team_id: teamId,
@@ -59,6 +70,11 @@ export function useTeamRateLimits(teamId: string) {
       details?: any;
     }) => {
       if (!user?.email) throw new Error('User email not available');
+
+      // If team reading is disabled, skip audit logging
+      if (!isFeatureEnabled('readFromTeams')) {
+        return;
+      }
 
       const { error } = await supabase.rpc('log_team_audit_event', {
         _team_id: teamId,

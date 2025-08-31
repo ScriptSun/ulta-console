@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { isFeatureEnabled } from '@/utils/featureFlags';
 
 export function useWidgetScopes() {
   const { user } = useAuth();
@@ -10,7 +11,12 @@ export function useWidgetScopes() {
     queryFn: async () => {
       if (!user?.id) return null;
 
-      // Get user's team memberships and roles
+      // If team reading is disabled, allow access to all widgets
+      if (!isFeatureEnabled('readFromTeams')) {
+        return 'all';
+      }
+
+      // Get user's team memberships and roles (legacy team-based logic)
       const { data: memberships, error: membershipError } = await supabase
         .from('console_team_members')
         .select('id, role, console_member_widget_scopes(widget_id)')

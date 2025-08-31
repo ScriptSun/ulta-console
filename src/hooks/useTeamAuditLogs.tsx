@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
+import { isFeatureEnabled } from '@/utils/featureFlags';
 
 export interface AuditLogEntry {
   id: string;
@@ -22,6 +23,11 @@ export function useTeamAuditLogs(teamId: string, filters?: AuditFilters) {
   const { data: auditLogs, isLoading, refetch } = useQuery({
     queryKey: ['team-audit-logs', teamId, filters],
     queryFn: async () => {
+      // If team reading is disabled, return empty audit logs
+      if (!isFeatureEnabled('readFromTeams')) {
+        return [];
+      }
+
       let query = supabase
         .from('audit_logs')
         .select('*')
@@ -54,7 +60,7 @@ export function useTeamAuditLogs(teamId: string, filters?: AuditFilters) {
 
   // Set up real-time subscription
   useEffect(() => {
-    if (!teamId) return;
+    if (!teamId || !isFeatureEnabled('readFromTeams')) return;
 
     const channel = supabase
       .channel('team-audit-logs')
