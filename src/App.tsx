@@ -36,6 +36,7 @@ import SecurityDashboard from "./pages/SecurityDashboard";
 import QAChecklist from "./pages/QAChecklist";
 import WidgetDeploymentChecklist from "./pages/WidgetDeploymentChecklist";
 import RouterDemo from "./pages/_demo/Router";
+import WidgetTest from "./pages/WidgetTest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -258,6 +259,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <RouterDemo />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/widget-test" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <WidgetTest />
                 </RootLayout>
               </ProtectedRoute>
             } />
