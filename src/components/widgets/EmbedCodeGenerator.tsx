@@ -460,36 +460,44 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
             
             {/* Advanced Features Documentation */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h4 className="font-medium text-green-900 mb-2">🎯 User Identification</h4>
-                <ul className="text-sm text-green-800 space-y-1">
+              <div className="p-4 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 rounded-lg backdrop-blur-sm">
+                <h4 className="font-medium text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-2">
+                  🎯 User Identification
+                </h4>
+                <ul className="text-sm text-foreground/70 space-y-1">
                   <li>• Pass user ID, email, and name for personalized experience</li>
                   <li>• Enables conversation history and context</li>
                   <li>• Better support team visibility</li>
                 </ul>
               </div>
               
-              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                <h4 className="font-medium text-purple-900 mb-2">🎨 Dynamic Customization</h4>
-                <ul className="text-sm text-purple-800 space-y-1">
+              <div className="p-4 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 rounded-lg backdrop-blur-sm">
+                <h4 className="font-medium text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
+                  🎨 Dynamic Customization
+                </h4>
+                <ul className="text-sm text-foreground/70 space-y-1">
                   <li>• Override colors and branding in real-time</li>
                   <li>• Responsive themes (light/dark/auto)</li>
                   <li>• Custom positioning and sizing</li>
                 </ul>
               </div>
               
-              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                <h4 className="font-medium text-orange-900 mb-2">📊 Event Tracking</h4>
-                <ul className="text-sm text-orange-800 space-y-1">
+              <div className="p-4 bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-transparent border border-orange-500/20 rounded-lg backdrop-blur-sm">
+                <h4 className="font-medium text-orange-700 dark:text-orange-400 mb-2 flex items-center gap-2">
+                  📊 Event Tracking
+                </h4>
+                <ul className="text-sm text-foreground/70 space-y-1">
                   <li>• Track widget opens, closes, and messages</li>
                   <li>• Integrate with Google Analytics or other tools</li>
                   <li>• Custom error handling and logging</li>
                 </ul>
               </div>
               
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">🔧 Programmatic Control</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
+              <div className="p-4 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20 rounded-lg backdrop-blur-sm">
+                <h4 className="font-medium text-blue-700 dark:text-blue-400 mb-2 flex items-center gap-2">
+                  🔧 Programmatic Control
+                </h4>
+                <ul className="text-sm text-foreground/70 space-y-1">
                   <li>• Open/close widget via JavaScript</li>
                   <li>• Send messages programmatically</li>
                   <li>• Update user information dynamically</li>
@@ -526,13 +534,28 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
         </Tabs>
 
         {/* Implementation Notes */}
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Implementation Notes</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Place the script tags before the closing <code>&lt;/body&gt;</code> tag</li>
-            <li>• The widget will automatically check domain permissions</li>
-            <li>• Client-side overrides take precedence over server settings</li>
-            <li>• Widget loads asynchronously and won't block page rendering</li>
+        <div className="p-6 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent border border-primary/20 rounded-xl backdrop-blur-sm">
+          <h4 className="font-semibold text-primary mb-3 flex items-center gap-2">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+            Implementation Notes
+          </h4>
+          <ul className="text-sm text-foreground/80 space-y-2">
+            <li className="flex items-start gap-2">
+              <div className="w-1.5 h-1.5 bg-primary/60 rounded-full mt-2 flex-shrink-0"></div>
+              Place the script tags before the closing <code className="px-1.5 py-0.5 bg-muted/50 rounded text-xs">&lt;/body&gt;</code> tag
+            </li>
+            <li className="flex items-start gap-2">
+              <div className="w-1.5 h-1.5 bg-primary/60 rounded-full mt-2 flex-shrink-0"></div>
+              The widget will automatically check domain permissions
+            </li>
+            <li className="flex items-start gap-2">
+              <div className="w-1.5 h-1.5 bg-primary/60 rounded-full mt-2 flex-shrink-0"></div>
+              Client-side overrides take precedence over server settings
+            </li>
+            <li className="flex items-start gap-2">
+              <div className="w-1.5 h-1.5 bg-primary/60 rounded-full mt-2 flex-shrink-0"></div>
+              Widget loads asynchronously and won't block page rendering
+            </li>
           </ul>
         </div>
       </CardContent>
