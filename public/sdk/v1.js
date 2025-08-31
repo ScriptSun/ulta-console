@@ -4,6 +4,12 @@
   // Create the UltaAIWidget global object
   window.UltaAIWidget = window.UltaAIWidget || {};
   
+  // CRITICAL: Emergency test to see if script loads at all
+  console.log('🚨 SCRIPT LOADED: UltaAI Widget SDK v1.js loaded successfully');
+  
+  // Test if window.UltaAIWidget exists
+  console.log('🚨 UltaAIWidget object:', window.UltaAIWidget);
+  
   // Configuration
   const CONFIG = {
     API_BASE_URL: 'https://lfsdqyvvboapsyeauchm.supabase.co',
@@ -762,10 +768,23 @@
   
   // Main load function
   window.UltaAIWidget.load = function(siteKey, options = {}) {
+    // CRITICAL: First thing that should ALWAYS run
+    console.log('🚨 FUNCTION CALLED: UltaAIWidget.load() was called');
+    console.log('🚨 RAW PARAMETERS:', {
+      siteKey: typeof siteKey + ': ' + siteKey,
+      options: typeof options + ': ' + JSON.stringify(options)
+    });
+    
     // Emergency debug - this should ALWAYS show
     console.log('🚨 EMERGENCY DEBUG: UltaAIWidget.load called');
     console.log('🚨 siteKey type:', typeof siteKey, 'value:', siteKey);
     console.log('🚨 options type:', typeof options, 'value:', options);
+    
+    // Test specific problematic options
+    if (options.width) console.log('🚨 WIDTH OPTION:', options.width);
+    if (options.height) console.log('🚨 HEIGHT OPTION:', options.height);
+    if (options.position) console.log('🚨 POSITION OPTION:', options.position);
+    if (options.autoOpen) console.log('🚨 AUTOOPEN OPTION:', options.autoOpen);
     
     try {
       console.log('🤖 UltaAI Widget - Load function called with:', { siteKey: siteKey?.substring(0, 10) + '...', options });
