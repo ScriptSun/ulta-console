@@ -112,7 +112,7 @@ export function useAIInsights(dateRange: DateRange) {
 
       if (agentsError) throw agentsError;
 
-      // Group agents by day and status
+      // Generate all days in the date range
       const agentsByPeriod: Array<{
         period: string;
         active: number;
@@ -121,39 +121,32 @@ export function useAIInsights(dateRange: DateRange) {
         total: number;
       }> = [];
 
-      // Create a map to group by day
-      const periodMap = new Map<string, { active: number; suspended: number; terminated: number; total: number }>();
+      // Create entries for every day in the date range
+      const currentDate = new Date(dateRange.start);
+      const endDate = new Date(dateRange.end);
       
-      agents?.forEach(agent => {
-        const date = new Date(agent.created_at);
-        const period = date.toLocaleDateString();
-        
-        if (!periodMap.has(period)) {
-          periodMap.set(period, { active: 0, suspended: 0, terminated: 0, total: 0 });
-        }
-        
-        const periodData = periodMap.get(period)!;
-        periodData.total += 1;
-        
-        if (agent.status === 'active') {
-          periodData.active += 1;
-        } else if (agent.status === 'suspended') {
-          periodData.suspended += 1;
-        } else if (agent.status === 'terminated') {
-          periodData.terminated += 1;
-        }
-      });
+      while (currentDate <= endDate) {
+        const dateStr = currentDate.toLocaleDateString();
+        const dayAgents = agents?.filter(agent => {
+          const agentDate = new Date(agent.created_at);
+          return agentDate.toLocaleDateString() === dateStr;
+        }) || [];
 
-      // Convert map to array
-      for (const [period, counts] of periodMap) {
+        const counts = {
+          active: dayAgents.filter(a => a.status === 'active').length,
+          suspended: dayAgents.filter(a => a.status === 'suspended').length,
+          terminated: dayAgents.filter(a => a.status === 'terminated').length,
+          total: dayAgents.length
+        };
+
         agentsByPeriod.push({
-          period,
+          period: dateStr,
           ...counts
         });
-      }
 
-      // Sort by period
-      agentsByPeriod.sort((a, b) => new Date(a.period).getTime() - new Date(b.period).getTime());
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
 
       // Get usage data for active agents
       const { data: agentUsage, error: usageError } = await supabase
