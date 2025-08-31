@@ -403,6 +403,29 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving, onPreviewUpda
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="userBubbleText">User Message Text</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="userBubbleText"
+                      type="color"
+                      value={formData.theme.user_bubble_text}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, user_bubble_text: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.user_bubble_text}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, user_bubble_text: e.target.value }
+                      })}
+                      placeholder="#ffffff"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="assistantBubbleBg">Assistant Message Background</Label>
                   <div className="flex items-center gap-2">
                     <Input
@@ -420,6 +443,258 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving, onPreviewUpda
                         theme: { ...formData.theme, assistant_bubble_bg: e.target.value }
                       })}
                       placeholder="#f8f9fa"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="assistantBubbleText">Assistant Message Text</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="assistantBubbleText"
+                      type="color"
+                      value={formData.theme.assistant_bubble_text}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, assistant_bubble_text: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.assistant_bubble_text}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, assistant_bubble_text: e.target.value }
+                      })}
+                      placeholder="#333333"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Header & UI Colors */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Header & Interface Colors</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="headerBg">Header Background</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="headerBg"
+                      type="color"
+                      value={formData.theme.header_bg}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, header_bg: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.header_bg}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, header_bg: e.target.value }
+                      })}
+                      placeholder="#f8f9fa"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Chat widget header background color</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="headerText">Header Text</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="headerText"
+                      type="color"
+                      value={formData.theme.header_text}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, header_text: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.header_text}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, header_text: e.target.value }
+                      })}
+                      placeholder="#333333"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Header text and icon color</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="borderColor">Border Color</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="borderColor"
+                      type="color"
+                      value={formData.theme.border_color}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, border_color: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.border_color}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, border_color: e.target.value }
+                      })}
+                      placeholder="#dee2e6"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Widget borders and dividers</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="inputBorder">Input Border</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="inputBorder"
+                      type="color"
+                      value={formData.theme.input_border}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, input_border: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.input_border}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, input_border: e.target.value }
+                      })}
+                      placeholder="#dee2e6"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Input field border color</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Button Colors */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Button Colors</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="buttonPrimaryBg">Primary Button Background</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="buttonPrimaryBg"
+                      type="color"
+                      value={formData.theme.button_primary_bg}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, button_primary_bg: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.button_primary_bg}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, button_primary_bg: e.target.value }
+                      })}
+                      placeholder="#007bff"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="buttonPrimaryText">Primary Button Text</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="buttonPrimaryText"
+                      type="color"
+                      value={formData.theme.button_primary_text}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, button_primary_text: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.button_primary_text}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, button_primary_text: e.target.value }
+                      })}
+                      placeholder="#ffffff"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Status Indicators */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Status Indicators</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="onlineIndicator">Online Status</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="onlineIndicator"
+                      type="color"
+                      value={formData.theme.online_indicator}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, online_indicator: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.online_indicator}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, online_indicator: e.target.value }
+                      })}
+                      placeholder="#28a745"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="offlineIndicator">Offline Status</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="offlineIndicator"
+                      type="color"
+                      value={formData.theme.offline_indicator}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, offline_indicator: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.offline_indicator}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, offline_indicator: e.target.value }
+                      })}
+                      placeholder="#dc3545"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="typingIndicator">Typing Indicator</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="typingIndicator"
+                      type="color"
+                      value={formData.theme.typing_indicator}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, typing_indicator: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.typing_indicator}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, typing_indicator: e.target.value }
+                      })}
+                      placeholder="#007bff"
                       className="flex-1"
                     />
                   </div>
