@@ -21,17 +21,17 @@ import { BarChart3, PieChart as PieChartIcon, TrendingUp, AreaChart as AreaChart
 
 interface AgentUsageChartProps {
   data: Array<{
-    id: string;
-    name: string;
-    usage: number;
-    status: string;
-    last_seen?: string;
+    period: string;
+    active: number;
+    suspended: number;
+    terminated: number;
+    total: number;
   }>;
-  totalActiveAgents: number;
   dateRange: {
     start: Date;
     end: Date;
   };
+  groupBy: 'day' | 'week' | 'month';
 }
 
 type ChartType = 'bar' | 'pie' | 'line' | 'area';
@@ -43,25 +43,31 @@ const CHART_TYPES = [
   { value: 'area', label: 'Area Chart', icon: AreaChartIcon }
 ] as const;
 
-const COLORS = [
-  'hsl(250, 70%, 60%)',  // primary
-  'hsl(142, 76%, 36%)',  // success  
-  'hsl(38, 92%, 50%)',   // warning
-  'hsl(0, 84%, 60%)',    // destructive
-  'hsl(240, 8%, 18%)',   // accent
-  'hsl(240, 5%, 65%)'    // muted-foreground
-];
+const STATUS_COLORS = {
+  active: 'hsl(142, 76%, 36%)',    // green
+  suspended: 'hsl(38, 92%, 50%)',  // yellow/amber
+  terminated: 'hsl(0, 84%, 60%)',  // red
+};
 
-export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsageChartProps) {
+export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartProps) {
   const [chartType, setChartType] = useState<ChartType>('bar');
 
-  // Prepare data for charts - show agent usage data
-  const chartData = data.slice(0, 12).map((agent, index) => ({
-    name: agent.name || `Agent ${agent.id.slice(0, 8)}`,
-    usage: agent.usage,
-    status: agent.status,
-    color: COLORS[index % COLORS.length]
+  // Prepare data for charts - show agents by time period and status
+  const chartData = data.map((item) => ({
+    name: item.period,
+    active: item.active,
+    suspended: item.suspended,
+    terminated: item.terminated,
+    total: item.total
   }));
+
+  // Calculate totals
+  const totals = data.reduce((acc, item) => ({
+    active: acc.active + item.active,
+    suspended: acc.suspended + item.suspended,
+    terminated: acc.terminated + item.terminated,
+    total: acc.total + item.total
+  }), { active: 0, suspended: 0, terminated: 0, total: 0 });
 
   const renderChart = () => {
     switch (chartType) {
@@ -94,20 +100,24 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
                         <div className="grid gap-2">
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Agent
+                              {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </span>
                             <span className="font-bold text-muted-foreground">
                               {label}
                             </span>
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Usage Count
-                            </span>
-                            <span className="font-bold">
-                              {payload[0]?.value} requests
-                            </span>
-                          </div>
+                          {payload.map((entry: any, index: number) => (
+                            <div key={index} className="flex flex-col">
+                              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                {entry.dataKey === 'active' ? 'Active' : 
+                                 entry.dataKey === 'suspended' ? 'Suspended' : 
+                                 entry.dataKey === 'terminated' ? 'Terminated' : 'Total'} Agents
+                              </span>
+                              <span className="font-bold" style={{ color: entry.color }}>
+                                {entry.value}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     );
@@ -115,28 +125,32 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
                   return null;
                 }}
               />
-              <Bar 
-                dataKey="usage" 
-                fill="hsl(250, 70%, 60%)"
-                radius={[4, 4, 0, 0]}
-              />
+              <Bar dataKey="active" stackId="a" fill={STATUS_COLORS.active} />
+              <Bar dataKey="suspended" stackId="a" fill={STATUS_COLORS.suspended} />
+              <Bar dataKey="terminated" stackId="a" fill={STATUS_COLORS.terminated} />
             </BarChart>
           </ResponsiveContainer>
         );
 
       case 'pie':
+        const pieData = [
+          { name: 'Active', value: totals.active, color: STATUS_COLORS.active },
+          { name: 'Suspended', value: totals.suspended, color: STATUS_COLORS.suspended },
+          { name: 'Terminated', value: totals.terminated, color: STATUS_COLORS.terminated }
+        ];
+        
         return (
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={chartData}
+                data={pieData}
                 cx="50%"
                 cy="50%"
                 outerRadius={100}
-                dataKey="usage"
+                dataKey="value"
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
               >
-                {chartData.map((entry, index) => (
+                {pieData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
@@ -148,7 +162,7 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
                         <div className="grid gap-2">
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Agent
+                              Status
                             </span>
                             <span className="font-bold text-muted-foreground">
                               {payload[0]?.name}
@@ -156,10 +170,10 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Usage Count
+                              Count
                             </span>
                             <span className="font-bold">
-                              {payload[0]?.value} requests
+                              {payload[0]?.value} agents
                             </span>
                           </div>
                         </div>
@@ -202,20 +216,24 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
                         <div className="grid gap-2">
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Agent
+                              {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </span>
                             <span className="font-bold text-muted-foreground">
                               {label}
                             </span>
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Usage Count
-                            </span>
-                            <span className="font-bold">
-                              {payload[0]?.value} requests
-                            </span>
-                          </div>
+                          {payload.map((entry: any, index: number) => (
+                            <div key={index} className="flex flex-col">
+                              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                {entry.dataKey === 'active' ? 'Active' : 
+                                 entry.dataKey === 'suspended' ? 'Suspended' : 
+                                 'Terminated'} Agents
+                              </span>
+                              <span className="font-bold" style={{ color: entry.color }}>
+                                {entry.value}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     );
@@ -223,13 +241,9 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
                   return null;
                 }}
               />
-              <Line 
-                type="monotone" 
-                dataKey="usage" 
-                stroke="hsl(250, 70%, 60%)" 
-                strokeWidth={3}
-                dot={{ fill: 'hsl(250, 70%, 60%)', r: 6 }}
-              />
+              <Line type="monotone" dataKey="active" stroke={STATUS_COLORS.active} strokeWidth={3} />
+              <Line type="monotone" dataKey="suspended" stroke={STATUS_COLORS.suspended} strokeWidth={3} />
+              <Line type="monotone" dataKey="terminated" stroke={STATUS_COLORS.terminated} strokeWidth={3} />
             </LineChart>
           </ResponsiveContainer>
         );
@@ -263,20 +277,24 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
                         <div className="grid gap-2">
                           <div className="flex flex-col">
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Agent
+                              {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </span>
                             <span className="font-bold text-muted-foreground">
                               {label}
                             </span>
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              Usage Count
-                            </span>
-                            <span className="font-bold">
-                              {payload[0]?.value} requests
-                            </span>
-                          </div>
+                          {payload.map((entry: any, index: number) => (
+                            <div key={index} className="flex flex-col">
+                              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                {entry.dataKey === 'active' ? 'Active' : 
+                                 entry.dataKey === 'suspended' ? 'Suspended' : 
+                                 'Terminated'} Agents
+                              </span>
+                              <span className="font-bold" style={{ color: entry.color }}>
+                                {entry.value}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     );
@@ -284,13 +302,9 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
                   return null;
                 }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="usage" 
-                stroke="hsl(250, 70%, 60%)" 
-                fill="hsl(250, 70%, 60%)"
-                fillOpacity={0.3}
-              />
+              <Area type="monotone" dataKey="terminated" stackId="1" stroke={STATUS_COLORS.terminated} fill={STATUS_COLORS.terminated} fillOpacity={0.6} />
+              <Area type="monotone" dataKey="suspended" stackId="1" stroke={STATUS_COLORS.suspended} fill={STATUS_COLORS.suspended} fillOpacity={0.6} />
+              <Area type="monotone" dataKey="active" stackId="1" stroke={STATUS_COLORS.active} fill={STATUS_COLORS.active} fillOpacity={0.6} />
             </AreaChart>
           </ResponsiveContainer>
         );
@@ -304,10 +318,10 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
     return (
       <Card className="bg-gradient-card border-card-border shadow-card">
         <CardHeader>
-          <CardTitle>Active Agents in Selected Range</CardTitle>
+          <CardTitle>Agent Status Over Time</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[300px]">
-          <p className="text-muted-foreground">No active agents found in the selected date range</p>
+          <p className="text-muted-foreground">No agent data found in the selected date range</p>
         </CardContent>
       </Card>
     );
@@ -318,7 +332,7 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" />
-          Active Agents ({totalActiveAgents} total)
+          Agent Status by {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
         </CardTitle>
         <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
           <SelectTrigger className="w-40">
@@ -338,25 +352,45 @@ export function AgentUsageChart({ data, totalActiveAgents, dateRange }: AgentUsa
       </CardHeader>
       <CardContent>
         <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-          <p className="text-sm text-muted-foreground">
-            Showing <span className="font-semibold text-foreground">{totalActiveAgents}</span> total active agents
-            in the selected date range ({dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()})
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.active }}></div>
+              <span className="text-muted-foreground">Active: <span className="font-semibold text-foreground">{totals.active}</span></span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.suspended }}></div>
+              <span className="text-muted-foreground">Suspended: <span className="font-semibold text-foreground">{totals.suspended}</span></span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
+              <span className="text-muted-foreground">Terminated: <span className="font-semibold text-foreground">{totals.terminated}</span></span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-primary"></div>
+              <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{totals.total}</span></span>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Date range: {dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()}
           </p>
         </div>
         
         {renderChart()}
         
         {/* Chart Legend */}
-        <div className="mt-4 flex flex-wrap gap-3 justify-center">
-          {chartData.map((item, index) => (
-            <div key={item.name} className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: item.color }}
-              />
-              <span className="text-xs text-muted-foreground">{item.name}</span>
-            </div>
-          ))}
+        <div className="mt-4 flex flex-wrap gap-4 justify-center">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.active }}></div>
+            <span className="text-xs text-muted-foreground">Active</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.suspended }}></div>
+            <span className="text-xs text-muted-foreground">Suspended</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
+            <span className="text-xs text-muted-foreground">Terminated</span>
+          </div>
         </div>
       </CardContent>
     </Card>

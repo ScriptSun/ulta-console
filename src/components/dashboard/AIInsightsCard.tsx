@@ -183,9 +183,9 @@ export function AIInsightsCard({ dateRange }: AIInsightsCardProps) {
 
       {/* Agent Usage Chart */}
       <AgentUsageChart 
-        data={data?.topAgents || []} 
-        totalActiveAgents={data?.totalActiveAgents || 0}
+        data={data?.agentsByPeriod || []} 
         dateRange={dateRange}
+        groupBy="day"
       />
     </div>
   );

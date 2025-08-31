@@ -97,7 +97,7 @@ export function useAIInsights(dateRange: DateRange) {
   return useQuery({
     queryKey: ['ai-insights', dateRange.start, dateRange.end],
     queryFn: async () => {
-      // Get active agents in the date range
+      // Get all agents with their status in the date range
       const { data: agents, error: agentsError } = await supabase
         .from('agents')
         .select(`
@@ -107,11 +107,53 @@ export function useAIInsights(dateRange: DateRange) {
           last_seen,
           created_at
         `)
-        .eq('status', 'active')
         .gte('created_at', dateRange.start.toISOString())
         .lte('created_at', dateRange.end.toISOString());
 
       if (agentsError) throw agentsError;
+
+      // Group agents by day and status
+      const agentsByPeriod: Array<{
+        period: string;
+        active: number;
+        suspended: number;
+        terminated: number;
+        total: number;
+      }> = [];
+
+      // Create a map to group by day
+      const periodMap = new Map<string, { active: number; suspended: number; terminated: number; total: number }>();
+      
+      agents?.forEach(agent => {
+        const date = new Date(agent.created_at);
+        const period = date.toLocaleDateString();
+        
+        if (!periodMap.has(period)) {
+          periodMap.set(period, { active: 0, suspended: 0, terminated: 0, total: 0 });
+        }
+        
+        const periodData = periodMap.get(period)!;
+        periodData.total += 1;
+        
+        if (agent.status === 'active') {
+          periodData.active += 1;
+        } else if (agent.status === 'suspended') {
+          periodData.suspended += 1;
+        } else if (agent.status === 'terminated') {
+          periodData.terminated += 1;
+        }
+      });
+
+      // Convert map to array
+      for (const [period, counts] of periodMap) {
+        agentsByPeriod.push({
+          period,
+          ...counts
+        });
+      }
+
+      // Sort by period
+      agentsByPeriod.sort((a, b) => new Date(a.period).getTime() - new Date(b.period).getTime());
 
       // Get usage data for active agents
       const { data: agentUsage, error: usageError } = await supabase
@@ -126,7 +168,7 @@ export function useAIInsights(dateRange: DateRange) {
 
       if (usageError) throw usageError;
 
-      // Aggregate by agent
+      // Aggregate usage by agent
       const agentMap = new Map();
       agentUsage?.forEach((usage: any) => {
         const agentId = usage.agent_id;
@@ -168,7 +210,8 @@ export function useAIInsights(dateRange: DateRange) {
 
       return {
         topAgents,
-        totalActiveAgents: agents?.length || 0,
+        agentsByPeriod,
+        totalActiveAgents: agents?.filter(a => a.status === 'active').length || 0,
         agentErrors: agentErrors || [],
         totalCost,
         totalTokens: Array.from(agentMap.values()).reduce((total, agent) => 
