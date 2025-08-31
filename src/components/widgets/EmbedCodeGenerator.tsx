@@ -256,30 +256,26 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                   <Settings className="h-4 w-4" />
                   Display Mode
                 </Label>
-                <RadioGroup
-                  value={displayMode}
-                  onValueChange={setDisplayMode}
-                  className="flex gap-6"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="standard" id="standard" />
-                    <Label htmlFor="standard" className="font-normal text-sm">
-                      Standard Mode
-                      <span className="block text-xs text-muted-foreground">
-                        Widget appears as a button
-                      </span>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="open" id="open" />
-                    <Label htmlFor="open" className="font-normal text-sm">
-                      Open Mode
-                      <span className="block text-xs text-muted-foreground">
-                        Widget opens automatically
-                      </span>
-                    </Label>
-                  </div>
-                </RadioGroup>
+                <div className="flex items-center gap-6">
+                  <RadioGroup
+                    value={displayMode}
+                    onValueChange={setDisplayMode}
+                    className="flex gap-6"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="standard" id="standard" />
+                      <Label htmlFor="standard" className="font-normal text-sm">
+                        Standard Mode
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="open" id="open" />
+                      <Label htmlFor="open" className="font-normal text-sm">
+                        Open Mode
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
               </div>
 
               {/* Size Control Options */}
