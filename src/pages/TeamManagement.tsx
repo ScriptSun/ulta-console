@@ -19,6 +19,7 @@ import { TeamAuditTab } from '@/components/teams/TeamAuditTab';
 import { RateLimitBanner } from '@/components/teams/RateLimitBanner';
 import { useTeamRateLimits } from '@/hooks/useTeamRateLimits';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageGuard } from '@/components/auth/PageGuard';
 
 const ROLE_COLORS = {
   Owner: 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm',
@@ -449,22 +450,23 @@ export default function TeamManagement() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Team Management</h1>
-          <p className="text-muted-foreground">
-            Manage console admin teams and assign roles with our 5-tier permission system
-          </p>
+    <PageGuard pageKey="teams">
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Team Management</h1>
+            <p className="text-muted-foreground">
+              Manage console admin teams and assign roles with our 5-tier permission system
+            </p>
+          </div>
+          {/* Only show create team if user has no teams or is an owner/admin of at least one team  */}
+          {(!currentUserTeams?.length || currentUserTeams?.some(team => ['Owner', 'Admin'].includes(team.userRole))) && (
+            <Button onClick={() => setShowCreateTeam(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create Team
+            </Button>
+          )}
         </div>
-        {/* Only show create team if user has no teams or is an owner/admin of at least one team  */}
-        {(!currentUserTeams?.length || currentUserTeams?.some(team => ['Owner', 'Admin'].includes(team.userRole))) && (
-          <Button onClick={() => setShowCreateTeam(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create Team
-          </Button>
-        )}
-      </div>
 
       {/* Rate Limit Banners */}
       {rateLimitBanners.map((banner) => (
@@ -808,5 +810,6 @@ export default function TeamManagement() {
         currentUserRole={currentUserTeams?.find(t => t.id === selectedMember?.team_id)?.userRole || 'ReadOnly'}
       />
     </div>
+    </PageGuard>
   );
 }

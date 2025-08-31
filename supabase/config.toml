@@ -78,3 +78,6 @@ verify_jwt = false
 
 [functions.console-invites]
 verify_jwt = true
+
+[functions.check-permissions]
+verify_jwt = true

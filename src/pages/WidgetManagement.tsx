@@ -6,14 +6,16 @@ import { WidgetList } from "@/components/widgets/WidgetList";
 import { WidgetEditForm } from "@/components/widgets/WidgetEditForm";
 import { useWidgets, NewWidget } from "@/hooks/useWidgets";
 import { useState } from "react";
-import { usePermissions } from "@/components/auth/PermissionGuards";
+import { usePermissionGuards } from "@/hooks/usePermissionGuards";
+import { PageGuard } from "@/components/auth/PageGuard";
+import { PermissionButton } from "@/components/ui/permission-button";
 
 export default function WidgetManagement() {
   const { toast } = useToast();
   const { createWidget, refetch } = useWidgets();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { canEdit } = usePermissions('widgets');
+  const { withEdit, PermissionGate } = usePermissionGuards();
 
   const handleRefresh = () => {
     window.location.reload();
@@ -49,54 +51,56 @@ export default function WidgetManagement() {
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-8 max-w-7xl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Settings className="h-8 w-8 text-primary" />
-            Widget Management
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Configure and manage your chat widget embed codes with live preview
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {canEdit && (
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Widget
+    <PageGuard pageKey="widgets">
+      <div className="container mx-auto py-8 space-y-8 max-w-7xl">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Settings className="h-8 w-8 text-primary" />
+              Widget Management
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Configure and manage your chat widget embed codes with live preview
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <PermissionGate pageKey="widgets" permission="edit">
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Widget
+              </Button>
+            </PermissionGate>
+            <Button variant="outline" onClick={handleOpenQAChecklist}>
+              <TestTube className="h-4 w-4 mr-2" />
+              Test
             </Button>
-          )}
-          <Button variant="outline" onClick={handleOpenQAChecklist}>
-            <TestTube className="h-4 w-4 mr-2" />
-            Test
-          </Button>
-          <Button variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
+            <Button variant="outline" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
+
+        {/* Main Content */}
+        <WidgetList />
+
+        {/* Create Widget Dialog */}
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Widget</DialogTitle>
+            </DialogHeader>
+            <WidgetEditForm
+              widget={null}
+              onSave={handleCreateWidget}
+              onCancel={() => setIsCreateDialogOpen(false)}
+              saving={saving}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* Main Content */}
-      <WidgetList />
-
-      {/* Create Widget Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Widget</DialogTitle>
-          </DialogHeader>
-          <WidgetEditForm
-            widget={null}
-            onSave={handleCreateWidget}
-            onCancel={() => setIsCreateDialogOpen(false)}
-            saving={saving}
-          />
-        </DialogContent>
-      </Dialog>
-    </div>
+    </PageGuard>
   );
 }
