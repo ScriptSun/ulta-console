@@ -115,17 +115,27 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* MRR */}
-          <div className="p-4 rounded-lg bg-success/10 border border-success/20">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Monthly Recurring Revenue</div>
-              {getTrendIcon(mrrTrend)}
+          <div className="p-6 rounded-lg bg-success/10 border border-success/20 relative overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-medium text-muted-foreground">Monthly Recurring Revenue</div>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/20 text-success text-xs font-medium">
+                {getTrendIcon(mrrTrend)}
+                <span>
+                  {data.previousPeriodMrr > 0 
+                    ? (((data.mrr - data.previousPeriodMrr) / data.previousPeriodMrr) * 100).toFixed(2)
+                    : '0.00'
+                  }%
+                </span>
+              </div>
             </div>
-            <div className="text-2xl font-bold text-foreground">
+            <div className="text-4xl font-bold text-foreground mb-2">
               {formatCurrency(data.mrr)}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               vs {formatCurrency(data.previousPeriodMrr)} prev period
             </div>
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent pointer-events-none"></div>
           </div>
 
           {/* ARPU */}
