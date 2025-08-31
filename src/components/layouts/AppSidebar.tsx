@@ -57,7 +57,7 @@ const toolsItems = [
   { title: 'Widget Management', url: '/widget-management', icon: Globe, pageKey: 'widgets' },
   { title: 'Deployment Checklist', url: '/deployment-checklist', icon: Rocket, pageKey: 'deployment' },
   { title: 'Integrations', url: '/integrations', icon: Puzzle, pageKey: 'integrations' },
-  { title: 'Team Management', url: '/team-management', icon: Users, pageKey: 'teams' },
+  { title: 'Access Control', url: '/team-management', icon: Users, pageKey: 'teams' },
   { title: 'Assertion Check', url: '/assertion-check', icon: TestTube, pageKey: 'qa' },
 ]
 
