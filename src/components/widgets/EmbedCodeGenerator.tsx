@@ -96,10 +96,10 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     // Use the deployed Lovable domain for the SDK URL
     const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
     
-    return `<script src="${sdkUrl}"></script>
-<script>
-  UltaAIWidget.load('${widget.site_key}');
-</script>`;
+    return `<span style="color: #569cd6">&lt;script</span> <span style="color: #92c5f8">src</span>=<span style="color: #ce9178">"${sdkUrl}"</span><span style="color: #569cd6">&gt;&lt;/script&gt;</span>
+<span style="color: #569cd6">&lt;script&gt;</span>
+  <span style="color: #dcdcaa">UltaAIWidget</span>.<span style="color: #dcdcaa">load</span>(<span style="color: #ce9178">'${widget.site_key}'</span>);
+<span style="color: #569cd6">&lt;/script&gt;</span>`;
   };
 
   const generateAdvancedEmbedCode = () => {
@@ -133,48 +133,42 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     const hasEvents = advancedOptions.enableEvents;
     const hasUserData = advancedOptions.userIdentification;
     
-    let code = `<script src="${sdkUrl}"></script>
-<script>
-  // 🤖 UltaAI Widget Configuration
-  UltaAIWidget.load('${widget.site_key}'`;
+    let code = `<span style="color: #569cd6">&lt;script</span> <span style="color: #92c5f8">src</span>=<span style="color: #ce9178">"${sdkUrl}"</span><span style="color: #569cd6">&gt;&lt;/script&gt;</span>
+<span style="color: #569cd6">&lt;script&gt;</span>
+  <span style="color: #6a9955">// 🤖 UltaAI Widget Configuration</span>
+  <span style="color: #dcdcaa">UltaAIWidget</span>.<span style="color: #dcdcaa">load</span>(<span style="color: #ce9178">'${widget.site_key}'</span>`;
 
     if (hasOptions || hasEvents || hasUserData) {
-      code += `, {`;
+      code += `, <span style="color: #d4d4d4">{</span>`;
       
       // Add basic options
       const optionsArray = [];
       Object.entries(opts).forEach(([key, value]) => {
         if (typeof value === 'string') {
-          optionsArray.push(`    "${key}": "${value}"`);
+          optionsArray.push(`    <span style="color: #ce9178">"${key}"</span>: <span style="color: #ce9178">"${value}"</span>`);
         } else {
-          optionsArray.push(`    "${key}": ${value}`);
+          optionsArray.push(`    <span style="color: #ce9178">"${key}"</span>: <span style="color: #b5cea8">${value}</span>`);
         }
       });
       
       // Add user identification
       if (hasUserData) {
-        optionsArray.push(`    "userId": "user_12345"`);
-        optionsArray.push(`    "userEmail": "user@example.com"`);
-        optionsArray.push(`    "userName": "John Doe"`);
+        optionsArray.push(`    <span style="color: #ce9178">"userId"</span>: <span style="color: #ce9178">"user_12345"</span>`);
+        optionsArray.push(`    <span style="color: #ce9178">"userEmail"</span>: <span style="color: #ce9178">"user@example.com"</span>`);
+        optionsArray.push(`    <span style="color: #ce9178">"userName"</span>: <span style="color: #ce9178">"John Doe"</span>`);
       }
       
       // Add event handlers
       if (hasEvents) {
-        optionsArray.push(`    "onReady": function() {
-      console.log('🤖 UltaAI widget is ready');
+        optionsArray.push(`    <span style="color: #ce9178">"onReady"</span>: <span style="color: #569cd6">function</span>() {
+      <span style="color: #dcdcaa">console</span>.<span style="color: #dcdcaa">log</span>(<span style="color: #ce9178">'🤖 UltaAI widget is ready'</span>);
     }`);
-        optionsArray.push(`    "onOpen": function() {
-      console.log('Widget opened');
-    }`);
-        optionsArray.push(`    "onClose": function() {
-      console.log('Widget closed');
-    }`);
-        optionsArray.push(`    "onMessage": function(message) {
-      console.log('New message:', message);
+        optionsArray.push(`    <span style="color: #ce9178">"onOpen"</span>: <span style="color: #569cd6">function</span>() {
+      <span style="color: #dcdcaa">console</span>.<span style="color: #dcdcaa">log</span>(<span style="color: #ce9178">'Widget opened'</span>);
     }`);
       }
       
-      code += `\n${optionsArray.join(',\n')}\n  }`;
+      code += `\n${optionsArray.join(',\n')}\n  <span style="color: #d4d4d4">}</span>`;
     }
     
     code += `);`;
@@ -182,16 +176,16 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     if (advancedOptions.programmaticControl) {
       code += `
   
-  // Programmatic control methods (available after widget loads)
-  setTimeout(() => {
-    // UltaAIWidget.open();  // Open widget
-    // UltaAIWidget.close(); // Close widget
-    // UltaAIWidget.sendMessage('Hello from website!'); // Send message
-  }, 1000);`;
+  <span style="color: #6a9955">// Programmatic control methods (available after widget loads)</span>
+  <span style="color: #dcdcaa">setTimeout</span>(() => {
+    <span style="color: #6a9955">// UltaAIWidget.open();  // Open widget</span>
+    <span style="color: #6a9955">// UltaAIWidget.close(); // Close widget</span>
+    <span style="color: #6a9955">// UltaAIWidget.sendMessage('Hello from website!'); // Send message</span>
+  }, <span style="color: #b5cea8">1000</span>);`;
     }
 
     code += `
-</script>`;
+<span style="color: #569cd6">&lt;/script&gt;</span>`;
 
     return code;
   };
@@ -200,21 +194,17 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     // Use the deployed Lovable domain for the SDK URL
     const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
     const dataAttrs = [];
-    dataAttrs.push(`data-ultaai-site-key="${widget.site_key}"`);
+    dataAttrs.push(`<span style="color: #92c5f8">data-ultaai-site-key</span>=<span style="color: #ce9178">"${widget.site_key}"</span>`);
     
-    if (overrides.enabled) {
-      if (overrides.position !== 'bottom-right') dataAttrs.push(`data-ultaai-position="${overrides.position}"`);
-      if (overrides.width !== '400px') dataAttrs.push(`data-ultaai-width="${overrides.width}"`);
-      if (overrides.height !== '600px') dataAttrs.push(`data-ultaai-height="${overrides.height}"`);
-      if (overrides.colorPrimary !== widget.theme.color_primary) dataAttrs.push(`data-ultaai-colorprimary="${overrides.colorPrimary}"`);
-      if (overrides.textColor !== widget.theme.text_color) dataAttrs.push(`data-ultaai-textcolor="${overrides.textColor}"`);
-      if (overrides.welcomeText && overrides.welcomeText !== widget.theme.welcome_text) dataAttrs.push(`data-ultaai-welcometext="${overrides.welcomeText}"`);
-      if (overrides.logoUrl && overrides.logoUrl !== widget.theme.logo_url) dataAttrs.push(`data-ultaai-logourl="${overrides.logoUrl}"`);
+    if (sizeOptions.customSize) {
+      if (sizeOptions.width !== '400') dataAttrs.push(`<span style="color: #92c5f8">data-ultaai-width</span>=<span style="color: #ce9178">"${sizeOptions.width}px"</span>`);
+      if (sizeOptions.height !== '600') dataAttrs.push(`<span style="color: #92c5f8">data-ultaai-height</span>=<span style="color: #ce9178">"${sizeOptions.height}px"</span>`);
+      if (sizeOptions.position !== 'bottom-right') dataAttrs.push(`<span style="color: #92c5f8">data-ultaai-position</span>=<span style="color: #ce9178">"${sizeOptions.position}"</span>`);
     }
 
-    return `<script src="${sdkUrl}"
+    return `<span style="color: #569cd6">&lt;script</span> <span style="color: #92c5f8">src</span>=<span style="color: #ce9178">"${sdkUrl}"</span>
   ${dataAttrs.join('\n  ')}
-></script>`;
+<span style="color: #569cd6">&gt;&lt;/script&gt;</span>`;
   };
 
   return (
@@ -235,9 +225,9 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                 Simple embed code with default settings
               </p>
               <div className="relative">
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono">
-                  <code>{generateBasicEmbedCode()}</code>
-                </pre>
+                 <pre className="bg-slate-900 p-4 rounded-lg overflow-x-auto text-sm font-mono border">
+                   <code dangerouslySetInnerHTML={{ __html: generateBasicEmbedCode() }}></code>
+                 </pre>
                 <Button
                   variant="outline"
                   size="sm"
@@ -448,8 +438,8 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                 Embed code with custom options, event handling, and advanced features
               </p>
               <div className="relative">
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono">
-                  <code>{generateAdvancedEmbedCode()}</code>
+                <pre className="bg-slate-900 p-4 rounded-lg overflow-x-auto text-sm font-mono border">
+                  <code dangerouslySetInnerHTML={{ __html: generateAdvancedEmbedCode() }}></code>
                 </pre>
                 <Button
                   variant="outline"
@@ -520,23 +510,23 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
               <p className="text-xs text-muted-foreground mb-3">
                 Single script tag with data attributes for auto-loading
               </p>
-              <div className="relative">
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono">
-                  <code>{generateAutoLoadCode()}</code>
-                </pre>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={() => copyToClipboard(generateAutoLoadCode(), "Auto-load embed code")}
-                >
-                  {copiedCode === "Auto-load embed code" ? (
-                    <CheckCircle className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
+               <div className="relative">
+                 <pre className="bg-slate-900 p-4 rounded-lg overflow-x-auto text-sm font-mono border">
+                   <code dangerouslySetInnerHTML={{ __html: generateAutoLoadCode() }}></code>
+                 </pre>
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   className="absolute top-2 right-2"
+                   onClick={() => copyToClipboard(generateAutoLoadCode(), "Auto-load embed code")}
+                 >
+                   {copiedCode === "Auto-load embed code" ? (
+                     <CheckCircle className="h-4 w-4" />
+                   ) : (
+                     <Copy className="h-4 w-4" />
+                   )}
+                 </Button>
+               </div>
             </div>
           </TabsContent>
         </Tabs>
