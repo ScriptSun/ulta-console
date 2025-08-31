@@ -13,9 +13,6 @@ export default function Dashboard() {
   const { dateRange, setDateRange, lastUpdated } = useDateRangeFilter();
   const { canView } = usePagePermissions();
 
-  // Check permissions for financial data
-  const canViewFinancial = canView('revenue') || canView('admin');
-
   return (
     <div className="space-y-6">
       {/* Page Header with Date Filter */}
@@ -42,10 +39,8 @@ export default function Dashboard() {
         Data last updated: {formatDistanceToNow(lastUpdated, { addSuffix: true })}
       </div>
 
-      {/* Revenue Overview - Only for Owner/Admin */}
-      {canViewFinancial && (
-        <RevenueOverview dateRange={dateRange} />
-      )}
+      {/* Revenue Overview */}
+      <RevenueOverview dateRange={dateRange} />
 
       {/* Error Rates and Task Failures */}
       <ErrorRatesCard dateRange={dateRange} />
