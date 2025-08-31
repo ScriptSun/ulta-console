@@ -1,9 +1,37 @@
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Activity, Bot, CheckSquare, Shield, TrendingUp, Users } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 
 export default function Dashboard() {
+  const [totalUsers, setTotalUsers] = useState(0)
+
+  useEffect(() => {
+    const fetchTotalUsers = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+        
+        if (error) throw error
+        setTotalUsers(count || 0)
+      } catch (error) {
+        console.error('Error fetching total users:', error)
+      }
+    }
+
+    fetchTotalUsers()
+  }, [])
+
   const stats = [
+    {
+      title: 'Total Users',
+      value: totalUsers.toString(),
+      change: '+5%',
+      icon: Users,
+      color: 'text-blue-500'
+    },
     {
       title: 'Active Agents',
       value: '24',
@@ -17,13 +45,6 @@ export default function Dashboard() {
       change: '+8%',
       icon: CheckSquare,
       color: 'text-success'
-    },
-    {
-      title: 'API Requests',
-      value: '2.4K',
-      change: '+23%',
-      icon: Activity,
-      color: 'text-warning'
     },
     {
       title: 'Security Events',
