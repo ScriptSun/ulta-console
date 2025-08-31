@@ -73,15 +73,6 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
   if (!widget) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Code className="h-5 w-5" />
-            Embed Code Generator
-          </CardTitle>
-          <CardDescription>
-            Select a widget to generate embed code
-          </CardDescription>
-        </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-32 bg-muted rounded-lg">
             <p className="text-muted-foreground">No widget selected</p>
