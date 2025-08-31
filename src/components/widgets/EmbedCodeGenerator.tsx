@@ -209,14 +209,26 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
   return (
     <Card>
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <Code className="h-5 w-5" />
+          Embed Code for "UltaAI"
+        </CardTitle>
+        <CardDescription className="text-sm">
+          Copy this code to embed the widget on your website
+        </CardDescription>
+      </CardHeader>
+      
       <CardContent className="space-y-6">
         {/* Embed Code Tabs */}
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic">Basic</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
-            <TabsTrigger value="autoload">Auto-load</TabsTrigger>
-          </TabsList>
+          <div className="mb-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="basic">Basic</TabsTrigger>
+              <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              <TabsTrigger value="autoload">Auto-load</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="basic" className="space-y-4">
             <div>
