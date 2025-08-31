@@ -19,12 +19,35 @@ import {
   CheckCircle,
   Globe,
   Zap,
-  Brain
+  Brain,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  MessageSquare,
+  Bot
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface SystemSetting {
   id: string;
@@ -43,7 +66,7 @@ export default function SystemSettings() {
   // AI Models Configuration
   const [aiSettings, setAiSettings] = useState({
     enabled_models: ['gpt-4o-mini', 'gpt-4o', 'claude-3-5-sonnet'],
-    default_model: 'gpt-4o-mini',
+    default_models: ['gpt-4o-mini', 'gpt-4o', 'claude-3-5-sonnet'], // Ordered list of 3 models for failover
     max_tokens: 4000,
     temperature: 0.7,
   });
@@ -68,10 +91,19 @@ export default function SystemSettings() {
   const [notificationSettings, setNotificationSettings] = useState({
     email_enabled: true,
     slack_enabled: false,
+    telegram_enabled: false,
+    telegram_bot_token: '',
+    telegram_chat_id: '',
     webhook_url: '',
     alert_thresholds: {
       error_rate: 5,
       response_time: 5000,
+    },
+    telegram_notifications: {
+      agent_errors: true,
+      system_alerts: true,
+      security_events: false,
+      batch_completions: false,
     },
   });
 
@@ -97,7 +129,7 @@ export default function SystemSettings() {
           case 'ai_models':
             setAiSettings({
               enabled_models: value.enabled_models || ['gpt-4o-mini'],
-              default_model: value.default_model || 'gpt-4o-mini',
+              default_models: value.default_models || ['gpt-4o-mini', 'gpt-4o', 'claude-3-5-sonnet'],
               max_tokens: value.max_tokens || 4000,
               temperature: value.temperature || 0.7,
             });
@@ -122,8 +154,17 @@ export default function SystemSettings() {
             setNotificationSettings({
               email_enabled: value.email_enabled || true,
               slack_enabled: value.slack_enabled || false,
+              telegram_enabled: value.telegram_enabled || false,
+              telegram_bot_token: value.telegram_bot_token || '',
+              telegram_chat_id: value.telegram_chat_id || '',
               webhook_url: value.webhook_url || '',
               alert_thresholds: value.alert_thresholds || { error_rate: 5, response_time: 5000 },
+              telegram_notifications: value.telegram_notifications || {
+                agent_errors: true,
+                system_alerts: true,
+                security_events: false,
+                batch_completions: false,
+              },
             });
             break;
         }
@@ -185,10 +226,143 @@ export default function SystemSettings() {
   const availableModels = [
     { value: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'OpenAI' },
     { value: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI' },
+    { value: 'gpt-5-2025-08-07', label: 'GPT-5', provider: 'OpenAI' },
+    { value: 'gpt-5-mini-2025-08-07', label: 'GPT-5 Mini', provider: 'OpenAI' },
     { value: 'claude-3-5-sonnet', label: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
     { value: 'claude-3-opus', label: 'Claude 3 Opus', provider: 'Anthropic' },
+    { value: 'claude-opus-4-20250514', label: 'Claude 4 Opus', provider: 'Anthropic' },
     { value: 'gemini-pro', label: 'Gemini Pro', provider: 'Google' },
   ];
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      setAiSettings(prev => {
+        const oldIndex = prev.default_models.indexOf(active.id);
+        const newIndex = prev.default_models.indexOf(over.id);
+        return {
+          ...prev,
+          default_models: arrayMove(prev.default_models, oldIndex, newIndex)
+        };
+      });
+    }
+  };
+
+  const moveModelUp = (index: number) => {
+    if (index > 0) {
+      setAiSettings(prev => ({
+        ...prev,
+        default_models: arrayMove(prev.default_models, index, index - 1)
+      }));
+    }
+  };
+
+  const moveModelDown = (index: number) => {
+    if (index < aiSettings.default_models.length - 1) {
+      setAiSettings(prev => ({
+        ...prev,
+        default_models: arrayMove(prev.default_models, index, index + 1)
+      }));
+    }
+  };
+
+  const SortableModelItem = ({ model, index }: { model: string; index: number }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+    } = useSortable({ id: model });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+    };
+
+    const modelInfo = availableModels.find(m => m.value === model);
+
+    return (
+      <div ref={setNodeRef} style={style} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="w-6 h-6 flex items-center justify-center text-xs">
+              {index + 1}
+            </Badge>
+            <div {...attributes} {...listeners} className="cursor-grab">
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+          <div>
+            <p className="font-medium">{modelInfo?.label}</p>
+            <p className="text-sm text-muted-foreground">{modelInfo?.provider}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => moveModelUp(index)}
+            disabled={index === 0}
+          >
+            <ChevronUp className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => moveModelDown(index)}
+            disabled={index === aiSettings.default_models.length - 1}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const testTelegramConnection = async () => {
+    if (!notificationSettings.telegram_bot_token || !notificationSettings.telegram_chat_id) {
+      toast({
+        title: 'Missing Configuration',
+        description: 'Please provide both bot token and chat ID.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('test-telegram', {
+        body: {
+          bot_token: notificationSettings.telegram_bot_token,
+          chat_id: notificationSettings.telegram_chat_id,
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Connection Successful',
+        description: 'Test message sent to Telegram successfully!',
+      });
+    } catch (error) {
+      console.error('Telegram test failed:', error);
+      toast({
+        title: 'Connection Failed',
+        description: 'Failed to send test message. Please check your configuration.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6">
@@ -233,6 +407,47 @@ export default function SystemSettings() {
             <CardContent className="space-y-6">
               <div className="grid gap-6">
                 <div>
+                  <Label className="text-base font-medium">Default Models with Failover</Label>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select exactly 3 models in priority order. If the first model fails, the system will try the second, then the third.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <DndContext 
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext 
+                        items={aiSettings.default_models}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="space-y-2">
+                          {aiSettings.default_models.map((model, index) => (
+                            <SortableModelItem key={model} model={model} index={index} />
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                    
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                        <div>
+                          <h4 className="font-medium">Failover Configuration</h4>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Priority: {aiSettings.default_models.map((model, index) => {
+                              const modelInfo = availableModels.find(m => m.value === model);
+                              return `${index + 1}. ${modelInfo?.label}`;
+                            }).join(' → ')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
                   <Label className="text-base font-medium">Available Models</Label>
                   <p className="text-sm text-muted-foreground mb-4">
                     Select which AI models agents can use for processing tasks and conversations.
@@ -272,29 +487,7 @@ export default function SystemSettings() {
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="default_model">Default Model</Label>
-                    <Select
-                      value={aiSettings.default_model}
-                      onValueChange={(value) => setAiSettings(prev => ({ ...prev, default_model: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {aiSettings.enabled_models.map(model => {
-                          const modelInfo = availableModels.find(m => m.value === model);
-                          return (
-                            <SelectItem key={model} value={model}>
-                              {modelInfo?.label}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
+                <div className="grid md:grid-cols-1 gap-4">
                   <div>
                     <Label htmlFor="max_tokens">Max Tokens</Label>
                     <Input
@@ -538,16 +731,129 @@ export default function SystemSettings() {
 
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
-                    <p className="font-medium">Slack Integration</p>
+                    <p className="font-medium">Telegram Notifications</p>
                     <p className="text-sm text-muted-foreground">
-                      Send notifications to Slack channels
+                      Send notifications to Telegram channels
                     </p>
                   </div>
                   <Switch
-                    checked={notificationSettings.slack_enabled}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, slack_enabled: checked }))}
+                    checked={notificationSettings.telegram_enabled}
+                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, telegram_enabled: checked }))}
                   />
                 </div>
+
+                {notificationSettings.telegram_enabled && (
+                  <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-5 w-5" />
+                      <Label className="text-base font-medium">Telegram Bot Configuration</Label>
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="telegram_bot_token">Bot Token</Label>
+                        <Input
+                          id="telegram_bot_token"
+                          type="password"
+                          value={notificationSettings.telegram_bot_token}
+                          onChange={(e) => setNotificationSettings(prev => ({ ...prev, telegram_bot_token: e.target.value }))}
+                          placeholder="1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijk"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Get your bot token from @BotFather on Telegram
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="telegram_chat_id">Chat ID</Label>
+                        <Input
+                          id="telegram_chat_id"
+                          value={notificationSettings.telegram_chat_id}
+                          onChange={(e) => setNotificationSettings(prev => ({ ...prev, telegram_chat_id: e.target.value }))}
+                          placeholder="-1001234567890"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Channel/group chat ID (use @userinfobot to find)
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={testTelegramConnection}
+                        disabled={loading || !notificationSettings.telegram_bot_token || !notificationSettings.telegram_chat_id}
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Test Connection
+                      </Button>
+                    </div>
+
+                    <div>
+                      <Label className="text-base font-medium">Notification Types</Label>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Choose which notifications to send to Telegram
+                      </p>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Agent Errors</p>
+                            <p className="text-sm text-muted-foreground">When agents encounter errors</p>
+                          </div>
+                          <Switch
+                            checked={notificationSettings.telegram_notifications.agent_errors}
+                            onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                              ...prev,
+                              telegram_notifications: { ...prev.telegram_notifications, agent_errors: checked }
+                            }))}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">System Alerts</p>
+                            <p className="text-sm text-muted-foreground">Critical system notifications</p>
+                          </div>
+                          <Switch
+                            checked={notificationSettings.telegram_notifications.system_alerts}
+                            onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                              ...prev,
+                              telegram_notifications: { ...prev.telegram_notifications, system_alerts: checked }
+                            }))}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Security Events</p>
+                            <p className="text-sm text-muted-foreground">Security-related notifications</p>
+                          </div>
+                          <Switch
+                            checked={notificationSettings.telegram_notifications.security_events}
+                            onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                              ...prev,
+                              telegram_notifications: { ...prev.telegram_notifications, security_events: checked }
+                            }))}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Batch Completions</p>
+                            <p className="text-sm text-muted-foreground">When batch operations complete</p>
+                          </div>
+                          <Switch
+                            checked={notificationSettings.telegram_notifications.batch_completions}
+                            onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                              ...prev,
+                              telegram_notifications: { ...prev.telegram_notifications, batch_completions: checked }
+                            }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {notificationSettings.slack_enabled && (
                   <div>
