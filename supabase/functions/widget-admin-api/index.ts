@@ -1,9 +1,11 @@
-// Widget Admin API - CRUD endpoints for widget configuration
-// Requires admin API key authentication via X-API-Key header
+// Widget Admin API - CRUD endpoints for widget configuration  
+// Now uses JWT authentication via Supabase
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
+
+console.log('Widget Admin API function loaded')
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -544,13 +546,15 @@ serve(async (req) => {
   const url = new URL(req.url)
   const path = url.pathname
 
+  console.log(`Widget Admin API called: ${req.method} ${path}`)
+
   try {
     // Public endpoint - no authentication required
     if (path === '/api/widget/config' && req.method === 'GET') {
       return await getWidgetConfig(req)
     }
 
-    // Admin endpoints require authentication - handle both root and /api/admin paths
+    // All other endpoints require authentication
     const auth = await authenticateRequest(req)
     if (!auth.valid) {
       return errorResponse(auth.error || 'Unauthorized', 401)
@@ -559,38 +563,28 @@ serve(async (req) => {
     const customerId = auth.customer_id!
     const apiKeyId = auth.api_key_id
 
-    // Handle requests to root path as list widgets
-    if (path === '/' && req.method === 'GET') {
+    // Handle all widget admin operations - support both root and API paths
+    if ((path === '/' || path === '/api/admin/widgets') && req.method === 'GET') {
       return await listWidgets(customerId)
     }
-
-    // Handle requests to root path as create widget  
-    if (path === '/' && req.method === 'POST') {
+    
+    if ((path === '/' || path === '/api/admin/widgets') && req.method === 'POST') {
       return await createWidget(req, customerId, apiKeyId)
     }
 
-    // Handle widget update at root level with ID
-    if (path !== '/' && path !== '/api/widget/config' && req.method === 'PATCH') {
-      const widgetId = path.substring(1) // Remove leading slash
-      if (widgetId) {
-        return await updateWidget(req, widgetId, customerId, apiKeyId)
-      }
-    }
-
-    // Admin route handlers for /api/admin paths
-    if (path === '/api/admin/widgets') {
-      if (req.method === 'POST') {
-        return await createWidget(req, customerId, apiKeyId)
-      } else if (req.method === 'GET') {
-        return await listWidgets(customerId)
-      }
-    } else if (path.startsWith('/api/admin/widgets/')) {
+    // Handle widget updates - both root level and API path
+    if (path.startsWith('/api/admin/widgets/') && req.method === 'PATCH') {
       const widgetId = path.split('/').pop()
       if (!widgetId) {
         return errorResponse('Invalid widget ID', 400)
       }
+      return await updateWidget(req, widgetId, customerId, apiKeyId)
+    }
 
-      if (req.method === 'PATCH') {
+    // Handle widget updates at root level (for new style)
+    if (path !== '/' && path !== '/api/widget/config' && !path.startsWith('/api/') && req.method === 'PATCH') {
+      const widgetId = path.substring(1) // Remove leading slash
+      if (widgetId) {
         return await updateWidget(req, widgetId, customerId, apiKeyId)
       }
     }
