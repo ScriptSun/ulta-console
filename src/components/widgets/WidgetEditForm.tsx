@@ -131,7 +131,7 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving, onPreviewUpda
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <Palette className="h-5 w-5" />
           {widget ? 'Edit Widget' : 'Create New Widget'}
