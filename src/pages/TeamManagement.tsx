@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Shield, Eye, Plus, Search, Trash2, Mail } from 'lucide-react';
+import { Users, Shield, Eye, Plus, Search, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserPermissionsDialog } from '@/components/users/UserPermissionsDialog';
 import { PageGuard } from '@/components/auth/PageGuard';
@@ -68,7 +68,6 @@ export default function TeamManagement() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState<string>('ReadOnly');
   const [searchTerm, setSearchTerm] = useState('');
-  const [emailFilter, setEmailFilter] = useState('');
 
   const canManageUsers = canEdit('teams');
 
@@ -113,11 +112,8 @@ export default function TeamManagement() {
         const matchesSearch = !searchTerm || 
           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        const matchesEmailFilter = !emailFilter || 
-          user.email.toLowerCase().includes(emailFilter.toLowerCase());
           
-        return matchesSearch && matchesEmailFilter;
+        return matchesSearch;
       });
     },
     enabled: !!defaultCustomerId
@@ -457,7 +453,7 @@ export default function TeamManagement() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Search and Filter Controls */}
+              {/* Search Controls */}
               <div className="flex gap-4">
                 <div className="flex-1">
                   <div className="relative">
@@ -466,17 +462,6 @@ export default function TeamManagement() {
                       placeholder="Search by name or email..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <div className="min-w-[200px]">
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Filter by email..."
-                      value={emailFilter}
-                      onChange={(e) => setEmailFilter(e.target.value)}
                       className="pl-10"
                     />
                   </div>
@@ -581,7 +566,7 @@ export default function TeamManagement() {
               
               {(!users || users.length === 0) && (
                 <div className="text-center py-8 text-muted-foreground">
-                  {searchTerm || emailFilter ? 'No users match your search criteria.' : 'No users found. Add users to get started.'}
+                  {searchTerm ? 'No users match your search criteria.' : 'No users found. Add users to get started.'}
                 </div>
               )}
             </CardContent>
