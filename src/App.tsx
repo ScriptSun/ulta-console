@@ -10,6 +10,7 @@ import RootLayout from "./components/layouts/RootLayout";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import UserDetail from "./pages/UserDetail";
+import AgentDetail from "./pages/AgentDetail";
 import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
 import ApiKeys from "./pages/ApiKeys";
@@ -86,6 +87,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <Agents />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/agents/:agentId" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <AgentDetail />
                 </RootLayout>
               </ProtectedRoute>
             } />

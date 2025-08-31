@@ -1,0 +1,343 @@
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Bot, Activity, Globe, Server, User, Mail, Calendar, HardDrive, Cpu, MemoryStick } from 'lucide-react';
+
+interface HeartbeatData {
+  ram_mb?: number;
+  ram_free_mb?: number;
+  cpu_cores?: number;
+  disk_total_gb?: number;
+  disk_free_gb?: number;
+  uptime?: string;
+  architecture?: string;
+  os_version?: string;
+  timezone?: string;
+  open_ports?: number[];
+  running_services?: string[];
+}
+
+export default function AgentDetail() {
+  const { agentId } = useParams<{ agentId: string }>();
+  const navigate = useNavigate();
+
+  const { data: agent, isLoading: agentLoading } = useQuery({
+    queryKey: ['agent', agentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agents')
+        .select(`
+          *,
+          users:user_id (
+            email,
+            full_name
+          )
+        `)
+        .eq('id', agentId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!agentId,
+  });
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      running: { variant: 'default' as const, label: 'Running', color: 'text-green-600' },
+      idle: { variant: 'secondary' as const, label: 'Idle', color: 'text-yellow-600' },
+      error: { variant: 'destructive' as const, label: 'Error', color: 'text-red-600' },
+      offline: { variant: 'outline' as const, label: 'Offline', color: 'text-gray-600' },
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
+    
+    return (
+      <Badge variant={config.variant} className={config.color}>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  if (agentLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!agent) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-8">
+          <h2 className="text-2xl font-bold mb-2">Agent Not Found</h2>
+          <p className="text-muted-foreground mb-4">The requested agent could not be found.</p>
+          <Button onClick={() => navigate('/agents')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Agents
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const heartbeat = (agent.heartbeat as HeartbeatData) || {};
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/agents')}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Agents
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Agent Details</h1>
+          <p className="text-muted-foreground">
+            Detailed information about {agent.hostname || `Agent ${agent.id.slice(0, 8)}`}
+          </p>
+        </div>
+      </div>
+
+      {/* Agent Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            Agent Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Agent ID</label>
+              <code className="block text-sm bg-muted px-2 py-1 rounded font-mono mt-1">
+                {agent.id}
+              </code>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Status</label>
+              <div className="mt-1">
+                {getStatusBadge(agent.status)}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Hostname</label>
+              <p className="text-sm mt-1">{String(agent.hostname || 'Not provided')}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">OS</label>
+              <p className="text-sm mt-1 capitalize">{String(agent.os || 'Unknown')}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Version</label>
+              <p className="text-sm mt-1">{String(agent.version || 'N/A')}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Region</label>
+              <p className="text-sm mt-1">{String(agent.region || 'N/A')}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">IP Address</label>
+              <p className="text-sm mt-1">{String(agent.ip_address || 'N/A')}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Plan</label>
+              <div className="mt-1">
+                <Badge variant="outline">
+                  {String(agent.plan_key || 'No Plan')}
+                </Badge>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Tasks Completed</label>
+              <p className="text-sm mt-1">{String(agent.tasks_completed || 0)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Associated User */}
+      {agent.users && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Associated User
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Full Name</label>
+                <p className="text-sm mt-1">{agent.users.full_name || 'Not provided'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Email</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Mail className="h-4 w-4" />
+                  <button
+                    onClick={() => navigate(`/users/${agent.user_id}`)}
+                    className="text-sm text-primary hover:text-primary/80 hover:underline"
+                  >
+                    {agent.users.email}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* System Information */}
+      {heartbeat && Object.keys(heartbeat).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              System Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {heartbeat.ram_mb && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <MemoryStick className="h-3 w-3" />
+                    Total RAM
+                  </label>
+                  <p className="text-sm mt-1">{formatBytes(heartbeat.ram_mb * 1024 * 1024)}</p>
+                </div>
+              )}
+              {heartbeat.ram_free_mb && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Free RAM</label>
+                  <p className="text-sm mt-1">{formatBytes(heartbeat.ram_free_mb * 1024 * 1024)}</p>
+                </div>
+              )}
+              {heartbeat.cpu_cores && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <Cpu className="h-3 w-3" />
+                    CPU Cores
+                  </label>
+                  <p className="text-sm mt-1">{heartbeat.cpu_cores}</p>
+                </div>
+              )}
+              {heartbeat.disk_total_gb && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <HardDrive className="h-3 w-3" />
+                    Total Disk
+                  </label>
+                  <p className="text-sm mt-1">{heartbeat.disk_total_gb} GB</p>
+                </div>
+              )}
+              {heartbeat.disk_free_gb && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Free Disk</label>
+                  <p className="text-sm mt-1">{heartbeat.disk_free_gb} GB</p>
+                </div>
+              )}
+              {heartbeat.uptime && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Uptime</label>
+                  <p className="text-sm mt-1">{heartbeat.uptime}</p>
+                </div>
+              )}
+              {heartbeat.architecture && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Architecture</label>
+                  <p className="text-sm mt-1">{heartbeat.architecture}</p>
+                </div>
+              )}
+              {heartbeat.os_version && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">OS Version</label>
+                  <p className="text-sm mt-1">{heartbeat.os_version}</p>
+                </div>
+              )}
+              {heartbeat.timezone && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <Globe className="h-3 w-3" />
+                    Timezone
+                  </label>
+                  <p className="text-sm mt-1">{heartbeat.timezone}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Network & Services */}
+      {heartbeat && (heartbeat.open_ports || heartbeat.running_services) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-5 w-5" />
+              Network & Services
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {heartbeat.open_ports && heartbeat.open_ports.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Open Ports</label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {heartbeat.open_ports?.map((port: number) => (
+                      <Badge key={port} variant="secondary" className="text-xs">
+                        {port}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {heartbeat.running_services && heartbeat.running_services.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Running Services</label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {heartbeat.running_services?.map((service: string) => (
+                      <Badge key={service} variant="outline" className="text-xs">
+                        {service}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
