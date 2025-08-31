@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -42,8 +43,13 @@ export function UserPermissionsDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [permissions, setPermissions] = useState<Record<string, PagePermission>>({});
+  const { user } = useAuth();
 
-  const canEdit = ['Owner', 'Admin'].includes(currentUserRole || '');
+  // Check if current user can edit this user's permissions
+  const canEdit = (['Owner', 'Admin'].includes(currentUserRole || '')) && (userId !== user?.id || ['Owner', 'Admin'].includes(currentUserRole || ''));
+  
+  // Check if current user is viewing their own permissions and is a Developer
+  const isOwnDeveloperView = userId === user?.id && currentUserRole === 'Developer';
   const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
 
   // Fetch all pages
@@ -229,7 +235,7 @@ export function UserPermissionsDialog({
   });
 
   const updatePermission = (pageKey: string, field: keyof Omit<PagePermission, 'page_key'>, value: boolean) => {
-    if (!canEdit) return;
+    if (!canEdit || isOwnDeveloperView) return;
     
     setPermissions(prev => ({
       ...prev,
@@ -303,10 +309,10 @@ export function UserPermissionsDialog({
                 Role: {getUserRole()}
               </Badge>
               <span className="text-sm text-muted-foreground">
-                Showing permissions with role defaults
+                {isOwnDeveloperView ? 'View only - your permissions' : 'Showing permissions with role defaults'}
               </span>
             </div>
-            {canEdit && (
+            {canEdit && !isOwnDeveloperView && (
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -327,13 +333,22 @@ export function UserPermissionsDialog({
             if (!perm) return null;
 
             return (
-              <div key={page.key} className="flex items-center justify-between p-4 border border-border rounded-lg bg-card/30">
+              <div key={page.key} className={`flex items-center justify-between p-4 border border-border rounded-lg ${
+                isOverridden ? 'bg-card/30' : 'bg-muted/20'
+              }`}>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-medium">{page.label}</h4>
+                    <h4 className={`font-medium ${!isOverridden ? 'text-muted-foreground' : ''}`}>
+                      {page.label}
+                    </h4>
                     {isOverridden && (
                       <Badge variant="secondary" className="text-xs">
                         Override
+                      </Badge>
+                    )}
+                    {!isOverridden && (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        Role Default
                       </Badge>
                     )}
                   </div>
@@ -345,12 +360,15 @@ export function UserPermissionsDialog({
                     <Checkbox 
                       id={`${page.key}-view`}
                       checked={perm.can_view}
-                      disabled={!canEdit}
+                      disabled={!canEdit || isOwnDeveloperView}
                       onCheckedChange={(checked) => 
                         updatePermission(page.key, 'can_view', checked === true)
                       }
+                      className={!isOverridden ? 'opacity-60' : ''}
                     />
-                    <label htmlFor={`${page.key}-view`} className="flex items-center gap-1 text-sm font-medium cursor-pointer">
+                    <label htmlFor={`${page.key}-view`} className={`flex items-center gap-1 text-sm font-medium cursor-pointer ${
+                      !isOverridden ? 'text-muted-foreground' : ''
+                    }`}>
                       <Eye className="h-3 w-3" />
                       View
                     </label>
@@ -360,12 +378,15 @@ export function UserPermissionsDialog({
                     <Checkbox 
                       id={`${page.key}-edit`}
                       checked={perm.can_edit}
-                      disabled={!canEdit || !perm.can_view}
+                      disabled={!canEdit || !perm.can_view || isOwnDeveloperView}
                       onCheckedChange={(checked) => 
                         updatePermission(page.key, 'can_edit', checked === true)
                       }
+                      className={!isOverridden ? 'opacity-60' : ''}
                     />
-                    <label htmlFor={`${page.key}-edit`} className="flex items-center gap-1 text-sm font-medium cursor-pointer">
+                    <label htmlFor={`${page.key}-edit`} className={`flex items-center gap-1 text-sm font-medium cursor-pointer ${
+                      !isOverridden ? 'text-muted-foreground' : ''
+                    }`}>
                       <Edit className="h-3 w-3" />
                       Edit
                     </label>
@@ -375,12 +396,15 @@ export function UserPermissionsDialog({
                     <Checkbox 
                       id={`${page.key}-delete`}
                       checked={perm.can_delete}
-                      disabled={!canEdit || !perm.can_view}
+                      disabled={!canEdit || !perm.can_view || isOwnDeveloperView}
                       onCheckedChange={(checked) => 
                         updatePermission(page.key, 'can_delete', checked === true)
                       }
+                      className={!isOverridden ? 'opacity-60' : ''}
                     />
-                    <label htmlFor={`${page.key}-delete`} className="flex items-center gap-1 text-sm font-medium cursor-pointer">
+                    <label htmlFor={`${page.key}-delete`} className={`flex items-center gap-1 text-sm font-medium cursor-pointer ${
+                      !isOverridden ? 'text-muted-foreground' : ''
+                    }`}>
                       <Trash2 className="h-3 w-3" />
                       Delete
                     </label>
@@ -393,9 +417,9 @@ export function UserPermissionsDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {canEdit ? 'Cancel' : 'Close'}
+            {canEdit && !isOwnDeveloperView ? 'Cancel' : 'Close'}
           </Button>
-          {canEdit && (
+          {canEdit && !isOwnDeveloperView && (
             <>
               <Button 
                 variant="outline"

@@ -324,7 +324,10 @@ export default function TeamManagement() {
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <button
+                        className="flex items-center gap-2 hover:bg-accent/50 p-2 rounded-md transition-colors cursor-pointer w-full text-left"
+                        onClick={() => handleViewPermissions(user)}
+                      >
                         <span className="text-sm text-muted-foreground">
                           {pageAccessCounts?.[user.id]?.accessible || 0} / {pageAccessCounts?.[user.id]?.total || 0}
                         </span>
@@ -338,7 +341,7 @@ export default function TeamManagement() {
                             }}
                           />
                         </div>
-                      </div>
+                      </button>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -349,7 +352,7 @@ export default function TeamManagement() {
                           className="gap-1"
                         >
                           <Eye className="h-3 w-3" />
-                          Permissions
+                          Edit Permissions
                         </Button>
                       </div>
                     </TableCell>
