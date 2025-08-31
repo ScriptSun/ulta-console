@@ -85,9 +85,9 @@ function validateDomains(domains: string[]): string | null {
         return `Wildcard domains not allowed: "${domain}". Use exact origins like https://client.whmcs.com`
       }
       
-      // Must not have path, search, or hash (should be origin only)
-      if (url.pathname !== '/' || url.search || url.hash) {
-        return `Domain must be origin only: "${domain}". Remove path, query, or fragment. Use format like https://client.whmcs.com`
+      // Allow paths but not search params or hash fragments for security
+      if (url.search || url.hash) {
+        return `Domain cannot contain query parameters or fragments: "${domain}". Use format like https://example.com/path`
       }
       
     } catch (error) {
