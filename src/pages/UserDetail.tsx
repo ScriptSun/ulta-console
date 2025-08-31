@@ -180,9 +180,14 @@ export default function UserDetail() {
                 {userAgents.map((agent) => (
                   <TableRow key={agent.id}>
                     <TableCell>
-                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                        {agent.id.slice(0, 8)}...
-                      </code>
+                      <button 
+                        onClick={() => navigate(`/agents/${agent.id}`)}
+                        className="hover:bg-muted/50 rounded transition-colors cursor-pointer"
+                      >
+                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono text-primary hover:text-primary/80">
+                          {agent.id.slice(0, 8)}...
+                        </code>
+                      </button>
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{agent.hostname || 'Unknown'}</div>
