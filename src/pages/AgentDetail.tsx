@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -156,21 +156,17 @@ export default function AgentDetail() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/agents')}
-          className="flex items-center gap-2"
+      <div className="flex items-center gap-2">
+        <Link 
+          to="/agents"
+          className="text-lg font-medium hover:text-primary transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Agents
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Agent Details</h1>
-          <p className="text-muted-foreground">
-            Detailed information about {agent.hostname || `Agent ${agent.id.slice(0, 8)}`}
-          </p>
-        </div>
+          Agents
+        </Link>
+        <span className="text-lg text-muted-foreground">/</span>
+        <span className="text-lg font-medium text-purple-600">
+          {agent.hostname || `Agent ${agent.id.slice(0, 8)}`}
+        </span>
       </div>
 
       {/* Agent Information */}
