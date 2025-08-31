@@ -342,15 +342,7 @@ function WidgetList() {
       {/* Embed Code Dialog */}
       <Dialog open={!!selectedWidgetForEmbed} onOpenChange={() => setSelectedWidgetForEmbed(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Embed Code for "{selectedWidgetForEmbed?.name}"</DialogTitle>
-            <DialogDescription>
-              Copy this code to embed the widget on your website
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4">
-            <EmbedCodeGenerator widget={selectedWidgetForEmbed} />
-          </div>
+          <EmbedCodeGenerator widget={selectedWidgetForEmbed} />
         </DialogContent>
       </Dialog>
     </div>
