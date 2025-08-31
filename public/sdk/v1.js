@@ -32,6 +32,45 @@
     'bottom-right': { bottom: '20px', right: '20px', left: 'auto', top: 'auto' }
   };
 
+  // Analytics functions
+  function hashString(str) {
+    // Simple hash function for page URLs (non-cryptographic, just for privacy)
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  function emitAnalyticsEvent(eventType, siteKey, metadata) {
+    try {
+      const origin = window.location.origin;
+      const pageUrl = window.location.href;
+      const hashedPageUrl = hashString(pageUrl);
+      
+      const baseUrl = origin;
+      fetch(`${baseUrl}/supabase/functions/v1/widget-analytics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event_type: eventType,
+          site_key: siteKey,
+          origin: origin,
+          page_url: pageUrl, // Will be hashed server-side
+          metadata: metadata || {}
+        })
+      }).catch(error => {
+        console.debug('Analytics event failed:', error);
+      });
+    } catch (error) {
+      console.debug('Analytics error:', error);
+    }
+  }
+
   // Utility functions
   function isValidPosition(position) {
     return Object.keys(POSITION_STYLES).includes(position);
@@ -159,6 +198,14 @@
           try {
             // Remove any existing widget
             removeExistingWidget();
+            
+            // Emit widget load analytics event
+            emitAnalyticsEvent('load', siteKey, {
+              position: sanitizedOpts.position,
+              width: sanitizedOpts.width,
+              height: sanitizedOpts.height,
+              user_identity: !!(sanitizedOpts.user_id && sanitizedOpts.signed_payload)
+            });
             
             // Create and inject new iframe
             const iframe = createIframe(siteKey, sanitizedOpts);

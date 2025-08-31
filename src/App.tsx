@@ -32,6 +32,7 @@ import AgentTasks from "./pages/AgentTasks";
 import ChatInbox from "./pages/ChatInbox";
 import WidgetGuide from "./pages/WidgetGuide";
 import SecurityDashboard from "./pages/SecurityDashboard";
+import QAChecklist from "./pages/QAChecklist";
 import RouterDemo from "./pages/_demo/Router";
 import NotFound from "./pages/NotFound";
 
@@ -227,6 +228,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <SecurityDashboard />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/qa-checklist" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <QAChecklist />
                 </RootLayout>
               </ProtectedRoute>
             } />

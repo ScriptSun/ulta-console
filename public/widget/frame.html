@@ -55,6 +55,32 @@
                 }
             }
             
+            // Analytics helper
+            function emitAnalyticsEvent(eventType, siteKey, metadata) {
+                try {
+                    const origin = window.parent ? window.parent.location.origin : window.location.origin;
+                    const pageUrl = window.parent ? window.parent.location.href : window.location.href;
+                    
+                    fetch(`${window.location.origin}/supabase/functions/v1/widget-analytics`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            event_type: eventType,
+                            site_key: siteKey,
+                            origin: origin,
+                            page_url: pageUrl,
+                            metadata: metadata || {}
+                        })
+                    }).catch(error => {
+                        console.debug('Analytics event failed:', error);
+                    });
+                } catch (error) {
+                    console.debug('Analytics error:', error);
+                }
+            }
+            
             // Merge server theme with client options (client wins)
             function mergeThemeWithOptions(serverConfig, clientOptions) {
                 const serverTheme = serverConfig.theme || {};
@@ -103,12 +129,35 @@
                     
                     if (!response.ok) {
                         const errorData = await response.json().catch(() => ({}));
+                        
+                        // Emit config fetch denied event
+                        emitAnalyticsEvent('config_fetch_denied', siteKey, {
+                            error: errorData.error || `HTTP ${response.status}`,
+                            status_code: response.status,
+                            has_user_identity: !!(userId && signature)
+                        });
+                        
                         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
                     }
                     
-                    return await response.json();
+                    const data = await response.json();
+                    
+                    // Emit config fetch success event
+                    emitAnalyticsEvent('config_fetch_ok', siteKey, {
+                        widget_name: data.name,
+                        has_user_identity: !!(userId && data.user)
+                    });
+                    
+                    return data;
                 } catch (error) {
                     console.error('Failed to fetch widget config:', error);
+                    
+                    // Emit config fetch denied event for network/other errors
+                    emitAnalyticsEvent('config_fetch_denied', siteKey, {
+                        error: error.message,
+                        error_type: 'network_error'
+                    });
+                    
                     throw error;
                 }
             }
@@ -156,6 +205,13 @@
                         </button>
                     </div>
                 `;
+                
+                // Emit preview render event
+                const { siteKey } = getUrlParams();
+                emitAnalyticsEvent('preview_render', siteKey, {
+                    widget_name: config.name,
+                    welcome_text_length: (theme.welcomeText || '').length
+                });
                 
                 // Update title
                 document.getElementById('widget-title').textContent = config.name || 'AltaAI Assistant';
