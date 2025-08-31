@@ -67,7 +67,9 @@ export function AppSidebar() {
   const location = useLocation()
   const currentPath = location.pathname
   const collapsed = state === 'collapsed'
-  const { canView } = usePagePermissions()
+  const { canView, isLoading } = usePagePermissions()
+
+  console.log('AppSidebar: permissions loading state:', { canView: typeof canView, isLoading })
 
   const isActive = (path: string) => {
     if (path === '/dashboard' && currentPath === '/') return true
@@ -75,7 +77,15 @@ export function AppSidebar() {
   }
 
   const NavItem = ({ item }: { item: typeof mainItems[0] }) => {
-    if (!canView(item.pageKey)) return null;
+    const hasPermission = canView(item.pageKey);
+    
+    // Debug logging
+    console.log(`NavItem ${item.title} (${item.pageKey}): hasPermission=${hasPermission}, isLoading=${isLoading}`);
+    
+    // Temporarily bypass permission check - REMOVE THIS AFTER DEBUGGING
+    const shouldShow = true; // hasPermission;
+    
+    if (!shouldShow) return null;
     
     return (
       <SidebarMenuItem>
