@@ -176,13 +176,13 @@ export function InputFieldBuilder({
   useEffect(() => {
     console.log('InputFieldBuilder useEffect - initialFields:', initialFields.length, 'current fields:', fields.length, 'isInitializing:', isInitializing);
     
-    // Track if this is a significant change in initial fields
-    const significantChange = initialFields.length !== lastInitialFieldsLength;
-    
-    if (significantChange) {
+    // Only update if this is a significant change and we're not already initializing
+    if (initialFields.length !== lastInitialFieldsLength && !isInitializing) {
       console.log('InputFieldBuilder: Significant change detected, entering initialization mode');
       setIsInitializing(true);
       setLastInitialFieldsLength(initialFields.length);
+      setFields([...initialFields]);
+      return;
     }
     
     // Create a deep comparison function for fields
@@ -203,18 +203,17 @@ export function InputFieldBuilder({
       });
     };
     
-    // Only update if fields are actually different
-    if (!fieldsEqual(initialFields, fields)) {
+    // Only update if fields are actually different and we're not initializing
+    if (!fieldsEqual(initialFields, fields) && !isInitializing) {
       console.log('InputFieldBuilder: Fields differ, updating');
       setFields([...initialFields]);
-    } else {
-      console.log('InputFieldBuilder: Fields are identical, skipping update');
-      // If fields are identical but we were initializing, we can stop initializing
-      if (isInitializing) {
-        setTimeout(() => setIsInitializing(false), 100);
-      }
+    } else if (isInitializing && fieldsEqual(initialFields, fields)) {
+      console.log('InputFieldBuilder: Initialization complete');
+      // Delay stopping initialization to prevent immediate re-trigger
+      const timeout = setTimeout(() => setIsInitializing(false), 200);
+      return () => clearTimeout(timeout);
     }
-  }, [initialFields, lastInitialFieldsLength, isInitializing]);
+  }, [initialFields, isInitializing]); // Removed lastInitialFieldsLength from deps to prevent loops
 
   useEffect(() => {
     console.log('InputFieldBuilder main useEffect - fields changed:', fields.length, 'isInitializing:', isInitializing);
@@ -230,10 +229,13 @@ export function InputFieldBuilder({
       const validation = validateFields(fields);
       
       // Only update validation state if it changed
-      if (JSON.stringify(validation.errors) !== JSON.stringify(validationErrors)) {
+      const errorsChanged = JSON.stringify(validation.errors) !== JSON.stringify(validationErrors);
+      const validityChanged = validation.isValid !== isValid;
+      
+      if (errorsChanged) {
         setValidationErrors(validation.errors);
       }
-      if (validation.isValid !== isValid) {
+      if (validityChanged) {
         setIsValid(validation.isValid);
       }
       
@@ -241,12 +243,15 @@ export function InputFieldBuilder({
         const { schema, defaults } = buildSchemaFromFields(fields);
         
         // Only update if schema/defaults actually changed
-        if (JSON.stringify(schema) !== JSON.stringify(generatedSchema)) {
+        const schemaChanged = JSON.stringify(schema) !== JSON.stringify(generatedSchema);
+        const defaultsChanged = JSON.stringify(defaults) !== JSON.stringify(generatedDefaults);
+        
+        if (schemaChanged) {
           console.log('InputFieldBuilder: Updating schema');
           setGeneratedSchema(schema);
           onSchemaChange?.(schema);
         }
-        if (JSON.stringify(defaults) !== JSON.stringify(generatedDefaults)) {
+        if (defaultsChanged) {
           console.log('InputFieldBuilder: Updating defaults');
           setGeneratedDefaults(defaults);
           onDefaultsChange?.(defaults);
@@ -260,11 +265,14 @@ export function InputFieldBuilder({
         onDefaultsChange?.(null);
       }
 
-      onValidationChange?.(validation.isValid, validation.errors);
-    }, 100); // 100ms debounce
+      // Only call validation callback if validation changed
+      if (errorsChanged || validityChanged) {
+        onValidationChange?.(validation.isValid, validation.errors);
+      }
+    }, 150); // Increased debounce to 150ms for more stability
     
     return () => clearTimeout(timeoutId);
-  }, [fields, buildSchemaFromFields, validateFields, isInitializing]);
+  }, [fields, isInitializing]); // Simplified dependencies
 
   const handleFieldsChange = (newFields: BuilderField[]) => {
     if (canEdit) {
@@ -288,7 +296,8 @@ export function InputFieldBuilder({
       console.log('Setting modal state for new field');
       setEditingField(null);
       setIsCreatingNew(true);
-      setIsModalOpen(true);
+      // Delay modal opening to prevent state conflicts
+      setTimeout(() => setIsModalOpen(true), 50);
     }
   };
 
@@ -357,10 +366,14 @@ export function InputFieldBuilder({
   const handleModalOpenChange = (open: boolean) => {
     console.log('Modal open change:', open);
     if (!open) {
-      // If modal is being closed, reset all states
-      setEditingField(null);
-      setIsCreatingNew(false);
-      setIsModalOpen(false);
+      // Delay state reset to prevent rapid open/close cycles
+      setTimeout(() => {
+        setEditingField(null);
+        setIsCreatingNew(false);
+        setIsModalOpen(false);
+      }, 100);
+    } else {
+      setIsModalOpen(true);
     }
   };
 
