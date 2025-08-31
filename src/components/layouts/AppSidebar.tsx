@@ -123,7 +123,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl">
-      <SidebarContent className="px-0 py-6">
+      <SidebarContent className="px-0 py-6 overflow-y-auto scrollbar-none"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {/* Logo Section */}
         <div className="flex items-center gap-3 px-6 mb-8">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
