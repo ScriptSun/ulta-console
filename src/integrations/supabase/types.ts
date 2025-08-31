@@ -1138,13 +1138,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "console_invites_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "admin_profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "console_invites_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
@@ -1324,13 +1317,6 @@ export type Database = {
             columns: ["admin_id"]
             isOneToOne: false
             referencedRelation: "admin_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "console_team_members_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "admin_profiles_safe"
             referencedColumns: ["id"]
           },
           {
@@ -2243,24 +2229,6 @@ export type Database = {
       }
     }
     Views: {
-      admin_profiles_safe: {
-        Row: {
-          created_at: string | null
-          full_name: string | null
-          id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          full_name?: string | null
-          id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          full_name?: string | null
-          id?: string | null
-        }
-        Relationships: []
-      }
       certificates_safe_view: {
         Row: {
           agent_id: string | null
