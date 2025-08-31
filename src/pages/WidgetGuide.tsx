@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Plus, RefreshCw } from "lucide-react";
+import { Settings, Plus, RefreshCw, TestTube } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWidgets, Widget, NewWidget } from "@/hooks/useWidgets";
 import { WidgetList } from "@/components/widgets/WidgetList";
@@ -104,6 +104,10 @@ export default function WidgetGuide() {
     });
   };
 
+  const handleOpenQAChecklist = () => {
+    window.open('/qa-checklist', '_blank');
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-8 max-w-7xl">
       {/* Header */}
@@ -119,6 +123,10 @@ export default function WidgetGuide() {
         </div>
         
         <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={handleOpenQAChecklist}>
+            <TestTube className="h-4 w-4 mr-2" />
+            Test
+          </Button>
           <Button variant="outline" onClick={handleRefresh} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
