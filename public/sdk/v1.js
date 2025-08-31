@@ -14,13 +14,111 @@
   let widgetInstances = {};
   let isLoaded = false;
   
-  // Utility functions
+  // Debug utilities
+  function debugLog(message, data = null, level = 'info') {
+    const timestamp = new Date().toISOString();
+    const prefix = '🤖 UltaAI Widget DEBUG';
+    
+    if (level === 'error') {
+      console.error(`${prefix} [${timestamp}] ${message}`, data || '');
+    } else if (level === 'warn') {
+      console.warn(`${prefix} [${timestamp}] ${message}`, data || '');
+    } else {
+      console.log(`${prefix} [${timestamp}] ${message}`, data || '');
+    }
+  }
+  
+  function debugAnalysis(title, analysis) {
+    console.group(`🔍 ${title} - Debug Analysis`);
+    Object.entries(analysis).forEach(([key, value]) => {
+      console.log(`📊 ${key}:`, value);
+    });
+    console.groupEnd();
+  }
+  
+  function debugPerformance(label, startTime) {
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    debugLog(`Performance: ${label} completed in ${duration.toFixed(2)}ms`, { startTime, endTime, duration });
+  }
+
+  // Enhanced debug configuration analysis
+  function analyzeConfiguration(config) {
+    if (!config.debug) return;
+    
+    const analysis = {
+      'Widget ID': config.widgetId,
+      'Site Key': config.siteKey?.substring(0, 10) + '...',
+      'Position': config.position,
+      'Dimensions': `${config.width} x ${config.height}`,
+      'Auto Open': config.autoOpen,
+      'Hide on Mobile': config.hideOnMobile,
+      'Show Badge': config.showBadge,
+      'Theme Properties': Object.keys(config.theme || {}).length,
+      'User Data Available': !!(config.userId || config.userEmail || config.userName),
+      'Event Callbacks': {
+        onReady: typeof config.onReady === 'function',
+        onOpen: typeof config.onOpen === 'function', 
+        onClose: typeof config.onClose === 'function',
+        onMessage: typeof config.onMessage === 'function'
+      },
+      'Browser Info': {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        cookieEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine
+      },
+      'Page Info': {
+        url: window.location.href,
+        origin: window.location.origin,
+        protocol: window.location.protocol,
+        referrer: document.referrer || 'direct',
+        title: document.title
+      },
+      'Viewport': {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        isMobile: window.innerWidth <= 768
+      },
+      'DOM State': document.readyState,
+      'Timestamp': new Date().toISOString()
+    };
+    
+    debugAnalysis('Widget Configuration', analysis);
+  }
+
+  // Enhanced theme analysis
+  function analyzeTheme(theme, config) {
+    if (!config?.debug) return;
+    
+    const themeAnalysis = {
+      'Total Properties': Object.keys(theme).length,
+      'Color Properties': Object.keys(theme).filter(key => key.includes('color')).length,
+      'Typography Properties': Object.keys(theme).filter(key => key.includes('font')).length,
+      'Layout Properties': Object.keys(theme).filter(key => 
+        key.includes('radius') || key.includes('spacing')).length,
+      'Branding': {
+        hasLogo: !!theme.logo_url,
+        hasWelcomeText: !!theme.welcome_text,
+        primaryColor: theme.color_primary || 'default'
+      },
+      'Applied Styles': theme
+    };
+    
+    debugAnalysis('Theme Configuration', themeAnalysis);
+  }
   function generateId() {
     return 'ultaai-widget-' + Math.random().toString(36).substr(2, 9);
   }
   
   function createWidgetHTML(config) {
-    console.log('🤖 UltaAI Widget - Creating widget HTML with config:', config);
+    const startTime = performance.now();
+    
+    if (config.debug) {
+      debugLog('Starting HTML generation', { widgetId: config.widgetId });
+      analyzeConfiguration(config);
+    }
     
     // Calculate positioning based on config.position
     let positionStyles = '';
@@ -59,13 +157,23 @@
         break;
     }
 
+    if (config.debug) {
+      debugLog('Position calculation complete', { 
+        position: config.position, 
+        styles: positionStyles.trim() 
+      });
+    }
+
     // Get custom dimensions or use defaults
     const chatWidth = config.width || '350px';
     const chatHeight = config.height || '500px';
     
-    console.log('🤖 UltaAI Widget - Using dimensions:', { width: chatWidth, height: chatHeight, position: config.position });
+    if (config.debug) {
+      debugLog('Dimensions configured', { width: chatWidth, height: chatHeight });
+      analyzeTheme(config.theme, config);
+    }
 
-    return `
+    const html = `
       <div id="${config.containerId}" class="ultaai-widget-container" style="
         position: fixed;
         ${positionStyles}
@@ -197,11 +305,27 @@
         </div>
       </div>
     `;
+    
+    if (config.debug) {
+      debugPerformance('HTML generation', startTime);
+      debugLog('HTML structure created', {
+        containerElements: ['launcher', 'chat', 'header', 'messages', 'input'],
+        totalHTMLLength: html.length,
+        autoOpenState: config.autoOpen,
+        showBadgeState: config.showBadge
+      });
+    }
+    
+    return html;
   }
   
   // Widget functionality
   function createWidget(siteKey, options = {}) {
-    console.log('🤖 UltaAI Widget - Creating widget with options:', options);
+    const startTime = performance.now();
+    
+    if (options.debug) {
+      debugLog('Creating widget with options', options);
+    }
     
     const widgetId = generateId();
     const config = {
@@ -232,19 +356,34 @@
     };
     
     if (config.debug) {
-      console.log('🤖 UltaAI Widget - DEBUG MODE ENABLED');
-      console.log('🤖 UltaAI Widget - Widget config created:', config);
+      debugLog('Widget configuration finalized', {
+        widgetId,
+        configKeys: Object.keys(config),
+        hasUserData: !!(config.userId || config.userEmail || config.userName),
+        hasCallbacks: {
+          onReady: typeof config.onReady === 'function',
+          onOpen: typeof config.onOpen === 'function',
+          onClose: typeof config.onClose === 'function',
+          onMessage: typeof config.onMessage === 'function'
+        }
+      });
     }
     
     // Check if should hide on mobile
     if (config.hideOnMobile && window.innerWidth <= 768) {
       if (config.debug) {
-        console.log('🤖 UltaAI Widget - Hidden on mobile device');
+        debugLog('Widget hidden on mobile device', { 
+          screenWidth: window.innerWidth,
+          isMobile: true,
+          hideOnMobile: config.hideOnMobile 
+        });
       }
       return widgetId; // Still return ID but don't create widget
     }
     
     try {
+      const htmlStartTime = performance.now();
+      
       // Create and inject widget HTML
       const widgetContainer = document.createElement('div');
       widgetContainer.innerHTML = createWidgetHTML(config);
@@ -254,66 +393,184 @@
         throw new Error('Failed to create widget HTML element');
       }
       
-      document.body.appendChild(widgetElement);
       if (config.debug) {
-        console.log('🤖 UltaAI Widget - Widget HTML injected into DOM');
+        debugPerformance('HTML creation and parsing', htmlStartTime);
+        debugLog('Widget DOM element created', {
+          elementType: widgetElement.tagName,
+          elementId: widgetElement.id,
+          childElements: widgetElement.children.length,
+          innerHTML: widgetElement.innerHTML.length
+        });
+      }
+      
+      const injectStartTime = performance.now();
+      document.body.appendChild(widgetElement);
+      
+      if (config.debug) {
+        debugPerformance('DOM injection', injectStartTime);
+        debugLog('Widget HTML injected into DOM', {
+          parentElement: document.body.tagName,
+          position: 'body > appendChild',
+          zIndex: getComputedStyle(widgetElement).zIndex
+        });
       }
       
       // Add event listeners
+      const eventsStartTime = performance.now();
       setupWidgetEvents(config);
+      
       if (config.debug) {
-        console.log('🤖 UltaAI Widget - Event listeners attached');
+        debugPerformance('Event listener setup', eventsStartTime);
       }
       
       // Store instance
       widgetInstances[widgetId] = {
         config,
         isOpen: config.autoOpen || false,
-        messages: []
+        messages: [],
+        createdAt: Date.now(),
+        interactions: 0
       };
       
       if (config.debug) {
-        console.log('🤖 UltaAI Widget - Widget instance stored:', widgetId);
+        debugLog('Widget instance stored', {
+          widgetId,
+          totalInstances: Object.keys(widgetInstances).length,
+          instanceData: {
+            isOpen: widgetInstances[widgetId].isOpen,
+            messageCount: widgetInstances[widgetId].messages.length,
+            createdAt: new Date(widgetInstances[widgetId].createdAt).toISOString()
+          }
+        });
       }
       
       // Call onReady callback if provided
       if (typeof config.onReady === 'function') {
         setTimeout(() => {
+          if (config.debug) {
+            debugLog('Executing onReady callback');
+          }
           config.onReady();
         }, 100);
       }
       
+      if (config.debug) {
+        debugPerformance('Total widget creation', startTime);
+        debugLog('Widget creation completed successfully', {
+          widgetId,
+          totalCreationTime: performance.now() - startTime,
+          readyState: 'initialized'
+        });
+      }
+      
       return widgetId;
     } catch (error) {
-      console.error('🤖 UltaAI Widget - Error creating widget:', error);
+      if (options.debug) {
+        debugLog('Widget creation failed', {
+          error: error.message,
+          stack: error.stack,
+          widgetId,
+          siteKey: siteKey?.substring(0, 10) + '...'
+        }, 'error');
+      }
       throw error;
     }
   }
   
   function setupWidgetEvents(config) {
+    const startTime = performance.now();
+    
+    if (config.debug) {
+      debugLog('Setting up widget event listeners');
+    }
+    
     const launcher = document.getElementById(config.launcherId);
     const closeBtn = document.getElementById(config.closeId);
     const input = document.getElementById(config.inputId);
     const sendBtn = document.getElementById(config.sendId);
     const chat = document.getElementById(config.chatId);
     
+    if (config.debug) {
+      const elementStatus = {
+        launcher: !!launcher,
+        closeBtn: !!closeBtn,
+        input: !!input,
+        sendBtn: !!sendBtn,
+        chat: !!chat
+      };
+      debugLog('DOM elements found for event binding', elementStatus);
+    }
+    
     // Toggle chat visibility
-    launcher?.addEventListener('click', () => toggleChat(config.widgetId));
-    closeBtn?.addEventListener('click', () => closeChat(config.widgetId));
+    launcher?.addEventListener('click', () => {
+      if (config.debug) {
+        debugLog('Launcher button clicked', { widgetId: config.widgetId });
+      }
+      toggleChat(config.widgetId);
+    });
+    
+    closeBtn?.addEventListener('click', () => {
+      if (config.debug) {
+        debugLog('Close button clicked', { widgetId: config.widgetId });
+      }
+      closeChat(config.widgetId);
+    });
     
     // Send message on enter key or send button
     input?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendMessage(config.widgetId);
+      if (e.key === 'Enter') {
+        if (config.debug) {
+          debugLog('Enter key pressed in input', { 
+            widgetId: config.widgetId,
+            inputValue: e.target.value?.substring(0, 20) + '...'
+          });
+        }
+        sendMessage(config.widgetId);
+      }
     });
-    sendBtn?.addEventListener('click', () => sendMessage(config.widgetId));
     
-    // Launcher hover effect
+    sendBtn?.addEventListener('click', () => {
+      if (config.debug) {
+        debugLog('Send button clicked', { widgetId: config.widgetId });
+      }
+      sendMessage(config.widgetId);
+    });
+    
+    // Enhanced launcher interactions with debug
     launcher?.addEventListener('mouseenter', () => {
+      if (config.debug) {
+        debugLog('Launcher hover start', { widgetId: config.widgetId });
+      }
       launcher.style.transform = 'scale(1.05)';
     });
+    
     launcher?.addEventListener('mouseleave', () => {
+      if (config.debug) {
+        debugLog('Launcher hover end', { widgetId: config.widgetId });
+      }
       launcher.style.transform = 'scale(1)';
     });
+    
+    // Input focus/blur debugging
+    input?.addEventListener('focus', () => {
+      if (config.debug) {
+        debugLog('Input field focused', { widgetId: config.widgetId });
+      }
+    });
+    
+    input?.addEventListener('blur', () => {
+      if (config.debug) {
+        debugLog('Input field blurred', { widgetId: config.widgetId });
+      }
+    });
+    
+    if (config.debug) {
+      debugPerformance('Event listeners setup', startTime);
+      debugLog('All event listeners attached successfully', {
+        widgetId: config.widgetId,
+        eventsAttached: ['click', 'keypress', 'mouseenter', 'mouseleave', 'focus', 'blur']
+      });
+    }
   }
   
   function toggleChat(widgetId) {
@@ -549,6 +806,7 @@
   }
   
   async function fetchWidgetConfig(siteKey) {
+    const startTime = performance.now();
     const apiUrl = `${CONFIG.API_BASE_URL}${CONFIG.WIDGET_API_ENDPOINT}`;
     const requestData = {
       action: 'get_config',
@@ -556,7 +814,17 @@
       domain: window.location.origin
     };
     
-    console.log('UltaAI Widget - Fetching config:', { apiUrl, requestData });
+    // Enable debug mode if it's in any existing widget instance
+    const debugMode = Object.values(widgetInstances).some(instance => instance.config?.debug);
+    
+    if (debugMode) {
+      debugLog('Starting widget configuration fetch', {
+        apiUrl,
+        siteKey: siteKey?.substring(0, 10) + '...',
+        domain: window.location.origin,
+        requestData
+      });
+    }
     
     try {
       const response = await fetch(apiUrl, {
@@ -567,40 +835,66 @@
         body: JSON.stringify(requestData)
       });
       
-      console.log('UltaAI Widget - API response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
+      if (debugMode) {
+        debugLog('API response received', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+      }
       
       if (response.ok) {
         const data = await response.json();
-        console.log('UltaAI Widget - Response data:', data);
+        
+        if (debugMode) {
+          debugLog('API response parsed successfully', {
+            success: data.success,
+            hasWidget: !!data.widget,
+            widgetProperties: data.widget ? Object.keys(data.widget) : [],
+            responseSize: JSON.stringify(data).length
+          });
+          
+          if (data.widget) {
+            analyzeTheme(data.widget.theme || {}, { debug: true });
+          }
+        }
         
         if (data.success) {
+          if (debugMode) {
+            debugPerformance('Widget config fetch', startTime);
+          }
           return data.widget;
         } else {
-          console.error('UltaAI Widget - API returned error:', {
-            error: data.error,
-            code: data.code,
-            details: data.details || data
-          });
+          if (debugMode) {
+            debugLog('API returned error response', {
+              error: data.error,
+              code: data.code,
+              details: data.details || data
+            }, 'error');
+          }
           return null;
         }
       } else {
         const errorText = await response.text();
-        console.error('UltaAI Widget - HTTP error:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
-        });
+        if (debugMode) {
+          debugLog('HTTP error response', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText
+          }, 'error');
+        }
       }
     } catch (error) {
-      console.error('UltaAI Widget - Network/fetch error:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
+      if (debugMode) {
+        debugLog('Network/fetch error occurred', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          apiUrl,
+          duration: performance.now() - startTime
+        }, 'error');
+      }
     }
     
     return null;
