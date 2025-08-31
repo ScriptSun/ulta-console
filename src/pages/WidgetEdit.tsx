@@ -130,17 +130,7 @@ export default function WidgetEdit() {
               />
 
           {/* Embed Code */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Embed Code</CardTitle>
-              <CardDescription>
-                Copy this code to embed the widget on your website
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <EmbedCodeGenerator widget={widget} />
-            </CardContent>
-          </Card>
+          <EmbedCodeGenerator widget={widget} />
 
           {/* Widget Info */}
           <Card>

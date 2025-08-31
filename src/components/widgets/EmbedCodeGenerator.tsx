@@ -291,17 +291,163 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
             <div>
               <Label className="text-sm font-medium">Advanced Embed Code</Label>
               <p className="text-xs text-muted-foreground mb-3">
-                Embed code with custom options and overrides
+                Embed code with custom options, event handling, and advanced features
               </p>
               <div className="relative">
                 <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono">
-                  <code>{generateAdvancedEmbedCode()}</code>
+                  <code>{`<script src="https://preview--ultaai-console.lovable.app/sdk/v1.js"></script>
+<script>
+  // Advanced configuration with event handlers
+  UltaAIWidget.load('${widget.site_key}', {
+    // Appearance customization
+    position: 'bottom-right',
+    theme: 'auto', // 'light', 'dark', or 'auto'
+    
+    // Size and positioning
+    width: '400px',
+    height: '600px',
+    
+    // Color overrides
+    colorPrimary: '${overrides.colorPrimary}',
+    textColor: '${overrides.textColor}',
+    
+    // Custom branding
+    logoUrl: '${overrides.logoUrl || widget.theme.logo_url || ''}',
+    welcomeText: '${overrides.welcomeText || widget.theme.welcome_text || 'Hello! How can I help you?'}',
+    
+    // User identification (optional)
+    userId: 'user_12345',
+    userEmail: 'user@example.com',
+    userName: 'John Doe',
+    
+    // Advanced features
+    autoOpen: false, // Set to true to open widget on page load
+    hideOnMobile: false, // Hide widget on mobile devices
+    showBadge: true, // Show "Powered by UltaAI" badge
+    
+    // Event handlers
+    onReady: function() {
+      console.log('UltaAI widget is ready');
+    },
+    
+    onOpen: function() {
+      console.log('Widget opened');
+      // Track widget open event
+      // gtag('event', 'widget_open', { event_category: 'engagement' });
+    },
+    
+    onClose: function() {
+      console.log('Widget closed');
+    },
+    
+    onMessage: function(message) {
+      console.log('New message:', message);
+      // Custom message handling
+    },
+    
+    onError: function(error) {
+      console.error('Widget error:', error);
+    }
+  });
+  
+  // Programmatic control (available after widget loads)
+  setTimeout(() => {
+    // Open widget programmatically
+    // UltaAIWidget.open();
+    
+    // Close widget programmatically  
+    // UltaAIWidget.close();
+    
+    // Send message programmatically
+    // UltaAIWidget.sendMessage('Hello from the website!');
+    
+    // Update user info
+    // UltaAIWidget.setUser({
+    //   userId: 'updated_user_123',
+    //   email: 'newemail@example.com',
+    //   name: 'Updated Name'
+    // });
+  }, 1000);
+</script>`}</code>
                 </pre>
                 <Button
                   variant="outline"
                   size="sm"
                   className="absolute top-2 right-2"
-                  onClick={() => copyToClipboard(generateAdvancedEmbedCode(), "Advanced embed code")}
+                  onClick={() => copyToClipboard(`<script src="https://preview--ultaai-console.lovable.app/sdk/v1.js"></script>
+<script>
+  // Advanced configuration with event handlers
+  UltaAIWidget.load('${widget.site_key}', {
+    // Appearance customization
+    position: 'bottom-right',
+    theme: 'auto', // 'light', 'dark', or 'auto'
+    
+    // Size and positioning
+    width: '400px',
+    height: '600px',
+    
+    // Color overrides
+    colorPrimary: '${overrides.colorPrimary}',
+    textColor: '${overrides.textColor}',
+    
+    // Custom branding
+    logoUrl: '${overrides.logoUrl || widget.theme.logo_url || ''}',
+    welcomeText: '${overrides.welcomeText || widget.theme.welcome_text || 'Hello! How can I help you?'}',
+    
+    // User identification (optional)
+    userId: 'user_12345',
+    userEmail: 'user@example.com',
+    userName: 'John Doe',
+    
+    // Advanced features
+    autoOpen: false, // Set to true to open widget on page load
+    hideOnMobile: false, // Hide widget on mobile devices
+    showBadge: true, // Show "Powered by UltaAI" badge
+    
+    // Event handlers
+    onReady: function() {
+      console.log('UltaAI widget is ready');
+    },
+    
+    onOpen: function() {
+      console.log('Widget opened');
+      // Track widget open event
+      // gtag('event', 'widget_open', { event_category: 'engagement' });
+    },
+    
+    onClose: function() {
+      console.log('Widget closed');
+    },
+    
+    onMessage: function(message) {
+      console.log('New message:', message);
+      // Custom message handling
+    },
+    
+    onError: function(error) {
+      console.error('Widget error:', error);
+    }
+  });
+  
+  // Programmatic control (available after widget loads)
+  setTimeout(() => {
+    // Open widget programmatically
+    // UltaAIWidget.open();
+    
+    // Close widget programmatically  
+    // UltaAIWidget.close();
+    
+    // Send message programmatically
+    // UltaAIWidget.sendMessage('Hello from the website!');
+    
+    // Update user info
+    // UltaAIWidget.setUser({
+    //   userId: 'updated_user_123',
+    //   email: 'newemail@example.com',
+    //   name: 'Updated Name'
+    // });
+  }, 1000);
+</script>`, "Advanced embed code")}
                 >
                   {copiedCode === "Advanced embed code" ? (
                     <CheckCircle className="h-4 w-4" />
@@ -309,6 +455,45 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                     <Copy className="h-4 w-4" />
                   )}
                 </Button>
+              </div>
+            </div>
+            
+            {/* Advanced Features Documentation */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="font-medium text-green-900 mb-2">🎯 User Identification</h4>
+                <ul className="text-sm text-green-800 space-y-1">
+                  <li>• Pass user ID, email, and name for personalized experience</li>
+                  <li>• Enables conversation history and context</li>
+                  <li>• Better support team visibility</li>
+                </ul>
+              </div>
+              
+              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <h4 className="font-medium text-purple-900 mb-2">🎨 Dynamic Customization</h4>
+                <ul className="text-sm text-purple-800 space-y-1">
+                  <li>• Override colors and branding in real-time</li>
+                  <li>• Responsive themes (light/dark/auto)</li>
+                  <li>• Custom positioning and sizing</li>
+                </ul>
+              </div>
+              
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <h4 className="font-medium text-orange-900 mb-2">📊 Event Tracking</h4>
+                <ul className="text-sm text-orange-800 space-y-1">
+                  <li>• Track widget opens, closes, and messages</li>
+                  <li>• Integrate with Google Analytics or other tools</li>
+                  <li>• Custom error handling and logging</li>
+                </ul>
+              </div>
+              
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">🔧 Programmatic Control</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Open/close widget via JavaScript</li>
+                  <li>• Send messages programmatically</li>
+                  <li>• Update user information dynamically</li>
+                </ul>
               </div>
             </div>
           </TabsContent>
