@@ -1880,6 +1880,45 @@ export type Database = {
         }
         Relationships: []
       }
+      widgets: {
+        Row: {
+          allowed_domains: string[]
+          created_at: string
+          created_by: string
+          customer_id: string
+          id: string
+          name: string
+          site_key: string
+          theme: Json
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          allowed_domains?: string[]
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          id?: string
+          name: string
+          site_key?: string
+          theme?: Json
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          allowed_domains?: string[]
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          id?: string
+          name?: string
+          site_key?: string
+          theme?: Json
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       certificates_safe_view: {
