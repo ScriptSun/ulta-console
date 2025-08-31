@@ -465,6 +465,13 @@
       
       return widgetId;
     } catch (error) {
+      console.error('🤖 UltaAI Widget CRITICAL ERROR:', {
+        error: error.message,
+        stack: error.stack,
+        widgetId,
+        siteKey: siteKey?.substring(0, 10) + '...',
+        options: options
+      });
       if (options.debug) {
         debugLog('Widget creation failed', {
           error: error.message,
@@ -802,11 +809,20 @@
         .catch(error => {
           console.error('UltaAI Widget: Failed to load configuration', error);
           // Fallback: create widget with basic configuration
-          createWidget(siteKey, options);
-          isLoaded = true;
+          try {
+            createWidget(siteKey, options);
+            isLoaded = true;
+          } catch (createError) {
+            console.error('UltaAI Widget: Failed to create widget even in fallback mode', createError);
+          }
         });
     } catch (error) {
-      console.error('UltaAI Widget: Initialization failed', error);
+      console.error('🤖 UltaAI Widget: Initialization completely failed', {
+        error: error.message,
+        stack: error.stack,
+        siteKey: siteKey?.substring(0, 10) + '...',
+        options: options
+      });
     }
   }
   
