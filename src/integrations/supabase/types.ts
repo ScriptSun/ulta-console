@@ -181,6 +181,44 @@ export type Database = {
           },
         ]
       }
+      agent_usage: {
+        Row: {
+          agent_id: string
+          count: number
+          created_at: string
+          id: string
+          updated_at: string
+          usage_date: string
+          usage_type: string
+        }
+        Insert: {
+          agent_id: string
+          count?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          usage_date?: string
+          usage_type: string
+        }
+        Update: {
+          agent_id?: string
+          count?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          usage_date?: string
+          usage_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_usage_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           agent_type: string
@@ -200,6 +238,7 @@ export type Database = {
           last_seen: string | null
           memory_usage: number | null
           os: string | null
+          plan_key: string | null
           region: string | null
           signature_key_version: number | null
           status: string
@@ -207,6 +246,7 @@ export type Database = {
           updated_at: string
           updated_by: string
           uptime_seconds: number | null
+          user_id: string | null
           version: string | null
         }
         Insert: {
@@ -227,6 +267,7 @@ export type Database = {
           last_seen?: string | null
           memory_usage?: number | null
           os?: string | null
+          plan_key?: string | null
           region?: string | null
           signature_key_version?: number | null
           status?: string
@@ -234,6 +275,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string
           uptime_seconds?: number | null
+          user_id?: string | null
           version?: string | null
         }
         Update: {
@@ -254,6 +296,7 @@ export type Database = {
           last_seen?: string | null
           memory_usage?: number | null
           os?: string | null
+          plan_key?: string | null
           region?: string | null
           signature_key_version?: number | null
           status?: string
@@ -261,9 +304,18 @@ export type Database = {
           updated_at?: string
           updated_by?: string
           uptime_seconds?: number | null
+          user_id?: string | null
           version?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       allowlist_batch_steps: {
         Row: {
@@ -1702,6 +1754,33 @@ export type Database = {
           },
         ]
       }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       widget_metrics: {
         Row: {
           created_at: string
@@ -1899,6 +1978,15 @@ export type Database = {
         Args: { _customer_id: string }
         Returns: boolean
       }
+      check_agent_usage_limit: {
+        Args: { _agent_id: string; _usage_type: string }
+        Returns: {
+          allowed: boolean
+          current_usage: number
+          limit_amount: number
+          plan_name: string
+        }[]
+      }
       check_batch_concurrency: {
         Args: { _agent_id: string; _batch_id: string }
         Returns: {
@@ -1966,6 +2054,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      increment_agent_usage: {
+        Args: { _agent_id: string; _increment?: number; _usage_type: string }
+        Returns: undefined
       }
       increment_usage: {
         Args: { _customer_id: string; _usage_type: string; _user_id: string }
