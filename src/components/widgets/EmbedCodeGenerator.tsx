@@ -44,7 +44,6 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     programmaticControl: false,
     debugMode: false,
     autoCloseTimer: false,
-    sslVerification: false,
     soundNotifications: false
   });
 
@@ -385,19 +384,6 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                     />
                     <Label htmlFor="autoCloseTimer" className="font-normal text-sm">
                       Auto-close Timer
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="sslVerification"
-                      checked={advancedOptions.sslVerification}
-                      onCheckedChange={(checked) =>
-                        setAdvancedOptions(prev => ({ ...prev, sslVerification: checked as boolean }))
-                      }
-                    />
-                    <Label htmlFor="sslVerification" className="font-normal text-sm">
-                      SSL Verification
                     </Label>
                   </div>
 
