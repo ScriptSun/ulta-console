@@ -121,16 +121,13 @@ export default function WidgetEdit() {
           />
         </div>
 
-        {/* Right Column - Preview and Embed */}
+        {/* Right Column - Preview Only */}
         <div className="space-y-6">
           {/* Widget Preview */}
               <EnhancedWidgetPreview 
                 widget={widget}
                 previewConfig={previewConfig}
               />
-
-          {/* Embed Code */}
-          <EmbedCodeGenerator widget={widget} />
 
           {/* Widget Info */}
           <Card>

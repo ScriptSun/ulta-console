@@ -6,8 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
 import { Badge } from "../ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
-import { Plus, Settings, Calendar, Copy, Info } from "lucide-react"
+import { Plus, Settings, Calendar, Copy, Info, Code } from "lucide-react"
 import { WidgetEditForm } from "./WidgetEditForm"
+import { EmbedCodeGenerator } from "./EmbedCodeGenerator"
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "../ui/use-toast"
 import { Label } from "../ui/label"
@@ -28,6 +29,7 @@ function WidgetList() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selectedWidgetInfo, setSelectedWidgetInfo] = useState<Widget | null>(null)
+  const [selectedWidgetForEmbed, setSelectedWidgetForEmbed] = useState<Widget | null>(null)
 
   const handleCreateWidget = async (widgetId: string | null, data: any) => {
     setSaving(true)
@@ -83,6 +85,7 @@ function WidgetList() {
                     <TableHead>Site Key</TableHead>
                     <TableHead>Domains</TableHead>
                     <TableHead>Info</TableHead>
+                    <TableHead>Embed Code</TableHead>
                     <TableHead>Last Updated</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -117,6 +120,15 @@ function WidgetList() {
                           onClick={() => setSelectedWidgetInfo(widget)}
                         >
                           <Info className="w-4 h-4 text-primary" />
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedWidgetForEmbed(widget)}
+                        >
+                          <Code className="w-4 h-4 text-primary" />
                         </Button>
                       </TableCell>
                       <TableCell>
@@ -324,6 +336,21 @@ function WidgetList() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Embed Code Dialog */}
+      <Dialog open={!!selectedWidgetForEmbed} onOpenChange={() => setSelectedWidgetForEmbed(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Embed Code for "{selectedWidgetForEmbed?.name}"</DialogTitle>
+            <DialogDescription>
+              Copy this code to embed the widget on your website
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <EmbedCodeGenerator widget={selectedWidgetForEmbed} />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
