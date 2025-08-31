@@ -33,6 +33,7 @@ import ChatInbox from "./pages/ChatInbox";
 import WidgetGuide from "./pages/WidgetGuide";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import QAChecklist from "./pages/QAChecklist";
+import WidgetDeploymentChecklist from "./pages/WidgetDeploymentChecklist";
 import RouterDemo from "./pages/_demo/Router";
 import NotFound from "./pages/NotFound";
 
@@ -235,6 +236,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <QAChecklist />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/deployment-checklist" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <WidgetDeploymentChecklist />
                 </RootLayout>
               </ProtectedRoute>
             } />

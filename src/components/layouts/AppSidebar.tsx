@@ -14,7 +14,8 @@ import {
   Package,
   MessageSquare,
   Globe,
-  ClipboardCheck
+  ClipboardCheck,
+  Rocket
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import {
@@ -54,6 +55,7 @@ const securityItems = [
 const toolsItems = [
   { title: 'Widget Guide', url: '/widget-guide', icon: Globe },
   { title: 'QA Checklist', url: '/qa-checklist', icon: ClipboardCheck },
+  { title: 'Deployment Checklist', url: '/deployment-checklist', icon: Rocket },
   { title: 'Integrations', url: '/integrations', icon: Puzzle },
   { title: 'Team Management', url: '/team-management', icon: Users },
   { title: 'Assertion Check', url: '/assertion-check', icon: TestTube },
