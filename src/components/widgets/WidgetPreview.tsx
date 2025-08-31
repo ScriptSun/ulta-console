@@ -1,17 +1,10 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Monitor, Smartphone, RefreshCw, Send, MessageCircle } from "lucide-react";
+import { Monitor, Smartphone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Widget } from "@/hooks/useWidgets";
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
+import { ChatDemo } from "@/components/chat/ChatDemo";
 
 interface WidgetPreviewProps {
   widget: Widget | null;
@@ -28,74 +21,6 @@ interface WidgetPreviewProps {
 
 export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-
-  const config = previewConfig || widget;
-  if (!config) return null;
-
-  const theme = {
-    colorPrimary: config.theme.color_primary || '#007bff',
-    textColor: config.theme.text_color || '#333333',
-    logoUrl: config.theme.logo_url || '',
-    welcomeText: config.theme.welcome_text || 'Hello! How can I help you today?'
-  };
-
-  // Initialize with welcome message
-  useEffect(() => {
-    const welcomeMessage: Message = {
-      id: '1',
-      role: 'assistant',
-      content: theme.welcomeText,
-      timestamp: new Date()
-    };
-    setMessages([welcomeMessage]);
-  }, [theme.welcomeText]);
-
-  // Send message function
-  const sendMessage = async (content: string) => {
-    if (!content.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setIsTyping(true);
-
-    // Simulate AI response after delay
-    setTimeout(() => {
-      const responses = [
-        "I can help you with system administration tasks like installing WordPress, checking server status, and managing services.",
-        "That's a great question! I can assist with server management, software installation, and troubleshooting.",
-        "I'd be happy to help you with that. What specific task would you like me to perform?",
-        "Let me help you with that. I can run commands, install software, and check system status.",
-        "I understand what you're looking for. I can execute various system administration tasks safely."
-      ];
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: responses[Math.floor(Math.random() * responses.length)],
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-      setIsTyping(false);
-    }, 1500);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage(inputValue);
-    }
-  };
 
   if (!widget && !previewConfig) {
     return (
@@ -114,6 +39,9 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
       </Card>
     );
   }
+
+  const config = previewConfig || widget;
+  if (!config) return null;
 
   return (
     <div>
@@ -141,7 +69,7 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
         <CardContent className="p-0">
           <div className="relative bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-6 min-h-[500px] flex items-center justify-center">
             {/* View Mode Toggle */}
-            <div className="absolute top-4 right-4 flex items-center gap-2">
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
               <div className="flex items-center border rounded-lg p-1 bg-white/90 backdrop-blur-sm">
                 <Button
                   variant={viewMode === 'desktop' ? 'default' : 'ghost'}
@@ -162,106 +90,32 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
               </div>
             </div>
 
-            {/* Chat Widget Container */}
+            {/* Chat Demo Container */}
             <div 
-              className={`relative bg-white rounded-lg shadow-lg transition-all duration-300 flex flex-col ${
+              className={`relative transition-all duration-300 ${
                 viewMode === 'desktop' 
-                  ? 'w-[400px] h-[600px]' 
-                  : 'w-[320px] h-[500px]'
+                  ? 'w-full max-w-4xl h-[80vh]' 
+                  : 'w-[380px] h-[600px]'
               }`}
             >
-              {/* Header */}
-              <div 
-                className="flex items-center gap-3 p-4 rounded-t-lg"
-                style={{ backgroundColor: theme.colorPrimary }}
+              {/* Apply theme customization via CSS variables */}
+              <div
+                style={{
+                  '--primary': config.theme.color_primary || '#007bff',
+                  '--primary-foreground': '#ffffff',
+                  '--muted': '#f8f9fa',
+                  '--muted-foreground': config.theme.text_color || '#333333',
+                  '--background': '#ffffff',
+                  '--foreground': config.theme.text_color || '#333333',
+                } as React.CSSProperties}
+                className="w-full h-full"
               >
-                {theme.logoUrl && (
-                  <img 
-                    src={theme.logoUrl} 
-                    alt="Logo" 
-                    className="w-8 h-8 rounded"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                )}
-                <div>
-                  <h3 className="text-white font-semibold text-sm">
-                    {config.name || 'Chat Support'}
-                  </h3>
-                  <p className="text-white/80 text-xs">Online now</p>
-                </div>
-              </div>
-
-              {/* Messages Area */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg p-3 text-sm ${
-                        message.role === 'user'
-                          ? 'text-white'
-                          : 'bg-white border'
-                      }`}
-                      style={{
-                        backgroundColor: message.role === 'user' ? theme.colorPrimary : '#ffffff',
-                        color: message.role === 'user' ? '#ffffff' : theme.textColor,
-                      }}
-                    >
-                      {message.content}
-                    </div>
-                  </div>
-                ))}
-                
-                {/* Typing indicator */}
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div 
-                      className="bg-white border rounded-lg p-3 text-sm"
-                      style={{ color: theme.textColor }}
-                    >
-                      <div className="flex items-center gap-1">
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                        </div>
-                        <span className="text-xs text-gray-500 ml-2">Typing...</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Input Area */}
-              <div className="p-4 border-t bg-white rounded-b-lg">
-                <div className="flex gap-2">
-                  <Input
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type your message..."
-                    className="flex-1"
-                    disabled={isTyping}
-                  />
-                  <Button
-                    onClick={() => sendMessage(inputValue)}
-                    disabled={!inputValue.trim() || isTyping}
-                    size="sm"
-                    style={{ backgroundColor: theme.colorPrimary }}
-                    className="text-white hover:opacity-90"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
+                <ChatDemo currentRoute="/widget-preview" />
               </div>
             </div>
 
-            {/* Preview Info */}
-            <div className="absolute top-4 left-4">
+            {/* Theme Info Overlay */}
+            <div className="absolute top-4 left-4 z-10">
               <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-sm">
                 <div className="text-xs text-muted-foreground space-y-1">
                   <div>
@@ -271,15 +125,18 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
                     <span className="font-medium">Theme:</span>
                     <div 
                       className="w-3 h-3 rounded border"
-                      style={{ backgroundColor: theme.colorPrimary }}
+                      style={{ backgroundColor: config.theme.color_primary }}
                     ></div>
-                    <span className="text-xs">{theme.colorPrimary}</span>
+                    <span className="text-xs">{config.theme.color_primary}</span>
                   </div>
-                  {theme.logoUrl && (
+                  {config.theme.logo_url && (
                     <div>
                       <span className="font-medium">Logo:</span> ✓
                     </div>
                   )}
+                  <div>
+                    <span className="font-medium">Name:</span> {config.name}
+                  </div>
                 </div>
               </div>
             </div>
@@ -288,8 +145,8 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
           {/* Preview Note */}
           <div className="p-4 bg-muted/50 rounded-b-lg border-t">
             <p className="text-sm text-muted-foreground">
-              <strong>Interactive Demo:</strong> This is a live chat widget using your theme settings. 
-              Try typing a message to test the appearance and functionality.
+              <strong>Interactive Demo:</strong> This is the full ChatDemo system with your theme settings applied. 
+              You can interact with agents, run commands, and test all functionality as users would experience it.
             </p>
           </div>
         </CardContent>
