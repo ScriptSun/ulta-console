@@ -439,57 +439,48 @@ export function InputFieldBuilder({
       {/* Field Editor Modal */}
       <FieldModal />
 
-      {/* Live Preview */}
-      <Card>
-        <CardHeader className="relative">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <CardTitle className="text-sm">Live Preview</CardTitle>
-              <Badge variant={isValid ? "outline" : "destructive"} className={`flex items-center gap-1 ml-3 ${isValid ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' : ''}`}>
-                {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-                {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
-              </Badge>
+      {/* Live Preview - Only show when there are form fields */}
+      {generatedSchema && Object.keys(generatedSchema.properties || {}).length > 0 && (
+        <Card>
+          <CardHeader className="relative">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <CardTitle className="text-sm">Live Preview</CardTitle>
+                <Badge variant={isValid ? "outline" : "destructive"} className={`flex items-center gap-1 ml-3 ${isValid ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' : ''}`}>
+                  {isValid ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                  {isValid ? 'Valid' : `${validationErrors.length} Error${validationErrors.length !== 1 ? 's' : ''}`}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFillDefaults}
+                  disabled={!canEdit}
+                >
+                  Fill Defaults
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyJson}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy JSON
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {generatedSchema && Object.keys(generatedSchema.properties || {}).length > 0 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleFillDefaults}
-                    disabled={!canEdit}
-                  >
-                    Fill Defaults
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyJson}
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    Copy JSON
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {generatedSchema && Object.keys(generatedSchema.properties || {}).length > 0 ? (
+          </CardHeader>
+          <CardContent>
             <BatchInputsForm
               schema={generatedSchema}
               defaults={generatedDefaults}
               readOnly={!canEdit}
               onFillDefaults={handleFillDefaults}
             />
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No form fields to display</p>
-              <p className="text-sm">Add fields to see the live preview</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
