@@ -748,6 +748,149 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving, onPreviewUpda
             </div>
 
 
+            {/* Widget Button */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Widget Button</Label>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="widgetButtonBg">Button Background</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="widgetButtonBg"
+                        type="color"
+                        value={formData.theme.widget_button_bg || "#6366f1"}
+                        onChange={(e) => updateFormData({
+                          theme: { ...formData.theme, widget_button_bg: e.target.value }
+                        })}
+                        className="w-16 h-10 p-1 border rounded"
+                      />
+                      <Input
+                        value={formData.theme.widget_button_bg || "#6366f1"}
+                        onChange={(e) => updateFormData({
+                          theme: { ...formData.theme, widget_button_bg: e.target.value }
+                        })}
+                        placeholder="#6366f1"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="widgetButtonIconColor">Icon Color</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="widgetButtonIconColor"
+                        type="color"
+                        value={formData.theme.widget_button_icon_color || "#ffffff"}
+                        onChange={(e) => updateFormData({
+                          theme: { ...formData.theme, widget_button_icon_color: e.target.value }
+                        })}
+                        className="w-16 h-10 p-1 border rounded"
+                      />
+                      <Input
+                        value={formData.theme.widget_button_icon_color || "#ffffff"}
+                        onChange={(e) => updateFormData({
+                          theme: { ...formData.theme, widget_button_icon_color: e.target.value }
+                        })}
+                        placeholder="#ffffff"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="widgetButtonSize">Button Size</Label>
+                    <select
+                      id="widgetButtonSize"
+                      value={formData.theme.widget_button_size || "medium"}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, widget_button_size: e.target.value }
+                      })}
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="small">Small (48px)</option>
+                      <option value="medium">Medium (56px)</option>
+                      <option value="large">Large (64px)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="widgetButtonPosition">Position</Label>
+                    <select
+                      id="widgetButtonPosition"
+                      value={formData.theme.widget_button_position || "bottom-right"}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, widget_button_position: e.target.value }
+                      })}
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="bottom-right">Bottom Right</option>
+                      <option value="bottom-left">Bottom Left</option>
+                      <option value="top-right">Top Right</option>
+                      <option value="top-left">Top Left</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="widgetInitialState">Initial State</Label>
+                    <select
+                      id="widgetInitialState"
+                      value={formData.theme.widget_initial_state || "closed"}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, widget_initial_state: e.target.value }
+                      })}
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="closed">Closed</option>
+                      <option value="open">Open</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="widgetOpenIcon">Open Icon</Label>
+                    <select
+                      id="widgetOpenIcon"
+                      value={formData.theme.widget_button_open_icon || "message-circle"}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, widget_button_open_icon: e.target.value }
+                      })}
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="message-circle">Message Circle</option>
+                      <option value="message-square">Message Square</option>
+                      <option value="help-circle">Help Circle</option>
+                      <option value="phone">Phone</option>
+                      <option value="mail">Mail</option>
+                      <option value="headphones">Headphones</option>
+                      <option value="user">User</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="widgetCloseIcon">Close Icon</Label>
+                    <select
+                      id="widgetCloseIcon"
+                      value={formData.theme.widget_button_close_icon || "x"}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, widget_button_close_icon: e.target.value }
+                      })}
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="x">X</option>
+                      <option value="chevron-down">Chevron Down</option>
+                      <option value="minus">Minus</option>
+                      <option value="arrow-down">Arrow Down</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Branding */}
             <div className="space-y-4">
               <Label className="text-sm font-medium">Branding</Label>

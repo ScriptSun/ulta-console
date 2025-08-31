@@ -52,6 +52,15 @@ export interface WidgetTheme {
   shadow_intensity?: string;
   animation_speed?: string;
   compact_mode?: boolean;
+  
+  // Widget Button
+  widget_button_bg?: string;
+  widget_button_icon_color?: string;
+  widget_button_size?: string;
+  widget_button_open_icon?: string;
+  widget_button_close_icon?: string;
+  widget_initial_state?: string; // 'open' | 'closed'
+  widget_button_position?: string; // 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
 }
 
 export interface Widget {

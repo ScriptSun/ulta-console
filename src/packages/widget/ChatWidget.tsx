@@ -12,6 +12,15 @@ interface ChatWidgetProps {
   iframeSafe?: boolean;
   onMessage?: (message: any) => void;
   onError?: (error: any) => void;
+  widgetTheme?: {
+    widget_button_bg?: string;
+    widget_button_icon_color?: string;
+    widget_button_size?: string;
+    widget_button_position?: string;
+    widget_initial_state?: string;
+    widget_button_open_icon?: string;
+    widget_button_close_icon?: string;
+  };
 }
 
 interface Message {
@@ -32,9 +41,12 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   position = 'bottom-right',
   iframeSafe = false,
   onMessage,
-  onError
+  onError,
+  widgetTheme = {}
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  // Get initial state from theme or default to closed
+  const initialState = widgetTheme.widget_initial_state === 'open';
+  const [isOpen, setIsOpen] = useState(initialState);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -44,10 +56,47 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = useRef(createClient(supabaseUrl, supabaseAnonKey));
 
-  // Position classes
+  // Position classes - use theme position if available
+  const widgetPosition = widgetTheme.widget_button_position || position;
   const positionClasses = {
     'bottom-right': 'bottom-6 right-6',
-    'bottom-left': 'bottom-6 left-6'
+    'bottom-left': 'bottom-6 left-6',
+    'top-right': 'top-6 right-6',
+    'top-left': 'top-6 left-6'
+  };
+
+  // Button size classes
+  const getSizeClasses = () => {
+    const size = widgetTheme.widget_button_size || 'medium';
+    switch (size) {
+      case 'small': return 'h-12 w-12';
+      case 'large': return 'h-16 w-16';
+      default: return 'h-14 w-14';
+    }
+  };
+
+  // Get icon for current state
+  const getButtonIcon = () => {
+    if (isOpen) {
+      const closeIcon = widgetTheme.widget_button_close_icon || 'x';
+      switch (closeIcon) {
+        case 'chevron-down': return '⌄';
+        case 'minus': return '−';
+        case 'arrow-down': return '↓';
+        default: return '✕';
+      }
+    } else {
+      const openIcon = widgetTheme.widget_button_open_icon || 'message-circle';
+      switch (openIcon) {
+        case 'message-square': return '💬';
+        case 'help-circle': return '❓';
+        case 'phone': return '📞';
+        case 'mail': return '✉️';
+        case 'headphones': return '🎧';
+        case 'user': return '👤';
+        default: return '💬';
+      }
+    }
   };
 
   // Theme classes
@@ -199,29 +248,29 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   };
 
   return (
-    <div style={containerStyles} className={`${getThemeClasses()} fixed ${positionClasses[position]} z-50`}>
+    <div style={containerStyles} className={`${getThemeClasses()} fixed ${positionClasses[widgetPosition]} z-50`}>
       {/* Floating Button */}
       <button
         onClick={handleToggle}
         className={`
-          relative h-12 px-4 rounded-full shadow-lg transition-all duration-200 hover:scale-105
+          relative ${getSizeClasses()} rounded-full shadow-lg transition-all duration-200 hover:scale-105 flex items-center justify-center
           ${iframeSafe 
-            ? 'bg-blue-600 hover:bg-blue-700 text-white border-0 cursor-pointer' 
-            : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+            ? 'border-0 cursor-pointer' 
+            : ''
           }
         `}
-        style={iframeSafe ? {
-          backgroundColor: '#2563eb',
-          color: 'white',
-          border: 'none',
+        style={{
+          backgroundColor: widgetTheme.widget_button_bg || (iframeSafe ? '#2563eb' : undefined),
+          color: widgetTheme.widget_button_icon_color || (iframeSafe ? 'white' : undefined),
+          border: iframeSafe ? 'none' : undefined,
           cursor: 'pointer',
-          fontSize: '14px',
-          fontWeight: '500'
-        } : {}}
+          fontSize: '20px',
+          ...(iframeSafe ? {} : {})
+        }}
       >
-        <span className="flex items-center gap-2">
-          💬 Chat
-          {unreadCount > 0 && (
+        <span className="flex items-center justify-center">
+          {getButtonIcon()}
+          {unreadCount > 0 && !isOpen && (
             <span 
               className={`
                 absolute -top-2 -right-2 h-5 w-5 rounded-full flex items-center justify-center text-xs
@@ -249,12 +298,16 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               : 'bg-background border'
             }
           `}
-          style={iframeSafe ? {
-            backgroundColor: 'white',
-            border: '1px solid #e5e7eb',
-            right: position === 'bottom-right' ? '0' : 'auto',
-            left: position === 'bottom-left' ? '0' : 'auto'
-          } : {}}
+          style={{
+            ...(iframeSafe ? {
+              backgroundColor: 'white',
+              border: '1px solid #e5e7eb'
+            } : {}),
+            right: widgetPosition.includes('right') ? '0' : 'auto',
+            left: widgetPosition.includes('left') ? '0' : 'auto',
+            bottom: widgetPosition.includes('bottom') ? '16px' : 'auto',
+            top: widgetPosition.includes('top') ? '16px' : 'auto'
+          }}
         >
           {/* Header */}
           <div 
