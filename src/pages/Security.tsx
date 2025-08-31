@@ -62,15 +62,16 @@ export default function Security() {
 
   const fetchSystemSettings = async () => {
     try {
+      // Fetch AI suggestions mode from system_settings using new schema
       const { data, error } = await supabase
         .from('system_settings')
-        .select('ai_suggestions_mode')
-        .eq('id', '00000000-0000-0000-0000-000000000001')
+        .select('setting_value')
+        .eq('setting_key', 'ai_suggestions_mode')
         .single();
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows found
       
-      setAiSuggestionsMode(data.ai_suggestions_mode as 'off' | 'show' | 'execute');
+      setAiSuggestionsMode(data?.setting_value as 'off' | 'show' | 'execute' || 'off');
     } catch (error) {
       console.error('Error fetching system settings:', error);
       toast({
@@ -87,11 +88,11 @@ export default function Security() {
     try {
       const { error } = await supabase
         .from('system_settings')
-        .update({ 
-          ai_suggestions_mode: mode,
-          updated_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .eq('id', '00000000-0000-0000-0000-000000000001');
+        .upsert({ 
+          setting_key: 'ai_suggestions_mode',
+          setting_value: mode,
+          description: 'AI suggestions mode configuration'
+        });
 
       if (error) throw error;
 

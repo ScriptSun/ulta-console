@@ -137,11 +137,30 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
     );
   };
 
-  const enrichedCostData = costData.map(item => ({
-    ...item,
-    displayName: MODEL_PRICING[item.model as keyof typeof MODEL_PRICING]?.displayName || item.model,
-    cost: calculateCost(item.model, item.promptTokens, item.completionTokens)
-  })).sort((a, b) => b.cost - a.cost);
+  // Create enriched cost data with all available models
+  const allModels = Object.keys(MODEL_PRICING);
+  const enrichedCostData = allModels.map(modelKey => {
+    const existingData = costData.find(item => item.model === modelKey);
+    const pricing = MODEL_PRICING[modelKey as keyof typeof MODEL_PRICING];
+    
+    if (existingData) {
+      return {
+        ...existingData,
+        displayName: pricing?.displayName || existingData.model,
+        cost: calculateCost(existingData.model, existingData.promptTokens, existingData.completionTokens)
+      };
+    } else {
+      // Show models with zero usage
+      return {
+        model: modelKey,
+        promptTokens: 0,
+        completionTokens: 0,
+        totalRequests: 0,
+        cost: 0,
+        displayName: pricing?.displayName || modelKey
+      };
+    }
+  }).sort((a, b) => b.cost - a.cost || b.totalRequests - a.totalRequests);
 
   return (
     <Card className="bg-gradient-card border-card-border shadow-card">
