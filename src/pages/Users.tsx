@@ -130,8 +130,9 @@ export default function Users() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
+                  <TableHead>User ID</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Full Name</TableHead>
                   <TableHead>Agents</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
@@ -141,16 +142,19 @@ export default function Users() {
                 {users?.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <div className="font-medium">{user.full_name || 'Unnamed User'}</div>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          {user.email}
-                        </div>
+                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                        {user.id.slice(0, 8)}...
+                      </code>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{user.email}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
+                      <div className="font-medium">{user.full_name || 'Unnamed User'}</div>
+                      <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs mt-1">
                         {user.role}
                       </Badge>
                     </TableCell>
@@ -179,7 +183,7 @@ export default function Users() {
                 ))}
                 {users?.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       {searchEmail ? 'No users found matching your search.' : 'No users found. Create your first user to get started.'}
                     </TableCell>
                   </TableRow>
