@@ -225,7 +225,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                 Simple embed code with default settings
               </p>
               <div className="relative">
-                 <pre className="bg-slate-900 p-4 rounded-lg overflow-x-auto text-sm font-mono border">
+                 <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
                    <code dangerouslySetInnerHTML={{ __html: generateBasicEmbedCode() }}></code>
                  </pre>
                 <Button
@@ -438,7 +438,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                 Embed code with custom options, event handling, and advanced features
               </p>
               <div className="relative">
-                <pre className="bg-slate-900 p-4 rounded-lg overflow-x-auto text-sm font-mono border">
+                <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
                   <code dangerouslySetInnerHTML={{ __html: generateAdvancedEmbedCode() }}></code>
                 </pre>
                 <Button
@@ -511,7 +511,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                 Single script tag with data attributes for auto-loading
               </p>
                <div className="relative">
-                 <pre className="bg-slate-900 p-4 rounded-lg overflow-x-auto text-sm font-mono border">
+                 <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
                    <code dangerouslySetInnerHTML={{ __html: generateAutoLoadCode() }}></code>
                  </pre>
                  <Button
