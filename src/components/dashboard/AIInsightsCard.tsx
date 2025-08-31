@@ -44,8 +44,8 @@ export function AIInsightsCard({ dateRange }: AIInsightsCardProps) {
         </CardHeader>
       </Card>
 
-      {/* Three Components Grid - All in same row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Two Components Grid - AI Cost Monitor + Agent Status Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* AI Cost Monitor */}
         <AICostMonitor 
           costData={data?.costData || []}
@@ -59,13 +59,13 @@ export function AIInsightsCard({ dateRange }: AIInsightsCardProps) {
           dateRange={dateRange}
           groupBy="day"
         />
-        
-        {/* Top Active Agents */}
-        <TopActiveAgents 
-          agents={data?.topAgents || []}
-          isLoading={isLoading}
-        />
       </div>
+
+      {/* Top Active Agents - Full width below */}
+      <TopActiveAgents 
+        agents={data?.topAgents || []}
+        isLoading={isLoading}
+      />
     </div>
   );
 }
