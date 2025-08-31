@@ -2344,6 +2344,10 @@ export type Database = {
         Args: { _member_id: string; _role: string }
         Returns: undefined
       }
+      bulk_invite_team_members: {
+        Args: { _invites: Json; _team_id: string }
+        Returns: Json
+      }
       can_activate_in_customer: {
         Args: { _customer_id: string }
         Returns: boolean
