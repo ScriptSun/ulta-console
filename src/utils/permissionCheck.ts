@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Server-side permission checking utility for user-based permissions
- * Makes a request to check user permissions directly
+ * Checks user permissions directly without edge functions
  */
 export async function checkServerPermission(
   pageKey: string, 
@@ -12,13 +12,15 @@ export async function checkServerPermission(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
+    const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
+
     // Check explicit user permissions first
     const { data: userPermission } = await supabase
       .from('user_page_permissions')
       .select(`can_${permission}`)
       .eq('user_id', user.id)
       .eq('page_key', pageKey)
-      .single();
+      .maybeSingle();
 
     if (userPermission) {
       return userPermission[`can_${permission}`] || false;
@@ -28,23 +30,26 @@ export async function checkServerPermission(
     const { data: userRoles } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .eq('customer_id', defaultCustomerId);
 
     if (userRoles && userRoles.length > 0) {
       // Use the highest role
-      const roleHierarchy = ['owner', 'admin', 'developer', 'analyst', 'readonly'];
+      const roleHierarchy = ['owner', 'admin', 'editor', 'viewer', 'guest'];
       const userRoleNames = userRoles.map(r => r.role.toLowerCase());
-      const highestRole = roleHierarchy.find(role => userRoleNames.includes(role));
+      const highestEnumRole = roleHierarchy.find(role => userRoleNames.includes(role));
 
-      if (highestRole) {
-        const properRole = highestRole.charAt(0).toUpperCase() + highestRole.slice(1);
+      if (highestEnumRole) {
+        const displayRole = ['owner', 'admin', 'editor', 'viewer', 'guest'].includes(highestEnumRole) 
+          ? { owner: 'Owner', admin: 'Admin', editor: 'Developer', viewer: 'Analyst', guest: 'ReadOnly' }[highestEnumRole]
+          : 'ReadOnly';
         
         const { data: roleTemplate } = await supabase
           .from('console_role_templates')
           .select(`can_${permission}`)
-          .eq('role', properRole)
+          .eq('role', displayRole)
           .eq('page_key', pageKey)
-          .single();
+          .maybeSingle();
 
         return roleTemplate?.[`can_${permission}`] || false;
       }

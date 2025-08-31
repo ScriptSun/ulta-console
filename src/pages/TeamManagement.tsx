@@ -7,14 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Users, Settings, Shield, Trash2, Eye } from 'lucide-react';
+import { Users, Shield, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserPermissionsDialog } from '@/components/users/UserPermissionsDialog';
 import { PageGuard } from '@/components/auth/PageGuard';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 
-// Map display roles to actual enum values
+// Map display roles to actual enum values in user_roles table
 const ROLE_MAPPING = {
   'Owner': 'owner',
   'Admin': 'admin', 
@@ -57,32 +56,13 @@ export default function TeamManagement() {
 
   const canManageUsers = canEdit('team-management');
 
-  // Get default customer ID (we'll create one if it doesn't exist)
-  const { data: defaultCustomerId } = useQuery({
-    queryKey: ['default-customer'],
-    queryFn: async () => {
-      // Try to get existing customer record, or create a default one
-      let { data: existingCustomer } = await supabase
-        .from('user_roles')
-        .select('customer_id')
-        .limit(1)
-        .single();
-
-      if (existingCustomer) {
-        return existingCustomer.customer_id;
-      }
-
-      // If no customer exists, create a default one using user's ID as customer_id
-      return user?.id || '00000000-0000-0000-0000-000000000001';
-    }
-  });
+  // Get default customer ID (use a fixed one for simplicity)
+  const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
 
   // Fetch all users with their roles
   const { data: users, isLoading } = useQuery({
     queryKey: ['all-users', defaultCustomerId],
     queryFn: async () => {
-      if (!defaultCustomerId) return [];
-
       // Get all admin profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('admin_profiles')
@@ -100,14 +80,14 @@ export default function TeamManagement() {
             .eq('user_id', profile.id)
             .eq('customer_id', defaultCustomerId);
 
-          // Get the highest role (use first one if multiple)
-          const roleEnumValue = userRoles?.[0]?.role || 'guest';
-          const displayRole = ENUM_TO_DISPLAY[roleEnumValue] || 'ReadOnly';
+          // Map enum role to display role
+          const enumRole = userRoles?.[0]?.role || 'guest';
+          const displayRole = ENUM_TO_DISPLAY[enumRole] || 'ReadOnly';
 
           return {
             ...profile,
             role: displayRole,
-            enumRole: roleEnumValue,
+            enumRole: enumRole,
             allRoles: userRoles || []
           };
         })
@@ -124,7 +104,7 @@ export default function TeamManagement() {
     queryFn: async () => {
       const { data: totalPages } = await supabase
         .from('console_pages')
-        .select('key', { count: 'exact' });
+        .select('key');
 
       const totalPagesCount = totalPages?.length || 0;
 
@@ -144,7 +124,7 @@ export default function TeamManagement() {
           const { data: roleTemplates } = await supabase
             .from('console_role_templates')
             .select('page_key, can_view')
-            .eq('role', user.role.charAt(0).toUpperCase() + user.role.slice(1));
+            .eq('role', user.role); // Use display role
 
           // Count accessible pages
           const explicitPermissions = new Set(userPermissions?.map(p => p.page_key) || []);
@@ -168,8 +148,6 @@ export default function TeamManagement() {
   // Update user role mutation
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, newDisplayRole }: { userId: string; newDisplayRole: string }) => {
-      if (!defaultCustomerId) throw new Error('No customer ID available');
-
       const newEnumRole = ROLE_MAPPING[newDisplayRole as keyof typeof ROLE_MAPPING];
       if (!newEnumRole) throw new Error('Invalid role');
 
@@ -379,6 +357,12 @@ export default function TeamManagement() {
                 ))}
               </TableBody>
             </Table>
+            
+            {(!users || users.length === 0) && (
+              <div className="text-center py-8 text-muted-foreground">
+                No users found. Users are automatically created when they sign up.
+              </div>
+            )}
           </CardContent>
         </Card>
 

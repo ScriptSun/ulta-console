@@ -10,6 +10,15 @@ interface PagePermissions {
   };
 }
 
+// Map enum roles to display roles
+const ENUM_TO_DISPLAY: Record<string, string> = {
+  'owner': 'Owner',
+  'admin': 'Admin',
+  'editor': 'Developer', 
+  'viewer': 'Analyst',
+  'guest': 'ReadOnly'
+};
+
 export function usePagePermissions() {
   const { user } = useAuth();
 
@@ -17,6 +26,8 @@ export function usePagePermissions() {
     queryKey: ['page-permissions', user?.id],
     queryFn: async () => {
       if (!user?.id) return {};
+
+      const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
 
       // Get user's explicit page permissions
       const { data: userPermissions, error: userPermError } = await supabase
@@ -30,7 +41,8 @@ export function usePagePermissions() {
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('customer_id', defaultCustomerId);
 
       if (rolesError) throw rolesError;
 
@@ -70,19 +82,17 @@ export function usePagePermissions() {
       });
 
       // Then, fill in missing permissions from role templates
-      // Use the highest role (owner > admin > developer > analyst > readonly)
-      const roleHierarchy = ['owner', 'admin', 'developer', 'analyst', 'readonly'];
+      // Use the highest role (owner > admin > editor > viewer > guest)
+      const roleHierarchy = ['owner', 'admin', 'editor', 'viewer', 'guest'];
       const userRoleNames = userRoles?.map(r => r.role.toLowerCase()) || [];
-      const highestRole = roleHierarchy.find(role => userRoleNames.includes(role));
+      const highestEnumRole = roleHierarchy.find(role => userRoleNames.includes(role));
 
-      if (highestRole) {
-        // Find the proper case for the role
-        const properRole = highestRole.charAt(0).toUpperCase() + highestRole.slice(1);
-        const alternativeRole = properRole === 'Owner' ? 'Owner' : properRole;
+      if (highestEnumRole) {
+        // Convert to display role for template lookup
+        const displayRole = ENUM_TO_DISPLAY[highestEnumRole];
         
         roleTemplates?.forEach(template => {
-          const templateRole = template.role.toLowerCase();
-          if ((templateRole === highestRole || template.role === alternativeRole) && !finalPermissions[template.page_key]) {
+          if (template.role === displayRole && !userPermissions?.find(p => p.page_key === template.page_key)) {
             finalPermissions[template.page_key] = {
               can_view: template.can_view,
               can_edit: template.can_edit,

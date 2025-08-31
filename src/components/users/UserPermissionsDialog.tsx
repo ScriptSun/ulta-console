@@ -23,6 +23,15 @@ interface PagePermission {
   can_delete: boolean;
 }
 
+// Map enum roles to display roles
+const ENUM_TO_DISPLAY: Record<string, string> = {
+  'owner': 'Owner',
+  'admin': 'Admin',
+  'editor': 'Developer', 
+  'viewer': 'Analyst',
+  'guest': 'ReadOnly'
+};
+
 export function UserPermissionsDialog({ 
   open, 
   onOpenChange, 
@@ -34,7 +43,8 @@ export function UserPermissionsDialog({
   const queryClient = useQueryClient();
   const [permissions, setPermissions] = useState<Record<string, PagePermission>>({});
 
-  const canEdit = ['owner', 'admin'].includes(currentUserRole?.toLowerCase() || '');
+  const canEdit = ['Owner', 'Admin'].includes(currentUserRole || '');
+  const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
 
   // Fetch all pages
   const { data: pages } = useQuery({
@@ -59,7 +69,8 @@ export function UserPermissionsDialog({
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .eq('customer_id', defaultCustomerId);
       
       if (error) throw error;
       return data;
@@ -103,9 +114,9 @@ export function UserPermissionsDialog({
       const permissionsMap: Record<string, PagePermission> = {};
       
       // Get user's highest role
-      const roleHierarchy = ['owner', 'admin', 'developer', 'analyst', 'readonly'];
-      const userRoleNames = userRoles.map(r => r.role.toLowerCase());
-      const highestRole = roleHierarchy.find(role => userRoleNames.includes(role));
+      const roleHierarchy = ['owner', 'admin', 'editor', 'viewer', 'guest'];
+      const userRoleNames = userRoles?.map(r => r.role.toLowerCase()) || [];
+      const highestEnumRole = roleHierarchy.find(role => userRoleNames.includes(role));
       
       pages.forEach(page => {
         const existingPerm = currentPermissions?.find(p => p.page_key === page.key);
@@ -118,13 +129,11 @@ export function UserPermissionsDialog({
             can_edit: existingPerm.can_edit,
             can_delete: existingPerm.can_delete,
           };
-        } else if (highestRole) {
+        } else if (highestEnumRole) {
           // Fall back to role template
-          const properRole = highestRole.charAt(0).toUpperCase() + highestRole.slice(1);
-          const template = roleTemplates.find(t => 
-            t.role.toLowerCase() === highestRole && t.page_key === page.key
-          ) || roleTemplates.find(t => 
-            t.role === properRole && t.page_key === page.key
+          const displayRole = ENUM_TO_DISPLAY[highestEnumRole];
+          const template = roleTemplates?.find(t => 
+            t.role === displayRole && t.page_key === page.key
           );
           
           permissionsMap[page.key] = {
@@ -250,10 +259,10 @@ export function UserPermissionsDialog({
 
   const getUserRole = () => {
     if (!userRoles || userRoles.length === 0) return 'No Role';
-    const roleHierarchy = ['owner', 'admin', 'developer', 'analyst', 'readonly'];
+    const roleHierarchy = ['owner', 'admin', 'editor', 'viewer', 'guest'];
     const userRoleNames = userRoles.map(r => r.role.toLowerCase());
-    const highestRole = roleHierarchy.find(role => userRoleNames.includes(role));
-    return highestRole ? highestRole.charAt(0).toUpperCase() + highestRole.slice(1) : userRoles[0].role;
+    const highestEnumRole = roleHierarchy.find(role => userRoleNames.includes(role));
+    return highestEnumRole ? ENUM_TO_DISPLAY[highestEnumRole] : 'ReadOnly';
   };
 
   const hasOverride = (pageKey: string) => {
