@@ -98,9 +98,9 @@ export function AppSidebar() {
           <Link 
             to={item.url}
             className={cn(
-              'flex items-center gap-3 px-4 py-3 mx-2 rounded-xl transition-all duration-300 group',
+              'flex items-center gap-3 px-4 py-3 mx-2 rounded-lg transition-all duration-300 group',
               'hover:bg-white/5 hover:backdrop-blur-sm',
-              active && 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 shadow-lg shadow-blue-500/10 backdrop-blur-sm'
+              active && 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 shadow-lg shadow-blue-500/10 backdrop-blur-sm'
             )}
           >
             <item.icon className={cn(
