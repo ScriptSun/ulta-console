@@ -546,22 +546,28 @@ serve(async (req) => {
   const url = new URL(req.url)
   let path = url.pathname
   
-  // Remove the function path prefix if present
-  // Edge functions receive paths like /widget-admin-api/api/admin/widgets
-  // but we want to work with /api/admin/widgets
-  if (path.startsWith('/widget-admin-api')) {
-    path = path.replace('/widget-admin-api', '')
-  }
-  
-  // Handle empty path
-  if (!path || path === '') {
-    path = '/'
-  }
-
-  console.log(`Widget Admin API called: ${req.method} ${path}`)
   console.log('Original URL:', req.url)
   console.log('Original pathname:', url.pathname)
+  
+  // Edge functions in Supabase receive the full path including function name
+  // We need to extract just the API path portion
+  // Example: /widget-admin-api/api/admin/widgets -> /api/admin/widgets
+  // Example: /widget-admin-api/ -> /
+  // Example: /widget-admin-api -> /
+  
+  const functionPrefix = '/widget-admin-api'
+  if (path.startsWith(functionPrefix)) {
+    // Remove the function prefix
+    path = path.substring(functionPrefix.length)
+    
+    // If path is now empty, set it to root
+    if (!path || path === '') {
+      path = '/'
+    }
+  }
+  
   console.log('Processed path:', path)
+  console.log(`Widget Admin API called: ${req.method} ${path}`)
 
   try {
     // Public endpoint - no authentication required
