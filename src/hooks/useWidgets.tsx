@@ -2,17 +2,64 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export interface WidgetTheme {
+  // Colors
+  color_primary?: string;
+  color_secondary?: string;
+  color_background?: string;
+  color_surface?: string;
+  color_muted?: string;
+  text_color?: string;
+  text_color_secondary?: string;
+  border_color?: string;
+  
+  // Typography  
+  font_family?: string;
+  font_size?: string;
+  font_size_small?: string;
+  font_weight?: string;
+  
+  // Layout & Spacing
+  border_radius?: string;
+  spacing?: string;
+  
+  // Chat specific
+  user_bubble_bg?: string;
+  user_bubble_text?: string;
+  assistant_bubble_bg?: string;
+  assistant_bubble_text?: string;
+  
+  // Interactive elements
+  button_primary_bg?: string;
+  button_primary_text?: string;
+  button_secondary_bg?: string;
+  button_secondary_text?: string;
+  input_border?: string;
+  input_focus_border?: string;
+  
+  // Header & Branding
+  header_bg?: string;
+  header_text?: string;
+  logo_url?: string;
+  welcome_text?: string;
+  
+  // Status indicators
+  online_indicator?: string;
+  offline_indicator?: string;
+  typing_indicator?: string;
+  
+  // Advanced
+  shadow_intensity?: string;
+  animation_speed?: string;
+  compact_mode?: boolean;
+}
+
 export interface Widget {
   id: string;
   site_key: string;
   name: string;
   allowed_domains: string[];
-  theme: {
-    color_primary?: string;
-    text_color?: string;
-    logo_url?: string;
-    welcome_text?: string;
-  };
+  theme: WidgetTheme;
   created_at: string;
   updated_at: string;
 }
@@ -20,12 +67,7 @@ export interface Widget {
 export interface NewWidget {
   name: string;
   allowed_domains: string[];
-  theme: {
-    color_primary?: string;
-    text_color?: string;
-    logo_url?: string;
-    welcome_text?: string;
-  };
+  theme: WidgetTheme;
 }
 
 export function useWidgets() {

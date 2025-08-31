@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save, Eye } from "lucide-react";
 import { WidgetEditForm } from "@/components/widgets/WidgetEditForm";
-import { WidgetPreview } from "@/components/widgets/WidgetPreview";
+import { EnhancedWidgetPreview } from "@/components/widgets/EnhancedWidgetPreview";
 import { EmbedCodeGenerator } from "@/components/widgets/EmbedCodeGenerator";
 import { useWidgets } from "@/hooks/useWidgets";
 import { toast } from "@/components/ui/use-toast";
@@ -124,10 +124,10 @@ export default function WidgetEdit() {
         {/* Right Column - Preview and Embed */}
         <div className="space-y-6">
           {/* Widget Preview */}
-          <WidgetPreview 
-            widget={widget} 
-            previewConfig={previewConfig}
-          />
+              <EnhancedWidgetPreview 
+                widget={widget}
+                previewConfig={previewConfig}
+              />
 
           {/* Embed Code */}
           <Card>

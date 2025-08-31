@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Plus, Save, Palette } from "lucide-react";
-import { Widget, NewWidget } from "@/hooks/useWidgets";
+import { Widget, NewWidget, WidgetTheme } from "@/hooks/useWidgets";
 
 interface WidgetEditFormProps {
   widget: Widget | null;
@@ -23,9 +24,46 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving, onPreviewUpda
     allowed_domains: [''],
     theme: {
       color_primary: '#007bff',
+      color_secondary: '#6c757d',
+      color_background: '#ffffff',
+      color_surface: '#f8f9fa',
+      color_muted: '#e9ecef',
       text_color: '#333333',
+      text_color_secondary: '#6c757d',
+      border_color: '#dee2e6',
+      
+      font_family: 'system-ui, -apple-system, sans-serif',
+      font_size: '14px',
+      font_size_small: '12px',
+      font_weight: '400',
+      
+      border_radius: '8px',
+      spacing: '16px',
+      
+      user_bubble_bg: '#007bff',
+      user_bubble_text: '#ffffff',
+      assistant_bubble_bg: '#f8f9fa',
+      assistant_bubble_text: '#333333',
+      
+      button_primary_bg: '#007bff',
+      button_primary_text: '#ffffff',
+      button_secondary_bg: '#6c757d',
+      button_secondary_text: '#ffffff',
+      input_border: '#dee2e6',
+      input_focus_border: '#007bff',
+      
+      header_bg: '#f8f9fa',
+      header_text: '#333333',
       logo_url: '',
-      welcome_text: 'Hello! How can I help you today?'
+      welcome_text: 'Hello! How can I help you manage your servers today?',
+      
+      online_indicator: '#28a745',
+      offline_indicator: '#dc3545',
+      typing_indicator: '#007bff',
+      
+      shadow_intensity: 'medium',
+      animation_speed: '0.2s',
+      compact_mode: false
     }
   });
   
@@ -46,24 +84,12 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving, onPreviewUpda
         name: widget.name,
         allowed_domains: widget.allowed_domains.length > 0 ? widget.allowed_domains : [''],
         theme: {
-          color_primary: widget.theme.color_primary || '#007bff',
-          text_color: widget.theme.text_color || '#333333',
-          logo_url: widget.theme.logo_url || '',
-          welcome_text: widget.theme.welcome_text || 'Hello! How can I help you today?'
+          ...formData.theme, // Keep defaults
+          ...widget.theme // Override with widget values
         }
       });
     } else {
-      // Reset form for new widget
-      setFormData({
-        name: '',
-        allowed_domains: [''],
-        theme: {
-          color_primary: '#007bff',
-          text_color: '#333333',
-          logo_url: '',
-          welcome_text: 'Hello! How can I help you today?'
-        }
-      });
+      // Keep the default formData setup from state initialization
     }
     setErrors({});
   }, [widget]);
@@ -211,121 +237,389 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving, onPreviewUpda
 
           <Separator />
 
-          {/* Theme Settings */}
-          <div className="space-y-4">
+          {/* Comprehensive Theme Settings */}
+          <div className="space-y-6">
             <Label className="text-base font-semibold">Theme Customization</Label>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="colorPrimary">Primary Color</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="colorPrimary"
-                    type="color"
-                    value={formData.theme.color_primary}
-                    onChange={(e) => updateFormData({
-                      theme: { ...formData.theme, color_primary: e.target.value }
-                    })}
-                    className="w-16 h-10 p-1 border rounded"
-                  />
-                  <Input
-                    value={formData.theme.color_primary}
-                    onChange={(e) => updateFormData({
-                      theme: { ...formData.theme, color_primary: e.target.value }
-                    })}
-                    placeholder="#007bff"
-                    className="flex-1"
-                  />
+            {/* Core Colors */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Core Colors</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="colorPrimary">Primary Color</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="colorPrimary"
+                      type="color"
+                      value={formData.theme.color_primary}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, color_primary: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.color_primary}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, color_primary: e.target.value }
+                      })}
+                      placeholder="#007bff"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Main brand color for buttons and user messages</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Used for headers, user messages, and buttons</p>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="textColor">Text Color</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="textColor"
-                    type="color"
-                    value={formData.theme.text_color}
-                    onChange={(e) => updateFormData({
-                      theme: { ...formData.theme, text_color: e.target.value }
-                    })}
-                    className="w-16 h-10 p-1 border rounded"
-                  />
-                  <Input
-                    value={formData.theme.text_color}
-                    onChange={(e) => updateFormData({
-                      theme: { ...formData.theme, text_color: e.target.value }
-                    })}
-                    placeholder="#333333"
-                    className="flex-1"
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="colorSecondary">Secondary Color</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="colorSecondary"
+                      type="color"
+                      value={formData.theme.color_secondary}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, color_secondary: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.color_secondary}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, color_secondary: e.target.value }
+                      })}
+                      placeholder="#6c757d"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Secondary elements and muted actions</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Main text color for assistant messages</p>
+
+                <div className="space-y-2">
+                  <Label htmlFor="colorBackground">Background Color</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="colorBackground"
+                      type="color"
+                      value={formData.theme.color_background}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, color_background: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.color_background}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, color_background: e.target.value }
+                      })}
+                      placeholder="#ffffff"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Main background color</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="textColor">Text Color</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="textColor"
+                      type="color"
+                      value={formData.theme.text_color}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, text_color: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.text_color}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, text_color: e.target.value }
+                      })}
+                      placeholder="#333333"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Primary text color</p>
+                </div>
               </div>
             </div>
 
+            {/* Typography */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Typography</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fontFamily">Font Family</Label>
+                  <Select
+                    value={formData.theme.font_family}
+                    onValueChange={(value) => updateFormData({
+                      theme: { ...formData.theme, font_family: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="system-ui, -apple-system, sans-serif">System Default</SelectItem>
+                      <SelectItem value="'Inter', sans-serif">Inter</SelectItem>
+                      <SelectItem value="'Roboto', sans-serif">Roboto</SelectItem>
+                      <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
+                      <SelectItem value="'Poppins', sans-serif">Poppins</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fontSize">Font Size</Label>
+                  <Select
+                    value={formData.theme.font_size}
+                    onValueChange={(value) => updateFormData({
+                      theme: { ...formData.theme, font_size: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="12px">Small (12px)</SelectItem>
+                      <SelectItem value="14px">Medium (14px)</SelectItem>
+                      <SelectItem value="16px">Large (16px)</SelectItem>
+                      <SelectItem value="18px">Extra Large (18px)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Chat Bubble Styling */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Chat Bubbles</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="userBubbleBg">User Message Background</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="userBubbleBg"
+                      type="color"
+                      value={formData.theme.user_bubble_bg}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, user_bubble_bg: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.user_bubble_bg}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, user_bubble_bg: e.target.value }
+                      })}
+                      placeholder="#007bff"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="assistantBubbleBg">Assistant Message Background</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="assistantBubbleBg"
+                      type="color"
+                      value={formData.theme.assistant_bubble_bg}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, assistant_bubble_bg: e.target.value }
+                      })}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={formData.theme.assistant_bubble_bg}
+                      onChange={(e) => updateFormData({
+                        theme: { ...formData.theme, assistant_bubble_bg: e.target.value }
+                      })}
+                      placeholder="#f8f9fa"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Layout & Styling */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Layout & Styling</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="borderRadius">Border Radius</Label>
+                  <Select
+                    value={formData.theme.border_radius}
+                    onValueChange={(value) => updateFormData({
+                      theme: { ...formData.theme, border_radius: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="4px">Sharp (4px)</SelectItem>
+                      <SelectItem value="8px">Medium (8px)</SelectItem>
+                      <SelectItem value="12px">Rounded (12px)</SelectItem>
+                      <SelectItem value="20px">Very Rounded (20px)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="shadowIntensity">Shadow Intensity</Label>
+                  <Select
+                    value={formData.theme.shadow_intensity}
+                    onValueChange={(value) => updateFormData({
+                      theme: { ...formData.theme, shadow_intensity: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="light">Light</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="heavy">Heavy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="animationSpeed">Animation Speed</Label>
+                  <Select
+                    value={formData.theme.animation_speed}
+                    onValueChange={(value) => updateFormData({
+                      theme: { ...formData.theme, animation_speed: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0.1s">Fast (0.1s)</SelectItem>
+                      <SelectItem value="0.2s">Normal (0.2s)</SelectItem>
+                      <SelectItem value="0.3s">Slow (0.3s)</SelectItem>
+                      <SelectItem value="0.5s">Very Slow (0.5s)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced Preview */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Chat Message Preview</Label>
-              <div className="border rounded-lg p-4 bg-muted/30">
+              <Label className="text-sm font-medium">Live Chat Preview</Label>
+              <div className="border rounded-lg p-4 bg-muted/30" style={{
+                fontFamily: formData.theme.font_family,
+                fontSize: formData.theme.font_size
+              }}>
                 <div className="space-y-3">
-                  <div className="flex justify-start">
-                    <div 
-                      className="max-w-[80%] rounded-lg p-3 text-sm"
-                      style={{ 
-                        backgroundColor: '#f1f3f4',
-                        color: formData.theme.text_color 
-                      }}
-                    >
-                      {formData.theme.welcome_text}
+                  {/* Header Preview */}
+                  <div className="flex items-center justify-between p-3 rounded-t border-b" style={{
+                    backgroundColor: formData.theme.header_bg,
+                    color: formData.theme.header_text,
+                    borderRadius: `${formData.theme.border_radius} ${formData.theme.border_radius} 0 0`
+                  }}>
+                    <h4 className="font-medium">Chat Widget</h4>
+                    <div className="w-2 h-2 rounded-full" style={{
+                      backgroundColor: formData.theme.online_indicator
+                    }}></div>
+                  </div>
+
+                  {/* Messages Preview */}
+                  <div className="space-y-2 p-3">
+                    <div className="flex justify-start">
+                      <div 
+                        className="max-w-[80%] p-3 text-sm shadow-sm"
+                        style={{ 
+                          backgroundColor: formData.theme.assistant_bubble_bg,
+                          color: formData.theme.assistant_bubble_text,
+                          borderRadius: formData.theme.border_radius
+                        }}
+                      >
+                        {formData.theme.welcome_text}
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <div 
+                        className="max-w-[80%] p-3 text-sm shadow-sm"
+                        style={{ 
+                          backgroundColor: formData.theme.user_bubble_bg,
+                          color: formData.theme.user_bubble_text,
+                          borderRadius: formData.theme.border_radius
+                        }}
+                      >
+                        I need help with my server
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      <div 
+                        className="max-w-[80%] p-3 text-sm shadow-sm"
+                        style={{ 
+                          backgroundColor: formData.theme.assistant_bubble_bg,
+                          color: formData.theme.assistant_bubble_text,
+                          borderRadius: formData.theme.border_radius
+                        }}
+                      >
+                        I'd be happy to help you with your server! What specific issue are you experiencing?
+                      </div>
                     </div>
                   </div>
-                  <div className="flex justify-end">
-                    <div 
-                      className="max-w-[80%] rounded-lg p-3 text-sm text-white"
-                      style={{ backgroundColor: formData.theme.color_primary }}
-                    >
-                      I want to install WordPress
+
+                  {/* Input Preview */}
+                  <div className="flex gap-2 p-3 border-t" style={{
+                    backgroundColor: formData.theme.color_surface
+                  }}>
+                    <div className="flex-1 p-2 border rounded text-sm" style={{
+                      borderColor: formData.theme.input_border,
+                      borderRadius: formData.theme.border_radius,
+                      backgroundColor: formData.theme.color_background
+                    }}>
+                      Type your message...
                     </div>
-                  </div>
-                  <div className="flex justify-start">
-                    <div 
-                      className="max-w-[80%] rounded-lg p-3 text-sm"
-                      style={{ 
-                        backgroundColor: '#f1f3f4',
-                        color: formData.theme.text_color 
-                      }}
-                    >
-                      I'd be happy to help you install WordPress! Let me guide you through the process.
-                    </div>
+                    <button className="px-3 py-2 rounded text-sm" style={{
+                      backgroundColor: formData.theme.button_primary_bg,
+                      color: formData.theme.button_primary_text,
+                      borderRadius: formData.theme.border_radius
+                    }}>
+                      Send
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="logoUrl">Logo URL (optional)</Label>
-              <Input
-                id="logoUrl"
-                value={formData.theme.logo_url}
-                onChange={(e) => updateFormData({
-                  theme: { ...formData.theme, logo_url: e.target.value }
-                })}
-                placeholder="https://example.com/logo.png"
-              />
-            </div>
+            {/* Branding */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Branding</Label>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="logoUrl">Logo URL (optional)</Label>
+                  <Input
+                    id="logoUrl"
+                    value={formData.theme.logo_url}
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, logo_url: e.target.value }
+                    })}
+                    placeholder="https://example.com/logo.png"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="welcomeText">Welcome Message</Label>
-              <Textarea
-                id="welcomeText"
-                value={formData.theme.welcome_text}
-                onChange={(e) => updateFormData({
-                  theme: { ...formData.theme, welcome_text: e.target.value }
-                })}
-                placeholder="Hello! How can I help you today?"
-                rows={3}
-              />
+                <div className="space-y-2">
+                  <Label htmlFor="welcomeText">Welcome Message</Label>
+                  <Textarea
+                    id="welcomeText"
+                    value={formData.theme.welcome_text}
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, welcome_text: e.target.value }
+                    })}
+                    placeholder="Hello! How can I help you manage your servers today?"
+                    rows={3}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
