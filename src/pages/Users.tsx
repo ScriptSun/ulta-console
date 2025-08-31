@@ -61,8 +61,18 @@ export default function Users() {
             filterDate.setMonth(now.getMonth() - 1);
             query = query.gte('created_at', filterDate.toISOString());
             break;
+          case 'thismonth':
+            // Start of current month
+            filterDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            query = query.gte('created_at', filterDate.toISOString());
+            break;
           case 'year':
             filterDate.setFullYear(now.getFullYear() - 1);
+            query = query.gte('created_at', filterDate.toISOString());
+            break;
+          case 'thisyear':
+            // Start of current year
+            filterDate = new Date(now.getFullYear(), 0, 1);
             query = query.gte('created_at', filterDate.toISOString());
             break;
         }
@@ -181,7 +191,9 @@ export default function Users() {
                   <SelectItem value="today">Today</SelectItem>
                   <SelectItem value="week">Past Week</SelectItem>
                   <SelectItem value="month">Past Month</SelectItem>
+                  <SelectItem value="thismonth">This Month</SelectItem>
                   <SelectItem value="year">Past Year</SelectItem>
+                  <SelectItem value="thisyear">This Year</SelectItem>
                 </SelectContent>
               </Select>
             </div>
