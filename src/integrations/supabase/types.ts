@@ -2472,6 +2472,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_team_member: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_team_owner_or_admin: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
