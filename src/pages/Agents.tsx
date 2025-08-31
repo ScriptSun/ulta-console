@@ -23,7 +23,7 @@ interface Agent {
   id: string;
   hostname?: string;
   agent_type: string;
-  status: 'running' | 'idle' | 'error' | 'offline';
+  status: 'active' | 'suspended' | 'terminated';
   version?: string;
   os?: string;
   region?: string;
@@ -112,10 +112,9 @@ export default function Agents() {
 
       if (error) throw error;
 
-      // Update some agents to show Running and Idle status for demo
-      const agentsWithStatus = (data || []).map((agent, index) => ({
-        ...agent,
-        status: index === 0 ? 'running' : index === 1 ? 'idle' : agent.status
+      // Use actual status from database
+      const agentsWithStatus = (data || []).map((agent) => ({
+        ...agent
       }));
 
       setAgents(agentsWithStatus as Agent[]);
@@ -270,10 +269,9 @@ export default function Agents() {
   };
 
   const statusCounts = {
-    running: agents.filter(a => a.status === 'running').length,
-    idle: agents.filter(a => a.status === 'idle').length,
-    error: agents.filter(a => a.status === 'error').length,
-    offline: agents.filter(a => a.status === 'offline').length,
+    active: agents.filter(a => a.status === 'active').length,
+    suspended: agents.filter(a => a.status === 'suspended').length,
+    terminated: agents.filter(a => a.status === 'terminated').length,
   };
 
   const canManage = userRole === 'approver' || userRole === 'admin';
@@ -314,36 +312,27 @@ export default function Agents() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-sm text-muted-foreground">Running</span>
+              <span className="text-sm text-muted-foreground">Active</span>
             </div>
-            <p className="text-2xl font-bold">{statusCounts.running}</p>
+            <p className="text-2xl font-bold">{statusCounts.active}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-yellow-500" />
-              <span className="text-sm text-muted-foreground">Idle</span>
+              <span className="text-sm text-muted-foreground">Suspended</span>
             </div>
-            <p className="text-2xl font-bold">{statusCounts.idle}</p>
+            <p className="text-2xl font-bold">{statusCounts.suspended}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-sm text-muted-foreground">Error</span>
+              <span className="text-sm text-muted-foreground">Terminated</span>
             </div>
-            <p className="text-2xl font-bold">{statusCounts.error}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-gray-500" />
-              <span className="text-sm text-muted-foreground">Offline</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-400">{statusCounts.offline}</p>
+            <p className="text-2xl font-bold">{statusCounts.terminated}</p>
           </CardContent>
         </Card>
       </div>
@@ -367,10 +356,9 @@ export default function Agents() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="running">Running</SelectItem>
-              <SelectItem value="idle">Idle</SelectItem>
-              <SelectItem value="error">Error</SelectItem>
-              <SelectItem value="offline">Offline</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="suspended">Suspended</SelectItem>
+              <SelectItem value="terminated">Terminated</SelectItem>
             </SelectContent>
           </Select>
 

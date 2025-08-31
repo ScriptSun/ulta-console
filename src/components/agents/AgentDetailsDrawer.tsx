@@ -49,7 +49,7 @@ interface Agent {
   id: string;
   hostname?: string;
   agent_type: string;
-  status: 'running' | 'idle' | 'error' | 'offline';
+  status: 'active' | 'suspended' | 'terminated';
   version?: string;
   os?: string;
   region?: string;
@@ -95,21 +95,17 @@ interface AgentDetailsDrawerProps {
 }
 
 const statusConfig = {
-  running: { 
+  active: { 
     color: 'bg-gradient-to-r from-emerald-500/5 to-green-500/5 text-emerald-200 border-0 ring-1 ring-emerald-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
     dot: 'bg-emerald-400 ring-2 ring-emerald-400/20 ring-offset-1 ring-offset-transparent' 
   },
-  idle: { 
+  suspended: { 
     color: 'bg-gradient-to-r from-yellow-500/5 to-amber-500/5 text-yellow-200 border-0 ring-1 ring-yellow-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
     dot: 'bg-yellow-400 ring-2 ring-yellow-400/20 ring-offset-1 ring-offset-transparent' 
   },
-  error: { 
+  terminated: { 
     color: 'bg-gradient-to-r from-red-500/8 via-red-500/6 to-red-500/8 text-red-200 border-0 ring-1 ring-red-400/40 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
     dot: 'bg-gradient-to-r from-red-400 to-red-500 ring-2 ring-red-400/30 ring-offset-1 ring-offset-transparent' 
-  },
-  offline: { 
-    color: 'bg-gradient-to-r from-slate-500/5 to-gray-500/5 text-gray-200 border-0 ring-1 ring-slate-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
-    dot: 'bg-slate-400 ring-2 ring-slate-400/20 ring-offset-1 ring-offset-transparent' 
   },
 };
 
