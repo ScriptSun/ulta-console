@@ -900,25 +900,166 @@
     return null;
   }
   
-  // Auto-load widget if data attributes are present
+  // Enhanced auto-load functionality - supports all configuration options via data attributes
   function autoLoad() {
-    const script = document.querySelector('script[data-ultaai-site-key]');
-    if (script) {
-      const siteKey = script.getAttribute('data-ultaai-site-key');
-      const options = {};
-      
-      // Parse data attributes
-      const attrs = script.attributes;
-      for (let i = 0; i < attrs.length; i++) {
-        const attr = attrs[i];
-        if (attr.name.startsWith('data-ultaai-') && attr.name !== 'data-ultaai-site-key') {
-          const key = attr.name.replace('data-ultaai-', '').replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-          options[key] = attr.value;
-        }
-      }
-      
-      window.UltaAIWidget.load(siteKey, options);
+    const scripts = document.querySelectorAll('script[data-ultaai-site-key]');
+    
+    if (scripts.length === 0) {
+      debugLog('No auto-load scripts found');
+      return;
     }
+
+    debugLog(`Found ${scripts.length} auto-load script(s)`);
+
+    scripts.forEach((script, index) => {
+      try {
+        const siteKey = script.getAttribute('data-ultaai-site-key');
+        if (!siteKey) {
+          console.warn('UltaAI Widget: Script tag missing data-ultaai-site-key attribute');
+          return;
+        }
+
+        debugLog(`Processing auto-load script ${index + 1}:`, script);
+
+        // Extract all configuration options from data attributes
+        const config = parseDataAttributes(script);
+        
+        // Validate configuration
+        const validationResult = validateAutoLoadConfig(config, siteKey);
+        if (!validationResult.isValid) {
+          console.error('UltaAI Widget Auto-load Validation Error:', validationResult.errors);
+          if (config.debug) {
+            console.group('🔍 Auto-load Configuration Debug');
+            console.log('Script element:', script);
+            console.log('Parsed config:', config);
+            console.log('Validation errors:', validationResult.errors);
+            console.groupEnd();
+          }
+          return;
+        }
+
+        debugLog('Auto-loading widget with configuration:', {
+          siteKey: siteKey.substring(0, 10) + '...',
+          config,
+          scriptElement: script
+        });
+
+        // Initialize widget with parsed configuration
+        window.UltaAIWidget.load(siteKey, config);
+
+      } catch (error) {
+        console.error('UltaAI Widget Auto-load Error:', error);
+        debugLog('Auto-load error details:', {
+          error,
+          script,
+          index
+        });
+      }
+    });
+  }
+
+  // Parse all data attributes from script tag into configuration object
+  function parseDataAttributes(script) {
+    const config = {};
+    const attributes = script.attributes;
+
+    debugLog('Parsing data attributes from script:', script);
+
+    for (let i = 0; i < attributes.length; i++) {
+      const attr = attributes[i];
+      if (attr.name.startsWith('data-ultaai-')) {
+        const configKey = attr.name.replace('data-ultaai-', '').replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+        
+        if (configKey === 'siteKey') continue; // Already handled separately
+
+        let value = attr.value;
+
+        // Type conversion for known configuration options
+        if (['debug', 'hideOnMobile', 'showBadge', 'autoOpen'].includes(configKey)) {
+          value = value === 'true' || value === '1';
+        } else if (['position', 'size', 'width', 'height'].includes(configKey)) {
+          // Keep as string
+        } else if (configKey === 'user') {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            console.warn(`UltaAI Widget: Invalid JSON in data-ultaai-user: ${value}`);
+            continue;
+          }
+        } else if (configKey === 'theme') {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            console.warn(`UltaAI Widget: Invalid JSON in data-ultaai-theme: ${value}`);
+            continue;
+          }
+        } else if (configKey === 'allowedDomains') {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            // Try comma-separated values
+            value = value.split(',').map(d => d.trim()).filter(d => d);
+          }
+        } else if (configKey.startsWith('user')) {
+          // Handle user properties like userId, userEmail, userName
+          // Keep as string
+        }
+
+        config[configKey] = value;
+        debugLog(`Parsed data attribute: ${attr.name} = ${configKey} =`, value);
+      }
+    }
+
+    return config;
+  }
+
+  // Validate auto-load configuration
+  function validateAutoLoadConfig(config, siteKey) {
+    const errors = [];
+
+    // Validate site key
+    if (!siteKey || typeof siteKey !== 'string' || siteKey.length < 10) {
+      errors.push('Invalid site key: must be a non-empty string with at least 10 characters');
+    }
+
+    // Validate position
+    if (config.position && !['bottom-right', 'bottom-left', 'top-right', 'top-left', 'center'].includes(config.position)) {
+      errors.push(`Invalid position: ${config.position}. Must be one of: bottom-right, bottom-left, top-right, top-left, center`);
+    }
+
+    // Validate size
+    if (config.size && !['small', 'medium', 'large'].includes(config.size)) {
+      errors.push(`Invalid size: ${config.size}. Must be one of: small, medium, large`);
+    }
+
+    // Validate dimensions
+    if (config.width && !/^\d+px$/.test(config.width)) {
+      errors.push(`Invalid width: ${config.width}. Must be in pixels (e.g., "350px")`);
+    }
+
+    if (config.height && !/^\d+px$/.test(config.height)) {
+      errors.push(`Invalid height: ${config.height}. Must be in pixels (e.g., "500px")`);
+    }
+
+    // Validate user object
+    if (config.user && typeof config.user !== 'object') {
+      errors.push('Invalid user: must be a valid JSON object');
+    }
+
+    // Validate theme object
+    if (config.theme && typeof config.theme !== 'object') {
+      errors.push('Invalid theme: must be a valid JSON object');
+    }
+
+    // Validate allowedDomains
+    if (config.allowedDomains && !Array.isArray(config.allowedDomains)) {
+      errors.push('Invalid allowedDomains: must be an array or comma-separated string');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
   }
   
   // Initialize auto-load check

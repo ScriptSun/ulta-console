@@ -206,16 +206,64 @@
         </div>
         
         <div class="example-section">
-            <h3>🔧 Auto-load with Data Attributes</h3>
-            <p>You can also auto-load the widget using data attributes on the script tag:</p>
-            <pre><code>&lt;script 
-  src="/sdk/v1.js"
-  data-ultaai-site-key="your-site-key"
-  data-ultaai-position="bottom-right"
-  data-ultaai-width="400px"
-  data-ultaai-height="600px"
-  data-ultaai-colorprimary="#007bff"
+            <h3>🔧 Enhanced Auto-load with Data Attributes</h3>
+            <p>You can auto-load the widget with complete configuration using data attributes on the script tag.</p>
+            
+            <h4>Basic Auto-load</h4>
+            <pre><code>&lt;script src="/sdk/v1.js"
+  data-ultaai-site-key="your-site-key-here"
 &gt;&lt;/script&gt;</code></pre>
+
+            <h4>Advanced Auto-load with All Options</h4>
+            <pre><code>&lt;script src="/sdk/v1.js"
+  data-ultaai-site-key="your-site-key-here"
+  data-ultaai-debug="true"
+  data-ultaai-position="bottom-left"
+  data-ultaai-width="450px"
+  data-ultaai-height="650px"
+  data-ultaai-auto-open="false"
+  data-ultaai-hide-on-mobile="true"
+  data-ultaai-show-badge="true"
+  data-ultaai-user-id="user123"
+  data-ultaai-user-email="user@example.com"
+  data-ultaai-user-name="John Doe"
+  data-ultaai-theme='{"color_primary":"#ff6b35","welcome_text":"Hi there! How can I help?","logo_url":"https://example.com/logo.png"}'
+&gt;&lt;/script&gt;</code></pre>
+
+            <h4>E-commerce Store Example</h4>
+            <pre><code>&lt;script src="/sdk/v1.js"
+  data-ultaai-site-key="ecommerce-site-key"
+  data-ultaai-position="bottom-right"
+  data-ultaai-theme='{"color_primary":"#2563eb","welcome_text":"Need help with your order?","assistant_bubble_bg":"#f0f9ff"}'
+  data-ultaai-user-id="customer_{{customer.id}}"
+  data-ultaai-user-email="{{customer.email}}"
+&gt;&lt;/script&gt;</code></pre>
+
+            <h4>Support Center Example</h4>
+            <pre><code>&lt;script src="/sdk/v1.js"
+  data-ultaai-site-key="support-site-key"
+  data-ultaai-auto-open="true"
+  data-ultaai-position="center"
+  data-ultaai-width="500px"
+  data-ultaai-height="700px"
+  data-ultaai-theme='{"color_primary":"#16a34a","welcome_text":"Welcome to our help center!","header_bg":"#22c55e"}'
+&gt;&lt;/script&gt;</code></pre>
+
+            <h4>Supported Data Attributes</h4>
+            <ul>
+                <li><code>data-ultaai-site-key</code>: Your widget site key (required)</li>
+                <li><code>data-ultaai-debug</code>: Enable debug mode (true/false)</li>
+                <li><code>data-ultaai-position</code>: Widget position (bottom-right, bottom-left, top-right, top-left, center)</li>
+                <li><code>data-ultaai-width</code>: Widget width (e.g., "400px")</li>
+                <li><code>data-ultaai-height</code>: Widget height (e.g., "600px")</li>
+                <li><code>data-ultaai-auto-open</code>: Auto-open chat (true/false)</li>
+                <li><code>data-ultaai-hide-on-mobile</code>: Hide on mobile devices (true/false)</li>
+                <li><code>data-ultaai-show-badge</code>: Show launcher badge (true/false)</li>
+                <li><code>data-ultaai-user-id</code>: User identifier</li>
+                <li><code>data-ultaai-user-email</code>: User email</li>
+                <li><code>data-ultaai-user-name</code>: User display name</li>
+                <li><code>data-ultaai-theme</code>: Theme configuration (JSON string)</li>
+            </ul>
         </div>
         
         <div class="example-section">
