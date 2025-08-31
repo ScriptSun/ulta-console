@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
 import { Badge } from "../ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
-import { Plus, Settings, Calendar, Copy } from "lucide-react"
+import { Plus, Settings, Calendar, Copy, Info } from "lucide-react"
 import { WidgetEditForm } from "./WidgetEditForm"
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "../ui/use-toast"
@@ -27,6 +27,7 @@ function WidgetList() {
   const { widgets, loading, createWidget, updateWidget, createdSecret, setCreatedSecret } = useWidgets()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [selectedWidgetInfo, setSelectedWidgetInfo] = useState<Widget | null>(null)
 
   const handleCreateWidget = async (widgetId: string | null, data: any) => {
     setSaving(true)
@@ -81,6 +82,7 @@ function WidgetList() {
                     <TableHead>Name</TableHead>
                     <TableHead>Site Key</TableHead>
                     <TableHead>Domains</TableHead>
+                    <TableHead>Info</TableHead>
                     <TableHead>Last Updated</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -98,6 +100,15 @@ function WidgetList() {
                         <Badge variant="secondary">
                           {widget.allowed_domains.length} domain{widget.allowed_domains.length !== 1 ? 's' : ''}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedWidgetInfo(widget)}
+                        >
+                          <Info className="w-4 h-4 text-primary" />
+                        </Button>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center text-sm text-muted-foreground">
@@ -176,6 +187,134 @@ function WidgetList() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Widget Info Dialog */}
+      <Dialog open={!!selectedWidgetInfo} onOpenChange={() => setSelectedWidgetInfo(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Widget Information</DialogTitle>
+            <DialogDescription>
+              Detailed information about "{selectedWidgetInfo?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          {selectedWidgetInfo && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Widget Name</Label>
+                  <div className="mt-1 p-2 bg-muted rounded-md text-sm">
+                    {selectedWidgetInfo.name}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Widget ID</Label>
+                  <div className="mt-1 p-2 bg-muted rounded-md font-mono text-sm break-all">
+                    {selectedWidgetInfo.id}
+                  </div>
+                </div>
+              </div>
+
+              {/* Site Key */}
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Site Key</Label>
+                <div className="mt-1 p-2 bg-muted rounded-md font-mono text-sm break-all">
+                  {selectedWidgetInfo.site_key}
+                </div>
+              </div>
+
+              {/* Allowed Domains */}
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Allowed Domains</Label>
+                <div className="mt-1 space-y-1">
+                  {selectedWidgetInfo.allowed_domains.map((domain, index) => (
+                    <div key={index} className="p-2 bg-muted rounded-md text-sm">
+                      {domain}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Theme Information */}
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Theme Configuration</Label>
+                <div className="mt-1 space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Primary Color</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div 
+                          className="w-4 h-4 rounded border" 
+                          style={{ backgroundColor: selectedWidgetInfo.theme.color_primary }}
+                        ></div>
+                        <span className="text-sm">{selectedWidgetInfo.theme.color_primary}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Text Color</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div 
+                          className="w-4 h-4 rounded border" 
+                          style={{ backgroundColor: selectedWidgetInfo.theme.text_color }}
+                        ></div>
+                        <span className="text-sm">{selectedWidgetInfo.theme.text_color}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {selectedWidgetInfo.theme.logo_url && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Logo URL</Label>
+                      <div className="mt-1 p-2 bg-muted rounded-md text-sm break-all">
+                        {selectedWidgetInfo.theme.logo_url}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Welcome Message</Label>
+                    <div className="mt-1 p-2 bg-muted rounded-md text-sm">
+                      {selectedWidgetInfo.theme.welcome_text}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                  <div className="mt-1 text-sm">
+                    {new Date(selectedWidgetInfo.created_at).toLocaleDateString()} at{" "}
+                    {new Date(selectedWidgetInfo.created_at).toLocaleTimeString()}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Last Updated</Label>
+                  <div className="mt-1 text-sm">
+                    {new Date(selectedWidgetInfo.updated_at).toLocaleDateString()} at{" "}
+                    {new Date(selectedWidgetInfo.updated_at).toLocaleTimeString()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setSelectedWidgetInfo(null)}>
+                  Close
+                </Button>
+                <Button onClick={() => {
+                  setSelectedWidgetInfo(null);
+                  handleEditWidget(selectedWidgetInfo);
+                }}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Edit Widget
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
