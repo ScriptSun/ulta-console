@@ -156,52 +156,37 @@ async function logAuditEvent(customerId: string, action: string, widgetId: strin
   }
 }
 
-// Authenticate request using API key
-async function authenticateApiKey(req: Request): Promise<{ valid: boolean, customer_id?: string, api_key_id?: string, error?: string }> {
-  const apiKey = req.headers.get('X-API-Key')
+// Authenticate request using Supabase auth (for admin operations)
+async function authenticateRequest(req: Request): Promise<{ valid: boolean, customer_id?: string, api_key_id?: string, error?: string }> {
+  const authHeader = req.headers.get('Authorization')
   
-  if (!apiKey) {
-    return { valid: false, error: 'Missing X-API-Key header' }
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { valid: false, error: 'Missing or invalid Authorization header' }
   }
 
+  const token = authHeader.replace('Bearer ', '')
+  
   try {
-    // Validate API key using existing function
-    const { data, error } = await supabase.rpc('validate_api_key', {
-      _api_key: apiKey
-    })
-
-    if (error) {
-      console.error('API key validation error:', error)
-      return { valid: false, error: 'Invalid API key' }
+    // Verify the JWT token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    
+    if (authError || !user) {
+      return { valid: false, error: 'Invalid token' }
     }
 
-    if (!data || data.length === 0) {
-      return { valid: false, error: 'Invalid API key' }
+    // Get user's customer_id
+    const { data: userRoles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('customer_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+
+    if (rolesError || !userRoles) {
+      return { valid: false, error: 'User not associated with any customer' }
     }
 
-    const keyData = data[0]
-    if (!keyData.valid) {
-      return { valid: false, error: 'API key expired or revoked' }
-    }
-
-    // Check if key has admin permissions
-    const { data: apiKeyData, error: keyError } = await supabase
-      .from('api_keys')
-      .select('permissions, id')
-      .eq('customer_id', keyData.customer_id)
-      .contains('permissions', ['admin'])
-      .single()
-
-    if (keyError || !apiKeyData) {
-      return { valid: false, error: 'API key does not have admin permissions' }
-    }
-
-    // Track API key usage
-    await supabase.rpc('track_api_key_usage', {
-      _api_key_id: apiKeyData.id
-    })
-
-    return { valid: true, customer_id: keyData.customer_id, api_key_id: apiKeyData.id }
+    return { valid: true, customer_id: userRoles.customer_id }
   } catch (error) {
     console.error('Authentication error:', error)
     return { valid: false, error: 'Authentication failed' }
@@ -563,8 +548,8 @@ serve(async (req) => {
       return await getWidgetConfig(req)
     }
 
-    // All admin endpoints require API key authentication
-    const auth = await authenticateApiKey(req)
+    // All admin endpoints require authentication
+    const auth = await authenticateRequest(req)
     if (!auth.valid) {
       return errorResponse(auth.error || 'Unauthorized', 401)
     }
