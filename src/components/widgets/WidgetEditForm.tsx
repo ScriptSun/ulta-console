@@ -227,6 +227,7 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditF
                     className="flex-1"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">Used for headers, user messages, and buttons</p>
               </div>
 
               <div className="space-y-2">
@@ -251,6 +252,45 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditF
                     placeholder="#333333"
                     className="flex-1"
                   />
+                </div>
+                <p className="text-xs text-muted-foreground">Main text color for assistant messages</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Chat Message Preview</Label>
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <div className="space-y-3">
+                  <div className="flex justify-start">
+                    <div 
+                      className="max-w-[80%] rounded-lg p-3 text-sm"
+                      style={{ 
+                        backgroundColor: '#f1f3f4',
+                        color: formData.theme.text_color 
+                      }}
+                    >
+                      {formData.theme.welcome_text}
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <div 
+                      className="max-w-[80%] rounded-lg p-3 text-sm text-white"
+                      style={{ backgroundColor: formData.theme.color_primary }}
+                    >
+                      I want to install WordPress
+                    </div>
+                  </div>
+                  <div className="flex justify-start">
+                    <div 
+                      className="max-w-[80%] rounded-lg p-3 text-sm"
+                      style={{ 
+                        backgroundColor: '#f1f3f4',
+                        color: formData.theme.text_color 
+                      }}
+                    >
+                      I'd be happy to help you install WordPress! Let me guide you through the process.
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

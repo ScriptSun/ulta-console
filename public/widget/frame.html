@@ -101,6 +101,16 @@
                 root.style.setProperty('--color-primary', theme.colorPrimary);
                 root.style.setProperty('--text-color', theme.textColor);
                 
+                // Apply chat message colors (use primary color for user messages)
+                root.style.setProperty('--user-message-bg', theme.colorPrimary);
+                root.style.setProperty('--user-message-text', '#ffffff');
+                root.style.setProperty('--assistant-message-bg', '#f1f3f4');
+                root.style.setProperty('--assistant-message-text', theme.textColor);
+                
+                // Apply input and send button colors
+                root.style.setProperty('--send-button-bg', theme.colorPrimary);
+                root.style.setProperty('--send-button-text', '#ffffff');
+                
                 // Apply logo
                 const logoEl = document.getElementById('widget-logo');
                 if (theme.logoUrl && theme.logoUrl.trim()) {
@@ -189,20 +199,43 @@
                 const contentEl = document.getElementById('widget-content');
                 
                 contentEl.innerHTML = `
-                    <div class="welcome-section">
-                        <div class="welcome-message">${theme.welcomeText}</div>
-                        <div class="welcome-subtitle">I'm here to help you with any questions.</div>
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <button class="action-button" onclick="startChat()">
-                            <span>💬</span>
-                            <span>Start Chat</span>
-                        </button>
-                        <button class="action-button secondary" onclick="showSupport()">
-                            <span>📧</span>
-                            <span>Contact Support</span>
-                        </button>
+                    <div class="chat-container">
+                        <div class="chat-messages">
+                            <div class="message assistant-message">
+                                <div class="message-bubble">
+                                    <div class="message-text">${theme.welcomeText}</div>
+                                </div>
+                            </div>
+                            <div class="message user-message">
+                                <div class="message-bubble">
+                                    <div class="message-text">I want to install WordPress on my server</div>
+                                </div>
+                            </div>
+                            <div class="message assistant-message">
+                                <div class="message-bubble">
+                                    <div class="message-text">I'd be happy to help you install WordPress! Let me guide you through the process. First, do you have a web server with PHP and MySQL set up?</div>
+                                </div>
+                            </div>
+                            <div class="message user-message">
+                                <div class="message-bubble">
+                                    <div class="message-text">Yes, I have a LAMP stack ready</div>
+                                </div>
+                            </div>
+                            <div class="message assistant-message">
+                                <div class="message-bubble">
+                                    <div class="message-text">Perfect! Here's what we'll do:<br><br>1. Download WordPress from wordpress.org<br>2. Create a MySQL database<br>3. Configure wp-config.php<br>4. Run the installation<br><br>Would you like me to start with the first step?</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-input-container">
+                            <div class="chat-input">
+                                <input type="text" placeholder="Type your message..." readonly>
+                                <button class="send-button">
+                                    <span>Send</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 `;
                 
@@ -214,7 +247,7 @@
                 });
                 
                 // Update title
-                document.getElementById('widget-title').textContent = config.name || 'AltaAI Assistant';
+                document.getElementById('widget-title').textContent = config.name || 'UltaAI Assistant';
                 
                 // Show user debug panel if authenticated
                 if (user) {
@@ -254,33 +287,62 @@
                     return;
                 }
                 
-                if (!params.origin) {
-                    renderError(new Error('Missing origin parameter'), false);
-                    return;
-                }
-                
                 // Parse client options
                 clientOpts = parseClientOptions(params.opts);
                 
                 try {
-                    // Update loading status
-                    updateStatus('Verifying permissions...');
-                    
-                    // Fetch configuration from server
-                    widgetConfig = await fetchWidgetConfig(params.siteKey, params.origin, params.userId, params.timestamp, params.signature);
-                    
-                    // Merge theme with client options
-                    const mergedTheme = mergeThemeWithOptions(widgetConfig, clientOpts);
-                    
-                    // Apply theme
-                    updateStatus('Applying theme...');
-                    applyTheme(mergedTheme);
-                    
-                    // Small delay to show the loading state
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    // Render the widget interface
-                    renderWidget(widgetConfig, mergedTheme, widgetConfig.user);
+                    // Check if this is preview mode
+                    if (params.siteKey === 'preview-key') {
+                        // Preview mode - use client options directly
+                        updateStatus('Loading preview...');
+                        
+                        widgetConfig = {
+                            id: 'preview',
+                            name: 'Widget Preview',
+                            site_key: 'preview-key',
+                            theme: {
+                                color_primary: clientOpts.colorPrimary || '#007bff',
+                                text_color: clientOpts.textColor || '#333333',
+                                logo_url: clientOpts.logoUrl || '',
+                                welcome_text: clientOpts.welcomeText || 'Hello! How can I help you today?'
+                            }
+                        };
+                        
+                        const mergedTheme = mergeThemeWithOptions(widgetConfig, clientOpts);
+                        applyTheme(mergedTheme);
+                        
+                        // Small delay to show the loading state
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        
+                        // Render the widget interface
+                        renderWidget(widgetConfig, mergedTheme, null);
+                        
+                    } else {
+                        // Production mode - fetch from server
+                        if (!params.origin) {
+                            renderError(new Error('Missing origin parameter'), false);
+                            return;
+                        }
+                        
+                        // Update loading status
+                        updateStatus('Verifying permissions...');
+                        
+                        // Fetch configuration from server
+                        widgetConfig = await fetchWidgetConfig(params.siteKey, params.origin, params.userId, params.timestamp, params.signature);
+                        
+                        // Merge theme with client options
+                        const mergedTheme = mergeThemeWithOptions(widgetConfig, clientOpts);
+                        
+                        // Apply theme
+                        updateStatus('Applying theme...');
+                        applyTheme(mergedTheme);
+                        
+                        // Small delay to show the loading state
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        // Render the widget interface
+                        renderWidget(widgetConfig, mergedTheme, widgetConfig.user);
+                    }
                     
                 } catch (error) {
                     console.error('Widget initialization failed:', error);
