@@ -41,7 +41,11 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     showBadge: true,
     enableEvents: false,
     userIdentification: false,
-    programmaticControl: false
+    programmaticControl: false,
+    debugMode: false,
+    autoCloseTimer: false,
+    customCssClasses: false,
+    disableAnimations: false
   });
 
   // Size control options
@@ -257,7 +261,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                     Advanced Options
                   </Label>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="standardMode"
@@ -355,6 +359,58 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                     />
                     <Label htmlFor="programmaticControl" className="font-normal text-sm">
                       Programmatic Control
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="debugMode"
+                      checked={advancedOptions.debugMode}
+                      onCheckedChange={(checked) =>
+                        setAdvancedOptions(prev => ({ ...prev, debugMode: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="debugMode" className="font-normal text-sm">
+                      Debug Mode
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="autoCloseTimer"
+                      checked={advancedOptions.autoCloseTimer}
+                      onCheckedChange={(checked) =>
+                        setAdvancedOptions(prev => ({ ...prev, autoCloseTimer: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="autoCloseTimer" className="font-normal text-sm">
+                      Auto-close Timer
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="customCssClasses"
+                      checked={advancedOptions.customCssClasses}
+                      onCheckedChange={(checked) =>
+                        setAdvancedOptions(prev => ({ ...prev, customCssClasses: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="customCssClasses" className="font-normal text-sm">
+                      Custom CSS Classes
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="disableAnimations"
+                      checked={advancedOptions.disableAnimations}
+                      onCheckedChange={(checked) =>
+                        setAdvancedOptions(prev => ({ ...prev, disableAnimations: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="disableAnimations" className="font-normal text-sm">
+                      Disable Animations
                     </Label>
                   </div>
                 </div>
