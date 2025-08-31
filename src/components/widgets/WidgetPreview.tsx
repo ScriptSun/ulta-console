@@ -431,32 +431,6 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
               </div>
             </div>
 
-            {/* Theme Info Overlay */}
-            <div className="absolute top-4 left-4 z-10">
-              <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-sm">
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <div>
-                    <span className="font-medium">View:</span> {viewMode}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Theme:</span>
-                    <div 
-                      className="w-3 h-3 rounded border"
-                      style={{ backgroundColor: config.theme.color_primary }}
-                    ></div>
-                    <span className="text-xs">{config.theme.color_primary}</span>
-                  </div>
-                  {config.theme.logo_url && (
-                    <div>
-                      <span className="font-medium">Logo:</span> ✓
-                    </div>
-                  )}
-                  <div>
-                    <span className="font-medium">Name:</span> {config.name}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Preview Note */}
