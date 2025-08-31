@@ -20,11 +20,55 @@
   }
   
   function createWidgetHTML(config) {
+    console.log('🤖 UltaAI Widget - Creating widget HTML with config:', config);
+    
+    // Calculate positioning based on config.position
+    let positionStyles = '';
+    switch(config.position) {
+      case 'center':
+        positionStyles = `
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+        `;
+        break;
+      case 'top-left':
+        positionStyles = `
+          top: 20px;
+          left: 20px;
+        `;
+        break;
+      case 'top-right':
+        positionStyles = `
+          top: 20px;
+          right: 20px;
+        `;
+        break;
+      case 'bottom-left':
+        positionStyles = `
+          bottom: 20px;
+          left: 20px;
+        `;
+        break;
+      case 'bottom-right':
+      default:
+        positionStyles = `
+          bottom: 20px;
+          right: 20px;
+        `;
+        break;
+    }
+
+    // Get custom dimensions or use defaults
+    const chatWidth = config.width || '350px';
+    const chatHeight = config.height || '500px';
+    
+    console.log('🤖 UltaAI Widget - Using dimensions:', { width: chatWidth, height: chatHeight, position: config.position });
+
     return `
       <div id="${config.containerId}" class="ultaai-widget-container" style="
         position: fixed;
-        bottom: 20px;
-        right: 20px;
+        ${positionStyles}
         z-index: 2147483647;
         font-family: system-ui, -apple-system, sans-serif;
       ">
@@ -41,6 +85,7 @@
           align-items: center;
           justify-content: center;
           transition: all 0.3s ease;
+          ${config.position === 'center' ? 'display: none;' : ''}
         ">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: white;">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4v3c0 .6.4 1 1 1h.5c.2 0 .5-.1.7-.3L14.5 18H20c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" fill="currentColor"/>
@@ -49,15 +94,17 @@
         
         <!-- Widget Chat Interface -->
         <div id="${config.chatId}" class="ultaai-chat" style="
-          position: absolute;
-          bottom: 80px;
-          right: 0;
-          width: 350px;
-          height: 500px;
+          position: ${config.position === 'center' ? 'fixed' : 'absolute'};
+          ${config.position === 'center' ? `${positionStyles}` : `
+            bottom: 80px;
+            right: 0;
+          `}
+          width: ${chatWidth};
+          height: ${chatHeight};
           background: white;
           border-radius: 12px;
           box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-          display: none;
+          display: ${config.autoOpen ? 'flex' : 'none'};
           flex-direction: column;
           overflow: hidden;
         ">
@@ -153,6 +200,8 @@
   
   // Widget functionality
   function createWidget(siteKey, options = {}) {
+    console.log('🤖 UltaAI Widget - Creating widget with options:', options);
+    
     const widgetId = generateId();
     const config = {
       widgetId,
@@ -165,25 +214,45 @@
       inputId: widgetId + '-input',
       sendId: widgetId + '-send',
       theme: options.theme || {},
-      position: options.position || 'bottom-right'
+      position: options.position || 'bottom-right',
+      width: options.width || '350px',
+      height: options.height || '500px',
+      autoOpen: options.autoOpen || false
     };
     
-    // Create and inject widget HTML
-    const widgetContainer = document.createElement('div');
-    widgetContainer.innerHTML = createWidgetHTML(config);
-    document.body.appendChild(widgetContainer.firstElementChild);
+    console.log('🤖 UltaAI Widget - Widget config created:', config);
     
-    // Add event listeners
-    setupWidgetEvents(config);
-    
-    // Store instance
-    widgetInstances[widgetId] = {
-      config,
-      isOpen: false,
-      messages: []
-    };
-    
-    return widgetId;
+    try {
+      // Create and inject widget HTML
+      const widgetContainer = document.createElement('div');
+      widgetContainer.innerHTML = createWidgetHTML(config);
+      const widgetElement = widgetContainer.firstElementChild;
+      
+      if (!widgetElement) {
+        throw new Error('Failed to create widget HTML element');
+      }
+      
+      document.body.appendChild(widgetElement);
+      console.log('🤖 UltaAI Widget - Widget HTML injected into DOM');
+      
+      // Add event listeners
+      setupWidgetEvents(config);
+      console.log('🤖 UltaAI Widget - Event listeners attached');
+      
+      // Store instance
+      widgetInstances[widgetId] = {
+        config,
+        isOpen: config.autoOpen || false,
+        messages: []
+      };
+      
+      console.log('🤖 UltaAI Widget - Widget instance stored:', widgetId);
+      
+      return widgetId;
+    } catch (error) {
+      console.error('🤖 UltaAI Widget - Error creating widget:', error);
+      throw error;
+    }
   }
   
   function setupWidgetEvents(config) {
@@ -348,22 +417,29 @@
   
   // Main load function
   window.UltaAIWidget.load = function(siteKey, options = {}) {
+    console.log('🤖 UltaAI Widget - Load function called with:', { siteKey: siteKey?.substring(0, 10) + '...', options });
+    
     if (isLoaded) {
-      console.warn('UltaAI Widget is already loaded');
+      console.warn('🤖 UltaAI Widget is already loaded');
       return;
     }
     
     if (!siteKey) {
-      console.error('UltaAI Widget: Site key is required');
+      console.error('🤖 UltaAI Widget: Site key is required');
       return;
     }
     
+    console.log('🤖 UltaAI Widget - DOM ready state:', document.readyState);
+    
     // Wait for DOM to be ready
     if (document.readyState === 'loading') {
+      console.log('🤖 UltaAI Widget - DOM loading, waiting for DOMContentLoaded');
       document.addEventListener('DOMContentLoaded', () => {
+        console.log('🤖 UltaAI Widget - DOMContentLoaded fired, initializing widget');
         initializeWidget(siteKey, options);
       });
     } else {
+      console.log('🤖 UltaAI Widget - DOM ready, initializing widget immediately');
       initializeWidget(siteKey, options);
     }
   };
