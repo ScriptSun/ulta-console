@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import RootLayout from "./components/layouts/RootLayout";
 import Dashboard from "./pages/Dashboard";
+import Users from "./pages/Users";
 import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
 import ApiKeys from "./pages/ApiKeys";
@@ -63,6 +64,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <Dashboard />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Users />
                 </RootLayout>
               </ProtectedRoute>
             } />

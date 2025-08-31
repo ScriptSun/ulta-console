@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Users } from 'lucide-react';
+import { Plus, Search, Users, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AgentsTable } from '@/components/agents/AgentsTable';
 import { AgentDetailsDrawer } from '@/components/agents/AgentDetailsDrawer';
 import { DeployAgentModal } from '@/components/agents/DeployAgentModal';
+import { AssignUserToAgentDialog } from '@/components/agents/AssignUserToAgentDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -40,6 +41,12 @@ interface Agent {
   customer_id: string;
   heartbeat?: any;
   last_heartbeat?: string;
+  user_id?: string;
+  plan_key?: string;
+  users?: {
+    email: string;
+    full_name: string | null;
+  };
 }
 
 export default function Agents() {
@@ -54,6 +61,8 @@ export default function Agents() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [deployModalOpen, setDeployModalOpen] = useState(false);
+  const [assignUserDialogOpen, setAssignUserDialogOpen] = useState(false);
+  const [agentToAssign, setAgentToAssign] = useState<Agent | null>(null);
   const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('admin');
   const [defaultTab, setDefaultTab] = useState<string>('overview');
   const { toast } = useToast();
@@ -90,7 +99,15 @@ export default function Agents() {
     try {
       const { data, error } = await supabase
         .from('agents')
-        .select('*, heartbeat, last_heartbeat')
+        .select(`
+          *, 
+          heartbeat, 
+          last_heartbeat,
+          users:user_id (
+            email,
+            full_name
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -189,6 +206,11 @@ export default function Agents() {
     setSelectedAgent(agent);
     setDefaultTab('overview');
     setDetailsOpen(true);
+  };
+
+  const handleAssignUser = (agent: Agent) => {
+    setAgentToAssign(agent);
+    setAssignUserDialogOpen(true);
   };
 
   const handleRecentTasks = (agent: Agent) => {
@@ -436,6 +458,19 @@ export default function Agents() {
       <DeployAgentModal
         isOpen={deployModalOpen}
         onClose={() => setDeployModalOpen(false)}
+      />
+
+      <AssignUserToAgentDialog
+        agent={agentToAssign}
+        open={assignUserDialogOpen}
+        onOpenChange={setAssignUserDialogOpen}
+        onSuccess={() => {
+          fetchAgents();
+          toast({
+            title: 'Success',
+            description: 'User assigned to agent successfully',
+          });
+        }}
       />
     </div>
   );

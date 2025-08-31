@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { MoreHorizontal, Play, Pause, Square, Trash2, FileText, Settings, AlertTriangle, Clock, MessageCircle } from 'lucide-react';
+import { MoreHorizontal, Play, Pause, Square, Trash2, FileText, Settings, AlertTriangle, Clock, MessageCircle, User, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +34,12 @@ interface Agent {
   memory_usage: number;
   tasks_completed: number;
   certificate_fingerprint?: string;
+  user_id?: string;
+  plan_key?: string;
+  users?: {
+    email: string;
+    full_name: string | null;
+  };
 }
 
 interface AgentsTableProps {
@@ -118,6 +124,8 @@ export function AgentsTable({
             <TableHead>Server / Hostname</TableHead>
             <TableHead>Agent ID</TableHead>
             <TableHead>Hash ID</TableHead>
+            <TableHead>User</TableHead>
+            <TableHead>Plan</TableHead>
             <TableHead>IP Address</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>OS</TableHead>
@@ -145,6 +153,27 @@ export function AgentsTable({
                 <code className="text-xs bg-muted px-1 py-0.5 rounded">
                   {getHashId(agent.certificate_fingerprint)}
                 </code>
+              </TableCell>
+              <TableCell>
+                {agent.users ? (
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{agent.users.full_name || 'Unnamed User'}</span>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Mail className="h-3 w-3" />
+                      {agent.users.email}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <User className="h-3 w-3" />
+                    No user assigned
+                  </div>
+                )}
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" className="text-xs">
+                  {agent.plan_key || 'No Plan'}
+                </Badge>
               </TableCell>
               <TableCell>{agent.ip_address || 'N/A'}</TableCell>
               <TableCell>{getStatusBadge(agent.status)}</TableCell>
