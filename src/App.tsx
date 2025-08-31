@@ -157,7 +157,7 @@ const App = () => (
                 </RootLayout>
               </ProtectedRoute>
             } />
-            <Route path="/team-management" element={
+            <Route path="/access-control" element={
               <ProtectedRoute>
                 <RootLayout>
                   <TeamManagement />
