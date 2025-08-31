@@ -43,6 +43,13 @@ export function usePagePermissions() {
 
       if (pagesError) throw pagesError;
 
+      // Get all role templates
+      const { data: roleTemplates, error: templatesError } = await supabase
+        .from('console_role_templates')
+        .select('*');
+
+      if (templatesError) throw templatesError;
+
       // Aggregate permissions across all teams
       const aggregatedPermissions: PagePermissions = {};
 
@@ -59,37 +66,31 @@ export function usePagePermissions() {
       memberships?.forEach(membership => {
         const memberPermissions = membership.console_member_page_perms || [];
         
-        // Special handling for Owner and Admin roles - they get default access
-        if (membership.role === 'Owner' || membership.role === 'Admin') {
-          pages?.forEach(page => {
-            // If no explicit permission set, give default access
-            const explicitPerm = memberPermissions.find(p => p.page_key === page.key);
-            if (!explicitPerm) {
+        pages?.forEach(page => {
+          // Check for explicit permission first
+          const explicitPerm = memberPermissions.find(p => p.page_key === page.key);
+          
+          if (explicitPerm) {
+            // Use explicit permission
+            const current = aggregatedPermissions[page.key];
+            aggregatedPermissions[page.key] = {
+              can_view: current.can_view || explicitPerm.can_view,
+              can_edit: current.can_edit || explicitPerm.can_edit,
+              can_delete: current.can_delete || explicitPerm.can_delete
+            };
+          } else {
+            // Fall back to role template
+            const template = roleTemplates?.find(t => t.role === membership.role && t.page_key === page.key);
+            if (template) {
+              const current = aggregatedPermissions[page.key];
               aggregatedPermissions[page.key] = {
-                can_view: true,
-                can_edit: true,
-                can_delete: true
-              };
-            } else {
-              // Use explicit permissions but ensure Owner/Admin get at least view access
-              aggregatedPermissions[page.key] = {
-                can_view: explicitPerm.can_view || true,
-                can_edit: explicitPerm.can_edit || (membership.role === 'Owner'),
-                can_delete: explicitPerm.can_delete || (membership.role === 'Owner')
+                can_view: current.can_view || template.can_view,
+                can_edit: current.can_edit || template.can_edit,
+                can_delete: current.can_delete || template.can_delete
               };
             }
-          });
-        } else {
-          // For other roles, use explicit permissions or defaults
-          memberPermissions.forEach(perm => {
-            const current = aggregatedPermissions[perm.page_key];
-            aggregatedPermissions[perm.page_key] = {
-              can_view: current.can_view || perm.can_view,
-              can_edit: current.can_edit || perm.can_edit,
-              can_delete: current.can_delete || perm.can_delete
-            };
-          });
-        }
+          }
+        });
       });
 
       return aggregatedPermissions;

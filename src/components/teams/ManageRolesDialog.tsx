@@ -78,19 +78,29 @@ export function ManageRolesDialog({ open, onOpenChange, team }: ManageRolesDialo
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ memberId, newRole }: { memberId: string; newRole: typeof ROLES[number] }) => {
-      const { error } = await supabase
+      // Update the member's role
+      const { error: roleError } = await supabase
         .from('console_team_members')
         .update({ role: newRole })
         .eq('id', memberId);
 
-      if (error) throw error;
+      if (roleError) throw roleError;
+
+      // Apply role template permissions for the new role
+      const { error: templateError } = await supabase.rpc('apply_role_template_permissions', {
+        _member_id: memberId,
+        _role: newRole
+      });
+
+      if (templateError) throw templateError;
     },
     onSuccess: () => {
       toast({
         title: 'Success',
-        description: 'Member role updated successfully',
+        description: 'Member role updated and permissions applied successfully',
       });
       queryClient.invalidateQueries({ queryKey: ['console-team-members'] });
+      queryClient.invalidateQueries({ queryKey: ['console-member-page-perms'] });
     },
     onError: (error: any) => {
       toast({

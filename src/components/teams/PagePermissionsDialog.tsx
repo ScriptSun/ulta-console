@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Eye, Edit, Trash2 } from 'lucide-react';
+import { Shield, Eye, Edit, Trash2, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface PagePermissionsDialogProps {
@@ -32,7 +32,7 @@ export function PagePermissionsDialog({ open, onOpenChange, member, currentUserR
 
   const canEdit = ['Owner', 'Admin'].includes(currentUserRole);
 
-  // Fetch all pages
+  // Fetch all pages and role templates
   const { data: pages } = useQuery({
     queryKey: ['console-pages'],
     queryFn: async () => {
@@ -44,6 +44,23 @@ export function PagePermissionsDialog({ open, onOpenChange, member, currentUserR
       if (error) throw error;
       return data;
     }
+  });
+
+  // Fetch role templates for the member's role
+  const { data: roleTemplates } = useQuery({
+    queryKey: ['console-role-templates', member?.role],
+    queryFn: async () => {
+      if (!member?.role) return [];
+      
+      const { data, error } = await supabase
+        .from('console_role_templates')
+        .select('*')
+        .eq('role', member.role);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!member?.role
   });
 
   // Fetch current permissions for the member
@@ -65,23 +82,25 @@ export function PagePermissionsDialog({ open, onOpenChange, member, currentUserR
 
   // Initialize permissions state when data loads
   useEffect(() => {
-    if (pages && currentPermissions) {
+    if (pages && roleTemplates) {
       const permissionsMap: Record<string, PagePermission> = {};
       
       pages.forEach(page => {
-        const existingPerm = currentPermissions.find(p => p.page_key === page.key);
+        const existingPerm = currentPermissions?.find(p => p.page_key === page.key);
+        const template = roleTemplates.find(t => t.page_key === page.key);
+        
         permissionsMap[page.key] = {
           id: existingPerm?.id,
           page_key: page.key,
-          can_view: existingPerm?.can_view ?? true,
-          can_edit: existingPerm?.can_edit ?? false,
-          can_delete: existingPerm?.can_delete ?? false,
+          can_view: existingPerm?.can_view ?? template?.can_view ?? false,
+          can_edit: existingPerm?.can_edit ?? template?.can_edit ?? false,
+          can_delete: existingPerm?.can_delete ?? template?.can_delete ?? false,
         };
       });
       
       setPermissions(permissionsMap);
     }
-  }, [pages, currentPermissions]);
+  }, [pages, currentPermissions, roleTemplates]);
 
   // Save permissions mutation
   const savePermissionsMutation = useMutation({
@@ -122,6 +141,44 @@ export function PagePermissionsDialog({ open, onOpenChange, member, currentUserR
     }
   });
 
+  // Reset to role defaults mutation
+  const resetToDefaultsMutation = useMutation({
+    mutationFn: async () => {
+      if (!member?.id) throw new Error('No member selected');
+
+      // Delete all existing permissions for this member
+      const { error: deleteError } = await supabase
+        .from('console_member_page_perms')
+        .delete()
+        .eq('member_id', member.id);
+
+      if (deleteError) throw deleteError;
+
+      // Apply role template permissions
+      const { error: applyError } = await supabase.rpc('apply_role_template_permissions', {
+        _member_id: member.id,
+        _role: member.role
+      });
+
+      if (applyError) throw applyError;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Reset to defaults",
+        description: "Permissions have been reset to role defaults.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['console-member-page-perms'] });
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to reset permissions",
+        description: error.message || "There was an error resetting permissions.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const updatePermission = (pageKey: string, field: keyof Omit<PagePermission, 'id' | 'page_key'>, value: boolean) => {
     if (!canEdit) return;
     
@@ -145,6 +202,18 @@ export function PagePermissionsDialog({ open, onOpenChange, member, currentUserR
 
   const handleSave = () => {
     savePermissionsMutation.mutate();
+  };
+
+  const handleReset = () => {
+    resetToDefaultsMutation.mutate();
+  };
+
+  const getRoleTemplate = (pageKey: string) => {
+    return roleTemplates?.find(t => t.page_key === pageKey);
+  };
+
+  const hasOverride = (pageKey: string) => {
+    return currentPermissions?.some(p => p.page_key === pageKey);
   };
 
   if (isLoading) {
@@ -175,15 +244,55 @@ export function PagePermissionsDialog({ open, onOpenChange, member, currentUserR
         </DialogHeader>
 
         <div className="space-y-4 max-h-96 overflow-y-auto">
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                Role: {member?.role}
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                Showing permissions with role defaults
+              </span>
+            </div>
+            {canEdit && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleReset}
+                disabled={resetToDefaultsMutation.isPending}
+                className="gap-1"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset to role defaults
+              </Button>
+            )}
+          </div>
+
           {pages?.map((page) => {
             const perm = permissions[page.key];
+            const template = getRoleTemplate(page.key);
+            const isOverridden = hasOverride(page.key);
+            
             if (!perm) return null;
 
             return (
               <div key={page.key} className="flex items-center justify-between p-4 border border-border rounded-lg bg-card/30">
                 <div className="flex-1">
-                  <h4 className="font-medium">{page.label}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium">{page.label}</h4>
+                    {isOverridden && (
+                      <Badge variant="secondary" className="text-xs">
+                        Override
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">Key: {page.key}</p>
+                  {template && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Role default: View {template.can_view ? '✓' : '✗'}, 
+                      Edit {template.can_edit ? '✓' : '✗'}, 
+                      Delete {template.can_delete ? '✓' : '✗'}
+                    </p>
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-6">
@@ -242,12 +351,23 @@ export function PagePermissionsDialog({ open, onOpenChange, member, currentUserR
             {canEdit ? 'Cancel' : 'Close'}
           </Button>
           {canEdit && (
-            <Button 
-              onClick={handleSave} 
-              disabled={savePermissionsMutation.isPending}
-            >
-              {savePermissionsMutation.isPending ? "Saving..." : "Save Changes"}
-            </Button>
+            <>
+              <Button 
+                variant="outline"
+                onClick={handleReset}
+                disabled={resetToDefaultsMutation.isPending || savePermissionsMutation.isPending}
+                className="gap-1"
+              >
+                <RotateCcw className="h-3 w-3" />
+                {resetToDefaultsMutation.isPending ? "Resetting..." : "Reset to defaults"}
+              </Button>
+              <Button 
+                onClick={handleSave} 
+                disabled={savePermissionsMutation.isPending || resetToDefaultsMutation.isPending}
+              >
+                {savePermissionsMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </>
           )}
         </DialogFooter>
       </DialogContent>
