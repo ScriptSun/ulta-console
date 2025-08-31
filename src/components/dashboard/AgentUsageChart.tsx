@@ -88,7 +88,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
     switch (chartType) {
       case 'bar':
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
@@ -157,7 +157,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
         ];
         
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={pieData}
@@ -206,7 +206,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
 
       case 'line':
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
@@ -269,7 +269,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
 
       case 'area':
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
@@ -415,7 +415,9 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
 
         {/* Chart Area with Dark Gradient Design */}
         <div className="p-4 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 relative overflow-hidden">
-          {renderChart()}
+          <div className="w-full h-80">
+            {renderChart()}
+          </div>
           {/* Chart gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
         </div>
