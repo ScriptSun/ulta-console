@@ -313,136 +313,6 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
         <Separator />
 
-        {/* Display Mode and Advanced Options */}
-        <div className="space-y-6">
-          {/* Display Mode Radio Group */}
-          <div>
-            <div className="mb-4">
-              <Label className="text-base font-semibold">Display Mode</Label>
-              <p className="text-sm text-muted-foreground">
-                Choose how the widget appears to visitors
-              </p>
-            </div>
-            <RadioGroup
-              value={displayMode}
-              onValueChange={setDisplayMode}
-              className="grid grid-cols-2 gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="standard" id="standard" />
-                <Label htmlFor="standard" className="font-normal">
-                  Standard Mode
-                  <span className="block text-xs text-muted-foreground">
-                    Widget appears as a button
-                  </span>
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="open" id="open" />
-                <Label htmlFor="open" className="font-normal">
-                  Open Mode
-                  <span className="block text-xs text-muted-foreground">
-                    Widget opens automatically
-                  </span>
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {/* Advanced Options Checkboxes */}
-          <div>
-            <div className="mb-4">
-              <Label className="text-base font-semibold">Advanced Options</Label>
-              <p className="text-sm text-muted-foreground">
-                Select additional features for your widget
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="hideOnMobile"
-                  checked={advancedOptions.hideOnMobile}
-                  onCheckedChange={(checked) =>
-                    setAdvancedOptions(prev => ({ ...prev, hideOnMobile: checked as boolean }))
-                  }
-                />
-                <Label htmlFor="hideOnMobile" className="font-normal">
-                  Hide on Mobile
-                  <span className="block text-xs text-muted-foreground">
-                    Don't show widget on mobile devices
-                  </span>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="showBadge"
-                  checked={advancedOptions.showBadge}
-                  onCheckedChange={(checked) =>
-                    setAdvancedOptions(prev => ({ ...prev, showBadge: checked as boolean }))
-                  }
-                />
-                <Label htmlFor="showBadge" className="font-normal">
-                  Show Badge
-                  <span className="block text-xs text-muted-foreground">
-                    Display "Powered by 🤖 UltaAI" badge
-                  </span>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="enableEvents"
-                  checked={advancedOptions.enableEvents}
-                  onCheckedChange={(checked) =>
-                    setAdvancedOptions(prev => ({ ...prev, enableEvents: checked as boolean }))
-                  }
-                />
-                <Label htmlFor="enableEvents" className="font-normal">
-                  Event Handlers
-                  <span className="block text-xs text-muted-foreground">
-                    Include event tracking callbacks
-                  </span>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="userIdentification"
-                  checked={advancedOptions.userIdentification}
-                  onCheckedChange={(checked) =>
-                    setAdvancedOptions(prev => ({ ...prev, userIdentification: checked as boolean }))
-                  }
-                />
-                <Label htmlFor="userIdentification" className="font-normal">
-                  User Identification
-                  <span className="block text-xs text-muted-foreground">
-                    Include user ID and contact info
-                  </span>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2 md:col-span-2">
-                <Checkbox
-                  id="programmaticControl"
-                  checked={advancedOptions.programmaticControl}
-                  onCheckedChange={(checked) =>
-                    setAdvancedOptions(prev => ({ ...prev, programmaticControl: checked as boolean }))
-                  }
-                />
-                <Label htmlFor="programmaticControl" className="font-normal">
-                  Programmatic Control
-                  <span className="block text-xs text-muted-foreground">
-                    Include JavaScript methods to control widget
-                  </span>
-                </Label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Separator />
-
         {/* Embed Code Tabs */}
         <Tabs defaultValue="basic" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -478,6 +348,136 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
           </TabsContent>
 
           <TabsContent value="advanced" className="space-y-4">
+            {/* Display Mode and Advanced Options */}
+            <div className="space-y-6">
+              {/* Display Mode Radio Group */}
+              <div>
+                <div className="mb-4">
+                  <Label className="text-base font-semibold">Display Mode</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Choose how the widget appears to visitors
+                  </p>
+                </div>
+                <RadioGroup
+                  value={displayMode}
+                  onValueChange={setDisplayMode}
+                  className="grid grid-cols-2 gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="standard" id="standard" />
+                    <Label htmlFor="standard" className="font-normal">
+                      Standard Mode
+                      <span className="block text-xs text-muted-foreground">
+                        Widget appears as a button
+                      </span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="open" id="open" />
+                    <Label htmlFor="open" className="font-normal">
+                      Open Mode
+                      <span className="block text-xs text-muted-foreground">
+                        Widget opens automatically
+                      </span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Advanced Options Checkboxes */}
+              <div>
+                <div className="mb-4">
+                  <Label className="text-base font-semibold">Advanced Options</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Select additional features for your widget
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="hideOnMobile"
+                      checked={advancedOptions.hideOnMobile}
+                      onCheckedChange={(checked) =>
+                        setAdvancedOptions(prev => ({ ...prev, hideOnMobile: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="hideOnMobile" className="font-normal">
+                      Hide on Mobile
+                      <span className="block text-xs text-muted-foreground">
+                        Don't show widget on mobile devices
+                      </span>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="showBadge"
+                      checked={advancedOptions.showBadge}
+                      onCheckedChange={(checked) =>
+                        setAdvancedOptions(prev => ({ ...prev, showBadge: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="showBadge" className="font-normal">
+                      Show Badge
+                      <span className="block text-xs text-muted-foreground">
+                        Display "Powered by 🤖 UltaAI" badge
+                      </span>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="enableEvents"
+                      checked={advancedOptions.enableEvents}
+                      onCheckedChange={(checked) =>
+                        setAdvancedOptions(prev => ({ ...prev, enableEvents: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="enableEvents" className="font-normal">
+                      Event Handlers
+                      <span className="block text-xs text-muted-foreground">
+                        Include event tracking callbacks
+                      </span>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="userIdentification"
+                      checked={advancedOptions.userIdentification}
+                      onCheckedChange={(checked) =>
+                        setAdvancedOptions(prev => ({ ...prev, userIdentification: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="userIdentification" className="font-normal">
+                      User Identification
+                      <span className="block text-xs text-muted-foreground">
+                        Include user ID and contact info
+                      </span>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2 md:col-span-2">
+                    <Checkbox
+                      id="programmaticControl"
+                      checked={advancedOptions.programmaticControl}
+                      onCheckedChange={(checked) =>
+                        setAdvancedOptions(prev => ({ ...prev, programmaticControl: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="programmaticControl" className="font-normal">
+                      Programmatic Control
+                      <span className="block text-xs text-muted-foreground">
+                        Include JavaScript methods to control widget
+                      </span>
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
             <div>
               <Label className="text-sm font-medium">Advanced Embed Code</Label>
               <p className="text-xs text-muted-foreground mb-3">
@@ -485,159 +485,13 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
               </p>
               <div className="relative">
                 <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono">
-                  <code>{`<script src="https://preview--ultaai-console.lovable.app/sdk/v1.js"></script>
-<script>
-  // Advanced configuration with event handlers
-  UltaAIWidget.load('${widget.site_key}', {
-    // Appearance customization
-    position: 'bottom-right',
-    theme: 'auto', // 'light', 'dark', or 'auto'
-    
-    // Size and positioning
-    width: '400px',
-    height: '600px',
-    
-    // Color overrides
-    colorPrimary: '${overrides.colorPrimary}',
-    textColor: '${overrides.textColor}',
-    
-    // Custom branding
-    logoUrl: '${overrides.logoUrl || widget.theme.logo_url || ''}',
-    welcomeText: '${overrides.welcomeText || widget.theme.welcome_text || 'Hello! How can I help you?'}',
-    
-    // User identification (optional)
-    userId: 'user_12345',
-    userEmail: 'user@example.com',
-    userName: 'John Doe',
-    
-    // Advanced features
-    autoOpen: false, // Set to true to open widget on page load
-    hideOnMobile: false, // Hide widget on mobile devices
-    showBadge: true, // Show "Powered by 🤖 UltaAI" badge
-    
-    // Event handlers
-    onReady: function() {
-      console.log('🤖 UltaAI widget is ready');
-    },
-    
-    onOpen: function() {
-      console.log('Widget opened');
-      // Track widget open event
-      // gtag('event', 'widget_open', { event_category: 'engagement' });
-    },
-    
-    onClose: function() {
-      console.log('Widget closed');
-    },
-    
-    onMessage: function(message) {
-      console.log('New message:', message);
-      // Custom message handling
-    },
-    
-    onError: function(error) {
-      console.error('Widget error:', error);
-    }
-  });
-  
-  // Programmatic control (available after widget loads)
-  setTimeout(() => {
-    // Open widget programmatically
-    // UltaAIWidget.open();
-    
-    // Close widget programmatically  
-    // UltaAIWidget.close();
-    
-    // Send message programmatically
-    // UltaAIWidget.sendMessage('Hello from the website!');
-    
-    // Update user info
-    // UltaAIWidget.setUser({
-    //   userId: 'updated_user_123',
-    //   email: 'newemail@example.com',
-    //   name: 'Updated Name'
-    // });
-  }, 1000);
-</script>`}</code>
+                  <code>{generateAdvancedEmbedCode()}</code>
                 </pre>
                 <Button
                   variant="outline"
                   size="sm"
                   className="absolute top-2 right-2"
-                  onClick={() => copyToClipboard(`<script src="https://preview--ultaai-console.lovable.app/sdk/v1.js"></script>
-<script>
-  // Advanced configuration with event handlers
-  UltaAIWidget.load('${widget.site_key}', {
-    // Appearance customization
-    position: 'bottom-right',
-    theme: 'auto', // 'light', 'dark', or 'auto'
-    
-    // Size and positioning
-    width: '400px',
-    height: '600px',
-    
-    // Color overrides
-    colorPrimary: '${overrides.colorPrimary}',
-    textColor: '${overrides.textColor}',
-    
-    // Custom branding
-    logoUrl: '${overrides.logoUrl || widget.theme.logo_url || ''}',
-    welcomeText: '${overrides.welcomeText || widget.theme.welcome_text || 'Hello! How can I help you?'}',
-    
-    // User identification (optional)
-    userId: 'user_12345',
-    userEmail: 'user@example.com',
-    userName: 'John Doe',
-    
-    // Advanced features
-    autoOpen: false, // Set to true to open widget on page load
-    hideOnMobile: false, // Hide widget on mobile devices
-    showBadge: true, // Show "Powered by 🤖 UltaAI" badge
-    
-    // Event handlers
-    onReady: function() {
-      console.log('🤖 UltaAI widget is ready');
-    },
-    
-    onOpen: function() {
-      console.log('Widget opened');
-      // Track widget open event
-      // gtag('event', 'widget_open', { event_category: 'engagement' });
-    },
-    
-    onClose: function() {
-      console.log('Widget closed');
-    },
-    
-    onMessage: function(message) {
-      console.log('New message:', message);
-      // Custom message handling
-    },
-    
-    onError: function(error) {
-      console.error('Widget error:', error);
-    }
-  });
-  
-  // Programmatic control (available after widget loads)
-  setTimeout(() => {
-    // Open widget programmatically
-    // UltaAIWidget.open();
-    
-    // Close widget programmatically  
-    // UltaAIWidget.close();
-    
-    // Send message programmatically
-    // UltaAIWidget.sendMessage('Hello from the website!');
-    
-    // Update user info
-    // UltaAIWidget.setUser({
-    //   userId: 'updated_user_123',
-    //   email: 'newemail@example.com',
-    //   name: 'Updated Name'
-    // });
-  }, 1000);
-</script>`, "Advanced embed code")}
+                  onClick={() => copyToClipboard(generateAdvancedEmbedCode(), "Advanced embed code")}
                 >
                   {copiedCode === "Advanced embed code" ? (
                     <CheckCircle className="h-4 w-4" />
