@@ -335,7 +335,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" />
-          Agent Status by {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
+          Agents Status from Date range: {dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()}
         </CardTitle>
         <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
           <SelectTrigger className="w-40">
@@ -373,9 +373,6 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
               <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{totals.total}</span></span>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Date range: {dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()}
-          </p>
         </div>
         
         {renderChart()}
