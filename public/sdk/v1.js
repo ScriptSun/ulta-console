@@ -1,8 +1,8 @@
 (function() {
   'use strict';
   
-  // Create the AltaAIWidget global object
-  window.AltaAIWidget = window.AltaAIWidget || {};
+  // Create the UltaAIWidget global object
+  window.UltaAIWidget = window.UltaAIWidget || {};
   
   // Configuration
   const CONFIG = {
@@ -16,12 +16,12 @@
   
   // Utility functions
   function generateId() {
-    return 'altaai-widget-' + Math.random().toString(36).substr(2, 9);
+    return 'ultaai-widget-' + Math.random().toString(36).substr(2, 9);
   }
   
   function createWidgetHTML(config) {
     return `
-      <div id="${config.containerId}" class="altaai-widget-container" style="
+      <div id="${config.containerId}" class="ultaai-widget-container" style="
         position: fixed;
         bottom: 20px;
         right: 20px;
@@ -29,7 +29,7 @@
         font-family: system-ui, -apple-system, sans-serif;
       ">
         <!-- Widget Launcher Button -->
-        <button id="${config.launcherId}" class="altaai-launcher" style="
+        <button id="${config.launcherId}" class="ultaai-launcher" style="
           width: 60px;
           height: 60px;
           border-radius: 50%;
@@ -48,7 +48,7 @@
         </button>
         
         <!-- Widget Chat Interface -->
-        <div id="${config.chatId}" class="altaai-chat" style="
+        <div id="${config.chatId}" class="ultaai-chat" style="
           position: absolute;
           bottom: 80px;
           right: 0;
@@ -62,7 +62,7 @@
           overflow: hidden;
         ">
           <!-- Chat Header -->
-          <div class="altaai-header" style="
+          <div class="ultaai-header" style="
             background: ${config.theme?.header_bg || config.theme?.color_primary || '#007bff'};
             color: ${config.theme?.header_text || 'white'};
             padding: 16px;
@@ -89,7 +89,7 @@
           </div>
           
           <!-- Chat Messages -->
-          <div id="${config.messagesId}" class="altaai-messages" style="
+          <div id="${config.messagesId}" class="ultaai-messages" style="
             flex: 1;
             padding: 16px;
             overflow-y: auto;
@@ -97,7 +97,7 @@
             flex-direction: column;
             gap: 12px;
           ">
-            <div class="altaai-message assistant" style="
+            <div class="ultaai-message assistant" style="
               background: ${config.theme?.assistant_bubble_bg || '#f1f3f4'};
               color: ${config.theme?.assistant_bubble_text || '#333'};
               padding: 12px;
@@ -110,7 +110,7 @@
           </div>
           
           <!-- Chat Input -->
-          <div class="altaai-input-area" style="
+          <div class="ultaai-input-area" style="
             padding: 16px;
             border-top: 1px solid #e0e0e0;
             display: flex;
@@ -271,7 +271,7 @@
     if (!messagesContainer) return;
     
     const messageDiv = document.createElement('div');
-    messageDiv.className = `altaai-message ${sender}`;
+    messageDiv.className = `ultaai-message ${sender}`;
     messageDiv.textContent = message;
     
     const isUser = sender === 'user';
@@ -304,12 +304,12 @@
     
     const typingDiv = document.createElement('div');
     typingDiv.id = `${widgetId}-typing`;
-    typingDiv.className = 'altaai-message assistant typing';
+    typingDiv.className = 'ultaai-message assistant typing';
     typingDiv.innerHTML = `
       <div style="display: flex; gap: 4px; align-items: center;">
-        <div style="width: 8px; height: 8px; background: #999; border-radius: 50%; animation: altaai-typing 1.4s infinite ease-in-out;"></div>
-        <div style="width: 8px; height: 8px; background: #999; border-radius: 50%; animation: altaai-typing 1.4s infinite ease-in-out 0.2s;"></div>
-        <div style="width: 8px; height: 8px; background: #999; border-radius: 50%; animation: altaai-typing 1.4s infinite ease-in-out 0.4s;"></div>
+        <div style="width: 8px; height: 8px; background: #999; border-radius: 50%; animation: ultaai-typing 1.4s infinite ease-in-out;"></div>
+        <div style="width: 8px; height: 8px; background: #999; border-radius: 50%; animation: ultaai-typing 1.4s infinite ease-in-out 0.2s;"></div>
+        <div style="width: 8px; height: 8px; background: #999; border-radius: 50%; animation: ultaai-typing 1.4s infinite ease-in-out 0.4s;"></div>
       </div>
     `;
     typingDiv.style.cssText = `
@@ -326,11 +326,11 @@
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     
     // Add CSS animation if not already added
-    if (!document.getElementById('altaai-styles')) {
+    if (!document.getElementById('ultaai-styles')) {
       const style = document.createElement('style');
-      style.id = 'altaai-styles';
+      style.id = 'ultaai-styles';
       style.textContent = `
-        @keyframes altaai-typing {
+        @keyframes ultaai-typing {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
           30% { transform: translateY(-10px); opacity: 1; }
         }
@@ -347,14 +347,14 @@
   }
   
   // Main load function
-  window.AltaAIWidget.load = function(siteKey, options = {}) {
+  window.UltaAIWidget.load = function(siteKey, options = {}) {
     if (isLoaded) {
-      console.warn('AltaAI Widget is already loaded');
+      console.warn('UltaAI Widget is already loaded');
       return;
     }
     
     if (!siteKey) {
-      console.error('AltaAI Widget: Site key is required');
+      console.error('UltaAI Widget: Site key is required');
       return;
     }
     
@@ -382,19 +382,19 @@
             
             createWidget(siteKey, mergedOptions);
             isLoaded = true;
-            console.log('AltaAI Widget loaded successfully');
+            console.log('UltaAI Widget loaded successfully');
           } else {
-            console.error('AltaAI Widget: Invalid site key or widget not found');
+            console.error('UltaAI Widget: Invalid site key or widget not found');
           }
         })
         .catch(error => {
-          console.error('AltaAI Widget: Failed to load configuration', error);
+          console.error('UltaAI Widget: Failed to load configuration', error);
           // Fallback: create widget with basic configuration
           createWidget(siteKey, options);
           isLoaded = true;
         });
     } catch (error) {
-      console.error('AltaAI Widget: Initialization failed', error);
+      console.error('UltaAI Widget: Initialization failed', error);
     }
   }
   
@@ -406,7 +406,7 @@
       domain: window.location.origin
     };
     
-    console.log('AltaAI Widget - Fetching config:', { apiUrl, requestData });
+    console.log('UltaAI Widget - Fetching config:', { apiUrl, requestData });
     
     try {
       const response = await fetch(apiUrl, {
@@ -417,7 +417,7 @@
         body: JSON.stringify(requestData)
       });
       
-      console.log('AltaAI Widget - API response:', {
+      console.log('UltaAI Widget - API response:', {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok
@@ -425,12 +425,12 @@
       
       if (response.ok) {
         const data = await response.json();
-        console.log('AltaAI Widget - Response data:', data);
+        console.log('UltaAI Widget - Response data:', data);
         
         if (data.success) {
           return data.widget;
         } else {
-          console.error('AltaAI Widget - API returned error:', {
+          console.error('UltaAI Widget - API returned error:', {
             error: data.error,
             code: data.code,
             details: data.details || data
@@ -439,14 +439,14 @@
         }
       } else {
         const errorText = await response.text();
-        console.error('AltaAI Widget - HTTP error:', {
+        console.error('UltaAI Widget - HTTP error:', {
           status: response.status,
           statusText: response.statusText,
           body: errorText
         });
       }
     } catch (error) {
-      console.error('AltaAI Widget - Network/fetch error:', {
+      console.error('UltaAI Widget - Network/fetch error:', {
         name: error.name,
         message: error.message,
         stack: error.stack
@@ -458,22 +458,22 @@
   
   // Auto-load widget if data attributes are present
   function autoLoad() {
-    const script = document.querySelector('script[data-altaai-site-key]');
+    const script = document.querySelector('script[data-ultaai-site-key]');
     if (script) {
-      const siteKey = script.getAttribute('data-altaai-site-key');
+      const siteKey = script.getAttribute('data-ultaai-site-key');
       const options = {};
       
       // Parse data attributes
       const attrs = script.attributes;
       for (let i = 0; i < attrs.length; i++) {
         const attr = attrs[i];
-        if (attr.name.startsWith('data-altaai-') && attr.name !== 'data-altaai-site-key') {
-          const key = attr.name.replace('data-altaai-', '').replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+        if (attr.name.startsWith('data-ultaai-') && attr.name !== 'data-ultaai-site-key') {
+          const key = attr.name.replace('data-ultaai-', '').replace(/-([a-z])/g, (g) => g[1].toUpperCase());
           options[key] = attr.value;
         }
       }
       
-      window.AltaAIWidget.load(siteKey, options);
+      window.UltaAIWidget.load(siteKey, options);
     }
   }
   
@@ -485,7 +485,7 @@
   }
   
   // Expose utility functions
-  window.AltaAIWidget.destroy = function(widgetId) {
+  window.UltaAIWidget.destroy = function(widgetId) {
     if (widgetId && widgetInstances[widgetId]) {
       const container = document.getElementById(widgetInstances[widgetId].config.containerId);
       if (container) container.remove();
@@ -501,7 +501,7 @@
     }
   };
   
-  window.AltaAIWidget.show = function(widgetId) {
+  window.UltaAIWidget.show = function(widgetId) {
     Object.keys(widgetInstances).forEach(id => {
       if (!widgetId || id === widgetId) {
         toggleChat(id);
@@ -509,7 +509,7 @@
     });
   };
   
-  window.AltaAIWidget.hide = function(widgetId) {
+  window.UltaAIWidget.hide = function(widgetId) {
     Object.keys(widgetInstances).forEach(id => {
       if (!widgetId || id === widgetId) {
         closeChat(id);

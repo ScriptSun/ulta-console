@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AltaAI Widget SDK Example</title>
+    <title>UltaAI Widget SDK Example</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -125,14 +125,14 @@
 </head>
 <body>
     <div class="container">
-        <h1>🤖 AltaAI Widget SDK Example</h1>
+        <h1>🤖 UltaAI Widget SDK Example</h1>
         
         <div class="example-section">
             <h3>📋 Basic Usage</h3>
             <p>Load the SDK and initialize with your site key:</p>
             <pre><code>&lt;script src="/sdk/v1.js"&gt;&lt;/script&gt;
 &lt;script&gt;
-  AltaAIWidget.load('your-site-key-here', {
+  UltaAIWidget.load('your-site-key-here', {
     position: 'bottom-right',
     width: '400px',
     height: '600px'
@@ -210,17 +210,17 @@
             <p>You can also auto-load the widget using data attributes on the script tag:</p>
             <pre><code>&lt;script 
   src="/sdk/v1.js"
-  data-altaai-site-key="your-site-key"
-  data-altaai-position="bottom-right"
-  data-altaai-width="400px"
-  data-altaai-height="600px"
-  data-altaai-colorprimary="#007bff"
+  data-ultaai-site-key="your-site-key"
+  data-ultaai-position="bottom-right"
+  data-ultaai-width="400px"
+  data-ultaai-height="600px"
+  data-ultaai-colorprimary="#007bff"
 &gt;&lt;/script&gt;</code></pre>
         </div>
         
         <div class="example-section">
             <h3>📖 API Reference</h3>
-            <p><strong>AltaAIWidget.load(siteKey, opts)</strong></p>
+            <p><strong>UltaAIWidget.load(siteKey, opts)</strong></p>
             <ul>
                 <li><code>siteKey</code> (string, required): Your widget's site key</li>
                 <li><code>opts</code> (object, optional): Configuration options</li>
@@ -241,9 +241,9 @@
             
             <p><strong>Other Methods:</strong></p>
             <ul>
-                <li><code>AltaAIWidget.unload()</code>: Remove the widget</li>
-                <li><code>AltaAIWidget.isLoaded()</code>: Check if widget is loaded</li>
-                <li><code>AltaAIWidget.updateOptions(siteKey, opts)</code>: Update widget options</li>
+                <li><code>UltaAIWidget.unload()</code>: Remove the widget</li>
+                <li><code>UltaAIWidget.isLoaded()</code>: Check if widget is loaded</li>
+                <li><code>UltaAIWidget.updateOptions(siteKey, opts)</code>: Update widget options</li>
             </ul>
         </div>
     </div>
@@ -278,7 +278,7 @@
             };
             
             try {
-                AltaAIWidget.load(siteKey, opts);
+                UltaAIWidget.load(siteKey, opts);
                 showStatus('Widget loaded successfully! Check the corner of your screen.');
             } catch (error) {
                 showStatus('Failed to load widget: ' + error.message, 'error');
@@ -286,7 +286,7 @@
         }
         
         function unloadWidget() {
-            AltaAIWidget.unload();
+            UltaAIWidget.unload();
             showStatus('Widget unloaded successfully.');
         }
         
@@ -308,7 +308,7 @@
             
             const code = `<script src="/sdk/v1.js"></script>
 <script>
-AltaAIWidget.load('${siteKey}', ${JSON.stringify(opts, null, 2)});
+UltaAIWidget.load('${siteKey}', ${JSON.stringify(opts, null, 2)});
 </script>`;
             
             const codeEl = document.getElementById('generatedCode');

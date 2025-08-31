@@ -496,7 +496,7 @@ const QAChecklist = () => {
     updateTestResult(suiteIndex, 0, { 
       status: 'pass', 
       message: 'SDK load test simulated',
-      details: 'Would test if window.AltaAIWidget is available after SDK load'
+      details: 'Would test if window.UltaAIWidget is available after SDK load'
     });
     
     await sleep(200);

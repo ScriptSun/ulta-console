@@ -59,7 +59,7 @@ const WidgetDeploymentChecklist = () => {
           title: "Configure CDN for Widget SDK",
           description: "Set up CDN path with cache busting for the widget SDK",
           critical: true,
-          code: "https://cdn.altaai.com/sdk/v1.js?v=20241201"
+          code: "https://cdn.ultaai.com/sdk/v1.js?v=20241201"
         },
         {
           id: "cdn-headers",
@@ -75,9 +75,9 @@ Access-Control-Allow-Origin: *`
           title: "Update SDK References",
           description: "Update all documentation and examples to use CDN URL",
           critical: true,
-          code: `<script src="https://cdn.altaai.com/sdk/v1.js?v=20241201"></script>
+          code: `<script src="https://cdn.ultaai.com/sdk/v1.js?v=20241201"></script>
 <script>
-  AltaAIWidget.load('your-site-key', { /* options */ });
+  UltaAIWidget.load('your-site-key', { /* options */ });
 </script>`
         }
       ]
@@ -88,33 +88,33 @@ Access-Control-Allow-Origin: *`
         {
           id: "widget-domain",
           title: "Set up Widget Subdomain",
-          description: "Configure widget.altaai.com for widget hosting",
+          description: "Configure widget.ultaai.com for widget hosting",
           critical: true,
-          code: "widget.altaai.com → 185.158.133.1"
+          code: "widget.ultaai.com → 185.158.133.1"
         },
         {
           id: "dns-records",
           title: "Configure DNS Records",
           description: "Set up A records for widget subdomain",
           critical: true,
-          code: `A     widget.altaai.com    185.158.133.1
-CNAME www.widget.altaai.com widget.altaai.com`
+          code: `A     widget.ultaai.com    185.158.133.1
+CNAME www.widget.ultaai.com widget.ultaai.com`
         },
         {
           id: "ssl-cert",
           title: "Verify SSL Certificate",
           description: "Ensure SSL certificate covers widget subdomain",
           critical: true,
-          url: "https://widget.altaai.com"
+          url: "https://widget.ultaai.com"
         },
         {
           id: "update-endpoints",
           title: "Update API Endpoints",
           description: "Point widget API calls to widget subdomain",
           critical: true,
-          code: `Widget API: https://widget.altaai.com/supabase/functions/v1/widget-api
-Analytics: https://widget.altaai.com/supabase/functions/v1/widget-analytics
-Frame URL: https://widget.altaai.com/widget/frame.html`
+          code: `Widget API: https://widget.ultaai.com/supabase/functions/v1/widget-api
+Analytics: https://widget.ultaai.com/supabase/functions/v1/widget-analytics
+Frame URL: https://widget.ultaai.com/widget/frame.html`
         }
       ]
     },
@@ -124,25 +124,25 @@ Frame URL: https://widget.altaai.com/widget/frame.html`
         {
           id: "widget-csp",
           title: "Configure Widget Domain CSP",
-          description: "Set minimal CSP headers for widget.altaai.com",
+          description: "Set minimal CSP headers for widget.ultaai.com",
           critical: true,
           code: `Content-Security-Policy: 
-  default-src 'self' https://widget.altaai.com;
-  script-src 'self' 'unsafe-inline' https://cdn.altaai.com https://widget.altaai.com;
-  style-src 'self' 'unsafe-inline' https://widget.altaai.com;
-  font-src 'self' https://widget.altaai.com data:;
+  default-src 'self' https://widget.ultaai.com;
+  script-src 'self' 'unsafe-inline' https://cdn.ultaai.com https://widget.ultaai.com;
+  style-src 'self' 'unsafe-inline' https://widget.ultaai.com;
+  font-src 'self' https://widget.ultaai.com data:;
   img-src 'self' https: data:;
-  connect-src 'self' https://widget.altaai.com https://lfsdqyvvboapsyeauchm.supabase.co;
+  connect-src 'self' https://widget.ultaai.com https://lfsdqyvvboapsyeauchm.supabase.co;
   frame-ancestors *;
-  frame-src 'self' https://widget.altaai.com;`
+  frame-src 'self' https://widget.ultaai.com;`
         },
         {
           id: "main-app-csp",
           title: "Update Main App CSP",
           description: "Allow widget domain in main app CSP if needed",
           critical: false,
-          code: `frame-src 'self' https://widget.altaai.com;
-connect-src 'self' https://widget.altaai.com https://lfsdqyvvboapsyeauchm.supabase.co;`
+          code: `frame-src 'self' https://widget.ultaai.com;
+connect-src 'self' https://widget.ultaai.com https://lfsdqyvvboapsyeauchm.supabase.co;`
         },
         {
           id: "test-csp",
@@ -193,8 +193,8 @@ FROM widgets;`
           title: "Update Environment Variables",
           description: "Set production widget domain in environment",
           critical: true,
-          code: `WIDGET_DOMAIN=widget.altaai.com
-CDN_BASE_URL=https://cdn.altaai.com`
+          code: `WIDGET_DOMAIN=widget.ultaai.com
+CDN_BASE_URL=https://cdn.ultaai.com`
         }
       ]
     },
@@ -228,7 +228,7 @@ git push origin --tags`
           title: "Test Rollback Procedure",
           description: "Verify rollback works on staging environment",
           critical: true,
-          url: "https://staging-widget.altaai.com"
+          url: "https://staging-widget.ultaai.com"
         },
         {
           id: "monitor-rollback",
@@ -274,7 +274,7 @@ GROUP BY event_type;`
           title: "Check Performance Metrics",
           description: "Verify CDN is serving SDK with proper cache headers",
           critical: false,
-          url: "https://cdn.altaai.com/sdk/v1.js"
+          url: "https://cdn.ultaai.com/sdk/v1.js"
         },
         {
           id: "update-docs",
@@ -301,7 +301,7 @@ GROUP BY event_type;`
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Widget Deployment Checklist</h1>
-          <p className="text-muted-foreground">Production deployment checklist for AltaAI Widget system</p>
+          <p className="text-muted-foreground">Production deployment checklist for UltaAI Widget system</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={resetChecklist} size="sm">

@@ -78,7 +78,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     
     return `<script src="${sdkUrl}"></script>
 <script>
-  AltaAIWidget.load('${widget.site_key}');
+  UltaAIWidget.load('${widget.site_key}');
 </script>`;
   };
 
@@ -101,7 +101,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
     return `<script src="${sdkUrl}"></script>
 <script>
-  AltaAIWidget.load('${widget.site_key}'${hasOverrides ? `,
+  UltaAIWidget.load('${widget.site_key}'${hasOverrides ? `,
     ${JSON.stringify(opts, null, 4)}` : ''});
 </script>`;
   };
@@ -110,16 +110,16 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     // Use the deployed Lovable domain for the SDK URL
     const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
     const dataAttrs = [];
-    dataAttrs.push(`data-altaai-site-key="${widget.site_key}"`);
+    dataAttrs.push(`data-ultaai-site-key="${widget.site_key}"`);
     
     if (overrides.enabled) {
-      if (overrides.position !== 'bottom-right') dataAttrs.push(`data-altaai-position="${overrides.position}"`);
-      if (overrides.width !== '400px') dataAttrs.push(`data-altaai-width="${overrides.width}"`);
-      if (overrides.height !== '600px') dataAttrs.push(`data-altaai-height="${overrides.height}"`);
-      if (overrides.colorPrimary !== widget.theme.color_primary) dataAttrs.push(`data-altaai-colorprimary="${overrides.colorPrimary}"`);
-      if (overrides.textColor !== widget.theme.text_color) dataAttrs.push(`data-altaai-textcolor="${overrides.textColor}"`);
-      if (overrides.welcomeText && overrides.welcomeText !== widget.theme.welcome_text) dataAttrs.push(`data-altaai-welcometext="${overrides.welcomeText}"`);
-      if (overrides.logoUrl && overrides.logoUrl !== widget.theme.logo_url) dataAttrs.push(`data-altaai-logourl="${overrides.logoUrl}"`);
+      if (overrides.position !== 'bottom-right') dataAttrs.push(`data-ultaai-position="${overrides.position}"`);
+      if (overrides.width !== '400px') dataAttrs.push(`data-ultaai-width="${overrides.width}"`);
+      if (overrides.height !== '600px') dataAttrs.push(`data-ultaai-height="${overrides.height}"`);
+      if (overrides.colorPrimary !== widget.theme.color_primary) dataAttrs.push(`data-ultaai-colorprimary="${overrides.colorPrimary}"`);
+      if (overrides.textColor !== widget.theme.text_color) dataAttrs.push(`data-ultaai-textcolor="${overrides.textColor}"`);
+      if (overrides.welcomeText && overrides.welcomeText !== widget.theme.welcome_text) dataAttrs.push(`data-ultaai-welcometext="${overrides.welcomeText}"`);
+      if (overrides.logoUrl && overrides.logoUrl !== widget.theme.logo_url) dataAttrs.push(`data-ultaai-logourl="${overrides.logoUrl}"`);
     }
 
     return `<script src="${sdkUrl}"

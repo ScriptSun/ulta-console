@@ -104,7 +104,7 @@ const WidgetTest = () => {
 
   const embedCode = `<script src="https://lfsdqyvvboapsyeauchm.supabase.co/sdk/v1.js"></script>
 <script>
-  AltaAIWidget.load('${siteKey}');
+  UltaAIWidget.load('${siteKey}');
 </script>`;
 
   return (
