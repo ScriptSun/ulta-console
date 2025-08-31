@@ -14,9 +14,10 @@ interface WidgetEditFormProps {
   onSave: (widgetId: string | null, data: NewWidget) => Promise<void>;
   onCancel: () => void;
   saving: boolean;
+  onPreviewUpdate?: (formData: NewWidget) => void;
 }
 
-export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditFormProps) {
+export function WidgetEditForm({ widget, onSave, onCancel, saving, onPreviewUpdate }: WidgetEditFormProps) {
   const [formData, setFormData] = useState<NewWidget>({
     name: '',
     allowed_domains: [''],
@@ -29,6 +30,15 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditF
   });
   
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const updateFormData = (newData: Partial<NewWidget>) => {
+    const updatedData = { ...formData, ...newData };
+    setFormData(updatedData);
+    // Trigger preview update if callback is provided
+    if (onPreviewUpdate) {
+      onPreviewUpdate(updatedData);
+    }
+  };
 
   useEffect(() => {
     if (widget) {
@@ -140,7 +150,7 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditF
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => updateFormData({ name: e.target.value })}
               placeholder="My Chat Widget"
               className={errors.name ? 'border-destructive' : ''}
             />
@@ -213,18 +223,16 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditF
                     id="colorPrimary"
                     type="color"
                     value={formData.theme.color_primary}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      theme: { ...prev.theme, color_primary: e.target.value }
-                    }))}
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, color_primary: e.target.value }
+                    })}
                     className="w-16 h-10 p-1 border rounded"
                   />
                   <Input
                     value={formData.theme.color_primary}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      theme: { ...prev.theme, color_primary: e.target.value }
-                    }))}
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, color_primary: e.target.value }
+                    })}
                     placeholder="#007bff"
                     className="flex-1"
                   />
@@ -239,18 +247,16 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditF
                     id="textColor"
                     type="color"
                     value={formData.theme.text_color}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      theme: { ...prev.theme, text_color: e.target.value }
-                    }))}
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, text_color: e.target.value }
+                    })}
                     className="w-16 h-10 p-1 border rounded"
                   />
                   <Input
                     value={formData.theme.text_color}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      theme: { ...prev.theme, text_color: e.target.value }
-                    }))}
+                    onChange={(e) => updateFormData({
+                      theme: { ...formData.theme, text_color: e.target.value }
+                    })}
                     placeholder="#333333"
                     className="flex-1"
                   />
@@ -302,10 +308,9 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditF
               <Input
                 id="logoUrl"
                 value={formData.theme.logo_url}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  theme: { ...prev.theme, logo_url: e.target.value }
-                }))}
+                onChange={(e) => updateFormData({
+                  theme: { ...formData.theme, logo_url: e.target.value }
+                })}
                 placeholder="https://example.com/logo.png"
               />
             </div>
@@ -315,10 +320,9 @@ export function WidgetEditForm({ widget, onSave, onCancel, saving }: WidgetEditF
               <Textarea
                 id="welcomeText"
                 value={formData.theme.welcome_text}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  theme: { ...prev.theme, welcome_text: e.target.value }
-                }))}
+                onChange={(e) => updateFormData({
+                  theme: { ...formData.theme, welcome_text: e.target.value }
+                })}
                 placeholder="Hello! How can I help you today?"
                 rows={3}
               />

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useWidgets } from "../../hooks/useWidgets"
 import { Button } from "../ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog"
@@ -7,8 +8,6 @@ import { Badge } from "../ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Plus, Settings, Calendar, Copy } from "lucide-react"
 import { WidgetEditForm } from "./WidgetEditForm"
-import { WidgetPreview } from "./WidgetPreview"
-import { EmbedCodeGenerator } from "./EmbedCodeGenerator"
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "../ui/use-toast"
 import { Label } from "../ui/label"
@@ -24,8 +23,8 @@ interface Widget {
 }
 
 function WidgetList() {
+  const navigate = useNavigate()
   const { widgets, loading, createWidget, updateWidget, createdSecret, setCreatedSecret } = useWidgets()
-  const [selectedWidget, setSelectedWidget] = useState<Widget | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -39,16 +38,8 @@ function WidgetList() {
     }
   }
 
-  const handleUpdateWidget = async (widgetId: string | null, data: any) => {
-    if (selectedWidget) {
-      setSaving(true)
-      try {
-        await updateWidget(selectedWidget.id, data)
-        setSelectedWidget(null)
-      } finally {
-        setSaving(false)
-      }
-    }
+  const handleEditWidget = (widget: Widget) => {
+    navigate(`/widget-edit/${widget.id}`)
   }
 
   if (loading) {
@@ -135,7 +126,7 @@ function WidgetList() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => setSelectedWidget(widget)}
+                          onClick={() => handleEditWidget(widget)}
                         >
                           <Settings className="w-4 h-4 mr-2" />
                           Edit
@@ -148,34 +139,6 @@ function WidgetList() {
             </CardContent>
           </Card>
 
-          {selectedWidget && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <WidgetEditForm
-                  widget={selectedWidget}
-                  onSave={handleUpdateWidget}
-                  onCancel={() => setSelectedWidget(null)}
-                  saving={saving}
-                />
-              </div>
-
-              <div className="space-y-6">
-                <WidgetPreview widget={selectedWidget} />
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Embed Code</CardTitle>
-                    <CardDescription>
-                      Copy this code to your website
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <EmbedCodeGenerator widget={selectedWidget} />
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

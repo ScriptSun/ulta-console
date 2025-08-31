@@ -31,6 +31,7 @@ import Auth from "./pages/Auth";
 import AgentTasks from "./pages/AgentTasks";
 import ChatInbox from "./pages/ChatInbox";
 import WidgetGuide from "./pages/WidgetGuide";
+import WidgetEdit from "./pages/WidgetEdit";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import QAChecklist from "./pages/QAChecklist";
 import WidgetDeploymentChecklist from "./pages/WidgetDeploymentChecklist";
@@ -222,6 +223,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <WidgetGuide />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/widget-edit/:widgetId" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <WidgetEdit />
                 </RootLayout>
               </ProtectedRoute>
             } />
