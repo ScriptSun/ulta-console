@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Plus, User, Mail, Calendar, Eye, Edit, Trash2 } from 'lucide-react';
+import { Search, Mail, Calendar, Eye, Edit, Trash2, Filter, CalendarDays } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { CreateUserDialog } from '@/components/users/CreateUserDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 interface User {
   id: string;
@@ -24,11 +25,12 @@ interface User {
 export default function Users() {
   const navigate = useNavigate();
   const [searchEmail, setSearchEmail] = useState('');
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState('all');
+  const [agentCountFilter, setAgentCountFilter] = useState('all');
   const { toast } = useToast();
 
   const { data: users, isLoading, refetch } = useQuery({
-    queryKey: ['users', searchEmail],
+    queryKey: ['users', searchEmail, dateFilter, agentCountFilter],
     queryFn: async () => {
       let query = supabase
         .from('users')
@@ -41,15 +43,60 @@ export default function Users() {
         query = query.ilike('email', `%${searchEmail}%`);
       }
       
+      // Apply date filter
+      if (dateFilter !== 'all') {
+        const now = new Date();
+        let filterDate = new Date();
+        
+        switch (dateFilter) {
+          case 'today':
+            filterDate.setHours(0, 0, 0, 0);
+            query = query.gte('created_at', filterDate.toISOString());
+            break;
+          case 'week':
+            filterDate.setDate(now.getDate() - 7);
+            query = query.gte('created_at', filterDate.toISOString());
+            break;
+          case 'month':
+            filterDate.setMonth(now.getMonth() - 1);
+            query = query.gte('created_at', filterDate.toISOString());
+            break;
+          case 'year':
+            filterDate.setFullYear(now.getFullYear() - 1);
+            query = query.gte('created_at', filterDate.toISOString());
+            break;
+        }
+      }
+      
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      // Transform the data to include agent count
-      return data?.map(user => ({
+      // Transform the data to include agent count and apply agent count filter
+      let transformedData = data?.map(user => ({
         ...user,
         agent_count: user.agents?.[0]?.count || 0
       })) || [];
+      
+      // Apply agent count filter
+      if (agentCountFilter !== 'all') {
+        transformedData = transformedData.filter(user => {
+          switch (agentCountFilter) {
+            case 'none':
+              return user.agent_count === 0;
+            case 'low':
+              return user.agent_count >= 1 && user.agent_count <= 5;
+            case 'medium':
+              return user.agent_count >= 6 && user.agent_count <= 20;
+            case 'high':
+              return user.agent_count > 20;
+            default:
+              return true;
+          }
+        });
+      }
+      
+      return transformedData;
     },
   });
 
@@ -108,27 +155,12 @@ export default function Users() {
             Manage users and their access to agents and features
           </p>
         </div>
-        <CreateUserDialog 
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-          onSuccess={() => {
-            refetch();
-            toast({
-              title: 'Success',
-              description: 'User created successfully',
-            });
-          }}
-        />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Users
-          </CardTitle>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="relative flex-1 min-w-[300px]">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by email..."
@@ -137,10 +169,37 @@ export default function Users() {
                 className="pl-10"
               />
             </div>
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="date-filter" className="text-sm font-medium">Date:</Label>
+              <Select value={dateFilter} onValueChange={setDateFilter}>
+                <SelectTrigger className="w-[130px]" id="date-filter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">Past Week</SelectItem>
+                  <SelectItem value="month">Past Month</SelectItem>
+                  <SelectItem value="year">Past Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="agent-filter" className="text-sm font-medium">Agents:</Label>
+              <Select value={agentCountFilter} onValueChange={setAgentCountFilter}>
+                <SelectTrigger className="w-[130px]" id="agent-filter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Users</SelectItem>
+                  <SelectItem value="none">No Agents</SelectItem>
+                  <SelectItem value="low">1-5 Agents</SelectItem>
+                  <SelectItem value="medium">6-20 Agents</SelectItem>
+                  <SelectItem value="high">20+ Agents</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
