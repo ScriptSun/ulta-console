@@ -1215,6 +1215,41 @@ export type Database = {
         }
         Relationships: []
       }
+      console_role_templates: {
+        Row: {
+          can_delete: boolean
+          can_edit: boolean
+          can_view: boolean
+          created_at: string | null
+          page_key: string
+          role: string
+        }
+        Insert: {
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string | null
+          page_key: string
+          role: string
+        }
+        Update: {
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string | null
+          page_key?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "console_role_templates_page_key_fkey"
+            columns: ["page_key"]
+            isOneToOne: false
+            referencedRelation: "console_pages"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       console_team_members: {
         Row: {
           admin_id: string | null
@@ -2232,6 +2267,10 @@ export type Database = {
           _version: number
         }
         Returns: boolean
+      }
+      apply_role_template_permissions: {
+        Args: { _member_id: string; _role: string }
+        Returns: undefined
       }
       can_activate_in_customer: {
         Args: { _customer_id: string }
