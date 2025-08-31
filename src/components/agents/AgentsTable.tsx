@@ -150,7 +150,7 @@ export function AgentsTable({
                 <div className="font-semibold">{agent.id.slice(0, 5).toLowerCase()}@srvultahost.com</div>
               </TableCell>
               <TableCell>
-                <code className="text-xs bg-purple-100 text-purple-700 px-1 py-0.5 rounded">
+                <code className="text-xs bg-purple-500/20 text-white px-1 py-0.5 rounded">
                   {agent.id.slice(0, 8)}...
                 </code>
               </TableCell>
