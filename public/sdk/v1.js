@@ -755,35 +755,49 @@
   
   // Main load function
   window.UltaAIWidget.load = function(siteKey, options = {}) {
-    console.log('🤖 UltaAI Widget - Load function called with:', { siteKey: siteKey?.substring(0, 10) + '...', options });
+    // Emergency debug - this should ALWAYS show
+    console.log('🚨 EMERGENCY DEBUG: UltaAIWidget.load called');
+    console.log('🚨 siteKey type:', typeof siteKey, 'value:', siteKey);
+    console.log('🚨 options type:', typeof options, 'value:', options);
     
-    // Immediate debug test
-    if (options.debug) {
-      console.log('🤖 UltaAI Widget DEBUG MODE ENABLED - You should see detailed logs now');
-    }
-    
-    if (isLoaded) {
-      console.warn('🤖 UltaAI Widget is already loaded');
+    try {
+      console.log('🤖 UltaAI Widget - Load function called with:', { siteKey: siteKey?.substring(0, 10) + '...', options });
+      
+      // Immediate debug test
+      if (options && options.debug) {
+        console.log('🤖 UltaAI Widget DEBUG MODE ENABLED - You should see detailed logs now');
+      }
+    } catch (parseError) {
+      console.error('🚨 CRITICAL: Error in initial load function:', parseError);
       return;
     }
     
-    if (!siteKey) {
-      console.error('🤖 UltaAI Widget: Site key is required');
-      return;
-    }
-    
-    console.log('🤖 UltaAI Widget - DOM ready state:', document.readyState);
-    
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-      console.log('🤖 UltaAI Widget - DOM loading, waiting for DOMContentLoaded');
-      document.addEventListener('DOMContentLoaded', () => {
-        console.log('🤖 UltaAI Widget - DOMContentLoaded fired, initializing widget');
+    try {
+      if (isLoaded) {
+        console.warn('🤖 UltaAI Widget is already loaded');
+        return;
+      }
+      
+      if (!siteKey) {
+        console.error('🤖 UltaAI Widget: Site key is required');
+        return;
+      }
+      
+      console.log('🤖 UltaAI Widget - DOM ready state:', document.readyState);
+      
+      // Wait for DOM to be ready
+      if (document.readyState === 'loading') {
+        console.log('🤖 UltaAI Widget - DOM loading, waiting for DOMContentLoaded');
+        document.addEventListener('DOMContentLoaded', () => {
+          console.log('🤖 UltaAI Widget - DOMContentLoaded fired, initializing widget');
+          initializeWidget(siteKey, options);
+        });
+      } else {
+        console.log('🤖 UltaAI Widget - DOM ready, initializing widget immediately');
         initializeWidget(siteKey, options);
-      });
-    } else {
-      console.log('🤖 UltaAI Widget - DOM ready, initializing widget immediately');
-      initializeWidget(siteKey, options);
+      }
+    } catch (mainError) {
+      console.error('🚨 CRITICAL ERROR in main load logic:', mainError);
     }
   };
   
