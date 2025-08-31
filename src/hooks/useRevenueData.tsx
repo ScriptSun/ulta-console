@@ -11,6 +11,10 @@ export interface RevenueMetrics {
     date: string;
     mrr: number;
   }>;
+  churnTrend: Array<{
+    date: string;
+    churn: number;
+  }>;
   previousPeriodMrr: number;
   previousPeriodArpu: number;
   previousPeriodChurn: number;
@@ -107,6 +111,7 @@ export function useRevenueData(dateRange: DateRange) {
 
       // Fetch MRR trend for last 6 months (independent of current filter)
       const mrrTrend = [];
+      const churnTrend = [];
       for (let i = 5; i >= 0; i--) {
         const monthDate = new Date();
         monthDate.setMonth(monthDate.getMonth() - i);
@@ -118,6 +123,7 @@ export function useRevenueData(dateRange: DateRange) {
         const monthDateFormatted = formatDateForDB(monthDate);
         const nextMonthDateFormatted = formatDateForDB(nextMonthDate);
 
+        // Get MRR data for the month
         const { data: monthSubs, error: monthError } = await supabase
           .from('user_subscriptions')
           .select(`
@@ -135,9 +141,35 @@ export function useRevenueData(dateRange: DateRange) {
           return sum + planPrice;
         }, 0) || 0;
 
+        // Get churn data for the month
+        const { data: monthCancelledSubs, error: churnError } = await supabase
+          .from('user_subscriptions')
+          .select('*')
+          .eq('status', 'cancelled')
+          .gte('cancelled_at', monthDateFormatted)
+          .lt('cancelled_at', nextMonthDateFormatted);
+
+        if (churnError) throw churnError;
+
+        const { data: monthActiveSubs, error: activeError } = await supabase
+          .from('user_subscriptions')
+          .select('*')
+          .eq('status', 'active')
+          .lte('started_at', monthDateFormatted);
+
+        if (activeError) throw activeError;
+
+        const monthChurnRate = monthActiveSubs?.length ? 
+          (monthCancelledSubs?.length || 0) / monthActiveSubs.length * 100 : 0;
+
         mrrTrend.push({
           date: monthDateFormatted,
           mrr: monthMrr
+        });
+
+        churnTrend.push({
+          date: monthDateFormatted,
+          churn: monthChurnRate
         });
       }
 
@@ -168,6 +200,7 @@ export function useRevenueData(dateRange: DateRange) {
         arpu,
         churnRate,
         mrrTrend,
+        churnTrend,
         previousPeriodMrr,
         previousPeriodArpu,
         previousPeriodChurn: 0 // Simplified for now
