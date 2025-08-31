@@ -55,7 +55,7 @@ export default function UserDetail() {
   const getStatusBadge = (status: string) => {
     if (status === 'offline' || status === 'terminated') {
       return (
-        <Badge className="bg-red-100 text-red-800 border-red-200">
+        <Badge className="bg-red-500/10 text-red-300 border-red-500/20 hover:bg-red-500/20 transition-colors">
           Offline
         </Badge>
       );
