@@ -36,11 +36,11 @@ const ROLE_MAPPING = {
 const DISPLAY_ROLES = Object.keys(ROLE_MAPPING) as Array<keyof typeof ROLE_MAPPING>;
 
 const ROLE_COLORS = {
-  'Owner': 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30',
-  'Admin': 'bg-gradient-to-r from-red-600/10 to-pink-600/10 text-red-100 border border-red-500/30',
-  'Developer': 'bg-gradient-to-r from-green-600/10 to-emerald-600/10 text-green-100 border border-green-500/30',
-  'Analyst': 'bg-gradient-to-r from-blue-600/10 to-cyan-600/10 text-blue-100 border border-blue-500/30',
-  'ReadOnly': 'bg-gradient-to-r from-amber-600/10 to-yellow-600/10 text-amber-100 border border-amber-500/30',
+  'Owner': 'bg-gradient-to-r from-purple-500/20 to-violet-600/20 text-purple-200 border-purple-400/30 backdrop-blur-sm shadow-sm ring-1 ring-purple-400/20',
+  'Admin': 'bg-gradient-to-r from-rose-500/20 to-pink-600/20 text-rose-200 border-rose-400/30 backdrop-blur-sm shadow-sm ring-1 ring-rose-400/20',
+  'Developer': 'bg-gradient-to-r from-emerald-500/20 to-green-600/20 text-emerald-200 border-emerald-400/30 backdrop-blur-sm shadow-sm ring-1 ring-emerald-400/20',
+  'Analyst': 'bg-gradient-to-r from-sky-500/20 to-blue-600/20 text-sky-200 border-sky-400/30 backdrop-blur-sm shadow-sm ring-1 ring-sky-400/20',
+  'ReadOnly': 'bg-gradient-to-r from-amber-500/20 to-orange-600/20 text-amber-200 border-amber-400/30 backdrop-blur-sm shadow-sm ring-1 ring-amber-400/20',
 };
 
 // Reverse mapping for display
@@ -482,8 +482,8 @@ export default function TeamManagement() {
                         >
                           <SelectTrigger className="w-32">
                             <SelectValue>
-                              <Badge 
-                                className={ROLE_COLORS[tableUser.role as keyof typeof ROLE_COLORS]}
+                             <Badge 
+                                className={`${ROLE_COLORS[tableUser.role as keyof typeof ROLE_COLORS]} px-3 py-1 text-xs font-semibold rounded-full transition-all duration-200 hover:scale-105`}
                                 variant="outline"
                               >
                                 {tableUser.role}
@@ -494,7 +494,7 @@ export default function TeamManagement() {
                             {DISPLAY_ROLES.map((role) => (
                               <SelectItem key={role} value={role}>
                                 <Badge 
-                                  className={ROLE_COLORS[role]}
+                                  className={`${ROLE_COLORS[role]} px-3 py-1 text-xs font-semibold rounded-full transition-all duration-200 hover:scale-105`}
                                   variant="outline"
                                 >
                                   {role}
