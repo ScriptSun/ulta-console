@@ -73,15 +73,22 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
   // Generate embed code based on current settings
   const generateBasicEmbedCode = () => {
-    const baseUrl = window.location.origin;
-    return `<script src="${baseUrl}/sdk/v1.js"></script>
+    // Use the deployed domain for the SDK URL
+    const sdkUrl = window.location.hostname.includes('lovable.dev') || window.location.hostname.includes('sandbox.lovable.dev')
+      ? 'https://your-deployed-domain.com/sdk/v1.js' // Replace with actual deployed domain
+      : `${window.location.origin}/sdk/v1.js`;
+    
+    return `<script src="${sdkUrl}"></script>
 <script>
   AltaAIWidget.load('${widget.site_key}');
 </script>`;
   };
 
   const generateAdvancedEmbedCode = () => {
-    const baseUrl = window.location.origin;
+    // Use the deployed domain for the SDK URL
+    const sdkUrl = window.location.hostname.includes('lovable.dev') || window.location.hostname.includes('sandbox.lovable.dev')
+      ? 'https://your-deployed-domain.com/sdk/v1.js' // Replace with actual deployed domain
+      : `${window.location.origin}/sdk/v1.js`;
     const opts: any = {};
     
     if (overrides.enabled) {
@@ -96,7 +103,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
     const hasOverrides = Object.keys(opts).length > 0;
 
-    return `<script src="${baseUrl}/sdk/v1.js"></script>
+    return `<script src="${sdkUrl}"></script>
 <script>
   AltaAIWidget.load('${widget.site_key}'${hasOverrides ? `,
     ${JSON.stringify(opts, null, 4)}` : ''});
@@ -104,7 +111,10 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
   };
 
   const generateAutoLoadCode = () => {
-    const baseUrl = window.location.origin;
+    // Use the deployed domain for the SDK URL
+    const sdkUrl = window.location.hostname.includes('lovable.dev') || window.location.hostname.includes('sandbox.lovable.dev')
+      ? 'https://your-deployed-domain.com/sdk/v1.js' // Replace with actual deployed domain
+      : `${window.location.origin}/sdk/v1.js`;
     const dataAttrs = [];
     dataAttrs.push(`data-altaai-site-key="${widget.site_key}"`);
     
@@ -118,7 +128,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
       if (overrides.logoUrl && overrides.logoUrl !== widget.theme.logo_url) dataAttrs.push(`data-altaai-logourl="${overrides.logoUrl}"`);
     }
 
-    return `<script src="${baseUrl}/sdk/v1.js"
+    return `<script src="${sdkUrl}"
   ${dataAttrs.join('\n  ')}
 ></script>`;
   };
