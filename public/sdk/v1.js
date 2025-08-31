@@ -323,16 +323,21 @@
   function createWidget(siteKey, options = {}) {
     const startTime = performance.now();
     
+    // Debug the exact options causing issues
+    console.log('🚨 createWidget called with options:', JSON.stringify(options, null, 2));
+    
     if (options.debug) {
       debugLog('Creating widget with options', options);
     }
     
     const widgetId = generateId();
+    
+    // Debug each config property assignment
     const config = {
       widgetId,
       siteKey,
       containerId: widgetId + '-container',
-      launcherId: widgetId + '-launcher',
+      launcherId: widgetId + '-launcher', 
       chatId: widgetId + '-chat',
       closeId: widgetId + '-close',
       messagesId: widgetId + '-messages',
@@ -342,10 +347,10 @@
       position: options.position || 'bottom-right',
       width: options.width || '350px',
       height: options.height || '500px',
-      autoOpen: options.autoOpen || false,
-      hideOnMobile: options.hideOnMobile || false,
+      autoOpen: !!options.autoOpen, // Ensure boolean
+      hideOnMobile: !!options.hideOnMobile, // Ensure boolean
       showBadge: options.showBadge !== false,
-      debug: options.debug || false,
+      debug: !!options.debug, // Ensure boolean
       userId: options.userId,
       userEmail: options.userEmail,
       userName: options.userName,
@@ -354,6 +359,8 @@
       onClose: options.onClose,
       onMessage: options.onMessage
     };
+    
+    console.log('🚨 Final config object:', JSON.stringify(config, null, 2));
     
     if (config.debug) {
       debugLog('Widget configuration finalized', {
