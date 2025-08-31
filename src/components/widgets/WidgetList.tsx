@@ -55,17 +55,6 @@ function WidgetList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Widget Management</h1>
-          <p className="text-muted-foreground">Manage your chat widget configurations and embed codes</p>
-        </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Widget
-        </Button>
-      </div>
-
       {widgets.length === 0 ? (
         <Card>
           <CardContent className="py-12">
