@@ -227,6 +227,136 @@ async function updateWidget(req: Request, widgetId: string, customerId: string):
   }
 }
 
+// Parse origin to scheme + host only (no path, query, fragment)
+function parseOrigin(originStr: string): string | null {
+  try {
+    const url = new URL(originStr)
+    return `${url.protocol}//${url.host}`
+  } catch {
+    return null
+  }
+}
+
+// Handle GET /api/widget/config - Public endpoint for iframe config
+async function getWidgetConfig(req: Request): Promise<Response> {
+  const url = new URL(req.url)
+  const siteKey = url.searchParams.get('site_key')
+  const originParam = url.searchParams.get('origin')
+
+  // Validate required parameters
+  if (!siteKey) {
+    return new Response(JSON.stringify({
+      error: 'Missing site_key parameter',
+      status: 400
+    }), {
+      status: 400,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, max-age=60'
+      }
+    })
+  }
+
+  if (!originParam) {
+    return new Response(JSON.stringify({
+      error: 'Missing origin parameter',
+      status: 400
+    }), {
+      status: 400,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, max-age=60'
+      }
+    })
+  }
+
+  // Parse and validate origin
+  const cleanOrigin = parseOrigin(originParam)
+  if (!cleanOrigin) {
+    return new Response(JSON.stringify({
+      error: 'Malformed origin parameter',
+      status: 400
+    }), {
+      status: 400,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, max-age=60'
+      }
+    })
+  }
+
+  try {
+    // Find widget by site_key
+    const { data: widget, error } = await supabase
+      .from('widgets')
+      .select('id, name, site_key, theme, allowed_domains')
+      .eq('site_key', siteKey)
+      .single()
+
+    if (error || !widget) {
+      console.error('Widget lookup error:', error)
+      return new Response(JSON.stringify({
+        error: 'Widget not found',
+        status: 404
+      }), {
+        status: 404,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'private, max-age=60'
+        }
+      })
+    }
+
+    // Check if origin is in allowed_domains
+    if (!widget.allowed_domains.includes(cleanOrigin)) {
+      return new Response(JSON.stringify({
+        error: `Origin ${cleanOrigin} is not allowed for this widget`,
+        status: 403
+      }), {
+        status: 403,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'private, max-age=60'
+        }
+      })
+    }
+
+    // Return sanitized config (only id, name, site_key, theme)
+    return new Response(JSON.stringify({
+      id: widget.id,
+      name: widget.name,
+      site_key: widget.site_key,
+      theme: widget.theme
+    }), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, max-age=60'
+      }
+    })
+
+  } catch (error) {
+    console.error('Widget config error:', error)
+    return new Response(JSON.stringify({
+      error: 'Internal server error',
+      status: 500
+    }), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, max-age=60'
+      }
+    })
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   const corsResponse = handleCors(req)
@@ -236,7 +366,12 @@ serve(async (req) => {
   const path = url.pathname
 
   try {
-    // All endpoints require admin API key authentication
+    // Public endpoint - no authentication required
+    if (path === '/api/widget/config' && req.method === 'GET') {
+      return await getWidgetConfig(req)
+    }
+
+    // All admin endpoints require API key authentication
     const auth = await authenticateApiKey(req)
     if (!auth.valid) {
       return errorResponse(auth.error || 'Unauthorized', 401)
@@ -244,7 +379,7 @@ serve(async (req) => {
 
     const customerId = auth.customer_id!
 
-    // Route handlers
+    // Admin route handlers
     if (path === '/api/admin/widgets') {
       if (req.method === 'POST') {
         return await createWidget(req, customerId)
