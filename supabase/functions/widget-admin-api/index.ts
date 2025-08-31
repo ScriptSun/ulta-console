@@ -220,6 +220,8 @@ async function createWidget(req: Request, customerId: string, apiKeyId?: string)
     const body = await req.json()
     const { name, allowed_domains, theme } = body
 
+    console.log('Creating widget with data:', { name, allowed_domains, theme, customerId })
+
     // Validate required fields
     if (!name || typeof name !== 'string') {
       return errorResponse('Missing or invalid name field', 400)
@@ -243,7 +245,20 @@ async function createWidget(req: Request, customerId: string, apiKeyId?: string)
     const secret = generateWidgetSecret()
     const secretHash = await createHmacHash(secret, 'widget_secret_salt')
 
-    // Insert widget
+    console.log('Generated secret and hash for widget')
+
+    // Get the current user ID from auth token
+    const authHeader = req.headers.get('Authorization')
+    const token = authHeader?.replace('Bearer ', '') || ''
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+    
+    if (userError || !user) {
+      return errorResponse('Failed to get user information', 401)
+    }
+
+    console.log('User ID for widget creation:', user.id)
+
+    // Insert widget with explicit user IDs
     const { data, error } = await supabase
       .from('widgets')
       .insert({
@@ -251,15 +266,21 @@ async function createWidget(req: Request, customerId: string, apiKeyId?: string)
         allowed_domains,
         theme,
         secret_hash: secretHash,
-        customer_id: customerId
+        customer_id: customerId,
+        created_by: user.id,
+        updated_by: user.id
       })
       .select('id, site_key')
       .single()
+
+    console.log('Widget insertion result:', { data, error })
 
     if (error) {
       console.error('Widget creation error:', error)
       return errorResponse('Failed to create widget', 500)
     }
+
+    console.log('Widget created successfully:', data)
 
     // Log audit event
     await logAuditEvent(customerId, 'created', data.id, {
@@ -276,7 +297,7 @@ async function createWidget(req: Request, customerId: string, apiKeyId?: string)
 
   } catch (error) {
     console.error('Create widget error:', error)
-    return errorResponse('Invalid request body', 400)
+    return errorResponse(`Widget creation failed: ${error.message}`, 500)
   }
 }
 
