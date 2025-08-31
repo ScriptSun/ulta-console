@@ -97,9 +97,18 @@ function WidgetList() {
                         </code>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">
-                          {widget.allowed_domains.length} domain{widget.allowed_domains.length !== 1 ? 's' : ''}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          {widget.allowed_domains.slice(0, 2).map((domain, index) => (
+                            <div key={index} className="text-sm">
+                              {domain.length > 25 ? `${domain.substring(0, 25)}...` : domain}
+                            </div>
+                          ))}
+                          {widget.allowed_domains.length > 2 && (
+                            <div className="text-xs text-muted-foreground">
+                              +{widget.allowed_domains.length - 2} more
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Button
