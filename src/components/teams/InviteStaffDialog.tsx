@@ -13,6 +13,7 @@ interface InviteStaffDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   team: any;
+  onInvite?: (email: string, role: string, teamId: string) => Promise<void>;
 }
 
 const ROLES = [
@@ -23,7 +24,7 @@ const ROLES = [
   { value: 'Owner', label: 'Owner', description: 'Full access to all resources and team settings' }
 ];
 
-export function InviteStaffDialog({ open, onOpenChange, team }: InviteStaffDialogProps) {
+export function InviteStaffDialog({ open, onOpenChange, team, onInvite }: InviteStaffDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
@@ -73,15 +74,28 @@ export function InviteStaffDialog({ open, onOpenChange, team }: InviteStaffDialo
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !role || !team?.id) return;
+    
+    if (!email || !role || !team?.id) {
+      toast({
+        title: 'Missing information',
+        description: 'Please fill in all required fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    createInviteMutation.mutate({
-      teamId: team.id,
-      email,
-      role
-    });
+    if (onInvite) {
+      // Use the custom invite handler with rate limiting
+      await onInvite(email, role, team.id);
+      setEmail('');
+      setRole('');
+      onOpenChange(false);
+    } else {
+      // Fallback to the mutation
+      createInviteMutation.mutate({ teamId: team.id, email, role });
+    }
   };
 
   const handleOpenChange = (newOpen: boolean) => {

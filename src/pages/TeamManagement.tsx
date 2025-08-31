@@ -15,6 +15,10 @@ import { ManageRolesDialog } from '@/components/teams/ManageRolesDialog';
 import { InviteStaffDialog } from '@/components/teams/InviteStaffDialog';
 import { PagePermissionsDialog } from '@/components/teams/PagePermissionsDialog';
 import { WidgetScopeDialog } from '@/components/teams/WidgetScopeDialog';
+import { TeamAuditTab } from '@/components/teams/TeamAuditTab';
+import { RateLimitBanner } from '@/components/teams/RateLimitBanner';
+import { useTeamRateLimits } from '@/hooks/useTeamRateLimits';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ROLE_COLORS = {
   Owner: 'bg-gradient-to-r from-purple-600/10 to-violet-600/10 text-purple-100 border border-purple-500/30 shadow-lg shadow-purple-500/20 backdrop-blur-sm',
@@ -37,9 +41,57 @@ export default function TeamManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Role update mutation
+  // State for rate limit banners
+  const [rateLimitBanners, setRateLimitBanners] = useState<Array<{
+    id: string;
+    limitType: 'invites' | 'role_changes';
+    retryAfterSeconds: number;
+  }>>([]);
+  
+  // Role update mutation with rate limiting and audit logging
   const updateRoleMutation = useMutation({
     mutationFn: async ({ memberId, newRole }: { memberId: string; newRole: string }) => {
+      // Check rate limit first
+      const member = teamMembers?.find(m => m.id === memberId);
+      const teamId = member?.team_id;
+      
+      if (teamId && user?.id) {
+        const { data: rateCheck, error: rateError } = await supabase.rpc('check_and_increment_rate_limit', {
+          _team_id: teamId,
+          _user_id: user.id,
+          _limit_type: 'role_changes',
+          _max_count: 10
+        });
+
+        if (rateError) throw rateError;
+        
+        const rateLimit = rateCheck[0];
+        if (!rateLimit.allowed) {
+          // Log rate limit exceeded
+          await supabase.rpc('log_team_audit_event', {
+            _team_id: teamId,
+            _actor_email: user.email,
+            _action: 'rate.limit',
+            _target: 'role_changes',
+            _details: { 
+              current_count: rateLimit.current_count,
+              retry_after_seconds: rateLimit.retry_after_seconds
+            }
+          });
+
+          // Show rate limit banner
+          setRateLimitBanners(prev => [...prev, {
+            id: Date.now().toString(),
+            limitType: 'role_changes',
+            retryAfterSeconds: rateLimit.retry_after_seconds
+          }]);
+
+          const error = new Error('Rate limit exceeded');
+          (error as any).retryAfter = rateLimit.retry_after_seconds;
+          throw error;
+        }
+      }
+
       // Update the member's role
       const { error: roleError } = await supabase
         .from('console_team_members')
@@ -55,6 +107,21 @@ export default function TeamManagement() {
       });
 
       if (templateError) throw templateError;
+
+      // Log audit event
+      if (member && user?.email) {
+        await supabase.rpc('log_team_audit_event', {
+          _team_id: member.team_id,
+          _actor_email: user.email,
+          _action: 'team.member.role.change',
+          _target: `member:${member.admin_profiles?.email || member.admin_id}`,
+          _details: { 
+            old_role: member.role,
+            new_role: newRole,
+            member_id: memberId
+          }
+        });
+      }
     },
     onSuccess: () => {
       toast({
@@ -65,23 +132,47 @@ export default function TeamManagement() {
       queryClient.invalidateQueries({ queryKey: ['console-member-page-perms'] });
     },
     onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to update member role',
-        variant: 'destructive',
-      });
+      if (error.retryAfter) {
+        toast({
+          title: 'Rate limit exceeded',
+          description: `Too many role changes. Please try again in ${Math.ceil(error.retryAfter / 60)} minutes.`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to update member role',
+          variant: 'destructive',
+        });
+      }
     },
   });
 
-  // Remove member mutation
+  // Remove member mutation with audit logging
   const removeMemberMutation = useMutation({
     mutationFn: async (memberId: string) => {
+      const member = teamMembers?.find(m => m.id === memberId);
+      
       const { error } = await supabase
         .from('console_team_members')
         .delete()
         .eq('id', memberId);
 
       if (error) throw error;
+
+      // Log audit event
+      if (member && user?.email) {
+        await supabase.rpc('log_team_audit_event', {
+          _team_id: member.team_id,
+          _actor_email: user.email,
+          _action: 'team.member.remove',
+          _target: `member:${member.admin_profiles?.email || member.admin_id}`,
+          _details: { 
+            removed_role: member.role,
+            member_id: memberId
+          }
+        });
+      }
     },
     onSuccess: () => {
       toast({
@@ -106,6 +197,10 @@ export default function TeamManagement() {
   const [showWidgetScope, setShowWidgetScope] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
+
+  const dismissRateLimitBanner = (bannerId: string) => {
+    setRateLimitBanners(prev => prev.filter(banner => banner.id !== bannerId));
+  };
 
   // Fetch current user's teams
   const { data: currentUserTeams, isLoading: userTeamsLoading } = useQuery({
@@ -185,13 +280,64 @@ export default function TeamManagement() {
     enabled: !!currentUserTeams?.length
   });
 
+  // Update the InviteStaffDialog to use the new edge function with rate limiting
+  const handleInviteStaff = async (email: string, role: string, teamId: string) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/team-invites', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.session?.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, role, teamId })
+      });
+
+      if (response.status === 429) {
+        const errorData = await response.json();
+        
+        // Show rate limit banner
+        setRateLimitBanners(prev => [...prev, {
+          id: Date.now().toString(),
+          limitType: 'invites',
+          retryAfterSeconds: errorData.retry_after_seconds
+        }]);
+
+        toast({
+          title: 'Rate limit exceeded',
+          description: `Too many invites sent. Please try again in ${Math.ceil(errorData.retry_after_seconds / 60)} minutes.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to send invite');
+      }
+
+      toast({
+        title: 'Invitation sent',
+        description: `Invitation sent to ${email} successfully.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['console-invites'] });
+    } catch (error: any) {
+      toast({
+        title: 'Failed to send invitation',
+        description: error.message || 'There was an error sending the invitation.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const cancelInviteMutation = useMutation({
     mutationFn: async (inviteId: string) => {
-      const url = `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/console-invites/${inviteId}/cancel`;
+      const url = `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/team-invites/${inviteId}`;
       const { data: session } = await supabase.auth.getSession();
       
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.session?.access_token}`,
           'Content-Type': 'application/json'
@@ -320,6 +466,24 @@ export default function TeamManagement() {
         )}
       </div>
 
+      {/* Rate Limit Banners */}
+      {rateLimitBanners.map((banner) => (
+        <RateLimitBanner
+          key={banner.id}
+          limitType={banner.limitType}
+          retryAfterSeconds={banner.retryAfterSeconds}
+          onDismiss={() => dismissRateLimitBanner(banner.id)}
+        />
+      ))}
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview">Team Overview</TabsTrigger>
+          <TabsTrigger value="audit">Audit Log</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+
       {/* Role System Overview */}
       <Card>
         <CardHeader>
@@ -397,21 +561,21 @@ export default function TeamManagement() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => handleTeamAction('inviteStaff', team)}
-                      className="gap-1"
-                    >
-                      <Mail className="h-3 w-3" />
-                      Invite Staff
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
                       onClick={() => handleTeamAction('addMember', team)}
                       className="gap-1"
                     >
                       <UserPlus className="h-3 w-3" />
                       Add Member
                     </Button>
+                     <Button 
+                       variant="outline" 
+                       size="sm" 
+                       onClick={() => handleTeamAction('inviteStaff', team)}
+                       className="gap-1"
+                     >
+                       <Mail className="h-3 w-3" />
+                       Invite Staff
+                     </Button>
                   </div>
                 )}
                 
@@ -588,6 +752,22 @@ export default function TeamManagement() {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-6">
+          {currentUserTeams?.length ? (
+            currentUserTeams.map((team) => (
+              <TeamAuditTab key={team.id} teamId={team.id} />
+            ))
+          ) : (
+            <Card>
+              <CardContent className="text-center py-8">
+                <p className="text-muted-foreground">No teams found</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Dialogs */}
       <CreateTeamDialog 
@@ -611,6 +791,7 @@ export default function TeamManagement() {
         open={showInviteStaff} 
         onOpenChange={setShowInviteStaff}
         team={selectedTeam}
+        onInvite={handleInviteStaff}
       />
       
       <PagePermissionsDialog 

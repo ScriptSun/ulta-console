@@ -1874,6 +1874,39 @@ export type Database = {
         }
         Relationships: []
       }
+      team_rate_limits: {
+        Row: {
+          count: number
+          created_at: string | null
+          id: string
+          limit_type: string
+          team_id: string
+          updated_at: string | null
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string | null
+          id?: string
+          limit_type: string
+          team_id: string
+          updated_at?: string | null
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          created_at?: string | null
+          id?: string
+          limit_type?: string
+          team_id?: string
+          updated_at?: string | null
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       teams: {
         Row: {
           created_at: string
@@ -2324,6 +2357,20 @@ export type Database = {
           plan_name: string
         }[]
       }
+      check_and_increment_rate_limit: {
+        Args: {
+          _limit_type: string
+          _max_count: number
+          _team_id: string
+          _user_id: string
+          _window_hours?: number
+        }
+        Returns: {
+          allowed: boolean
+          current_count: number
+          retry_after_seconds: number
+        }[]
+      }
       check_batch_concurrency: {
         Args: { _agent_id: string; _batch_id: string }
         Returns: {
@@ -2392,6 +2439,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_user_team_memberships: {
+        Args: { _user_id: string }
+        Returns: {
+          member_id: string
+          role: string
+          team_id: string
+        }[]
+      }
       increment_agent_usage: {
         Args: { _agent_id: string; _increment?: number; _usage_type: string }
         Returns: undefined
@@ -2412,6 +2467,20 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      is_team_owner_or_admin: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
+      log_team_audit_event: {
+        Args: {
+          _action: string
+          _actor_email: string
+          _details?: Json
+          _target: string
+          _team_id: string
+        }
+        Returns: undefined
       }
       set_agent_heartbeat: {
         Args: { p_id: string; p_json: Json }
