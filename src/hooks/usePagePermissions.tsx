@@ -21,13 +21,21 @@ const ENUM_TO_DISPLAY: Record<string, string> = {
 
 export function usePagePermissions() {
   const { user } = useAuth();
+  const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
 
   const { data: permissions, isLoading } = useQuery({
     queryKey: ['page-permissions', user?.id],
     queryFn: async () => {
       if (!user?.id) return {};
 
-      const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
+      const finalPermissions: PagePermissions = {};
+
+      // Get all available pages first
+      const { data: pages, error: pagesError } = await supabase
+        .from('console_pages')
+        .select('key, label');
+
+      if (pagesError) throw pagesError;
 
       // Get user's explicit page permissions
       const { data: userPermissions, error: userPermError } = await supabase
@@ -46,24 +54,14 @@ export function usePagePermissions() {
 
       if (rolesError) throw rolesError;
 
-      // Get all available pages
-      const { data: pages, error: pagesError } = await supabase
-        .from('console_pages')
-        .select('key, label');
-
-      if (pagesError) throw pagesError;
-
-      // Get all role templates
+      // Get role templates
       const { data: roleTemplates, error: templatesError } = await supabase
         .from('console_role_templates')
         .select('*');
 
       if (templatesError) throw templatesError;
 
-      // Build permissions map
-      const finalPermissions: PagePermissions = {};
-
-      // Initialize with default permissions (all false)
+      // Initialize all pages with default (no access)
       pages?.forEach(page => {
         finalPermissions[page.key] = {
           can_view: false,
@@ -72,32 +70,34 @@ export function usePagePermissions() {
         };
       });
 
-      // First, apply explicit user permissions
+      // Apply explicit user permissions first (takes priority)
+      const explicitPageKeys = new Set<string>();
       userPermissions?.forEach(perm => {
         finalPermissions[perm.page_key] = {
           can_view: perm.can_view,
           can_edit: perm.can_edit,
           can_delete: perm.can_delete
         };
+        explicitPageKeys.add(perm.page_key);
       });
 
-      // Then, fill in missing permissions from role templates
-      // Use the highest role (owner > admin > editor > viewer > guest)
+      // For pages without explicit permissions, use role templates
       const roleHierarchy = ['owner', 'admin', 'editor', 'viewer', 'guest'];
       const userRoleNames = userRoles?.map(r => r.role.toLowerCase()) || [];
       const highestEnumRole = roleHierarchy.find(role => userRoleNames.includes(role));
 
       if (highestEnumRole) {
-        // Convert to display role for template lookup
         const displayRole = ENUM_TO_DISPLAY[highestEnumRole];
         
         roleTemplates?.forEach(template => {
-          if (template.role === displayRole && !userPermissions?.find(p => p.page_key === template.page_key)) {
-            finalPermissions[template.page_key] = {
-              can_view: template.can_view,
-              can_edit: template.can_edit,
-              can_delete: template.can_delete
-            };
+          if (template.role === displayRole && !explicitPageKeys.has(template.page_key)) {
+            if (finalPermissions[template.page_key]) {
+              finalPermissions[template.page_key] = {
+                can_view: template.can_view,
+                can_edit: template.can_edit,
+                can_delete: template.can_delete
+              };
+            }
           }
         });
       }

@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Server-side permission checking utility for user-based permissions
- * Checks user permissions directly without edge functions
+ * Simplified to only check user permissions and role templates (no team dependency)
  */
 export async function checkServerPermission(
   pageKey: string, 
@@ -14,7 +14,7 @@ export async function checkServerPermission(
 
     const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
 
-    // Check explicit user permissions first
+    // Check explicit user permissions first (highest priority)
     const { data: userPermission } = await supabase
       .from('user_page_permissions')
       .select(`can_${permission}`)
@@ -22,7 +22,7 @@ export async function checkServerPermission(
       .eq('page_key', pageKey)
       .maybeSingle();
 
-    if (userPermission) {
+    if (userPermission !== null) {
       return userPermission[`can_${permission}`] || false;
     }
 
@@ -34,15 +34,21 @@ export async function checkServerPermission(
       .eq('customer_id', defaultCustomerId);
 
     if (userRoles && userRoles.length > 0) {
-      // Use the highest role
+      // Use the highest role in hierarchy
       const roleHierarchy = ['owner', 'admin', 'editor', 'viewer', 'guest'];
       const userRoleNames = userRoles.map(r => r.role.toLowerCase());
       const highestEnumRole = roleHierarchy.find(role => userRoleNames.includes(role));
 
       if (highestEnumRole) {
-        const displayRole = ['owner', 'admin', 'editor', 'viewer', 'guest'].includes(highestEnumRole) 
-          ? { owner: 'Owner', admin: 'Admin', editor: 'Developer', viewer: 'Analyst', guest: 'ReadOnly' }[highestEnumRole]
-          : 'ReadOnly';
+        const displayRoleMap: Record<string, string> = {
+          owner: 'Owner',
+          admin: 'Admin', 
+          editor: 'Developer',
+          viewer: 'Analyst',
+          guest: 'ReadOnly'
+        };
+        
+        const displayRole = displayRoleMap[highestEnumRole] || 'ReadOnly';
         
         const { data: roleTemplate } = await supabase
           .from('console_role_templates')
