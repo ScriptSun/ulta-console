@@ -30,7 +30,7 @@ import CommandPolicies from "./pages/CommandPolicies";
 import Auth from "./pages/Auth";
 import AgentTasks from "./pages/AgentTasks";
 import ChatInbox from "./pages/ChatInbox";
-import WidgetGuide from "./pages/WidgetGuide";
+import WidgetManagement from "./pages/WidgetManagement";
 import WidgetEdit from "./pages/WidgetEdit";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import QAChecklist from "./pages/QAChecklist";
@@ -219,10 +219,10 @@ const App = () => (
                 </RootLayout>
               </ProtectedRoute>
             } />
-            <Route path="/widget-guide" element={
+            <Route path="/widget-management" element={
               <ProtectedRoute>
                 <RootLayout>
-                  <WidgetGuide />
+                  <WidgetManagement />
                 </RootLayout>
               </ProtectedRoute>
             } />

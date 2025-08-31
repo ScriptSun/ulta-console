@@ -25,7 +25,7 @@ export default function WidgetEdit() {
         description: "The widget you're looking for doesn't exist.",
         variant: "destructive"
       });
-      navigate("/widget-guide");
+      navigate("/widget-management");
     }
   }, [widget, loading, widgetId, navigate]);
 
@@ -39,7 +39,7 @@ export default function WidgetEdit() {
         title: "Widget updated",
         description: "Your widget has been successfully updated.",
       });
-      navigate("/widget-guide");
+      navigate("/widget-management");
     } catch (error) {
       toast({
         title: "Update failed",
@@ -52,7 +52,7 @@ export default function WidgetEdit() {
   };
 
   const handleCancel = () => {
-    navigate("/widget-guide");
+    navigate("/widget-management");
   };
 
   // Handle live preview updates
@@ -89,7 +89,7 @@ export default function WidgetEdit() {
             onClick={handleCancel}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Widgets
+            Back to Widget Management
           </Button>
           <div>
             <h1 className="text-3xl font-bold">
@@ -100,7 +100,7 @@ export default function WidgetEdit() {
         <div className="flex items-center gap-2">
           <Button 
             variant="outline"
-            onClick={() => window.open(`/widget-guide?preview=${widget.id}`, '_blank')}
+            onClick={() => window.open(`/widget-management?preview=${widget.id}`, '_blank')}
           >
             <Eye className="h-4 w-4 mr-2" />
             Preview in New Tab

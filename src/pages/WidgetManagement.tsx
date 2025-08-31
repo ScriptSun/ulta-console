@@ -7,7 +7,7 @@ import { WidgetEditForm } from "@/components/widgets/WidgetEditForm";
 import { useWidgets, NewWidget } from "@/hooks/useWidgets";
 import { useState } from "react";
 
-export default function WidgetGuide() {
+export default function WidgetManagement() {
   const { toast } = useToast();
   const { createWidget, refetch } = useWidgets();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
