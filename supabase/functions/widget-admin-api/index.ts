@@ -544,11 +544,24 @@ serve(async (req) => {
   if (corsResponse) return corsResponse
 
   const url = new URL(req.url)
-  const path = url.pathname
+  let path = url.pathname
+  
+  // Remove the function path prefix if present
+  // Edge functions receive paths like /widget-admin-api/api/admin/widgets
+  // but we want to work with /api/admin/widgets
+  if (path.startsWith('/widget-admin-api')) {
+    path = path.replace('/widget-admin-api', '')
+  }
+  
+  // Handle empty path
+  if (!path || path === '') {
+    path = '/'
+  }
 
   console.log(`Widget Admin API called: ${req.method} ${path}`)
-  console.log('Full URL:', req.url)
-  console.log('Headers:', Object.fromEntries(req.headers.entries()))
+  console.log('Original URL:', req.url)
+  console.log('Original pathname:', url.pathname)
+  console.log('Processed path:', path)
 
   try {
     // Public endpoint - no authentication required
