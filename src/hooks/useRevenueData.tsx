@@ -30,13 +30,21 @@ export function useRevenueData(dateRange: DateRange) {
       setIsLoading(true);
       setError(null);
 
-      const from = dateRange.start;
-      const to = dateRange.end;
+      // Format dates properly for PostgreSQL
+      const formatDateForDB = (date: Date | string): string => {
+        const d = new Date(date);
+        return d.toISOString().split('T')[0]; // YYYY-MM-DD format
+      };
+
+      const from = formatDateForDB(dateRange.start);
+      const to = formatDateForDB(dateRange.end);
       
       // Calculate previous period dates for comparison
-      const periodLength = new Date(to).getTime() - new Date(from).getTime();
-      const previousFrom = new Date(new Date(from).getTime() - periodLength);
-      const previousTo = new Date(from);
+      const fromDate = new Date(dateRange.start);
+      const toDate = new Date(dateRange.end);
+      const periodLength = toDate.getTime() - fromDate.getTime();
+      const previousFrom = formatDateForDB(new Date(fromDate.getTime() - periodLength));
+      const previousTo = formatDateForDB(fromDate);
 
       // Fetch active subscriptions in current period
       const { data: activeSubsData, error: activeSubsError } = await supabase
@@ -76,12 +84,13 @@ export function useRevenueData(dateRange: DateRange) {
       // Calculate churn rate (cancellations in last 30 days / active subs 30 days ago)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const thirtyDaysAgoFormatted = formatDateForDB(thirtyDaysAgo);
 
       const { data: cancelledSubs, error: cancelledError } = await supabase
         .from('user_subscriptions')
         .select('*')
         .eq('status', 'cancelled')
-        .gte('cancelled_at', thirtyDaysAgo.toISOString());
+        .gte('cancelled_at', thirtyDaysAgoFormatted);
 
       if (cancelledError) throw cancelledError;
 
@@ -89,7 +98,7 @@ export function useRevenueData(dateRange: DateRange) {
         .from('user_subscriptions')
         .select('*')
         .eq('status', 'active')
-        .lte('started_at', thirtyDaysAgo.toISOString());
+        .lte('started_at', thirtyDaysAgoFormatted);
 
       if (oldSubsError) throw oldSubsError;
 
@@ -97,9 +106,6 @@ export function useRevenueData(dateRange: DateRange) {
         (cancelledSubs?.length || 0) / subsThirtyDaysAgo.length * 100 : 0;
 
       // Fetch MRR trend for last 6 months (independent of current filter)
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
       const mrrTrend = [];
       for (let i = 5; i >= 0; i--) {
         const monthDate = new Date();
@@ -109,6 +115,9 @@ export function useRevenueData(dateRange: DateRange) {
         const nextMonthDate = new Date(monthDate);
         nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
 
+        const monthDateFormatted = formatDateForDB(monthDate);
+        const nextMonthDateFormatted = formatDateForDB(nextMonthDate);
+
         const { data: monthSubs, error: monthError } = await supabase
           .from('user_subscriptions')
           .select(`
@@ -116,8 +125,8 @@ export function useRevenueData(dateRange: DateRange) {
             subscription_plans(price_monthly, price_cents)
           `)
           .eq('status', 'active')
-          .lte('started_at', nextMonthDate.toISOString())
-          .or(`cancelled_at.is.null,cancelled_at.gte.${monthDate.toISOString()}`);
+          .lte('started_at', nextMonthDateFormatted)
+          .or(`cancelled_at.is.null,cancelled_at.gte.${monthDateFormatted}`);
 
         if (monthError) throw monthError;
 
@@ -127,7 +136,7 @@ export function useRevenueData(dateRange: DateRange) {
         }, 0) || 0;
 
         mrrTrend.push({
-          date: monthDate.toISOString().split('T')[0],
+          date: monthDateFormatted,
           mrr: monthMrr
         });
       }
@@ -140,8 +149,8 @@ export function useRevenueData(dateRange: DateRange) {
           subscription_plans(price_monthly, price_cents)
         `)
         .eq('status', 'active')
-        .gte('started_at', previousFrom.toISOString())
-        .lte('started_at', previousTo.toISOString());
+        .gte('started_at', previousFrom)
+        .lte('started_at', previousTo);
 
       if (prevError) throw prevError;
 
