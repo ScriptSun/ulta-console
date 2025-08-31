@@ -115,7 +115,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* MRR */}
-          <div className="p-4 rounded-lg bg-muted/30">
+          <div className="p-4 rounded-lg bg-success/10 border border-success/20">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm text-muted-foreground">Monthly Recurring Revenue</div>
               {getTrendIcon(mrrTrend)}
