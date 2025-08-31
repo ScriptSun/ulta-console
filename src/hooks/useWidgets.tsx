@@ -31,6 +31,7 @@ export interface NewWidget {
 export function useWidgets() {
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createdSecret, setCreatedSecret] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchWidgets = async () => {
@@ -124,6 +125,11 @@ export function useWidgets() {
         throw new Error(response.error.message);
       }
 
+      // Store the secret if returned (only on creation)
+      if (response.data?.secret) {
+        setCreatedSecret(response.data.secret);
+      }
+
       toast({
         title: "Success",
         description: "Widget created successfully",
@@ -208,6 +214,8 @@ export function useWidgets() {
   return {
     widgets,
     loading,
+    createdSecret,
+    setCreatedSecret,
     createWidget,
     updateWidget,
     refetch: fetchWidgets

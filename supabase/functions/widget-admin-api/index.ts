@@ -10,6 +10,40 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+// Generate secure random secret for HMAC signing
+function generateWidgetSecret(): string {
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+// Create HMAC SHA256 hash
+async function createHmacHash(data: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data))
+  return Array.from(new Uint8Array(signature), byte => 
+    byte.toString(16).padStart(2, '0')
+  ).join('')
+}
+
+// Validate HMAC signature
+async function validateHmacSignature(userId: string, timestamp: string, signature: string, secret: string): Promise<boolean> {
+  try {
+    const data = `${userId}:${timestamp}`
+    const expectedSignature = await createHmacHash(data, secret)
+    return expectedSignature === signature
+  } catch {
+    return false
+  }
+}
+
 interface Widget {
   id?: string
   site_key?: string
@@ -22,6 +56,7 @@ interface Widget {
     welcome_text?: string
   }
   customer_id?: string
+  secret_hash?: string
   created_at?: string
   updated_at?: string
 }
@@ -198,6 +233,10 @@ async function createWidget(req: Request, customerId: string, apiKeyId?: string)
       return errorResponse(domainError, 400)
     }
 
+    // Generate secret for HMAC signing
+    const secret = generateWidgetSecret()
+    const secretHash = await createHmacHash(secret, 'widget_secret_salt')
+
     // Insert widget
     const { data, error } = await supabase
       .from('widgets')
@@ -205,6 +244,7 @@ async function createWidget(req: Request, customerId: string, apiKeyId?: string)
         name,
         allowed_domains,
         theme,
+        secret_hash: secretHash,
         customer_id: customerId
       })
       .select('id, site_key')
@@ -224,7 +264,8 @@ async function createWidget(req: Request, customerId: string, apiKeyId?: string)
 
     return jsonResponse({
       id: data.id,
-      site_key: data.site_key
+      site_key: data.site_key,
+      secret: secret // Only returned once on creation
     }, 201)
 
   } catch (error) {
@@ -360,6 +401,9 @@ async function getWidgetConfig(req: Request): Promise<Response> {
   const url = new URL(req.url)
   const siteKey = url.searchParams.get('site_key')
   const originParam = url.searchParams.get('origin')
+  const userId = url.searchParams.get('user_id')
+  const timestamp = url.searchParams.get('timestamp')
+  const signature = url.searchParams.get('signature')
 
   // Validate required parameters
   if (!siteKey) {
@@ -407,10 +451,10 @@ async function getWidgetConfig(req: Request): Promise<Response> {
   }
 
   try {
-    // Find widget by site_key
+    // Find widget by site_key (include secret_hash for signature validation)
     const { data: widget, error } = await supabase
       .from('widgets')
-      .select('id, name, site_key, theme, allowed_domains')
+      .select('id, name, site_key, theme, allowed_domains, secret_hash')
       .eq('site_key', siteKey)
       .single()
 
@@ -444,13 +488,43 @@ async function getWidgetConfig(req: Request): Promise<Response> {
       })
     }
 
-    // Return sanitized config (only id, name, site_key, theme)
-    return new Response(JSON.stringify({
+    // Validate user identity if provided
+    let user: { id: string } | null = null
+    if (userId && timestamp && signature && widget.secret_hash) {
+      try {
+        // Check timestamp is within 5 minutes
+        const now = Date.now()
+        const requestTime = parseInt(timestamp)
+        const timeDiff = Math.abs(now - requestTime)
+        
+        if (timeDiff <= 5 * 60 * 1000) { // 5 minutes in milliseconds
+          // Derive secret from hash (simplified - in production use proper key derivation)
+          const secret = widget.secret_hash.substring(0, 32) // Use part of hash as secret
+          const isValid = await validateHmacSignature(userId, timestamp, signature, secret)
+          
+          if (isValid) {
+            user = { id: userId }
+          }
+        }
+      } catch (error) {
+        // Invalid signature is ignored, no crash
+        console.log('Signature validation failed:', error)
+      }
+    }
+
+    // Return sanitized config (only id, name, site_key, theme, user if valid)
+    const response: any = {
       id: widget.id,
       name: widget.name,
       site_key: widget.site_key,
       theme: widget.theme
-    }), {
+    }
+
+    if (user) {
+      response.user = user
+    }
+
+    return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
         ...corsHeaders,

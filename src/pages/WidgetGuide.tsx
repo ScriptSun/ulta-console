@@ -146,12 +146,7 @@ export default function WidgetGuide() {
         </TabsList>
 
         <TabsContent value="list" className="space-y-6">
-          <WidgetList
-            widgets={widgets}
-            loading={loading}
-            onEditWidget={handleEditWidget}
-            onCreateWidget={handleCreateWidget}
-          />
+          <WidgetList />
         </TabsContent>
 
         <TabsContent value="edit" className="space-y-6">

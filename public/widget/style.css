@@ -342,3 +342,29 @@ body {
 .widget-content::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.3);
 }
+
+/* User Debug Panel */
+.user-debug-panel {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: #f0f9ff;
+    border: 1px solid #0ea5e9;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 0.75rem;
+    max-width: 200px;
+    z-index: 1000;
+}
+
+.debug-title {
+    font-weight: 600;
+    color: #0369a1;
+    margin-bottom: 8px;
+    font-size: 0.7rem;
+}
+
+.debug-content div {
+    margin: 4px 0;
+    color: #374151;
+}

@@ -38,7 +38,10 @@
                 return {
                     siteKey: params.get('site_key'),
                     origin: params.get('origin'),
-                    opts: params.get('opts')
+                    opts: params.get('opts'),
+                    userId: params.get('user_id'),
+                    timestamp: params.get('timestamp'),
+                    signature: params.get('signature')
                 };
             }
             
@@ -84,9 +87,16 @@
             }
             
             // Fetch widget configuration from server
-            async function fetchWidgetConfig(siteKey, origin) {
+            async function fetchWidgetConfig(siteKey, origin, userId, timestamp, signature) {
                 const baseUrl = window.location.protocol + '//' + window.location.host;
-                const url = `${baseUrl}/supabase/functions/v1/widget-admin-api/api/widget/config?site_key=${encodeURIComponent(siteKey)}&origin=${encodeURIComponent(origin)}`;
+                let url = `${baseUrl}/supabase/functions/v1/widget-admin-api/api/widget/config?site_key=${encodeURIComponent(siteKey)}&origin=${encodeURIComponent(origin)}`;
+                
+                // Add user identity parameters if provided
+                if (userId && timestamp && signature) {
+                    url += `&user_id=${encodeURIComponent(userId)}`;
+                    url += `&timestamp=${encodeURIComponent(timestamp)}`;
+                    url += `&signature=${encodeURIComponent(signature)}`;
+                }
                 
                 try {
                     const response = await fetch(url);
@@ -126,7 +136,7 @@
             }
             
             // Render success state with content
-            function renderWidget(config, theme) {
+            function renderWidget(config, theme, user) {
                 const contentEl = document.getElementById('widget-content');
                 
                 contentEl.innerHTML = `
@@ -149,6 +159,25 @@
                 
                 // Update title
                 document.getElementById('widget-title').textContent = config.name || 'AltaAI Assistant';
+                
+                // Show user debug panel if authenticated
+                if (user) {
+                    showUserDebug(user);
+                }
+            }
+            
+            // Show user debug panel if user is authenticated
+            function showUserDebug(user) {
+                const debugPanel = document.createElement('div');
+                debugPanel.className = 'user-debug-panel';
+                debugPanel.innerHTML = `
+                    <div class="debug-title">🔐 Authenticated User</div>
+                    <div class="debug-content">
+                        <div><strong>User ID:</strong> ${user.id}</div>
+                        <div><strong>Status:</strong> Verified</div>
+                    </div>
+                `;
+                document.body.appendChild(debugPanel);
             }
             
             // Update loading status
@@ -182,7 +211,7 @@
                     updateStatus('Verifying permissions...');
                     
                     // Fetch configuration from server
-                    widgetConfig = await fetchWidgetConfig(params.siteKey, params.origin);
+                    widgetConfig = await fetchWidgetConfig(params.siteKey, params.origin, params.userId, params.timestamp, params.signature);
                     
                     // Merge theme with client options
                     const mergedTheme = mergeThemeWithOptions(widgetConfig, clientOpts);
@@ -195,7 +224,7 @@
                     await new Promise(resolve => setTimeout(resolve, 500));
                     
                     // Render the widget interface
-                    renderWidget(widgetConfig, mergedTheme);
+                    renderWidget(widgetConfig, mergedTheme, widgetConfig.user);
                     
                 } catch (error) {
                     console.error('Widget initialization failed:', error);

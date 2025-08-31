@@ -73,7 +73,16 @@
     
     // Build the iframe source URL using absolute path to prevent mixed content issues
     const baseUrl = window.location.origin;
-    return `${baseUrl}/public/widget/frame.html?site_key=${encodeURIComponent(siteKey)}&origin=${encodeURIComponent(origin)}&opts=${optsParam}`;
+    let url = `${baseUrl}/public/widget/frame.html?site_key=${encodeURIComponent(siteKey)}&origin=${encodeURIComponent(origin)}&opts=${optsParam}`;
+    
+    // Add user identity if provided
+    if (opts.user_id && opts.signed_payload) {
+      url += `&user_id=${encodeURIComponent(opts.user_id)}`;
+      url += `&timestamp=${encodeURIComponent(opts.timestamp || Date.now().toString())}`;
+      url += `&signature=${encodeURIComponent(opts.signed_payload)}`;
+    }
+    
+    return url;
   }
 
   function createIframe(siteKey, opts) {

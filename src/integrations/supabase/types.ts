@@ -1888,6 +1888,7 @@ export type Database = {
           customer_id: string
           id: string
           name: string
+          secret_hash: string | null
           site_key: string
           theme: Json
           updated_at: string
@@ -1900,6 +1901,7 @@ export type Database = {
           customer_id: string
           id?: string
           name: string
+          secret_hash?: string | null
           site_key?: string
           theme?: Json
           updated_at?: string
@@ -1912,6 +1914,7 @@ export type Database = {
           customer_id?: string
           id?: string
           name?: string
+          secret_hash?: string | null
           site_key?: string
           theme?: Json
           updated_at?: string
