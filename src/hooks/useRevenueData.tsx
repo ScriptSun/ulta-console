@@ -7,6 +7,8 @@ export interface RevenueMetrics {
   mrr: number;
   arpu: number;
   churnRate: number;
+  netRevenue: number; // Add net revenue after AI costs
+  aiCosts: number; // Add AI costs tracking
   mrrTrend: Array<{
     date: string;
     mrr: number;
@@ -18,6 +20,7 @@ export interface RevenueMetrics {
   previousPeriodMrr: number;
   previousPeriodArpu: number;
   previousPeriodChurn: number;
+  previousPeriodNetRevenue: number; // Add previous period net revenue
   periodLabel: string; // Add period label for dynamic text
 }
 
@@ -86,7 +89,39 @@ export function useRevenueData(dateRange: DateRange) {
       const activeUsers = new Set(allActiveSubs?.map(sub => sub.user_id) || []).size;
       const arpu = activeUsers > 0 ? mrr / activeUsers : 0;
 
-      // Calculate churn rate for the selected period
+      // Calculate AI costs for the selected period
+      const { data: aiUsageData, error: aiUsageError } = await supabase
+        .from('agent_usage')
+        .select('*')
+        .eq('usage_type', 'ai_request')
+        .gte('usage_date', from)
+        .lte('usage_date', to);
+
+      if (aiUsageError) throw aiUsageError;
+
+      // Calculate AI costs (assuming $0.002 per AI request as example)
+      const aiCosts = aiUsageData?.reduce((sum, usage) => {
+        return sum + (usage.count * 0.002); // $0.002 per AI request
+      }, 0) || 0;
+
+      // Calculate net revenue (MRR - AI costs)
+      const netRevenue = Math.max(0, mrr - aiCosts);
+
+      // Calculate previous period AI costs for comparison
+      const { data: prevAiUsageData, error: prevAiUsageError } = await supabase
+        .from('agent_usage')
+        .select('*')
+        .eq('usage_type', 'ai_request')
+        .gte('usage_date', previousFrom)
+        .lte('usage_date', previousTo);
+
+      if (prevAiUsageError) throw prevAiUsageError;
+
+      const previousPeriodAiCosts = prevAiUsageData?.reduce((sum, usage) => {
+        return sum + (usage.count * 0.002);
+      }, 0) || 0;
+
+      // Calculate churn rate for the selected period  
       const periodStart = new Date(dateRange.start);
       const periodEnd = new Date(dateRange.end);
 
@@ -199,16 +234,22 @@ export function useRevenueData(dateRange: DateRange) {
       const prevActiveUsers = new Set(previousSubs?.map(sub => sub.user_id) || []).size;
       const previousPeriodArpu = prevActiveUsers > 0 ? previousPeriodMrr / prevActiveUsers : 0;
 
+      // Calculate previous period net revenue after we have previousPeriodMrr
+      const previousPeriodNetRevenue = Math.max(0, previousPeriodMrr - previousPeriodAiCosts);
+
       setData({
         activeSubscriptions,
         mrr,
         arpu,
         churnRate,
+        netRevenue,
+        aiCosts,
         mrrTrend,
         churnTrend,
         previousPeriodMrr,
         previousPeriodArpu,
         previousPeriodChurn: 0, // Simplified for now
+        previousPeriodNetRevenue,
         periodLabel: dateRange.label // Add the period label
       });
 

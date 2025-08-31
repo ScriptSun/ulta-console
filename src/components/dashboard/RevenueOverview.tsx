@@ -113,7 +113,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
       </CardHeader>
       <CardContent>
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* MRR */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-success/30 relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
@@ -162,6 +162,31 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
             {/* Blue gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent pointer-events-none"></div>
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-primary/30 to-transparent pointer-events-none"></div>
+          </div>
+
+          {/* Net Revenue */}
+          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-purple-500/30 relative overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-medium text-slate-400">Net Revenue ({data.periodLabel})</div>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-medium">
+                {getTrendIcon(data.netRevenue > data.previousPeriodNetRevenue ? 'up' : data.netRevenue < data.previousPeriodNetRevenue ? 'down' : 'same')}
+                <span>
+                  {data.previousPeriodNetRevenue > 0 
+                    ? (((data.netRevenue - data.previousPeriodNetRevenue) / data.previousPeriodNetRevenue) * 100).toFixed(2)
+                    : '0.00'
+                  }%
+                </span>
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-white mb-2">
+              {formatCurrency(data.netRevenue)}
+            </div>
+            <div className="text-sm text-slate-400">
+              Revenue: {formatCurrency(data.mrr)} - AI Costs: {formatCurrency(data.aiCosts)}
+            </div>
+            {/* Purple gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-purple-500/30 to-transparent pointer-events-none"></div>
           </div>
 
           {/* Churn Rate */}
