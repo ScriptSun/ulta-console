@@ -44,6 +44,14 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     programmaticControl: false
   });
 
+  // Size control options
+  const [sizeOptions, setSizeOptions] = useState({
+    customSize: false,
+    width: '400',
+    height: '600',
+    position: 'bottom-right'
+  });
+
   const copyToClipboard = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -109,6 +117,13 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
       if (overrides.logoUrl && overrides.logoUrl !== widget.theme.logo_url) opts.logoUrl = overrides.logoUrl;
     }
 
+    // Add size control options
+    if (sizeOptions.customSize) {
+      opts.width = `${sizeOptions.width}px`;
+      opts.height = `${sizeOptions.height}px`;
+      opts.position = sizeOptions.position;
+    }
+
     // Add advanced options
     if (displayMode === 'open') opts.autoOpen = true;
     if (advancedOptions.hideOnMobile) opts.hideOnMobile = true;
@@ -123,12 +138,17 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     },
     onOpen: function() {
       console.log('Widget opened');
+      // Track widget open event
+      // gtag('event', 'widget_open', { event_category: 'engagement' });
     },
     onClose: function() {
       console.log('Widget closed');
     },
     onMessage: function(message) {
       console.log('New message:', message);
+    },
+    onError: function(error) {
+      console.error('Widget error:', error);
     }`;
     }
 
@@ -145,6 +165,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
     let baseCode = `<script src="${sdkUrl}"></script>
 <script>
+  // 🤖 UltaAI Widget Configuration
   UltaAIWidget.load('${widget.site_key}'${hasOverrides ? `,
     ${JSON.stringify(opts, null, 4).slice(1, -1)}${eventHandlers}${userIdCode}
   }` : ''});`;
@@ -152,11 +173,12 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     if (advancedOptions.programmaticControl) {
       baseCode += `
   
-  // Programmatic control (available after widget loads)
+  // Programmatic control methods (available after widget loads)
   setTimeout(() => {
     // UltaAIWidget.open();  // Open widget
     // UltaAIWidget.close(); // Close widget
-    // UltaAIWidget.sendMessage('Hello!'); // Send message
+    // UltaAIWidget.sendMessage('Hello from website!'); // Send message
+    // UltaAIWidget.setUser({ userId: 'new_user', email: 'user@site.com' }); // Update user
   }, 1000);`;
     }
 
@@ -382,6 +404,79 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                     </Label>
                   </div>
                 </RadioGroup>
+              </div>
+
+              {/* Size Control Options */}
+              <div>
+                <div className="mb-4">
+                  <Label className="text-base font-semibold">Widget Size Control</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Customize widget dimensions and position
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="customSize"
+                      checked={sizeOptions.customSize}
+                      onCheckedChange={(checked) =>
+                        setSizeOptions(prev => ({ ...prev, customSize: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="customSize" className="font-normal">
+                      Enable Custom Size
+                      <span className="block text-xs text-muted-foreground">
+                        Override default widget dimensions
+                      </span>
+                    </Label>
+                  </div>
+
+                  {sizeOptions.customSize && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+                      <div className="space-y-2">
+                        <Label htmlFor="widgetWidth">Width (px)</Label>
+                        <Input
+                          id="widgetWidth"
+                          type="number"
+                          value={sizeOptions.width}
+                          onChange={(e) => setSizeOptions(prev => ({ ...prev, width: e.target.value }))}
+                          placeholder="400"
+                          min="200"
+                          max="800"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="widgetHeight">Height (px)</Label>
+                        <Input
+                          id="widgetHeight"
+                          type="number"
+                          value={sizeOptions.height}
+                          onChange={(e) => setSizeOptions(prev => ({ ...prev, height: e.target.value }))}
+                          placeholder="600"
+                          min="300"
+                          max="800"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="widgetPosition">Position</Label>
+                        <select
+                          id="widgetPosition"
+                          value={sizeOptions.position}
+                          onChange={(e) => setSizeOptions(prev => ({ ...prev, position: e.target.value }))}
+                          className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                        >
+                          <option value="bottom-right">Bottom Right</option>
+                          <option value="bottom-left">Bottom Left</option>
+                          <option value="top-right">Top Right</option>
+                          <option value="top-left">Top Left</option>
+                          <option value="center">Center</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Advanced Options Checkboxes */}
