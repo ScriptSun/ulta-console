@@ -518,105 +518,6 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     }
   };
 
-  const handleCreateVersion = async () => {
-    if (!canEdit) {
-      toast({
-        title: 'Permission Denied',
-        description: 'You do not have permission to create versions',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!validation?.isValid || !inputsValid) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please fix validation errors before creating version',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // First update the batch metadata
-      const { error: batchError } = await supabase
-        .from('script_batches')
-        .update({
-          name: formData.name,
-          description: formData.description,
-          inputs_schema: formData.inputs_schema,
-          inputs_defaults: formData.inputs_defaults,
-          render_config: renderConfig as any,
-          os_targets: formData.os_targets,
-          risk: formData.risk,
-          max_timeout_sec: formData.max_timeout_sec,
-          per_agent_concurrency: formData.per_agent_concurrency,
-          per_tenant_concurrency: formData.per_tenant_concurrency,
-          auto_version: formData.auto_version,
-          preflight: {},
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', batch?.id);
-
-      if (batchError) throw batchError;
-
-      // Create version for the current OS using direct fetch to the edge function
-      const currentOs = formData.os_targets[0] || 'ubuntu';
-      
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) {
-        throw new Error('No authentication token available');
-      }
-
-      const response = await fetch(
-        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch?.id}/variants/${currentOs}/versions`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            source: scriptContent,
-            notes: notes || 'New version created',
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const data = await response.json();
-
-      toast({
-        title: 'Version Created',
-        description: `Version ${data.variant.version} created successfully for ${currentOs}`,
-      });
-
-      // Clear draft from localStorage
-      const key = `batch_draft_${batch?.id || 'new'}`;
-      localStorage.removeItem(key);
-      setHasUnsavedChanges(false);
-      
-      onSuccess();
-      onClose();
-    } catch (error) {
-      console.error('Error creating version:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create version',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleActivateVersion = async () => {
     if (!canActivate) {
       toast({
@@ -870,21 +771,6 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                 <Label htmlFor="auto-version">Auto version on save</Label>
               </div>
               </div>
-
-              <Separator />
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes for this version</Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Optional notes about this version..."
-                  rows={3}
-                  disabled={!canEdit}
-                />
-              </div>
             </TabsContent>
 
             <TabsContent value="inputs" className="mt-6">
@@ -1059,17 +945,6 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                 >
                   <Save className="h-4 w-4" />
                   {loading ? 'Saving...' : 'Save Draft'}
-                </Button>
-              )}
-              {canEdit && isEditing && (
-                <Button
-                  onClick={handleCreateVersion}
-                  disabled={loading || !validation?.isValid || !inputsValid}
-                  variant="default"
-                  className="flex items-center gap-2"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  {loading ? 'Creating...' : 'Create Version'}
                 </Button>
               )}
             </div>
