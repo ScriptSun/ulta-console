@@ -19,7 +19,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Monitor your AI agents and system performance
           </p>
         </div>
@@ -28,7 +28,7 @@ export default function Dashboard() {
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
           />
-          <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+          <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
             All Systems Operational
           </Badge>
         </div>
@@ -42,11 +42,11 @@ export default function Dashboard() {
       {/* Revenue Overview */}
       <RevenueOverview dateRange={dateRange} />
 
-      {/* Error Rates and Task Failures */}
-      <ErrorRatesCard dateRange={dateRange} />
-
       {/* AI and Agent Insights */}
       <AIInsightsCard dateRange={dateRange} />
+
+      {/* Error Rates and Task Failures */}
+      <ErrorRatesCard dateRange={dateRange} />
 
       {/* Security - Recent Logins */}
       <RecentLoginsCard dateRange={dateRange} />
