@@ -399,25 +399,58 @@
   }
   
   async function fetchWidgetConfig(siteKey) {
+    const apiUrl = `${CONFIG.API_BASE_URL}${CONFIG.WIDGET_API_ENDPOINT}`;
+    const requestData = {
+      action: 'get_config',
+      site_key: siteKey,
+      domain: window.location.origin
+    };
+    
+    console.log('AltaAI Widget - Fetching config:', { apiUrl, requestData });
+    
     try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.WIDGET_API_ENDPOINT}`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          action: 'get_config',
-          site_key: siteKey,
-          domain: window.location.origin
-        })
+        body: JSON.stringify(requestData)
+      });
+      
+      console.log('AltaAI Widget - API response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
       });
       
       if (response.ok) {
         const data = await response.json();
-        return data.success ? data.widget : null;
+        console.log('AltaAI Widget - Response data:', data);
+        
+        if (data.success) {
+          return data.widget;
+        } else {
+          console.error('AltaAI Widget - API returned error:', {
+            error: data.error,
+            code: data.code,
+            details: data.details || data
+          });
+          return null;
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('AltaAI Widget - HTTP error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
       }
     } catch (error) {
-      console.warn('Failed to fetch widget config, using defaults', error);
+      console.error('AltaAI Widget - Network/fetch error:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
     }
     
     return null;

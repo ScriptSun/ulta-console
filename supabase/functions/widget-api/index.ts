@@ -6,21 +6,53 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
+  console.log('Widget API - Incoming request:', {
+    method: req.method,
+    url: req.url,
+    origin: req.headers.get('origin'),
+    userAgent: req.headers.get('user-agent')
+  })
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Widget API - CORS preflight request handled')
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    
+    console.log('Widget API - Environment check:', {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasSupabaseKey: !!supabaseAnonKey
+    })
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Widget API - Missing environment variables')
+      return Response.json(
+        { success: false, error: 'Server configuration error', code: 'ENV_MISSING' },
+        { status: 500, headers: corsHeaders }
+      )
+    }
     
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-    const { action, site_key, domain } = await req.json()
+    let requestBody
+    try {
+      requestBody = await req.json()
+    } catch (parseError) {
+      console.error('Widget API - JSON parse error:', parseError)
+      return Response.json(
+        { success: false, error: 'Invalid JSON in request body', code: 'JSON_PARSE_ERROR' },
+        { status: 400, headers: corsHeaders }
+      )
+    }
+
+    const { action, site_key, domain } = requestBody
     
-    console.log('Widget API request:', { action, site_key, domain })
+    console.log('Widget API - Parsed request:', { action, site_key, domain, requestOrigin: req.headers.get('origin') })
 
     if (action === 'get_config') {
       // Fetch widget by site key directly from database
@@ -31,17 +63,17 @@ Deno.serve(async (req) => {
         .maybeSingle()
 
       if (error) {
-        console.error('Error fetching widget:', error)
+        console.error('Widget API - Database error:', error)
         return Response.json(
-          { success: false, error: 'Failed to fetch widget configuration' },
+          { success: false, error: 'Database error', details: error.message, code: 'DB_ERROR' },
           { status: 500, headers: corsHeaders }
         )
       }
       
       if (!widget) {
-        console.log('Widget not found for site key:', site_key)
+        console.log('Widget API - Widget not found:', { site_key, searchedTable: 'widgets' })
         return Response.json(
-          { success: false, error: 'Invalid site key' },
+          { success: false, error: 'Widget not found', site_key, code: 'WIDGET_NOT_FOUND' },
           { status: 404, headers: corsHeaders }
         )
       }
@@ -64,9 +96,19 @@ Deno.serve(async (req) => {
       })
 
       if (!isAllowedDomain && requestDomain) {
-        console.log('Domain not allowed:', requestDomain, 'Allowed domains:', widget.allowed_domains)
+        console.log('Widget API - Domain not authorized:', { 
+          requestDomain, 
+          allowedDomains: widget.allowed_domains,
+          widget_id: widget.id
+        })
         return Response.json(
-          { success: false, error: 'Domain not authorized' },
+          { 
+            success: false, 
+            error: 'Domain not authorized', 
+            domain: requestDomain, 
+            allowed_domains: widget.allowed_domains,
+            code: 'DOMAIN_NOT_AUTHORIZED'
+          },
           { status: 403, headers: corsHeaders }
         )
       }
