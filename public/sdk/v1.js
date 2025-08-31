@@ -6,7 +6,7 @@
   
   // Configuration
   const CONFIG = {
-    API_BASE_URL: window.location.origin,
+    API_BASE_URL: 'https://preview--ultaai-console.lovable.app',
     WIDGET_API_ENDPOINT: '/functions/v1/widget-api'
   };
   
