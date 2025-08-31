@@ -150,7 +150,7 @@ export function AppSidebar() {
         {/* Tools */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {!collapsed && 'Tools'}
+            {!collapsed && 'Configure'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
