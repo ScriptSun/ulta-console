@@ -373,7 +373,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
       </CardHeader>
       <CardContent>
         <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm justify-items-center">
             <div 
               className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
                 !visibleSeries.active ? 'opacity-50' : ''
