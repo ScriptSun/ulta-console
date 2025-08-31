@@ -205,27 +205,36 @@ export type Database = {
       agent_usage: {
         Row: {
           agent_id: string
+          completion_tokens: number | null
           count: number
           created_at: string
           id: string
+          model: string | null
+          prompt_tokens: number | null
           updated_at: string
           usage_date: string
           usage_type: string
         }
         Insert: {
           agent_id: string
+          completion_tokens?: number | null
           count?: number
           created_at?: string
           id?: string
+          model?: string | null
+          prompt_tokens?: number | null
           updated_at?: string
           usage_date?: string
           usage_type: string
         }
         Update: {
           agent_id?: string
+          completion_tokens?: number | null
           count?: number
           created_at?: string
           id?: string
+          model?: string | null
+          prompt_tokens?: number | null
           updated_at?: string
           usage_date?: string
           usage_type?: string

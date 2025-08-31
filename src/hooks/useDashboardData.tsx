@@ -112,7 +112,7 @@ export function useAIInsights(dateRange: DateRange) {
 
       if (agentsError) throw agentsError;
 
-      // Generate all days in the date range
+      // Generate all days in the date range for agent status chart
       const agentsByPeriod: Array<{
         period: string;
         active: number;
@@ -148,12 +148,15 @@ export function useAIInsights(dateRange: DateRange) {
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      // Get usage data for active agents
+      // Get usage data with tokens for top active agents and cost calculation
       const { data: agentUsage, error: usageError } = await supabase
         .from('agent_usage')
         .select(`
           agent_id,
           count,
+          prompt_tokens,
+          completion_tokens,
+          model,
           agents(hostname, status, last_seen)
         `)
         .gte('usage_date', dateRange.start.toISOString().split('T')[0])
@@ -161,7 +164,7 @@ export function useAIInsights(dateRange: DateRange) {
 
       if (usageError) throw usageError;
 
-      // Aggregate usage by agent
+      // Aggregate usage by agent for top active agents
       const agentMap = new Map();
       agentUsage?.forEach((usage: any) => {
         const agentId = usage.agent_id;
@@ -171,16 +174,41 @@ export function useAIInsights(dateRange: DateRange) {
             name: usage.agents?.hostname || 'Unknown',
             usage: 0,
             status: usage.agents?.status || 'unknown',
-            last_seen: usage.agents?.last_seen
+            last_seen: usage.agents?.last_seen,
+            promptTokens: 0,
+            completionTokens: 0
           });
         }
         const agent = agentMap.get(agentId);
         agent.usage += usage.count || 0;
+        agent.promptTokens += usage.prompt_tokens || 0;
+        agent.completionTokens += usage.completion_tokens || 0;
       });
 
       const topAgents = Array.from(agentMap.values())
         .sort((a, b) => b.usage - a.usage)
         .slice(0, 10);
+
+      // Aggregate cost data by model
+      const modelCostMap = new Map();
+      agentUsage?.forEach((usage: any) => {
+        const model = usage.model || 'gpt-4o-mini';
+        if (!modelCostMap.has(model)) {
+          modelCostMap.set(model, {
+            model,
+            promptTokens: 0,
+            completionTokens: 0,
+            totalRequests: 0,
+            cost: 0
+          });
+        }
+        const modelData = modelCostMap.get(model);
+        modelData.promptTokens += usage.prompt_tokens || 0;
+        modelData.completionTokens += usage.completion_tokens || 0;
+        modelData.totalRequests += usage.count || 0;
+      });
+
+      const costData = Array.from(modelCostMap.values());
 
       // Agent errors
       const { data: agentErrors, error: errorError } = await supabase
@@ -196,19 +224,31 @@ export function useAIInsights(dateRange: DateRange) {
 
       if (errorError) throw errorError;
 
-      // Calculate total cost (simplified pricing)
-      const totalCost = Array.from(agentMap.values()).reduce((total, agent) => {
-        return total + (agent.usage * 0.01); // Simple cost calculation
+      // Calculate total cost using model pricing
+      const MODEL_PRICING = {
+        'gpt-4o-mini': { prompt_cost_per_1k: 0.000150, completion_cost_per_1k: 0.000600 },
+        'gpt-4o': { prompt_cost_per_1k: 0.005000, completion_cost_per_1k: 0.015000 },
+        'gpt-5-mini-2025-08-07': { prompt_cost_per_1k: 0.000200, completion_cost_per_1k: 0.000800 },
+        'gpt-5-2025-08-07': { prompt_cost_per_1k: 0.010000, completion_cost_per_1k: 0.030000 }
+      } as const;
+
+      const totalCost = costData.reduce((total, model) => {
+        const pricing = MODEL_PRICING[model.model as keyof typeof MODEL_PRICING];
+        if (!pricing) return total;
+        return total + 
+               (model.promptTokens / 1000) * pricing.prompt_cost_per_1k +
+               (model.completionTokens / 1000) * pricing.completion_cost_per_1k;
       }, 0);
 
       return {
         topAgents,
         agentsByPeriod,
+        costData,
         totalActiveAgents: agents?.filter(a => a.status === 'active').length || 0,
         agentErrors: agentErrors || [],
         totalCost,
-        totalTokens: Array.from(agentMap.values()).reduce((total, agent) => 
-          total + agent.usage, 0)
+        totalTokens: costData.reduce((total, model) => 
+          total + model.promptTokens + model.completionTokens, 0)
       };
     }
   });
