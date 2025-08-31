@@ -95,6 +95,7 @@ interface Message {
 
 interface ChatDemoProps {
   currentRoute?: string;
+  forceEnabled?: boolean;
 }
 
 const DEMO_ACTIONS = [
@@ -104,7 +105,7 @@ const DEMO_ACTIONS = [
   { label: 'Restart Nginx', action: 'restart_nginx' },
 ];
 
-export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
+export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnabled = false }) => {
   const { toast } = useToast();
   const { theme } = useTheme();
   
@@ -133,7 +134,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '' }) => {
   const sessionStartTime = useRef(Date.now());
 
   // Check if current route should show chat demo
-  const shouldShowDemo = isDemoEnabled && !currentRoute.includes('/admin') && !currentRoute.includes('/settings');
+  const shouldShowDemo = (forceEnabled || isDemoEnabled) && !currentRoute.includes('/admin') && !currentRoute.includes('/settings');
 
   // Load settings from localStorage
   useEffect(() => {

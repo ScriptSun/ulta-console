@@ -110,7 +110,7 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
                 } as React.CSSProperties}
                 className="w-full h-full"
               >
-                <ChatDemo currentRoute="/widget-preview" />
+                <ChatDemo currentRoute="/widget-preview" forceEnabled={true} />
               </div>
             </div>
 
