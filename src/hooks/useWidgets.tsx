@@ -46,8 +46,8 @@ export function useWidgets() {
       }
 
       // Call the widget admin API with proper path
-      const baseUrl = window.location.origin;
-      const response = await fetch(`${baseUrl}/supabase/functions/v1/widget-admin-api/api/admin/widgets`, {
+      const supabaseUrl = 'https://lfsdqyvvboapsyeauchm.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/widget-admin-api/api/admin/widgets`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -91,8 +91,8 @@ export function useWidgets() {
 
       // Call the widget admin API with proper path
       console.log('Calling widget-admin-api...');
-      const baseUrl = window.location.origin;
-      const response = await fetch(`${baseUrl}/supabase/functions/v1/widget-admin-api/api/admin/widgets`, {
+      const supabaseUrl = 'https://lfsdqyvvboapsyeauchm.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/widget-admin-api/api/admin/widgets`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -147,8 +147,8 @@ export function useWidgets() {
       }
 
       // Call the widget admin API with proper path
-      const baseUrl = window.location.origin;
-      const response = await fetch(`${baseUrl}/supabase/functions/v1/widget-admin-api/api/admin/widgets/${widgetId}`, {
+      const supabaseUrl = 'https://lfsdqyvvboapsyeauchm.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/widget-admin-api/api/admin/widgets/${widgetId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
