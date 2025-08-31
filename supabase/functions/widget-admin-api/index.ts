@@ -65,15 +65,32 @@ interface Widget {
 
 // Validate domain format (must be exact origins like https://client.whmcs.com)
 function validateDomains(domains: string[]): string | null {
-  const urlRegex = /^https?:\/\/[a-zA-Z0-9][a-zA-Z0-9\-._]*[a-zA-Z0-9]+(:\d+)?$/
-  
   for (const domain of domains) {
-    // Reject wildcards explicitly
-    if (domain.includes('*') || domain.includes('//') || domain.endsWith('/*')) {
-      return `Wildcard domains not allowed: "${domain}". Use exact origins like https://client.whmcs.com`
-    }
-    
-    if (!urlRegex.test(domain)) {
+    try {
+      // Try to parse as URL to validate format
+      const url = new URL(domain)
+      
+      // Must be http or https
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return `Invalid protocol: "${domain}". Must use http:// or https://`
+      }
+      
+      // Must have a hostname
+      if (!url.hostname) {
+        return `Invalid hostname: "${domain}". Must have a valid hostname`
+      }
+      
+      // Reject explicit wildcards in hostname
+      if (url.hostname.includes('*')) {
+        return `Wildcard domains not allowed: "${domain}". Use exact origins like https://client.whmcs.com`
+      }
+      
+      // Must not have path, search, or hash (should be origin only)
+      if (url.pathname !== '/' || url.search || url.hash) {
+        return `Domain must be origin only: "${domain}". Remove path, query, or fragment. Use format like https://client.whmcs.com`
+      }
+      
+    } catch (error) {
       return `Invalid domain format: "${domain}". Must be exact origins like https://client.whmcs.com`
     }
   }
