@@ -61,9 +61,15 @@ export default function UserDetail() {
       );
     }
     
+    if (status === 'active' || status === 'online') {
+      return (
+        <Badge className="bg-green-500/10 text-green-300 border-green-500/20 hover:bg-green-500/20 transition-colors">
+          Active
+        </Badge>
+      );
+    }
+    
     const statusConfig = {
-      online: { variant: 'default', label: 'Online' },
-      active: { variant: 'default', label: 'Active' },
       error: { variant: 'destructive', label: 'Error' },
       suspended: { variant: 'secondary', label: 'Suspended' },
       deploying: { variant: 'outline', label: 'Deploying' },
