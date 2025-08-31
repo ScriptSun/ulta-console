@@ -95,9 +95,6 @@ export default function WidgetEdit() {
             <h1 className="text-3xl font-bold">
               Edit widget / <span className="text-purple-600">{widget.name}</span>
             </h1>
-            <p className="text-muted-foreground">
-              Configure settings, domains, and theme
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
