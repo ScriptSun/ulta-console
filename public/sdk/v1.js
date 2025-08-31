@@ -778,7 +778,7 @@
   function initializeWidget(siteKey, options) {
     try {
       // Fetch widget configuration
-      fetchWidgetConfig(siteKey)
+      fetchWidgetConfig(siteKey, options.debug)
         .then(config => {
           if (config) {
             // Merge theme from config with options
@@ -805,7 +805,7 @@
     }
   }
   
-  async function fetchWidgetConfig(siteKey) {
+  async function fetchWidgetConfig(siteKey, debugFromOptions = false) {
     const startTime = performance.now();
     const apiUrl = `${CONFIG.API_BASE_URL}${CONFIG.WIDGET_API_ENDPOINT}`;
     const requestData = {
@@ -814,8 +814,8 @@
       domain: window.location.origin
     };
     
-    // Enable debug mode if it's in any existing widget instance
-    const debugMode = Object.values(widgetInstances).some(instance => instance.config?.debug);
+    // Enable debug mode if passed in options or in existing widget instances
+    const debugMode = debugFromOptions || Object.values(widgetInstances).some(instance => instance.config?.debug);
     
     if (debugMode) {
       debugLog('Starting widget configuration fetch', {
