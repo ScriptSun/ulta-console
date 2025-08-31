@@ -16,7 +16,6 @@ interface User {
   id: string;
   email: string;
   full_name: string | null;
-  role: string;
   created_at: string;
   updated_at: string;
   agent_count?: number;
@@ -58,15 +57,6 @@ export default function Users() {
   const handleViewProfile = (user: User) => {
     setSelectedUser(user);
     setProfileDialogOpen(true);
-  };
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case 'admin': return 'destructive';
-      case 'manager': return 'default';
-      case 'user': return 'secondary';
-      default: return 'outline';
-    }
   };
 
   const formatDate = (dateString: string) => {
@@ -154,9 +144,6 @@ export default function Users() {
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{user.full_name || 'Unnamed User'}</div>
-                      <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs mt-1">
-                        {user.role}
-                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm font-medium">

@@ -11,7 +11,6 @@ interface User {
   id: string;
   email: string;
   full_name: string | null;
-  role: string;
   created_at: string;
   updated_at: string;
 }
@@ -65,15 +64,6 @@ export function UserProfileDialog({ user, open, onOpenChange }: UserProfileDialo
     );
   };
 
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case 'admin': return 'destructive';
-      case 'manager': return 'default';
-      case 'user': return 'secondary';
-      default: return 'outline';
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -101,14 +91,6 @@ export function UserProfileDialog({ user, open, onOpenChange }: UserProfileDialo
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4" />
                     <p className="text-sm">{user.email}</p>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Role</label>
-                  <div className="mt-1">
-                    <Badge variant={getRoleBadgeVariant(user.role)}>
-                      {user.role}
-                    </Badge>
                   </div>
                 </div>
                 <div>

@@ -13,7 +13,6 @@ interface User {
   id: string;
   email: string;
   full_name: string | null;
-  role: string;
 }
 
 interface Agent {
@@ -151,9 +150,6 @@ export function AssignUserToAgentDialog({ agent, open, onOpenChange, onSuccess }
                           {user.email}
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        {user.role}
-                      </Badge>
                     </div>
                   </SelectItem>
                 ))}
