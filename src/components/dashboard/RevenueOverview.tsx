@@ -186,25 +186,38 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         </div>
 
         {/* MRR Trend Chart */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">MRR Trend (Last 6 Months)</h4>
+        <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 relative overflow-hidden">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-semibold text-white">MRR Trend</h4>
+            <div className="text-sm text-slate-400">Last 6 Months</div>
+          </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.mrrTrend}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
                 <XAxis 
                   dataKey="date" 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
+                  axisLine={{ stroke: '#475569' }}
+                  tickLine={{ stroke: '#475569' }}
                   tickFormatter={(value) => {
                     const date = new Date(value);
                     return date.toLocaleDateString('en-US', { month: 'short' });
                   }}
                 />
                 <YAxis 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
+                  axisLine={{ stroke: '#475569' }}
+                  tickLine={{ stroke: '#475569' }}
                   tickFormatter={(value) => `$${value}`}
                 />
                 <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    borderRadius: '8px',
+                    color: '#f1f5f9'
+                  }}
                   formatter={(value) => [formatCurrency(Number(value)), 'MRR']}
                   labelFormatter={(value) => {
                     const date = new Date(value);
@@ -214,14 +227,17 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
                 <Line 
                   type="monotone" 
                   dataKey="mrr" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: 'hsl(var(--primary))', strokeWidth: 2 }}
+                  stroke="#10b981" 
+                  strokeWidth={3}
+                  dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2, fill: '#ffffff' }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-primary/10 pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none"></div>
         </div>
 
         {/* Additional Stats */}
