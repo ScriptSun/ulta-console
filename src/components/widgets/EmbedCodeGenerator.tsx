@@ -10,9 +10,14 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Copy, CheckCircle, Code, Settings, Palette } from "lucide-react";
+import { Copy, CheckCircle, Code, Settings, Palette, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Widget } from "@/hooks/useWidgets";
+import { EmbedOverrides, EmbedAdvancedOptions, EmbedSizeOptions } from "@/types/embed";
+import { EmbedCodeGenerator as CodeGenerator } from "@/lib/embed-code-generator";
+import { copyToClipboard, validateWidget } from "@/lib/utils";
+import { CONFIG } from "@/lib/config";
 
 interface EmbedCodeGeneratorProps {
   widget: Widget | null;
@@ -21,22 +26,26 @@ interface EmbedCodeGeneratorProps {
 export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
   
-  // Client-side override options
-  const [overrides, setOverrides] = useState({
+  // Validate widget on load
+  const widgetValidation = validateWidget(widget);
+  
+  // Client-side override options with safe defaults
+  const [overrides, setOverrides] = useState<EmbedOverrides>({
     enabled: false,
-    position: 'bottom-right',
-    width: '400px',
-    height: '600px',
-    colorPrimary: widget?.theme.color_primary || '#007bff',
-    textColor: widget?.theme.text_color || '#333333',
-    welcomeText: widget?.theme.welcome_text || '',
-    logoUrl: widget?.theme.logo_url || ''
+    position: CONFIG.WIDGET_DEFAULTS.position,
+    width: CONFIG.WIDGET_DEFAULTS.width,
+    height: CONFIG.WIDGET_DEFAULTS.height,
+    colorPrimary: widget?.theme?.color_primary || '#007bff',
+    textColor: widget?.theme?.text_color || '#333333',
+    welcomeText: widget?.theme?.welcome_text || '',
+    logoUrl: widget?.theme?.logo_url || ''
   });
 
   // Advanced options state
-  const [displayMode, setDisplayMode] = useState('standard'); // 'standard' or 'open'
-  const [advancedOptions, setAdvancedOptions] = useState({
+  const [displayMode, setDisplayMode] = useState('standard');
+  const [advancedOptions, setAdvancedOptions] = useState<EmbedAdvancedOptions>({
     hideOnMobile: false,
     showBadge: true,
     enableEvents: false,
@@ -46,158 +55,81 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
   });
 
   // Size control options
-  const [sizeOptions, setSizeOptions] = useState({
+  const [sizeOptions, setSizeOptions] = useState<EmbedSizeOptions>({
     customSize: false,
     width: '400',
     height: '600',
-    position: 'bottom-right'
+    position: CONFIG.WIDGET_DEFAULTS.position
   });
 
-  const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
+  const handleCopyToClipboard = async (rawCode: string, label: string) => {
+    // Remove HTML formatting for actual copying
+    const cleanCode = rawCode.replace(/<[^>]*>/g, '');
+    
+    const success = await copyToClipboard(cleanCode);
+    
+    if (success) {
       setCopiedCode(label);
       toast({
         title: "Copied!",
         description: `${label} copied to clipboard`,
       });
       setTimeout(() => setCopiedCode(null), 2000);
-    } catch (error) {
+    } else {
       toast({
         title: "Copy failed",
-        description: "Please copy the code manually",
+        description: "Please copy the code manually. Check browser permissions.",
         variant: "destructive",
       });
     }
   };
 
-  if (!widget) {
+  // Initialize code generator
+  const codeGenerator = widget ? new CodeGenerator(widget) : null;
+
+  if (!widgetValidation.isValid) {
     return (
       <Card>
-        <CardContent>
-          <div className="flex items-center justify-center h-32 bg-muted rounded-lg">
-            <p className="text-muted-foreground">No widget selected</p>
-          </div>
+        <CardContent className="p-6">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <p className="font-medium">Widget validation failed:</p>
+                <ul className="list-disc list-inside text-sm">
+                  {widgetValidation.errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
   }
 
-  // Generate embed code based on current settings
-  const generateBasicEmbedCode = () => {
-    // Use the deployed Lovable domain for the SDK URL
-    const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
+  // Generate embed codes using the new generator
+  const generateCode = (type: 'basic' | 'advanced' | 'autoload') => {
+    if (!codeGenerator) return { success: false, error: 'Code generator not available' };
     
-    return `<span style="color: #4FC3F7">&lt;script</span> <span style="color: #26C6DA">src</span>=<span style="color: #FFD54F">"${sdkUrl}"</span><span style="color: #4FC3F7">&gt;&lt;/script&gt;</span>
-<span style="color: #4FC3F7">&lt;script&gt;</span>
-  <span style="color: #FFEB3B">UltaAIWidget</span>.<span style="color: #FFEB3B">load</span>(<span style="color: #FFD54F">'${widget.site_key}'</span>);
-<span style="color: #4FC3F7">&lt;/script&gt;</span>`;
-  };
-
-  const generateAdvancedEmbedCode = () => {
-    // Use the deployed Lovable domain for the SDK URL
-    const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
-    const opts: any = {};
-    
-    if (overrides.enabled) {
-      if (overrides.position !== 'bottom-right') opts.position = overrides.position;
-      if (overrides.width !== '400px') opts.width = overrides.width;
-      if (overrides.height !== '600px') opts.height = overrides.height;
-      if (overrides.colorPrimary !== widget.theme.color_primary) opts.colorPrimary = overrides.colorPrimary;
-      if (overrides.textColor !== widget.theme.text_color) opts.textColor = overrides.textColor;
-      if (overrides.welcomeText && overrides.welcomeText !== widget.theme.welcome_text) opts.welcomeText = overrides.welcomeText;
-      if (overrides.logoUrl && overrides.logoUrl !== widget.theme.logo_url) opts.logoUrl = overrides.logoUrl;
-    }
-
-    // Add size control options
-    if (sizeOptions.customSize) {
-      opts.width = `${sizeOptions.width}px`;
-      opts.height = `${sizeOptions.height}px`;
-      opts.position = sizeOptions.position;
-    }
-
-    // Add advanced options
-    if (displayMode === 'open') opts.autoOpen = true;
-    if (advancedOptions.hideOnMobile) opts.hideOnMobile = true;
-    if (!advancedOptions.showBadge) opts.showBadge = false;
-    if (advancedOptions.debugMode) opts.debug = true;
-    
-    const hasOptions = Object.keys(opts).length > 0;
-    const hasEvents = advancedOptions.enableEvents;
-    const hasUserData = advancedOptions.userIdentification;
-    
-    let code = `<span style="color: #4FC3F7">&lt;script</span> <span style="color: #26C6DA">src</span>=<span style="color: #FFD54F">"${sdkUrl}"</span><span style="color: #4FC3F7">&gt;&lt;/script&gt;</span>
-<span style="color: #4FC3F7">&lt;script&gt;</span>
-  <span style="color: #81C784">// 🤖 UltaAI Widget Configuration</span>
-  <span style="color: #FFEB3B">UltaAIWidget</span>.<span style="color: #FFEB3B">load</span>(<span style="color: #FFD54F">'${widget.site_key}'</span>`;
-
-    if (hasOptions || hasEvents || hasUserData) {
-      code += `, <span style="color: #FFFFFF">{</span>`;
-      
-      // Add basic options
-      const optionsArray = [];
-      Object.entries(opts).forEach(([key, value]) => {
-        if (typeof value === 'string') {
-          optionsArray.push(`    <span style="color: #FFD54F">"${key}"</span>: <span style="color: #FFD54F">"${value}"</span>`);
-        } else {
-          optionsArray.push(`    <span style="color: #FFD54F">"${key}"</span>: <span style="color: #4DD0E1">${value}</span>`);
-        }
-      });
-      
-      // Add user identification
-      if (hasUserData) {
-        optionsArray.push(`    <span style="color: #FFD54F">"userId"</span>: <span style="color: #FFD54F">"user_12345"</span>`);
-        optionsArray.push(`    <span style="color: #FFD54F">"userEmail"</span>: <span style="color: #FFD54F">"user@example.com"</span>`);
-        optionsArray.push(`    <span style="color: #FFD54F">"userName"</span>: <span style="color: #FFD54F">"John Doe"</span>`);
+    try {
+      switch (type) {
+        case 'basic':
+          return codeGenerator.generateBasicCode();
+        case 'advanced':
+          return codeGenerator.generateAdvancedCode(overrides, advancedOptions, sizeOptions, displayMode);
+        case 'autoload':
+          return codeGenerator.generateAutoLoadCode(sizeOptions);
+        default:
+          return { success: false, error: 'Invalid code type' };
       }
-      
-      // Add event handlers
-      if (hasEvents) {
-        optionsArray.push(`    <span style="color: #FFD54F">"onReady"</span>: <span style="color: #BA68C8">function</span>() {
-      <span style="color: #FFEB3B">console</span>.<span style="color: #FFEB3B">log</span>(<span style="color: #FFD54F">'🤖 UltaAI widget is ready'</span>);
-    }`);
-        optionsArray.push(`    <span style="color: #FFD54F">"onOpen"</span>: <span style="color: #BA68C8">function</span>() {
-      <span style="color: #FFEB3B">console</span>.<span style="color: #FFEB3B">log</span>(<span style="color: #FFD54F">'Widget opened'</span>);
-    }`);
-      }
-      
-      code += `\n${optionsArray.join(',\n')}\n  <span style="color: #FFFFFF">}</span>`;
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Code generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
     }
-    
-    code += `);`;
-
-    if (advancedOptions.programmaticControl) {
-      code += `
-  
-  <span style="color: #81C784">// Programmatic control methods (available after widget loads)</span>
-  <span style="color: #FFEB3B">setTimeout</span>(() => {
-    <span style="color: #81C784">// UltaAIWidget.open();  // Open widget</span>
-    <span style="color: #81C784">// UltaAIWidget.close(); // Close widget</span>
-    <span style="color: #81C784">// UltaAIWidget.sendMessage('Hello from website!'); // Send message</span>
-  }, <span style="color: #4DD0E1">1000</span>);`;
-    }
-
-    code += `
-<span style="color: #4FC3F7">&lt;/script&gt;</span>`;
-
-    return code;
-  };
-
-  const generateAutoLoadCode = () => {
-    // Use the deployed Lovable domain for the SDK URL
-    const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
-    const dataAttrs = [];
-    dataAttrs.push(`<span style="color: #26C6DA">data-ultaai-site-key</span>=<span style="color: #FFD54F">"${widget.site_key}"</span>`);
-    
-    if (sizeOptions.customSize) {
-      if (sizeOptions.width !== '400') dataAttrs.push(`<span style="color: #26C6DA">data-ultaai-width</span>=<span style="color: #FFD54F">"${sizeOptions.width}px"</span>`);
-      if (sizeOptions.height !== '600') dataAttrs.push(`<span style="color: #26C6DA">data-ultaai-height</span>=<span style="color: #FFD54F">"${sizeOptions.height}px"</span>`);
-      if (sizeOptions.position !== 'bottom-right') dataAttrs.push(`<span style="color: #26C6DA">data-ultaai-position</span>=<span style="color: #FFD54F">"${sizeOptions.position}"</span>`);
-    }
-
-    return `<span style="color: #4FC3F7">&lt;script</span> <span style="color: #26C6DA">src</span>=<span style="color: #FFD54F">"${sdkUrl}"</span>
-  ${dataAttrs.join('\n  ')}
-<span style="color: #4FC3F7">&gt;&lt;/script&gt;</span>`;
   };
 
   return (
@@ -228,23 +160,36 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
               <p className="text-xs text-muted-foreground mb-3">
                 Simple embed code with default settings
               </p>
-              <div className="relative">
-                 <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
-                   <code dangerouslySetInnerHTML={{ __html: generateBasicEmbedCode() }}></code>
-                 </pre>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={() => copyToClipboard(generateBasicEmbedCode(), "Basic embed code")}
-                >
-                  {copiedCode === "Basic embed code" ? (
-                    <CheckCircle className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
+              {(() => {
+                const result = generateCode('basic');
+                if (!result.success) {
+                  return (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>{result.error}</AlertDescription>
+                    </Alert>
+                  );
+                }
+                return (
+                  <div className="relative">
+                    <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
+                      <code dangerouslySetInnerHTML={{ __html: result.code || '' }}></code>
+                    </pre>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => handleCopyToClipboard(result.code || '', "Basic embed code")}
+                    >
+                      {copiedCode === "Basic embed code" ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                );
+              })()}
             </div>
           </TabsContent>
 
@@ -427,29 +372,43 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 
             <Separator />
 
-            <div>
-              <Label className="text-sm font-medium">Advanced Embed Code</Label>
-              <p className="text-xs text-muted-foreground mb-3">
-                Embed code with custom options, event handling, and advanced features
-              </p>
-              <div className="relative">
-                <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
-                  <code dangerouslySetInnerHTML={{ __html: generateAdvancedEmbedCode() }}></code>
-                </pre>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={() => copyToClipboard(generateAdvancedEmbedCode(), "Advanced embed code")}
-                >
-                  {copiedCode === "Advanced embed code" ? (
-                    <CheckCircle className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
+              {/* Advanced Code Display */}
+              <div>
+                <Label className="text-sm font-medium">Generated Advanced Code</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Advanced embed code with your selected options
+                </p>
+                {(() => {
+                  const result = generateCode('advanced');
+                  if (!result.success) {
+                    return (
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>{result.error}</AlertDescription>
+                      </Alert>
+                    );
+                  }
+                  return (
+                    <div className="relative">
+                      <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border max-h-96">
+                        <code dangerouslySetInnerHTML={{ __html: result.code || '' }}></code>
+                      </pre>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => handleCopyToClipboard(result.code || '', "Advanced embed code")}
+                      >
+                        {copiedCode === "Advanced embed code" ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  );
+                })()}
               </div>
-            </div>
             
             {/* Advanced Features Documentation */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -505,23 +464,36 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
               <p className="text-xs text-muted-foreground mb-3">
                 Single script tag with data attributes for auto-loading
               </p>
-               <div className="relative">
-                 <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
-                   <code dangerouslySetInnerHTML={{ __html: generateAutoLoadCode() }}></code>
-                 </pre>
-                 <Button
-                   variant="outline"
-                   size="sm"
-                   className="absolute top-2 right-2"
-                   onClick={() => copyToClipboard(generateAutoLoadCode(), "Auto-load embed code")}
-                 >
-                   {copiedCode === "Auto-load embed code" ? (
-                     <CheckCircle className="h-4 w-4" />
-                   ) : (
-                     <Copy className="h-4 w-4" />
-                   )}
-                 </Button>
-               </div>
+              {(() => {
+                const result = generateCode('autoload');
+                if (!result.success) {
+                  return (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>{result.error}</AlertDescription>
+                    </Alert>
+                  );
+                }
+                return (
+                  <div className="relative">
+                    <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
+                      <code dangerouslySetInnerHTML={{ __html: result.code || '' }}></code>
+                    </pre>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => handleCopyToClipboard(result.code || '', "Auto-load embed code")}
+                    >
+                      {copiedCode === "Auto-load embed code" ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                );
+              })()}
             </div>
           </TabsContent>
         </Tabs>
