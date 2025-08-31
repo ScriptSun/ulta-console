@@ -83,7 +83,7 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     );
   }
 
-  // Generate embed code based on current settings
+  // Generate embed code based on current settings - HTML version for display
   const generateBasicEmbedCode = () => {
     // Use the deployed Lovable domain for the SDK URL
     const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
@@ -92,6 +92,16 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
 <span style="color: #4FC3F7">&lt;script&gt;</span>
   <span style="color: #FFEB3B">UltaAIWidget</span>.<span style="color: #FFEB3B">load</span>(<span style="color: #FFD54F">'${widget.site_key}'</span>);
 <span style="color: #4FC3F7">&lt;/script&gt;</span>`;
+  };
+
+  // Plain text version for copying
+  const generateBasicEmbedCodePlain = () => {
+    const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
+    
+    return `<script src="${sdkUrl}"></script>
+<script>
+  UltaAIWidget.load('${widget.site_key}');
+</script>`;
   };
 
   const generateAdvancedEmbedCode = () => {
@@ -183,6 +193,90 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     return code;
   };
 
+  // Plain text version of advanced embed code for copying
+  const generateAdvancedEmbedCodePlain = () => {
+    const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
+    const opts: any = {};
+    
+    if (overrides.enabled) {
+      if (overrides.position !== 'bottom-right') opts.position = overrides.position;
+      if (overrides.width !== '400px') opts.width = overrides.width;
+      if (overrides.height !== '600px') opts.height = overrides.height;
+      if (overrides.colorPrimary !== widget.theme.color_primary) opts.colorPrimary = overrides.colorPrimary;
+      if (overrides.textColor !== widget.theme.text_color) opts.textColor = overrides.textColor;
+      if (overrides.welcomeText && overrides.welcomeText !== widget.theme.welcome_text) opts.welcomeText = overrides.welcomeText;
+      if (overrides.logoUrl && overrides.logoUrl !== widget.theme.logo_url) opts.logoUrl = overrides.logoUrl;
+    }
+
+    if (sizeOptions.customSize) {
+      opts.width = `${sizeOptions.width}px`;
+      opts.height = `${sizeOptions.height}px`;
+      opts.position = sizeOptions.position;
+    }
+
+    if (displayMode === 'open') opts.autoOpen = true;
+    if (advancedOptions.hideOnMobile) opts.hideOnMobile = true;
+    if (!advancedOptions.showBadge) opts.showBadge = false;
+    if (advancedOptions.debugMode) opts.debug = true;
+    
+    const hasOptions = Object.keys(opts).length > 0;
+    const hasEvents = advancedOptions.enableEvents;
+    const hasUserData = advancedOptions.userIdentification;
+    
+    let code = `<script src="${sdkUrl}"></script>
+<script>
+  // 🤖 UltaAI Widget Configuration
+  UltaAIWidget.load('${widget.site_key}'`;
+
+    if (hasOptions || hasEvents || hasUserData) {
+      code += `, {`;
+      
+      const optionsArray = [];
+      Object.entries(opts).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          optionsArray.push(`    "${key}": "${value}"`);
+        } else {
+          optionsArray.push(`    "${key}": ${value}`);
+        }
+      });
+      
+      if (hasUserData) {
+        optionsArray.push(`    "userId": "user_12345"`);
+        optionsArray.push(`    "userEmail": "user@example.com"`);
+        optionsArray.push(`    "userName": "John Doe"`);
+      }
+      
+      if (hasEvents) {
+        optionsArray.push(`    "onReady": function() {
+      console.log('🤖 UltaAI widget is ready');
+    }`);
+        optionsArray.push(`    "onOpen": function() {
+      console.log('Widget opened');
+    }`);
+      }
+      
+      code += `\n${optionsArray.join(',\n')}\n  }`;
+    }
+    
+    code += `);`;
+
+    if (advancedOptions.programmaticControl) {
+      code += `
+  
+  // Programmatic control methods (available after widget loads)
+  setTimeout(() => {
+    // UltaAIWidget.open();  // Open widget
+    // UltaAIWidget.close(); // Close widget
+    // UltaAIWidget.sendMessage('Hello from website!'); // Send message
+  }, 1000);`;
+    }
+
+    code += `
+</script>`;
+
+    return code;
+  };
+
   const generateAutoLoadCode = () => {
     // Use the deployed Lovable domain for the SDK URL
     const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
@@ -198,6 +292,23 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
     return `<span style="color: #4FC3F7">&lt;script</span> <span style="color: #26C6DA">src</span>=<span style="color: #FFD54F">"${sdkUrl}"</span>
   ${dataAttrs.join('\n  ')}
 <span style="color: #4FC3F7">&gt;&lt;/script&gt;</span>`;
+  };
+
+  // Plain text version of auto-load embed code for copying
+  const generateAutoLoadCodePlain = () => {
+    const sdkUrl = 'https://preview--ultaai-console.lovable.app/sdk/v1.js';
+    const dataAttrs = [];
+    dataAttrs.push(`data-ultaai-site-key="${widget.site_key}"`);
+    
+    if (sizeOptions.customSize) {
+      if (sizeOptions.width !== '400') dataAttrs.push(`data-ultaai-width="${sizeOptions.width}px"`);
+      if (sizeOptions.height !== '600') dataAttrs.push(`data-ultaai-height="${sizeOptions.height}px"`);
+      if (sizeOptions.position !== 'bottom-right') dataAttrs.push(`data-ultaai-position="${sizeOptions.position}"`);
+    }
+
+    return `<script src="${sdkUrl}"
+  ${dataAttrs.join('\n  ')}>
+</script>`;
   };
 
   return (
@@ -232,12 +343,12 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                  <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
                    <code dangerouslySetInnerHTML={{ __html: generateBasicEmbedCode() }}></code>
                  </pre>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={() => copyToClipboard(generateBasicEmbedCode(), "Basic embed code")}
-                >
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   className="absolute top-2 right-2"
+                   onClick={() => copyToClipboard(generateBasicEmbedCodePlain(), "Basic embed code")}
+                 >
                   {copiedCode === "Basic embed code" ? (
                     <CheckCircle className="h-4 w-4" />
                   ) : (
@@ -436,12 +547,12 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                 <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
                   <code dangerouslySetInnerHTML={{ __html: generateAdvancedEmbedCode() }}></code>
                 </pre>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={() => copyToClipboard(generateAdvancedEmbedCode(), "Advanced embed code")}
-                >
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   className="absolute top-2 right-2"
+                   onClick={() => copyToClipboard(generateAdvancedEmbedCodePlain(), "Advanced embed code")}
+                 >
                   {copiedCode === "Advanced embed code" ? (
                     <CheckCircle className="h-4 w-4" />
                   ) : (
@@ -509,12 +620,12 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                  <pre className="bg-black p-4 rounded-lg overflow-x-auto text-sm font-mono border">
                    <code dangerouslySetInnerHTML={{ __html: generateAutoLoadCode() }}></code>
                  </pre>
-                 <Button
-                   variant="outline"
-                   size="sm"
-                   className="absolute top-2 right-2"
-                   onClick={() => copyToClipboard(generateAutoLoadCode(), "Auto-load embed code")}
-                 >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => copyToClipboard(generateAutoLoadCodePlain(), "Auto-load embed code")}
+                  >
                    {copiedCode === "Auto-load embed code" ? (
                      <CheckCircle className="h-4 w-4" />
                    ) : (
