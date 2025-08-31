@@ -1,0 +1,149 @@
+-- Seed console pages
+INSERT INTO console_pages (key, label) VALUES
+  ('dashboard', 'Dashboard'),
+  ('agents', 'Agents'),
+  ('agent-detail', 'Agent Details'),
+  ('agent-tasks', 'Agent Tasks'),
+  ('scripts', 'Scripts'),
+  ('scripts-batches', 'Script Batches'),
+  ('scripts-settings', 'Script Settings'),
+  ('scripts-templates', 'Script Templates'),
+  ('users', 'Users'),
+  ('user-detail', 'User Details'),
+  ('team-management', 'Team Management'),
+  ('api-keys', 'API Keys'),
+  ('security', 'Security'),
+  ('security-dashboard', 'Security Dashboard'),
+  ('security-tests', 'Security Tests'),
+  ('command-policies', 'Command Policies'),
+  ('plans', 'Plans'),
+  ('quotas', 'Quotas'),
+  ('integrations', 'Integrations'),
+  ('audit', 'Audit Logs'),
+  ('tasks', 'Tasks'),
+  ('chat-inbox', 'Chat Inbox'),
+  ('widget-management', 'Widget Management'),
+  ('widget-edit', 'Widget Editor'),
+  ('widget-test', 'Widget Testing'),
+  ('widget-deployment-checklist', 'Widget Deployment'),
+  ('qa-checklist', 'QA Checklist'),
+  ('assertion-check', 'Assertion Check'),
+  ('render-templates-demo', 'Render Templates Demo')
+ON CONFLICT (key) DO UPDATE SET
+  label = EXCLUDED.label;
+
+-- Create role templates for Owner
+INSERT INTO console_role_templates (role, page_key, can_view, can_edit, can_delete) VALUES
+  -- Owner has full access to everything
+  ('Owner', 'dashboard', true, true, true),
+  ('Owner', 'agents', true, true, true),
+  ('Owner', 'agent-detail', true, true, true),
+  ('Owner', 'agent-tasks', true, true, true),
+  ('Owner', 'scripts', true, true, true),
+  ('Owner', 'scripts-batches', true, true, true),
+  ('Owner', 'scripts-settings', true, true, true),
+  ('Owner', 'scripts-templates', true, true, true),
+  ('Owner', 'users', true, true, true),
+  ('Owner', 'user-detail', true, true, true),
+  ('Owner', 'team-management', true, true, true),
+  ('Owner', 'api-keys', true, true, true),
+  ('Owner', 'security', true, true, true),
+  ('Owner', 'security-dashboard', true, true, true),
+  ('Owner', 'security-tests', true, true, true),
+  ('Owner', 'command-policies', true, true, true),
+  ('Owner', 'plans', true, true, true),
+  ('Owner', 'quotas', true, true, true),
+  ('Owner', 'integrations', true, true, true),
+  ('Owner', 'audit', true, true, true),
+  ('Owner', 'tasks', true, true, true),
+  ('Owner', 'chat-inbox', true, true, true),
+  ('Owner', 'widget-management', true, true, true),
+  ('Owner', 'widget-edit', true, true, true),
+  ('Owner', 'widget-test', true, true, true),
+  ('Owner', 'widget-deployment-checklist', true, true, true),
+  ('Owner', 'qa-checklist', true, true, true),
+  ('Owner', 'assertion-check', true, true, true),
+  ('Owner', 'render-templates-demo', true, true, true)
+ON CONFLICT (role, page_key) DO UPDATE SET
+  can_view = EXCLUDED.can_view,
+  can_edit = EXCLUDED.can_edit,
+  can_delete = EXCLUDED.can_delete;
+
+-- Create role templates for Admin
+INSERT INTO console_role_templates (role, page_key, can_view, can_edit, can_delete) VALUES
+  -- Admin has full access to most things, limited access to sensitive areas
+  ('Admin', 'dashboard', true, true, false),
+  ('Admin', 'agents', true, true, true),
+  ('Admin', 'agent-detail', true, true, true),
+  ('Admin', 'agent-tasks', true, true, false),
+  ('Admin', 'scripts', true, true, true),
+  ('Admin', 'scripts-batches', true, true, true),
+  ('Admin', 'scripts-settings', true, true, false),
+  ('Admin', 'scripts-templates', true, true, true),
+  ('Admin', 'users', true, true, false),
+  ('Admin', 'user-detail', true, true, false),
+  ('Admin', 'team-management', true, true, false),
+  ('Admin', 'api-keys', true, true, false),
+  ('Admin', 'security', true, false, false),
+  ('Admin', 'security-dashboard', true, false, false),
+  ('Admin', 'security-tests', true, true, false),
+  ('Admin', 'command-policies', true, true, false),
+  ('Admin', 'plans', true, false, false),
+  ('Admin', 'quotas', true, false, false),
+  ('Admin', 'integrations', true, true, false),
+  ('Admin', 'audit', true, false, false),
+  ('Admin', 'tasks', true, true, false),
+  ('Admin', 'chat-inbox', true, true, false),
+  ('Admin', 'widget-management', true, true, false),
+  ('Admin', 'widget-edit', true, true, false),
+  ('Admin', 'widget-test', true, true, false),
+  ('Admin', 'widget-deployment-checklist', true, true, false),
+  ('Admin', 'qa-checklist', true, true, false),
+  ('Admin', 'assertion-check', true, true, false),
+  ('Admin', 'render-templates-demo', true, true, false)
+ON CONFLICT (role, page_key) DO UPDATE SET
+  can_view = EXCLUDED.can_view,
+  can_edit = EXCLUDED.can_edit,
+  can_delete = EXCLUDED.can_delete;
+
+-- Create role templates for Member (basic access)
+INSERT INTO console_role_templates (role, page_key, can_view, can_edit, can_delete) VALUES
+  -- Member has limited access
+  ('Member', 'dashboard', true, false, false),
+  ('Member', 'agents', true, false, false),
+  ('Member', 'agent-detail', true, false, false),
+  ('Member', 'agent-tasks', true, false, false),
+  ('Member', 'scripts', true, false, false),
+  ('Member', 'scripts-batches', true, false, false),
+  ('Member', 'scripts-settings', false, false, false),
+  ('Member', 'scripts-templates', true, false, false),
+  ('Member', 'users', true, false, false),
+  ('Member', 'user-detail', true, false, false),
+  ('Member', 'team-management', false, false, false),
+  ('Member', 'api-keys', false, false, false),
+  ('Member', 'security', false, false, false),
+  ('Member', 'security-dashboard', false, false, false),
+  ('Member', 'security-tests', false, false, false),
+  ('Member', 'command-policies', false, false, false),
+  ('Member', 'plans', false, false, false),
+  ('Member', 'quotas', true, false, false),
+  ('Member', 'integrations', false, false, false),
+  ('Member', 'audit', false, false, false),
+  ('Member', 'tasks', true, false, false),
+  ('Member', 'chat-inbox', true, false, false),
+  ('Member', 'widget-management', false, false, false),
+  ('Member', 'widget-edit', false, false, false),
+  ('Member', 'widget-test', false, false, false),
+  ('Member', 'widget-deployment-checklist', false, false, false),
+  ('Member', 'qa-checklist', true, false, false),
+  ('Member', 'assertion-check', true, false, false),
+  ('Member', 'render-templates-demo', true, false, false)
+ON CONFLICT (role, page_key) DO UPDATE SET
+  can_view = EXCLUDED.can_view,
+  can_edit = EXCLUDED.can_edit,
+  can_delete = EXCLUDED.can_delete;
+
+-- Ensure admin profile exists for elin@ultahost.com
+INSERT INTO admin_profiles (id, email, full_name)
+VALUES ('5bb0dbc1-471d-4ac6-9be8-f851a59ef3fc', 'elin@ultahost.com', 'Elin')
+ON CONFLICT (id) DO NOTHING;
