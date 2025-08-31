@@ -137,9 +137,15 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
     );
   };
 
-  // Create enriched cost data with all available models
-  const allModels = Object.keys(MODEL_PRICING);
-  const enrichedCostData = allModels.map(modelKey => {
+  // Show only specific models as requested
+  const selectedModels = [
+    'gpt-5-mini-2025-08-07',  // GPT-5 Mini
+    'gpt-5-2025-08-07',       // GPT-5
+    'claude-sonnet-4-20250514', // Claude 4 Sonnet
+    'gemini-2.0-flash-exp'    // Gemini 2.0 Flash
+  ];
+  
+  const enrichedCostData = selectedModels.map(modelKey => {
     const existingData = costData.find(item => item.model === modelKey);
     const pricing = MODEL_PRICING[modelKey as keyof typeof MODEL_PRICING];
     
