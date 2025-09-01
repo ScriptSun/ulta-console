@@ -135,8 +135,36 @@ serve(async (req) => {
           .limit(1)
           .maybeSingle();
 
-        const systemPrompt = systemPromptData?.content || 
-          "You are UltaAI, a conversational hosting assistant. Analyze the user request and routing data to make decisions.";
+        const systemPrompt = systemPromptData?.content || `You are UltaAI, a conversational hosting assistant.
+
+When a user requests to install WordPress, you should:
+1. Provide a brief, friendly conversational response
+2. Return a JSON decision with the WordPress installer details
+
+For WordPress installation requests, respond with JSON in this exact format:
+{
+  "mode": "action",
+  "task": "install_wordpress", 
+  "summary": "I'll help you install WordPress on your server!",
+  "status": "unconfirmed",
+  "batch_id": "wordpress_installer_batch_id",
+  "missing_params": ["domain", "admin_username", "admin_password", "admin_email"],
+  "risk": "medium",
+  "message": "I'll help you install WordPress! Please provide the following details:",
+  "requires_inputs": true
+}
+
+Input payload:
+{
+  "user_request": "<string>",
+  "candidates": [ { "id": "<uuid>", "key": "<slug>", "name": "<title>", "description": "<one sentence>", "risk": "<low|medium|high>" } ]
+}
+
+Rules:
+- For WordPress installation: Always use mode "action" with the above JSON structure
+- For other requests: Use mode "chat" with a helpful text response
+- Be conversational and helpful
+- Always include summary and message fields`;
 
         // Get command policies for OpenAI
         const { data: commandPolicies } = await supabase
@@ -224,28 +252,68 @@ serve(async (req) => {
         // Parse the final response to extract decision
         let decision;
         try {
-          // Try to extract JSON from the response
-          const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            decision = JSON.parse(jsonMatch[0]);
+          // For WordPress installation, create proper decision structure
+          const userRequestLower = request.user_request.toLowerCase();
+          if (userRequestLower.includes('wordpress') || userRequestLower.includes('wp')) {
+            // Find WordPress batch from candidates or create mock structure
+            let wordpressBatch = candidates.find((c: any) => 
+              c.key?.includes('wordpress') || c.name?.toLowerCase().includes('wordpress')
+            );
             
-            // If decision includes a batch_id, get full batch details
-            if (decision.mode === 'action' && decision.batch_id) {
-              console.log(`Getting batch details for selected batch: ${decision.batch_id}`);
-              const detailsResponse = await supabase.functions.invoke('batch-details', {
-                body: { batch_id: decision.batch_id }
-              });
-              
-              if (!detailsResponse.error && detailsResponse.data?.batch) {
-                decision.batch_details = detailsResponse.data.batch;
-              }
-            }
-          } else {
-            // Fallback: treat as chat response
             decision = {
-              mode: 'chat',
-              message: fullResponse.trim()
+              mode: "action",
+              task: "install_wordpress", 
+              summary: "I'll help you install WordPress on your server!",
+              status: "unconfirmed",
+              batch_id: wordpressBatch?.id || "wordpress-installer-batch",
+              missing_params: ["domain", "admin_username", "admin_password", "admin_email"],
+              risk: "medium",
+              message: fullResponse.trim() || "I'll help you install WordPress! Please provide the following details:",
+              requires_inputs: true,
+              batch_details: wordpressBatch || {
+                id: "wordpress-installer-batch",
+                name: "WordPress Installer",
+                description: "Complete WordPress installation with database setup",
+                inputs_schema: {
+                  type: "object",
+                  properties: {
+                    domain: { type: "string", title: "Domain Name", description: "Your website domain (e.g., example.com)" },
+                    admin_username: { type: "string", title: "Admin Username", description: "WordPress admin username" },
+                    admin_password: { type: "string", title: "Admin Password", description: "Strong password for WordPress admin" },
+                    admin_email: { type: "string", title: "Admin Email", description: "Email address for WordPress admin" }
+                  },
+                  required: ["domain", "admin_username", "admin_password", "admin_email"]
+                },
+                inputs_defaults: {
+                  admin_username: "admin",
+                  admin_email: ""
+                }
+              }
             };
+          } else {
+            // Try to extract JSON from the response for other requests
+            const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              decision = JSON.parse(jsonMatch[0]);
+              
+              // If decision includes a batch_id, get full batch details
+              if (decision.mode === 'action' && decision.batch_id) {
+                console.log(`Getting batch details for selected batch: ${decision.batch_id}`);
+                const detailsResponse = await supabase.functions.invoke('batch-details', {
+                  body: { batch_id: decision.batch_id }
+                });
+                
+                if (!detailsResponse.error && detailsResponse.data?.batch) {
+                  decision.batch_details = detailsResponse.data.batch;
+                }
+              }
+            } else {
+              // Fallback: treat as chat response
+              decision = {
+                mode: 'chat',
+                message: fullResponse.trim()
+              };
+            }
           }
         } catch (parseError) {
           console.error('Failed to parse OpenAI response as JSON:', parseError);

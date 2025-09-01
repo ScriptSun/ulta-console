@@ -735,6 +735,20 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   // Handle missing parameters for batch execution
   const handleMissingParams = async (message: Message, decision: any) => {
     try {
+      // Use batch details from decision if available (for WordPress and other installations)
+      if (decision.batch_details) {
+        message.needsInputs = {
+          schema: decision.batch_details.inputs_schema,
+          defaults: decision.batch_details.inputs_defaults || {},
+          missingParams: decision.missing_params
+        };
+        
+        message.renderConfig = decision.batch_details.render_config || { type: 'text' };
+        message.content = decision.message || decision.summary || '';
+        return;
+      }
+      
+      // Fallback: fetch from database
       const { data: batchData, error: batchError } = await supabase
         .from('script_batches')
         .select('inputs_schema, inputs_defaults, render_config')
@@ -749,10 +763,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         };
         
         message.renderConfig = (batchData.render_config as unknown as RenderConfig) || { type: 'text' };
-        message.content = '';
+        message.content = decision.message || decision.summary || '';
       }
     } catch (error) {
-      console.error('Error fetching batch schema:', error);
+      console.error('Error setting up batch inputs:', error);
     }
   };
 
