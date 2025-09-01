@@ -459,7 +459,7 @@ This is exactly what gets sent to OpenAI:
             </div>
             <div className="border border-border rounded-lg overflow-hidden">
               <Editor
-                height="500px"
+                height="750px"
                 language="json"
                 theme={theme === 'dark' ? 'vs-dark' : 'vs'}
                 value={draftContent}
