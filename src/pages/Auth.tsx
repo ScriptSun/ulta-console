@@ -78,7 +78,7 @@ const Auth = () => {
       });
       setIsSubmitting(false);
     } else {
-      console.log('Login successful! Attempting redirect...');
+      console.log('Login successful! Waiting for session update...');
       
       // Show success message
       toast({
@@ -86,25 +86,37 @@ const Auth = () => {
         description: 'Redirecting to dashboard...',
       });
       
-      // Try multiple redirect methods
-      try {
-        // Method 1: React Router navigate
-        console.log('Trying React Router navigate...');
-        navigate('/dashboard', { replace: true });
+      // Wait for session to be properly set before redirect
+      const checkSessionAndRedirect = async () => {
+        let attempts = 0;
+        const maxAttempts = 10;
         
-        // Method 2: Fallback with window.location (in case React Router fails)
-        setTimeout(() => {
-          if (window.location.pathname === '/auth') {
-            console.log('React Router failed, using window.location...');
+        const waitForSession = async (): Promise<void> => {
+          console.log(`Checking session attempt ${attempts + 1}...`);
+          
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session?.user) {
+            console.log('Session confirmed! Redirecting to dashboard...');
+            // Force a hard redirect to ensure we get to dashboard
+            window.location.href = '/dashboard';
+            return;
+          }
+          
+          attempts++;
+          if (attempts < maxAttempts) {
+            console.log('Session not ready, retrying in 200ms...');
+            setTimeout(waitForSession, 200);
+          } else {
+            console.log('Max attempts reached, forcing redirect anyway...');
             window.location.href = '/dashboard';
           }
-        }, 100);
+        };
         
-      } catch (navError) {
-        console.error('Navigation error:', navError);
-        // Method 3: Direct window location as last resort
-        window.location.href = '/dashboard';
-      }
+        waitForSession();
+      };
+      
+      checkSessionAndRedirect();
     }
   };
 
