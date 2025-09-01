@@ -237,6 +237,22 @@ export default function SystemSettings() {
     setLoading(true);
     try {
       await updateSetting('rate_limits', apiSettings);
+      
+      // Refresh the rate limiting service
+      const { rateLimitService } = await import('@/lib/rateLimitService');
+      await rateLimitService.refreshSettings();
+      
+      toast({
+        title: 'API Settings Updated',
+        description: 'Rate limits have been updated and applied system-wide.',
+      });
+    } catch (error) {
+      console.error('Error updating API settings:', error);
+      toast({
+        title: 'Update Failed',
+        description: 'Failed to update API settings.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -246,6 +262,18 @@ export default function SystemSettings() {
     setLoading(true);
     try {
       await updateSetting('security', securitySettings);
+      
+      toast({
+        title: 'Security Settings Updated',
+        description: 'Security configuration has been updated successfully.',
+      });
+    } catch (error) {
+      console.error('Error updating security settings:', error);
+      toast({
+        title: 'Update Failed',
+        description: 'Failed to update security settings.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -255,6 +283,18 @@ export default function SystemSettings() {
     setLoading(true);
     try {
       await updateSetting('notifications', notificationSettings);
+      
+      toast({
+        title: 'Notification Settings Updated',
+        description: 'Notification configuration has been updated successfully.',
+      });
+    } catch (error) {
+      console.error('Error updating notification settings:', error);
+      toast({
+        title: 'Update Failed',
+        description: 'Failed to update notification settings.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }

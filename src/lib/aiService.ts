@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { rateLimitService } from './rateLimitService';
 
 export interface AIRequestParams {
   system: string;
@@ -215,17 +216,29 @@ class AIService {
   }
 
   public async callAI(params: AIRequestParams): Promise<any> {
-    // The edge function now handles all failover logic
-    const result = await this.callModel('', params); // Model selection happens in edge function
+    // Check rate limits before making the request
+    const rateLimitCheck = await rateLimitService.checkRateLimit(params.tenantId || 'global');
+    if (!rateLimitCheck.allowed) {
+      throw new Error(`Rate limit exceeded: ${rateLimitCheck.reason}`);
+    }
+
+    const finishRequest = await rateLimitService.startRequest(params.tenantId || 'global');
     
-    console.log(`✅ AI request successful with model: ${result.model} after ${result.failover_attempts} attempts`);
-    
-    return {
-      content: result.content,
-      model: result.model,
-      usage: result.usage,
-      failover_attempts: result.failover_attempts
-    };
+    try {
+      // The edge function now handles all failover logic
+      const result = await this.callModel('', params); // Model selection happens in edge function
+      
+      console.log(`✅ AI request successful with model: ${result.model} after ${result.failover_attempts} attempts`);
+      
+      return {
+        content: result.content,
+        model: result.model,
+        usage: result.usage,
+        failover_attempts: result.failover_attempts
+      };
+    } finally {
+      finishRequest();
+    }
   }
 
   public getFailoverModels(): string[] {
@@ -235,6 +248,8 @@ class AIService {
   public async refreshSettings(): Promise<void> {
     this.lastSettingsCheck = 0; // Force refresh
     await this.loadAISettings();
+    // Also refresh rate limit settings
+    await rateLimitService.refreshSettings();
   }
 }
 
