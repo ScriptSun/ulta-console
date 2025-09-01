@@ -13,7 +13,8 @@ import {
   MessageSquare,
   Globe,
   ClipboardCheck,
-  Rocket
+  Rocket,
+  Brain
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import {
@@ -54,6 +55,7 @@ const toolsItems = [
   { title: 'Deployment Checklist', url: '/deployment-checklist', icon: Rocket, pageKey: 'deployment' },
   { title: 'Integrations', url: '/integrations', icon: Puzzle, pageKey: 'integrations' },
   { title: 'Access Control', url: '/access-control', icon: Users, pageKey: 'teams' },
+  { title: 'AI Settings', url: '/ai-settings', icon: Brain, pageKey: 'ai-settings' },
   { title: 'Assertion Check', url: '/assertion-check', icon: TestTube, pageKey: 'qa' },
 ]
 

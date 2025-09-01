@@ -39,6 +39,7 @@ import RouterDemo from "./pages/_demo/Router";
 import WidgetTest from "./pages/WidgetTest";
 import ProfileSettings from "./pages/ProfileSettings";
 import SystemSettings from "./pages/SystemSettings";
+import AiSettings from "./pages/AiSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -269,6 +270,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <SystemSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/ai-settings" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <AiSettings />
                 </RootLayout>
               </ProtectedRoute>
             } />
