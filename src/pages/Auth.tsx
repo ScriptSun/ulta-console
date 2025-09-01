@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { useTheme } from 'next-themes';
 import { Loader2, Mail, Lock, Building, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const { user, signIn, loading } = useAuth();
@@ -66,6 +67,35 @@ const Auth = () => {
     });
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
+    
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) {
+        toast({
+          title: 'Google Sign In Failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Google Sign In Failed',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const logoUrl = theme === 'dark' ? logoSettings.logo_dark_url : logoSettings.logo_light_url;
   
   console.log('Theme:', theme, 'Logo settings:', logoSettings, 'Logo URL:', logoUrl);
@@ -104,10 +134,8 @@ const Auth = () => {
               type="button"
               variant="outline"
               className="w-full h-12 mb-4 border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium"
-              onClick={() => toast({
-                title: 'Coming Soon',
-                description: 'Google authentication will be available soon.',
-              })}
+              onClick={handleGoogleSignIn}
+              disabled={isSubmitting}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
