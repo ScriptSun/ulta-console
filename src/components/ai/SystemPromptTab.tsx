@@ -482,9 +482,6 @@ This is exactly what gets sent to OpenAI:
                 }}
               />
             </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Edit your system prompt directly with JSON syntax highlighting for better readability.
-            </p>
           </div>
 
           {/* Target Selection */}
