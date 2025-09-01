@@ -52,7 +52,6 @@ const securityItems = [
 const toolsItems = [
   { title: 'Subscription Plans', url: '/plans', icon: CreditCard, pageKey: 'plans' },
   { title: 'Chat Widgets', url: '/widget-management', icon: Globe, pageKey: 'widgets' },
-  { title: 'Deployment Checklist', url: '/deployment-checklist', icon: Rocket, pageKey: 'deployment' },
   { title: 'Integrations', url: '/integrations', icon: Puzzle, pageKey: 'integrations' },
   { title: 'Access Control', url: '/access-control', icon: Users, pageKey: 'teams' },
   { title: 'AI Settings', url: '/ai-settings', icon: Brain, pageKey: 'ai-settings' },

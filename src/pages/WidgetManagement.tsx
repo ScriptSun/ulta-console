@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Settings, RefreshCw, TestTube, Plus } from "lucide-react";
+import { Settings, RefreshCw, TestTube, Plus, Rocket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { WidgetList } from "@/components/widgets/WidgetList";
 import { WidgetEditForm } from "@/components/widgets/WidgetEditForm";
@@ -9,6 +9,7 @@ import { useState } from "react";
 import { usePermissionGuards } from "@/hooks/usePermissionGuards";
 import { PageGuard } from "@/components/auth/PageGuard";
 import { PermissionButton } from "@/components/ui/permission-button";
+import { useNavigate } from "react-router-dom";
 
 export default function WidgetManagement() {
   const { toast } = useToast();
@@ -16,6 +17,7 @@ export default function WidgetManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const { withEdit, PermissionGate } = usePermissionGuards();
+  const navigate = useNavigate();
 
   const handleRefresh = () => {
     window.location.reload();
@@ -72,6 +74,10 @@ export default function WidgetManagement() {
                 Add Widget
               </Button>
             </PermissionGate>
+            <Button variant="outline" onClick={() => navigate('/deployment-checklist')}>
+              <Rocket className="h-4 w-4 mr-2" />
+              Deployment Checklist
+            </Button>
             <Button variant="outline" onClick={handleOpenQAChecklist}>
               <TestTube className="h-4 w-4 mr-2" />
               Test
