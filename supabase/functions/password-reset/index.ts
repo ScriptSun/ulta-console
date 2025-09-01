@@ -50,9 +50,20 @@ serve(async (req: Request) => {
     if (action === 'request') {
       console.log(`Password reset requested for: ${email}`);
 
-      // Get the origin from the request
-      const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://your-app.com';
-      const resetUrl = `${origin}/reset-password`;
+      // Get the origin from the request - use current domain
+      const origin = req.headers.get('origin') || req.headers.get('referer');
+      let resetUrl;
+      
+      if (origin) {
+        // Extract the base URL properly
+        const url = new URL(origin);
+        resetUrl = `${url.protocol}//${url.host}/reset-password`;
+      } else {
+        // Fallback - this should be replaced with your actual domain
+        resetUrl = 'https://lfsdqyvvboapsyeauchm.supabase.co/reset-password';
+      }
+
+      console.log(`Using reset URL: ${resetUrl}`);
 
       // Generate password reset using Supabase Auth
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -63,7 +74,7 @@ serve(async (req: Request) => {
         console.error('Supabase password reset error:', error);
         // Don't reveal if the email exists or not for security
       } else {
-        console.log(`Password reset email sent for: ${email}`);
+        console.log(`Password reset email sent for: ${email} with redirect: ${resetUrl}`);
       }
 
       return new Response(
