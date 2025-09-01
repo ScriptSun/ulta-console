@@ -71,27 +71,34 @@ const Auth = () => {
     setIsSubmitting(true);
     
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         }
       });
 
       if (error) {
+        console.error('Google OAuth error:', error);
         toast({
           title: 'Google Sign In Failed',
           description: error.message,
           variant: 'destructive',
         });
+        setIsSubmitting(false);
       }
+      // Don't set loading to false here for OAuth - it will redirect
     } catch (err: any) {
+      console.error('Google OAuth exception:', err);
       toast({
         title: 'Google Sign In Failed',
         description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
