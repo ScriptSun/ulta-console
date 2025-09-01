@@ -26,8 +26,12 @@ export function usePagePermissions() {
   const { data: permissions, isLoading } = useQuery({
     queryKey: ['page-permissions', user?.id],
     queryFn: async () => {
-      if (!user?.id) return {};
+      if (!user?.id) {
+        console.log('usePagePermissions: No user ID found');
+        return {};
+      }
 
+      console.log('usePagePermissions: Fetching permissions for user:', user.id);
       const finalPermissions: PagePermissions = {};
 
       // Get all available pages first
@@ -52,7 +56,12 @@ export function usePagePermissions() {
         .eq('user_id', user.id)
         .eq('customer_id', defaultCustomerId);
 
-      if (rolesError) throw rolesError;
+      if (rolesError) {
+        console.error('usePagePermissions: Error fetching user roles:', rolesError);
+        throw rolesError;
+      }
+      
+      console.log('usePagePermissions: User roles found:', userRoles);
 
       // Get role templates
       const { data: roleTemplates, error: templatesError } = await supabase
@@ -86,8 +95,15 @@ export function usePagePermissions() {
       const userRoleNames = userRoles?.map(r => r.role.toLowerCase()) || [];
       const highestEnumRole = roleHierarchy.find(role => userRoleNames.includes(role));
 
+      console.log('usePagePermissions: Role hierarchy check:', {
+        userRoleNames,
+        highestEnumRole,
+        roleTemplatesCount: roleTemplates?.length || 0
+      });
+
       if (highestEnumRole) {
         const displayRole = ENUM_TO_DISPLAY[highestEnumRole];
+        console.log('usePagePermissions: Using display role:', displayRole);
         
         roleTemplates?.forEach(template => {
           if (template.role === displayRole && !explicitPageKeys.has(template.page_key)) {
@@ -102,6 +118,7 @@ export function usePagePermissions() {
         });
       }
 
+      console.log('usePagePermissions: Final permissions:', finalPermissions);
       return finalPermissions;
     },
     enabled: !!user?.id
