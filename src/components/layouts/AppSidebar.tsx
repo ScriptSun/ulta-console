@@ -29,6 +29,8 @@ import {
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import { usePagePermissions } from '@/hooks/usePagePermissions'
+import { useCompanyLogo } from '@/hooks/useCompanyLogo'
+import { useTheme } from 'next-themes'
 
 const mainItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, pageKey: 'dashboard' },
@@ -62,6 +64,8 @@ export function AppSidebar() {
   const currentPath = location.pathname
   const collapsed = state === 'collapsed'
   const { canView } = usePagePermissions()
+  const { logoSettings } = useCompanyLogo()
+  const { theme } = useTheme()
 
   const isActive = (path: string) => {
     if (path === '/dashboard' && currentPath === '/') return true
@@ -121,15 +125,36 @@ export function AppSidebar() {
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {/* Logo Section */}
         <div className="flex items-center gap-3 px-6 mb-8">
-          <div className="h-10 w-10 rounded-xl bg-sidebar-primary flex items-center justify-center shadow-lg">
-            <Bot className="h-5 w-5 text-sidebar-primary-foreground" />
-          </div>
-          {!collapsed && (
-            <div className="flex flex-col">
-              <span className="font-bold text-sidebar-foreground text-lg">UltaAI</span>
-              <span className="text-xs text-sidebar-primary font-medium">Control Hub</span>
-            </div>
-          )}
+          {(() => {
+            const logoUrl = theme === 'dark' ? logoSettings.logo_dark_url : logoSettings.logo_light_url;
+            const hasLogo = logoUrl && logoUrl.length > 0;
+            
+            return hasLogo ? (
+              <>
+                <img
+                  src={logoUrl}
+                  alt="Company Logo"
+                  className="object-contain"
+                  style={{
+                    width: `${logoSettings.logo_width}px`,
+                    height: `${logoSettings.logo_height}px`
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <div className="h-10 w-10 rounded-xl bg-sidebar-primary flex items-center justify-center shadow-lg">
+                  <Bot className="h-5 w-5 text-sidebar-primary-foreground" />
+                </div>
+                {!collapsed && (
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sidebar-foreground text-lg">UltaAI</span>
+                    <span className="text-xs text-sidebar-primary font-medium">Control Hub</span>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* Main Navigation */}

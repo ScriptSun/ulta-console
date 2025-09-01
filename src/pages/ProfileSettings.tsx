@@ -44,6 +44,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from '@/components/ui/textarea';
 import { useEmailChangeRequests } from '@/hooks/useEmailChangeRequests';
 import { useThemeVariants, DARK_THEMES, LIGHT_THEMES } from '@/hooks/useDarkThemeVariant';
+import { CompanyLogoSection } from '@/components/settings/CompanyLogoSection';
 
 interface UserPreferences {
   email_alerts: boolean;
@@ -933,6 +934,8 @@ export default function ProfileSettings() {
 
         <TabsContent value="appearance">
           <div className="space-y-6">
+            <CompanyLogoSection />
+            
             <ThemeSelector />
             
             {/* Light Theme Variants - Only show when light mode is selected */}
