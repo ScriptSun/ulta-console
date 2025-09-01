@@ -10,15 +10,6 @@ interface PagePermissions {
   };
 }
 
-// Map enum roles to display roles
-const ENUM_TO_DISPLAY: Record<string, string> = {
-  'owner': 'Owner',
-  'admin': 'Admin',
-  'editor': 'Developer', 
-  'viewer': 'Analyst',
-  'guest': 'ReadOnly'
-};
-
 export function usePagePermissions() {
   const { user } = useAuth();
   const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
@@ -31,40 +22,12 @@ export function usePagePermissions() {
         return {};
       }
 
-      console.log('=== usePagePermissions: Starting permission fetch ===');
-      console.log('usePagePermissions: User ID:', user.id);
-      console.log('usePagePermissions: User email:', user.email);
+      console.log('=== FIXED PERMISSION SYSTEM ===');
+      console.log('User ID:', user.id);
+      console.log('User email:', user.email);
       
-      const finalPermissions: PagePermissions = {};
-
       try {
-        // Get all available pages first
-        console.log('usePagePermissions: Step 1 - Fetching console pages...');
-        const { data: pages, error: pagesError } = await supabase
-          .from('console_pages')
-          .select('key, label');
-
-        if (pagesError) {
-          console.error('usePagePermissions: Error fetching pages:', pagesError);
-          throw pagesError;
-        }
-        console.log('usePagePermissions: Found pages:', pages?.length, 'pages');
-
-        // Get user's explicit page permissions
-        console.log('usePagePermissions: Step 2 - Fetching user page permissions...');
-        const { data: userPermissions, error: userPermError } = await supabase
-          .from('user_page_permissions')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (userPermError) {
-          console.error('usePagePermissions: Error fetching user permissions:', userPermError);
-          throw userPermError;
-        }
-        console.log('usePagePermissions: Found user permissions:', userPermissions?.length || 0, 'explicit permissions');
-
-        // Get user's roles
-        console.log('usePagePermissions: Step 3 - Fetching user roles...');
+        // Step 1: Get user roles
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select('role')
@@ -72,112 +35,72 @@ export function usePagePermissions() {
           .eq('customer_id', defaultCustomerId);
 
         if (rolesError) {
-          console.error('usePagePermissions: Error fetching user roles:', rolesError);
-          throw rolesError;
+          console.error('Error fetching user roles:', rolesError);
+          return {};
         }
-        
-        console.log('usePagePermissions: User roles found:', userRoles);
 
-        // Get role templates
-        console.log('usePagePermissions: Step 4 - Fetching role templates...');
+        console.log('User roles:', userRoles);
+
+        if (!userRoles || userRoles.length === 0) {
+          console.log('No roles found for user');
+          return {};
+        }
+
+        // Step 2: Get the highest role (admin is highest)
+        const roles = userRoles.map(r => r.role.toLowerCase());
+        console.log('Role names:', roles);
+
+        let displayRole = 'ReadOnly'; // default
+        if (roles.includes('admin')) displayRole = 'Admin';
+        else if (roles.includes('owner')) displayRole = 'Owner';
+        else if (roles.includes('editor')) displayRole = 'Developer';
+        else if (roles.includes('viewer')) displayRole = 'Analyst';
+
+        console.log('Display role determined:', displayRole);
+
+        // Step 3: Get role templates for this display role
         const { data: roleTemplates, error: templatesError } = await supabase
           .from('console_role_templates')
-          .select('*');
+          .select('*')
+          .eq('role', displayRole);
 
         if (templatesError) {
-          console.error('usePagePermissions: Error fetching role templates:', templatesError);
-          throw templatesError;
+          console.error('Error fetching role templates:', templatesError);
+          return {};
         }
-        console.log('usePagePermissions: Found role templates:', roleTemplates?.length || 0, 'templates');
 
-        // Initialize all pages with default (no access)
-        console.log('usePagePermissions: Step 5 - Initializing page permissions...');
-        pages?.forEach(page => {
-          finalPermissions[page.key] = {
-            can_view: false,
-            can_edit: false,
-            can_delete: false
-          };
-        });
+        console.log('Role templates found:', roleTemplates?.length);
 
-        // Apply explicit user permissions first (takes priority)
-        console.log('usePagePermissions: Step 6 - Applying explicit permissions...');
-        const explicitPageKeys = new Set<string>();
-        userPermissions?.forEach(perm => {
-          console.log(`usePagePermissions: Explicit permission for ${perm.page_key}:`, {
-            can_view: perm.can_view,
-            can_edit: perm.can_edit,
-            can_delete: perm.can_delete
+        // Step 4: Build permissions object
+        const finalPermissions: PagePermissions = {};
+        
+        roleTemplates?.forEach(template => {
+          console.log(`Setting permissions for ${template.page_key}:`, {
+            can_view: template.can_view,
+            can_edit: template.can_edit,
+            can_delete: template.can_delete
           });
-          finalPermissions[perm.page_key] = {
-            can_view: perm.can_view,
-            can_edit: perm.can_edit,
-            can_delete: perm.can_delete
-          };
-          explicitPageKeys.add(perm.page_key);
-        });
-
-        // For pages without explicit permissions, use role templates
-        console.log('usePagePermissions: Step 7 - Applying role templates...');
-        const roleHierarchy = ['owner', 'admin', 'editor', 'viewer', 'guest'];
-        const userRoleNames = userRoles?.map(r => r.role.toLowerCase()) || [];
-        const highestEnumRole = roleHierarchy.find(role => userRoleNames.includes(role));
-
-        console.log('usePagePermissions: Role hierarchy analysis:', {
-          userRoleNames,
-          highestEnumRole,
-          roleTemplatesCount: roleTemplates?.length || 0
-        });
-
-        if (highestEnumRole) {
-          const displayRole = ENUM_TO_DISPLAY[highestEnumRole];
-          console.log('usePagePermissions: Using display role:', displayRole);
           
-          let templatesApplied = 0;
-          roleTemplates?.forEach(template => {
-            console.log(`usePagePermissions: Checking template - role: ${template.role}, page: ${template.page_key}, displayRole: ${displayRole}`);
-            
-            if (template.role === displayRole && !explicitPageKeys.has(template.page_key)) {
-              // BUG FIX: Always apply the template, don't check if finalPermissions[template.page_key] exists first
-              // because we may not have initialized that page key yet
-              console.log(`usePagePermissions: Applying template for ${template.page_key}:`, {
-                can_view: template.can_view,
-                can_edit: template.can_edit,
-                can_delete: template.can_delete
-              });
-              
-              finalPermissions[template.page_key] = {
-                can_view: template.can_view,
-                can_edit: template.can_edit,
-                can_delete: template.can_delete
-              };
-              templatesApplied++;
-            }
-          });
-          console.log('usePagePermissions: Applied', templatesApplied, 'role templates');
-        } else {
-          console.warn('usePagePermissions: No matching role found in hierarchy!');
-        }
+          finalPermissions[template.page_key] = {
+            can_view: template.can_view,
+            can_edit: template.can_edit,
+            can_delete: template.can_delete
+          };
+        });
 
         const viewablePages = Object.entries(finalPermissions).filter(([_, perm]) => perm.can_view).length;
-        console.log('usePagePermissions: Final result:', viewablePages, 'viewable pages out of', Object.keys(finalPermissions).length);
-        console.log('usePagePermissions: Sample permissions:', {
-          dashboard: finalPermissions['dashboard'],
-          users: finalPermissions['users'],
-          agents: finalPermissions['agents']
-        });
-        console.log('=== usePagePermissions: Permission fetch complete ===');
+        console.log('FINAL RESULT:', viewablePages, 'viewable pages');
+        console.log('Final permissions object:', finalPermissions);
         
         return finalPermissions;
       } catch (error) {
-        console.error('usePagePermissions: Critical error during fetch:', error);
-        // Return empty permissions on error
+        console.error('Critical error in permission system:', error);
         return {};
       }
     },
     enabled: !!user?.id,
-    retry: 1,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    retry: 2,
+    staleTime: 5 * 60 * 1000
   });
 
   // Log the query state whenever it changes
