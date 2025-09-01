@@ -161,7 +161,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     sendRequest: sendExecRequest, 
     isConnected: isExecConnected 
   } = useWebSocketExec();
-  const { emit, on } = useEventBus();
+  const { emit, on, onRouter } = useEventBus();
 
   // Check if current route should show chat demo
   const shouldShowDemo = (forceEnabled || isDemoEnabled) && !currentRoute.includes('/admin') && !currentRoute.includes('/settings');
@@ -377,150 +377,225 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
 
   // Set up WebSocket router event listeners
   useEffect(() => {
-    const unsubscribers = [
-      on('router.start', (data) => {
-        console.log('Router started:', data);
-        setRouterPhase('Thinking');
-        setStreamingResponse('');
-        setIsTyping(true);
-        
-        // Add streaming bubble message
-        const streamingMessage: Message = {
-          id: `streaming-${data.rid}-${Date.now()}`,
-          role: 'assistant',
-          content: '',
-          timestamp: new Date(),
-          pending: true
-        };
-        setMessages(prev => [...prev, streamingMessage]);
-      }),
-      
-      on('router.retrieved', (data) => {
-        console.log('Router retrieved candidates:', data);
-        setRouterPhase('Analyzing server');
-        setCandidateCount(data.candidate_count);
-      }),
-      
-      on('router.token', (data) => {
-        console.log('Router token:', data);
-        setStreamingResponse(data.accumulated);
-        
-        // Update the last pending message with streaming content
-        setMessages(prev => {
-          const updated = [...prev];
-          // Find the most recent pending message
-          for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].pending && updated[i].role === 'assistant') {
-              updated[i] = {
-                ...updated[i],
-                content: data.accumulated || data.delta || ''
-              };
-              break;
-            }
-          }
-          return updated;
-        });
-      }),
-      
-      on('router.selected', async (data) => {
-        console.log('Router selected decision:', data);
-        setRouterPhase('Selecting installer');
-        
-        // Give a moment for the "Selecting installer" label to show
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        setRouterPhase('');
-        setStreamingResponse('');
-        setIsTyping(false);
-        
-        // Update the last pending message with final decision
-        setMessages(prev => {
-          const updated = [...prev];
-          // Find the most recent pending message
-          for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].pending && updated[i].role === 'assistant') {
-              updated[i] = {
-                ...updated[i],
-                pending: false,
-                decision: data
-              };
-              
-              // Handle different decision modes
-              if (data.mode === 'chat') {
-                updated[i].content = data.message || data.text || streamingResponse || 'Response received';
-              } else if (data.mode === 'action') {
-                // For action mode, show a more user-friendly message
-                updated[i].content = data.summary || `I'll help you ${data.task || 'execute this task'}.`;
-                
-                // Set up needs inputs if missing params
-                if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
-                  handleMissingParams(updated[i], data);
-                } else if (data.status === 'confirmed' && data.batch_id) {
-                  // Ready for preflight
-                  updated[i].preflightStatus = {
-                    agent_id: selectedAgent!,
-                    decision: data,
-                    streaming: true
-                  };
-                }
-              } else {
-                // Fallback - show the raw decision
-                updated[i].content = JSON.stringify(data, null, 2);
-              }
-              break;
-            }
-          }
-          return updated;
-        });
-        
-        // Store the conversation in React Query cache if needed
-        if (conversationId) {
-          // This would trigger a refetch of conversation data
-          // The actual message will be stored via the real-time listener
+    const routerTimeoutRef = useRef<NodeJS.Timeout>();
+    
+    // Set router timeout (25 seconds)
+    const startRouterTimeout = () => {
+      if (routerTimeoutRef.current) {
+        clearTimeout(routerTimeoutRef.current);
+      }
+      routerTimeoutRef.current = setTimeout(() => {
+        if (isTyping) {
+          setIsTyping(false);
+          setRouterPhase('');
+          setStreamingResponse('');
+          
+          // Add error message to chat
+          const errorMessage: Message = {
+            id: `error-${Date.now()}`,
+            role: 'assistant',
+            content: '⚠️ Took too long, please retry.',
+            timestamp: new Date(),
+            pending: false
+          };
+          setMessages(prev => [...prev, errorMessage]);
+          
+          toast({
+            title: "Router Timeout",
+            description: "⚠️ Took too long, please retry.",
+            variant: "destructive"
+          });
         }
-      }),
-      
-      on('router.done', (data) => {
-        console.log('Router completed:', data);
-        setIsTyping(false);
-        setRouterPhase('');
-        setStreamingResponse('');
-      }),
-      
-      on('router.error', (data) => {
-        console.error('Router error:', data);
-        setIsTyping(false);
-        setRouterPhase('');
-        setStreamingResponse('');
-        
-        // Update any pending message to show error
-        setMessages(prev => {
-          const updated = [...prev];
-          for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].pending && updated[i].role === 'assistant') {
-              updated[i] = {
-                ...updated[i],
-                pending: false,
-                content: `I encountered an error: ${data.error}. Please try again.`
-              };
-              break;
+      }, 25000); // 25 seconds
+    };
+    
+    const unsubscribe = onRouter((eventType, data) => {
+      switch (eventType) {
+        case 'router.start':
+          console.log('Router started:', data);
+          setRouterPhase('Thinking');
+          setStreamingResponse('');
+          setIsTyping(true);
+          startRouterTimeout();
+          
+          // Add streaming bubble message
+          const streamingMessage: Message = {
+            id: `streaming-${data.rid}-${Date.now()}`,
+            role: 'assistant',
+            content: '',
+            timestamp: new Date(),
+            pending: true
+          };
+          setMessages(prev => [...prev, streamingMessage]);
+          break;
+          
+        case 'router.retrieved':
+          console.log('Router retrieved candidates:', data);
+          setRouterPhase('Analyzing server');
+          setCandidateCount(data.candidate_count);
+          break;
+          
+        case 'router.token':
+          console.log('Router token:', data);
+          setStreamingResponse(data.accumulated);
+          
+          // Update the last pending message with streaming content
+          setMessages(prev => {
+            const updated = [...prev];
+            // Find the most recent pending message
+            for (let i = updated.length - 1; i >= 0; i--) {
+              if (updated[i].pending && updated[i].role === 'assistant') {
+                updated[i] = {
+                  ...updated[i],
+                  content: data.accumulated || data.delta || ''
+                };
+                break;
+              }
             }
+            return updated;
+          });
+          break;
+          
+        case 'router.selected':
+          (async () => {
+            console.log('Router selected decision:', data);
+            setRouterPhase('Selecting installer');
+            
+            // Give a moment for the "Selecting installer" label to show
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            setRouterPhase('');
+            setStreamingResponse('');
+            setIsTyping(false);
+            if (routerTimeoutRef.current) {
+              clearTimeout(routerTimeoutRef.current);
+            }
+            
+            // Update the last pending message with final decision
+            setMessages(prev => {
+              const updated = [...prev];
+              // Find the most recent pending message
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].pending && updated[i].role === 'assistant') {
+                  updated[i] = {
+                    ...updated[i],
+                    pending: false,
+                    decision: data
+                  };
+                  
+                  // Handle different decision modes
+                  if (data.mode === 'chat') {
+                    updated[i].content = data.message || data.text || streamingResponse || 'Response received';
+                  } else if (data.mode === 'action') {
+                    // For action mode, show a more user-friendly message
+                    updated[i].content = data.summary || `I'll help you ${data.task || 'execute this task'}.`;
+                    
+                    // Set up needs inputs if missing params
+                    if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
+                      handleMissingParams(updated[i], data);
+                    } else if (data.status === 'confirmed' && data.batch_id) {
+                      // Ready for preflight
+                      updated[i].preflightStatus = {
+                        agent_id: selectedAgent!,
+                        decision: data,
+                        streaming: true
+                      };
+                    }
+                  } else {
+                    // Fallback - show the raw decision
+                    updated[i].content = JSON.stringify(data, null, 2);
+                  }
+                  break;
+                }
+              }
+              return updated;
+            });
+            
+            // Store the conversation in React Query cache if needed
+            if (conversationId) {
+              // This would trigger a refetch of conversation data
+              // The actual message will be stored via the real-time listener
+            }
+          })();
+          break;
+          
+        case 'router.done':
+          console.log('Router completed:', data);
+          setIsTyping(false);
+          setRouterPhase('');
+          setStreamingResponse('');
+          if (routerTimeoutRef.current) {
+            clearTimeout(routerTimeoutRef.current);
           }
-          return updated;
-        });
-        
-        toast({
-          title: "Assistant Error",
-          description: data.error,
-          variant: "destructive",
-        });
-      })
-    ];
+          break;
+          
+        case 'router.error':
+          console.error('Router error:', data);
+          setIsTyping(false);
+          setRouterPhase('');
+          setStreamingResponse('');
+          if (routerTimeoutRef.current) {
+            clearTimeout(routerTimeoutRef.current);
+          }
+          
+          // Update any pending message to show error
+          setMessages(prev => {
+            const updated = [...prev];
+            for (let i = updated.length - 1; i >= 0; i--) {
+              if (updated[i].pending && updated[i].role === 'assistant') {
+                updated[i] = {
+                  ...updated[i],
+                  pending: false,
+                  content: `I encountered an error: ${data.error}. Please try again.`
+                };
+                break;
+              }
+            }
+            return updated;
+          });
+          
+          toast({
+            title: "Assistant Error",
+            description: data.error,
+            variant: "destructive"
+          });
+          break;
+          
+        case 'router.disconnected':
+          console.log('Router disconnected:', data);
+          setIsTyping(false);
+          setRouterPhase('');
+          setStreamingResponse('');
+          if (routerTimeoutRef.current) {
+            clearTimeout(routerTimeoutRef.current);
+          }
+          
+          // Add system message about disconnection
+          const disconnectMessage: Message = {
+            id: `disconnect-${Date.now()}`,
+            role: 'assistant',
+            content: '⚠️ Connection lost. Please try again.',
+            timestamp: new Date(),
+            pending: false
+          };
+          setMessages(prev => [...prev, disconnectMessage]);
+          
+          toast({
+            title: "Connection Lost",
+            description: "WebSocket connection was lost. Please try again.",
+            variant: "destructive"
+          });
+          break;
+      }
+    });
     
     return () => {
-      unsubscribers.forEach(unsub => unsub());
+      unsubscribe();
+      if (routerTimeoutRef.current) {
+        clearTimeout(routerTimeoutRef.current);
+      }
     };
-  }, [on, toast, selectedAgent, conversationId, streamingResponse]);
+  }, [onRouter, toast, selectedAgent, conversationId, streamingResponse, isTyping]);
 
   // Set up WebSocket execution event listeners
   useEffect(() => {

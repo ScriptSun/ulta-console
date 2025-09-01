@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useEventBus as useEventBusContext } from '@/contexts/EventBusContext';
 
 export const useEventBus = () => {
@@ -21,5 +21,32 @@ export const useEventBus = () => {
     return unsubscribe;
   };
 
-  return { emit, on };
+  // Typed router event subscriptions
+  const onRouter = useCallback((callback: (eventType: string, payload: any) => void) => {
+    const routerEvents = ['router.start', 'router.token', 'router.retrieved', 'router.selected', 'router.done', 'router.connected', 'router.disconnected', 'router.error'];
+    const unsubscribers = routerEvents.map(eventType => {
+      return on(eventType, (payload) => callback(eventType, payload));
+    });
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, [eventBus]);
+
+  // Typed preflight event subscriptions
+  const onPreflight = useCallback((callback: (eventType: string, payload: any) => void) => {
+    const preflightEvents = ['preflight.start', 'preflight.item', 'preflight.done', 'preflight.error', 'preflight.timeout'];
+    const unsubscribers = preflightEvents.map(eventType => {
+      return on(eventType, (payload) => callback(eventType, payload));
+    });
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, [eventBus]);
+
+  // Typed exec event subscriptions
+  const onExec = useCallback((callback: (eventType: string, payload: any) => void) => {
+    const execEvents = ['exec.queued', 'exec.started', 'exec.progress', 'exec.stdout', 'exec.finished', 'exec.error', 'exec.timeout'];
+    const unsubscribers = execEvents.map(eventType => {
+      return on(eventType, (payload) => callback(eventType, payload));
+    });
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, [eventBus]);
+
+  return { emit, on, onRouter, onPreflight, onExec };
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ExternalLink, CheckCircle, XCircle, Clock, Play, BarChart3, AlertCircle, Brain, Search, Terminal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEventBus } from '@/hooks/useEventBus';
+import { useToast } from '@/hooks/use-toast';
 
 interface TaskStatusCardProps {
   type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done' | 'input_error';
@@ -36,7 +37,8 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
   enableStreaming = false
 }) => {
   const navigate = useNavigate();
-  const { on } = useEventBus();
+  const { onExec } = useEventBus();
+  const { toast } = useToast();
   
   // Local state for streaming updates
   const [streamingProgress, setStreamingProgress] = useState(initialProgress || 0);
@@ -44,49 +46,102 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
   const [streamingStatus, setStreamingStatus] = useState(type);
   const [stdoutLines, setStdoutLines] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(false);
+  const [hasTimeout, setHasTimeout] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const lastActivityRef = useRef<number>(Date.now());
 
   // Listen to streaming events if enabled
   useEffect(() => {
     if (!enableStreaming || !runId) return;
     
-    const unsubscribers = [
-      on('exec.started', (data) => {
-        if (data.run_id === runId) {
-          setStreamingStatus('task_started');
+    // Set timeout for exec (5 minutes idle)
+    const resetTimeout = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        if (streamingStatus === 'task_started' || streamingStatus === 'task_progress') {
+          setHasTimeout(true);
+          setStreamingStatus('task_failed');
+          toast({
+            title: "Execution Timeout",
+            description: "⚠️ Server stopped responding.",
+            variant: "destructive"
+          });
         }
-      }),
+      }, 300000); // 5 minutes
+    };
+    
+    resetTimeout();
+    
+    const unsubscribe = onExec((eventType, data) => {
+      if (data.run_id !== runId) return;
       
-      on('exec.progress', (data) => {
-        if (data.run_id === runId) {
+      lastActivityRef.current = Date.now();
+      resetTimeout();
+      
+      switch (eventType) {
+        case 'exec.started':
+          setStreamingStatus('task_started');
+          break;
+          
+        case 'exec.progress':
           setStreamingProgress(Math.min(100, Math.max(0, data.pct || 0)));
           setStreamingStatus('task_progress');
-        }
-      }),
-      
-      on('exec.stdout', (data) => {
-        if (data.run_id === runId) {
+          break;
+          
+        case 'exec.stdout':
           setStdoutLines(prev => {
             const updated = [...prev, data.line];
             return updated.slice(-20); // Keep last 20 lines
           });
-        }
-      }),
-      
-      on('exec.finished', (data) => {
-        if (data.run_id === runId) {
+          break;
+          
+        case 'exec.finished':
           setStreamingStatus(data.success ? 'task_succeeded' : 'task_failed');
           setStreamingDuration(data.duration_ms);
           if (data.success) {
             setStreamingProgress(100);
           }
-        }
-      })
-    ];
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          break;
+          
+        case 'exec.error':
+          setStreamingStatus('task_failed');
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          toast({
+            title: "Execution Error",
+            description: data.error || "An error occurred during execution.",
+            variant: "destructive"
+          });
+          break;
+          
+        case 'exec.timeout':
+          setHasTimeout(true);
+          setStreamingStatus('task_failed');
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          toast({
+            title: "Execution Timeout",
+            description: "⚠️ Server stopped responding.",
+            variant: "destructive"
+          });
+          break;
+      }
+    });
     
     return () => {
-      unsubscribers.forEach(unsub => unsub());
+      unsubscribe();
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }, [on, runId, enableStreaming]);
+  }, [onExec, runId, enableStreaming, streamingStatus, toast]);
 
   // Use streaming values if available, otherwise use props
   const currentProgress = enableStreaming ? streamingProgress : (initialProgress || 0);

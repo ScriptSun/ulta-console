@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AlertTriangle, RefreshCw, HardDrive, Cpu, MemoryStick, Wifi, Clock, Monitor, CheckCircle, X, Loader } from 'lucide-react';
 import { useEventBus } from '@/hooks/useEventBus';
+import { useToast } from '@/hooks/use-toast';
 
 interface PreflightDetail {
   check: string;
@@ -43,52 +44,101 @@ export function PreflightBlockCard({
   decision, 
   onPreflightComplete 
 }: PreflightBlockCardProps) {
-  const { on } = useEventBus();
+  const { onPreflight } = useEventBus();
+  const { toast } = useToast();
   const [streamingChecks, setStreamingChecks] = useState<Map<string, { status: string; message?: string; }>>(new Map());
   const [isStreaming, setIsStreaming] = useState(false);
   const [preflightDone, setPreflightDone] = useState(false);
+  const [hasTimeout, setHasTimeout] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout>();
 
   // Listen to preflight streaming events
   useEffect(() => {
     if (!agent_id || !decision) return;
     
-    const unsubscribers = [
-      on('preflight.start', () => {
-        console.log('Preflight checks starting');
-        setIsStreaming(true);
-        setStreamingChecks(new Map());
-        setPreflightDone(false);
-      }),
-      
-      on('preflight.item', (data) => {
-        console.log('Preflight check update:', data);
-        setStreamingChecks(prev => {
-          const updated = new Map(prev);
-          updated.set(data.name, {
-            status: data.status,
-            message: data.message
-          });
-          return updated;
+    // Set timeout for preflight checks (60 seconds)
+    timeoutRef.current = setTimeout(() => {
+      if (isStreaming) {
+        setHasTimeout(true);
+        setIsStreaming(false);
+        toast({
+          title: "Preflight Timeout",
+          description: "⚠️ Checks stalled.",
+          variant: "destructive"
         });
-      }),
-      
-      on('preflight.done', (data) => {
-        console.log('Preflight checks completed:', data);
-        setIsStreaming(false);
-        setPreflightDone(true);
-        onPreflightComplete?.(data.ok, data.run_id);
-      }),
-      
-      on('preflight.error', (data) => {
-        console.error('Preflight error:', data);
-        setIsStreaming(false);
-      })
-    ];
+        onPreflightComplete?.(false);
+      }
+    }, 60000);
+    
+    const unsubscribe = onPreflight((eventType, data) => {
+      switch (eventType) {
+        case 'preflight.start':
+          console.log('Preflight checks starting');
+          setIsStreaming(true);
+          setStreamingChecks(new Map());
+          setPreflightDone(false);
+          setHasTimeout(false);
+          break;
+          
+        case 'preflight.item':
+          console.log('Preflight check update:', data);
+          setStreamingChecks(prev => {
+            const updated = new Map(prev);
+            updated.set(data.name, {
+              status: data.status,
+              message: data.message
+            });
+            return updated;
+          });
+          break;
+          
+        case 'preflight.done':
+          console.log('Preflight checks completed:', data);
+          setIsStreaming(false);
+          setPreflightDone(true);
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          onPreflightComplete?.(data.ok, data.run_id);
+          break;
+          
+        case 'preflight.error':
+          console.error('Preflight error:', data);
+          setIsStreaming(false);
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          toast({
+            title: "Preflight Error",
+            description: data.error || "An error occurred during preflight checks.",
+            variant: "destructive"
+          });
+          onPreflightComplete?.(false);
+          break;
+          
+        case 'preflight.timeout':
+          setHasTimeout(true);
+          setIsStreaming(false);
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          toast({
+            title: "Preflight Timeout",
+            description: "⚠️ Checks stalled.",
+            variant: "destructive"
+          });
+          onPreflightComplete?.(false);
+          break;
+      }
+    });
     
     return () => {
-      unsubscribers.forEach(unsub => unsub());
+      unsubscribe();
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }, [on, agent_id, decision, onPreflightComplete]);
+  }, [onPreflight, agent_id, decision, onPreflightComplete, toast, isStreaming]);
 
   // Combine static details with streaming checks
   const allChecks = [...details];
@@ -223,13 +273,18 @@ export function PreflightBlockCard({
   };
 
   return (
-    <Card className={hasFailures ? "border-destructive/20 bg-destructive/5" : "border-green-500/20 bg-green-500/5"}>
+    <Card className={hasFailures || hasTimeout ? "border-destructive/20 bg-destructive/5" : "border-green-500/20 bg-green-500/5"}>
       <CardHeader className="pb-3">
-        <CardTitle className={`flex items-center gap-2 text-base ${hasFailures ? 'text-destructive' : 'text-green-600'}`}>
+        <CardTitle className={`flex items-center gap-2 text-base ${hasFailures || hasTimeout ? 'text-destructive' : 'text-green-600'}`}>
           {isStreaming ? (
             <>
               <Loader className="h-4 w-4 animate-spin" />
               Running Preflight Checks
+            </>
+          ) : hasTimeout ? (
+            <>
+              <AlertTriangle className="h-4 w-4" />
+              Preflight Checks Stalled
             </>
           ) : hasFailures ? (
             <>
@@ -245,13 +300,19 @@ export function PreflightBlockCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {!preflightDone && !hasFailures && (
+        {hasTimeout && (
+          <p className="text-sm text-destructive">
+            ⚠️ Checks stalled. Please try again.
+          </p>
+        )}
+        
+        {!preflightDone && !hasFailures && !hasTimeout && (
           <p className="text-sm text-muted-foreground">
             {isStreaming ? 'Checking system requirements...' : 'Preparing to run preflight checks...'}
           </p>
         )}
         
-        {hasFailures && (
+        {hasFailures && !hasTimeout && (
           <p className="text-sm text-muted-foreground">
             The following issues need to be resolved before the task can run:
           </p>
