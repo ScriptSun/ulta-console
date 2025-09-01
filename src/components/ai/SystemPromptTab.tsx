@@ -493,19 +493,22 @@ Rules:
         <CardContent className="space-y-6">
           {/* Current Published Version Info */}
           {publishedVersion && (
-            <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-green-800 dark:text-green-200">
-                    Active Version {publishedVersion.version}
-                  </p>
-                  <p className="text-sm text-green-600 dark:text-green-400">
-                    Published by {publishedVersion.author} on {new Date(publishedVersion.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <Badge variant="default" className="bg-green-600">Published</Badge>
+          <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-green-800 dark:text-green-200">
+                  Active Version {publishedVersion.version} - Currently Used by AI Systems
+                </p>
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Published by {publishedVersion.author} on {new Date(publishedVersion.created_at).toLocaleDateString()}
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  ✅ This prompt is actively used by: Chat Router, AI Decision Engine, and all OpenAI API calls
+                </p>
               </div>
+              <Badge variant="default" className="bg-green-600">Published</Badge>
             </div>
+          </div>
           )}
 
           {/* Find and Replace */}
@@ -631,7 +634,17 @@ Rules:
             
             <Button onClick={runDryRun} variant="outline" disabled={loading} className="gap-2">
               <Play className="h-4 w-4" />
-              Dry Run
+              Dry Run Preview
+            </Button>
+
+            <Button 
+              onClick={() => window.open('/chat/inbox?test=true', '_blank')} 
+              variant="outline" 
+              disabled={loading} 
+              className="gap-2"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Test Live Chat
             </Button>
 
             {currentVersion && !currentVersion.published && (
