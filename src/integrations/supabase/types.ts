@@ -2038,6 +2038,36 @@ export type Database = {
           },
         ]
       }
+      user_login_attempts: {
+        Row: {
+          attempted_at: string | null
+          email: string
+          id: string
+          ip_address: unknown | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempted_at?: string | null
+          email: string
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempted_at?: string | null
+          email?: string
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_page_permissions: {
         Row: {
           can_delete: boolean | null
@@ -2128,6 +2158,54 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_security_status: {
+        Row: {
+          ban_reason: string | null
+          banned_at: string | null
+          banned_by: string | null
+          created_at: string | null
+          email: string
+          failed_login_count: number | null
+          id: string
+          is_banned: boolean | null
+          last_failed_login: string | null
+          last_successful_login: string | null
+          session_expires_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ban_reason?: string | null
+          banned_at?: string | null
+          banned_by?: string | null
+          created_at?: string | null
+          email: string
+          failed_login_count?: number | null
+          id?: string
+          is_banned?: boolean | null
+          last_failed_login?: string | null
+          last_successful_login?: string | null
+          session_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ban_reason?: string | null
+          banned_at?: string | null
+          banned_by?: string | null
+          created_at?: string | null
+          email?: string
+          failed_login_count?: number | null
+          id?: string
+          is_banned?: boolean | null
+          last_failed_login?: string | null
+          last_successful_login?: string | null
+          session_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2740,6 +2818,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      extend_user_session: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       generate_api_key: {
         Args: { _customer_id: string; _name: string; _permissions?: string[] }
         Returns: {
@@ -2759,6 +2841,15 @@ export type Database = {
       get_next_variant_version: {
         Args: { _batch_id: string; _os: string }
         Returns: number
+      }
+      get_security_settings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          max_login_attempts: number
+          password_min_length: number
+          require_2fa: boolean
+          session_timeout_hours: number
+        }[]
       }
       get_user_current_plan: {
         Args: { _customer_id: string; _user_id: string }
@@ -2808,6 +2899,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_session_expired: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
@@ -2818,6 +2913,10 @@ export type Database = {
       }
       is_team_owner_or_admin_simple: {
         Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_user_banned: {
+        Args: { _user_id?: string }
         Returns: boolean
       }
       log_ai_usage: {
@@ -2859,6 +2958,20 @@ export type Database = {
         Args: { _api_key_id: string }
         Returns: undefined
       }
+      track_login_attempt: {
+        Args: {
+          _email: string
+          _ip_address?: unknown
+          _success?: boolean
+          _user_agent?: string
+          _user_id?: string
+        }
+        Returns: {
+          attempts_remaining: number
+          ban_reason: string
+          is_banned: boolean
+        }[]
+      }
       track_user_session: {
         Args: {
           client_ip?: unknown
@@ -2866,6 +2979,10 @@ export type Database = {
           user_uuid: string
         }
         Returns: string
+      }
+      unban_user: {
+        Args: { _admin_id?: string; _user_id: string }
+        Returns: boolean
       }
       validate_api_key: {
         Args: { _api_key: string }
