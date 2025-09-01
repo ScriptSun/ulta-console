@@ -57,58 +57,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
-    // Check for existing session FIRST
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (!mounted) return;
-      
-      if (error) {
-        console.error('Session check error:', error);
-      }
-      
-      console.log('Initial session check:', session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      
-      // Create session record if user is already logged in - disabled temporarily
-      // if (session?.user) {
-      //   supabase.functions.invoke('session-management', {
-      //     body: { action: 'create' }
-      //   }).catch(error => {
-      //     console.error('Failed to create initial session record:', error);
-      //   });
-      // }
-    });
-
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    // Simplified auth initialization with better error handling
+    const initializeAuth = async () => {
+      try {
+        // Check for existing session with timeout
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+        );
+        
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
+        
         if (!mounted) return;
         
-        console.log('Auth state change:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Only set loading to false after initial session check
-        if (event !== 'INITIAL_SESSION') {
-          setLoading(false);
+        if (error) {
+          console.warn('Session check error (non-fatal):', error.message);
+          // Continue without session - user can still access app
         }
         
-        // Handle additional logic after auth state changes
-        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          // Auto-assign owner role to elin@ultahost.com  
-          if (session.user.email === 'elin@ultahost.com') {
-            assignOwnerRole(session.user.id);
+        console.log('Initial session check:', session?.user?.email || 'No session');
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+      } catch (error: any) {
+        if (!mounted) return;
+        
+        console.warn('Auth initialization failed (non-fatal):', error.message);
+        // Set user as not authenticated but allow app to continue
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+      }
+    };
+
+    // Start initialization
+    initializeAuth();
+
+    // Set up auth state listener with error handling
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mounted) return;
+        
+        try {
+          console.log('Auth state change:', event, session?.user?.email || 'No session');
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          // Always set loading to false after auth state changes
+          setLoading(false);
+          
+          // Handle successful sign-in
+          if (session?.user && event === 'SIGNED_IN') {
+            // Auto-assign owner role to elin@ultahost.com  
+            if (session.user.email === 'elin@ultahost.com') {
+              assignOwnerRole(session.user.id).catch(err => 
+                console.warn('Role assignment failed (non-fatal):', err.message)
+              );
+            }
           }
           
-          // Track user session - disabled temporarily to prevent loading issues
-          // try {
-          //   await supabase.functions.invoke('session-management', {
-          //     body: { action: 'create' }
-          //   });
-          // } catch (error) {
-          //   console.error('Failed to track session:', error);
-          // }
+        } catch (error: any) {
+          console.warn('Auth state change error (non-fatal):', error.message);
+          setLoading(false);
         }
       }
     );
@@ -138,42 +152,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         customer_id: '22222222-2222-2222-2222-222222222222',
         role: 'owner'
       });
-    } catch (error) {
-      console.error('Error assigning owner role:', error);
+      console.log('Owner role assigned successfully');
+    } catch (error: any) {
+      console.warn('Error assigning owner role (non-fatal):', error.message);
     }
   };
 
   const signIn = async (email: string, password: string) => {
     console.log('SignIn called for:', email);
     
-    // Try secure login first
-    const result = await performSecureLogin(email, password);
-    
-    if (result.error) {
-      console.log('Secure login failed, trying direct Supabase auth:', result.error);
+    try {
+      // Use direct Supabase auth only for reliability
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      // Fallback to direct Supabase auth if secure login fails
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        
-        if (error) {
-          return { error: { message: error.message } };
-        }
-        
-        console.log('Direct Supabase auth succeeded, session should be set automatically');
-        return { error: null };
-      } catch (directError: any) {
-        console.error('Direct auth also failed:', directError);
-        return { error: { message: directError.message || 'Login failed. Please try again.' } };
+      if (error) {
+        console.error('Login error:', error.message);
+        return { error: { message: error.message } };
       }
+      
+      console.log('Login successful for:', email);
+      return { error: null };
+      
+    } catch (error: any) {
+      console.error('Login failed:', error.message);
+      return { error: { message: error.message || 'Login failed. Please try again.' } };
     }
-    
-    // Secure login succeeded - session should now be set on client
-    console.log('Secure login succeeded, session established');
-    return { error: null };
   };
 
   const signUp = async (email: string, password: string, username?: string) => {
