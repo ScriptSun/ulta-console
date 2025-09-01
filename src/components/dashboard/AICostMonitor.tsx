@@ -183,7 +183,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
         {/* Summary Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {/* Total Cost */}
-          <div className="p-3 rounded-lg bg-card border border-primary/30 relative overflow-hidden shadow-glow">
+          <div className="p-3 rounded-lg bg-card border border-primary/30 relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
               <DollarSign className="h-3 w-3" />
               Total Cost
@@ -194,13 +194,12 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
             <div className="text-xs text-muted-foreground">
               For {dateRange.label.toLowerCase()}
             </div>
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-radial from-primary/30 to-transparent pointer-events-none"></div>
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none"></div>
           </div>
           
           {/* Total Tokens */}
-          <div className="p-3 rounded-lg bg-card border border-accent/30 relative overflow-hidden shadow-glow">
+          <div className="p-3 rounded-lg bg-card border border-accent/30 relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
               <Zap className="h-3 w-3" />
               Total Tokens
@@ -211,13 +210,12 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
             <div className="text-xs text-muted-foreground">
               Processed tokens
             </div>
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-accent/10 to-transparent pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-radial from-accent/30 to-transparent pointer-events-none"></div>
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-transparent pointer-events-none"></div>
           </div>
           
           {/* Requests */}
-          <div className="p-3 rounded-lg bg-card border border-secondary/30 relative overflow-hidden shadow-glow">
+          <div className="p-3 rounded-lg bg-card border border-secondary/30 relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
               <BarChart className="h-3 w-3" />
               Requests
@@ -228,13 +226,12 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
             <div className="text-xs text-muted-foreground">
               API calls made
             </div>
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary/20 via-secondary/10 to-transparent pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-radial from-secondary/30 to-transparent pointer-events-none"></div>
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 via-transparent to-transparent pointer-events-none"></div>
           </div>
           
           {/* Avg/Request */}
-          <div className="p-3 rounded-lg bg-card border border-primary/30 relative overflow-hidden shadow-glow">
+          <div className="p-3 rounded-lg bg-card border border-primary/30 relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
               <TrendingUp className="h-3 w-3" />
               Avg/Request
@@ -245,9 +242,8 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
             <div className="text-xs text-muted-foreground">
               Cost efficiency
             </div>
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-radial from-primary/30 to-transparent pointer-events-none"></div>
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none"></div>
           </div>
         </div>
 
