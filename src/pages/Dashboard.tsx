@@ -6,6 +6,7 @@ import { ErrorRatesCard } from '@/components/dashboard/ErrorRatesCard';
 import { AIInsightsCard } from '@/components/dashboard/AIInsightsCard';
 import { RecentLoginsCard } from '@/components/dashboard/RecentLoginsCard';
 import { TopActiveAgents } from '@/components/dashboard/TopActiveAgents';
+import { PermissionAwareSection } from '@/components/dashboard/PermissionAwareSection';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useAIInsights } from '@/hooks/useDashboardData';
@@ -43,22 +44,33 @@ export default function Dashboard() {
       </div>
 
       {/* Revenue Overview */}
-      <RevenueOverview dateRange={dateRange} />
+      <PermissionAwareSection pageKey="dashboard-revenue">
+        <RevenueOverview dateRange={dateRange} />
+      </PermissionAwareSection>
 
       {/* AI and Agent Insights */}
-      <AIInsightsCard dateRange={dateRange} />
+      <PermissionAwareSection pageKey="dashboard-ai-costs">
+        <AIInsightsCard dateRange={dateRange} />
+      </PermissionAwareSection>
 
       {/* Top Active Agents + Error Rates - Same Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TopActiveAgents 
-          agents={aiInsightsData?.topAgents || []}
-          isLoading={aiInsightsLoading}
-        />
-        <ErrorRatesCard dateRange={dateRange} />
+        <PermissionAwareSection pageKey="dashboard-top-agents">
+          <TopActiveAgents 
+            agents={aiInsightsData?.topAgents || []}
+            isLoading={aiInsightsLoading}
+          />
+        </PermissionAwareSection>
+        
+        <PermissionAwareSection pageKey="dashboard-error-rates">
+          <ErrorRatesCard dateRange={dateRange} />
+        </PermissionAwareSection>
       </div>
 
       {/* Security - Recent Logins */}
-      <RecentLoginsCard dateRange={dateRange} />
+      <PermissionAwareSection pageKey="dashboard-recent-logins">
+        <RecentLoginsCard dateRange={dateRange} />
+      </PermissionAwareSection>
     </div>
   );
 }

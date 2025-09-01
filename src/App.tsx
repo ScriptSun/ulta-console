@@ -18,6 +18,7 @@ import Plans from "./pages/Plans";
 import Security from "./pages/Security";
 import Audit from "./pages/Audit";
 import Integrations from "./pages/Integrations";
+import AccessControl from "./pages/AccessControl";
 import TeamManagement from "./pages/TeamManagement";
 import AssertionCheck from "./pages/AssertionCheck";
 import Scripts from "./pages/Scripts";
@@ -148,7 +149,7 @@ const App = () => (
             <Route path="/access-control" element={
               <ProtectedRoute>
                 <RootLayout>
-                  <TeamManagement />
+                  <AccessControl />
                 </RootLayout>
               </ProtectedRoute>
             } />
