@@ -63,12 +63,12 @@ serve(async (req: Request) => {
         resetUrl = 'https://lfsdqyvvboapsyeauchm.supabase.co/reset-password';
       }
 
-      console.log(`Using reset URL: ${resetUrl}`);
+        console.log('Using reset URL:', resetUrl);
 
-      // Generate password reset using Supabase Auth
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: resetUrl
-      });
+        // Generate password reset using Supabase Auth
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: resetUrl
+        });
 
       if (error) {
         console.error('Supabase password reset error:', error);

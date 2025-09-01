@@ -24,9 +24,25 @@ const ResetPassword = () => {
   const [isTokenValid, setIsTokenValid] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
 
-  const accessToken = searchParams.get('access_token');
-  const refreshToken = searchParams.get('refresh_token');
-  const type = searchParams.get('type');
+  // Get tokens from URL - check both search params and hash fragments
+  const getTokensFromUrl = () => {
+    // First try search params
+    let accessToken = searchParams.get('access_token');
+    let refreshToken = searchParams.get('refresh_token');
+    let type = searchParams.get('type');
+
+    // If not in search params, try hash fragments
+    if (!accessToken || !refreshToken) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      accessToken = hashParams.get('access_token');
+      refreshToken = hashParams.get('refresh_token');
+      type = hashParams.get('type');
+    }
+
+    return { accessToken, refreshToken, type };
+  };
+
+  const { accessToken, refreshToken, type } = getTokensFromUrl();
 
   useEffect(() => {
     const validateResetToken = async () => {
