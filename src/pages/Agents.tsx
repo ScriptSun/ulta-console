@@ -12,7 +12,7 @@ import { AgentDetailsDrawer } from '@/components/agents/AgentDetailsDrawer';
 import { AgentsTable } from '@/components/agents/AgentsTable';
 import { DeployAgentModal } from '@/components/agents/DeployAgentModal';
 import { AssignUserToAgentDialog } from '@/components/agents/AssignUserToAgentDialog';
-import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
+
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Agent {
@@ -49,7 +49,6 @@ export default function Agents() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isConnected, hasUserRoles, errorDetails, isLoading: connectionLoading, retryConnection } = useSupabaseConnection();
   
   const [agents, setAgents] = useState<Agent[]>([]);
   const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
@@ -329,30 +328,30 @@ export default function Agents() {
         </Button>
       </div>
 
-      {/* Connection Status Warning */}
-      {!isConnected && (
-        <Card className="border-destructive">
+      {/* Connection Status - Simplified */}
+      {agents.length === 0 && !loading && (
+        <Card className="border-warning">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
+                <AlertTriangle className="h-5 w-5 text-warning" />
                 <div>
-                  <p className="font-medium">Connection Issue</p>
-                  <p className="text-sm text-muted-foreground">{errorDetails}</p>
+                  <p className="font-medium">No Agents Found</p>
+                  <p className="text-sm text-muted-foreground">Try refreshing or check your permissions</p>
                 </div>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={retryConnection}
-                disabled={connectionLoading}
+                onClick={fetchAgents}
+                disabled={loading}
               >
-                {connectionLoading ? (
+                {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
-                Retry Connection
+                Refresh
               </Button>
             </div>
           </CardContent>

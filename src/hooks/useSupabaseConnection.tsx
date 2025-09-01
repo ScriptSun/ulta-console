@@ -105,13 +105,13 @@ export function useSupabaseConnection() {
         console.error('Failed to create admin profile:', profileError);
       }
 
-      // Create default user role with admin access
+      // Create default user role with owner access
       const { error: roleError } = await supabase
         .from('user_roles')
         .upsert({
           user_id: user!.id,
           customer_id: '22222222-2222-2222-2222-222222222222', // Default customer
-          role: 'admin'
+          role: 'owner'
         });
 
       if (roleError) {

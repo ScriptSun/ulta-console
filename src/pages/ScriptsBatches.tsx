@@ -33,7 +33,7 @@ import { BatchQuickRunModal } from '@/components/scripts/BatchQuickRunModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
+
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ScriptBatch {
@@ -74,7 +74,6 @@ const riskColors = {
 export default function ScriptsBatches() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isConnected, hasUserRoles, errorDetails, isLoading: connectionLoading, retryConnection } = useSupabaseConnection();
   
   const [batches, setBatches] = useState<ScriptBatch[]>([]);
   const [filteredBatches, setFilteredBatches] = useState<ScriptBatch[]>([]);
@@ -425,30 +424,30 @@ export default function ScriptsBatches() {
         </Button>
       </div>
 
-      {/* Connection Status Warning */}
-      {!isConnected && (
-        <Card className="border-destructive">
+      {/* Connection Status - Simplified */}
+      {batches.length === 0 && !loading && (
+        <Card className="border-warning">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
+                <AlertTriangle className="h-5 w-5 text-warning" />
                 <div>
-                  <p className="font-medium">Connection Issue</p>
-                  <p className="text-sm text-muted-foreground">{errorDetails}</p>
+                  <p className="font-medium">No Batches Found</p>
+                  <p className="text-sm text-muted-foreground">Try refreshing or check your permissions</p>
                 </div>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={retryConnection}
-                disabled={connectionLoading}
+                onClick={fetchBatches}
+                disabled={loading}
               >
-                {connectionLoading ? (
+                {loading ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
-                Retry Connection
+                Refresh
               </Button>
             </div>
           </CardContent>

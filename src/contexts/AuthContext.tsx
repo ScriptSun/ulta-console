@@ -96,9 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Handle additional logic after auth state changes
         if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          // Auto-assign admin role to admin@admin.com
+          // Auto-assign owner role to admin@admin.com
           if (session.user.email === 'admin@admin.com') {
-            assignAdminRole(session.user.id);
+            assignOwnerRole(session.user.id);
           }
           
           // Track user session - disabled temporarily to prevent loading issues
@@ -131,15 +131,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   //   };
   // }, [user, session]);
 
-  const assignAdminRole = async (userId: string) => {
+  const assignOwnerRole = async (userId: string) => {
     try {
       await supabase.from('user_roles').upsert({
         user_id: userId,
         customer_id: '22222222-2222-2222-2222-222222222222',
-        role: 'admin'
+        role: 'owner'
       });
     } catch (error) {
-      console.error('Error assigning admin role:', error);
+      console.error('Error assigning owner role:', error);
     }
   };
 
