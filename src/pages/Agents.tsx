@@ -68,7 +68,13 @@ export default function Agents() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchAgents();
+    const loadAgents = async () => {
+      console.log('Loading agents...');
+      await fetchAgents();
+      console.log('Agents loaded successfully');
+    };
+    
+    loadAgents();
     
     // Set up real-time subscription
     const channel = supabase
@@ -81,6 +87,7 @@ export default function Agents() {
           table: 'agents'
         },
         () => {
+          console.log('Agents data changed, reloading...');
           fetchAgents();
         }
       )
