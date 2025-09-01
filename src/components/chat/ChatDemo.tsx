@@ -456,6 +456,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           const isJsonResponse = accumulated.trim().startsWith('{') && accumulated.includes('"mode"');
           
           let contentToShow = '';
+          let shouldShowCheckingPhase = false;
           
           if (isJsonResponse) {
             // Try to extract summary/message from partial JSON for streaming
@@ -465,18 +466,25 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                                  accumulated.match(/"summary":\s*"([^"]*)"/);
               if (messageMatch) {
                 contentToShow = messageMatch[1];
+                setRouterPhase(''); // Clear the checking phase when we have content
+              } else {
+                // Show "Checking my ability" phase when we don't have summary yet
+                shouldShowCheckingPhase = true;
+                setRouterPhase('Checking my ability');
               }
             } catch (e) {
-              // If parsing fails, don't show content yet
-              contentToShow = '';
+              // If parsing fails, show checking phase
+              shouldShowCheckingPhase = true;
+              setRouterPhase('Checking my ability');
             }
           } else {
-            // For regular text responses, show everything
+            // For regular text responses, show everything and clear phase
             contentToShow = accumulated;
+            setRouterPhase('');
           }
           
-          // Only create/update message if we have content to show
-          if (contentToShow) {
+          // Only create/update message if we have content to show (not during checking phase)
+          if (contentToShow && !shouldShowCheckingPhase) {
             setMessages(prev => {
               const updated = [...prev];
               // Find the most recent pending message
@@ -1955,21 +1963,24 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                 <div className="flex justify-start" role="status" aria-live="polite">
                   <div className="bg-muted rounded-lg p-3">
                     <div className="flex gap-2 items-center">
-                      {routerPhase && (
-                        <div className="flex items-center gap-2" aria-label={`Status: ${routerPhase}`}>
-                          {routerPhase === 'Thinking' && (
-                            <Brain className="w-4 h-4 text-blue-500 animate-pulse" aria-hidden="true" />
-                          )}
-                          {routerPhase === 'Analyzing server' && (
-                            <Search className="w-4 h-4 text-orange-500 animate-pulse" aria-hidden="true" />
-                          )}
-                          {routerPhase === 'Selecting installer' && (
-                            <CheckCircle className="w-4 h-4 text-green-500 animate-pulse" aria-hidden="true" />
-                          )}
-                          <span className="text-sm text-muted-foreground font-medium">
-                            {routerPhase}
-                            {routerPhase === 'Selecting installer' && '...'}
-                          </span>
+                       {routerPhase && (
+                         <div className="flex items-center gap-2" aria-label={`Status: ${routerPhase}`}>
+                           {routerPhase === 'Thinking' && (
+                             <Brain className="w-4 h-4 text-blue-500 animate-pulse" aria-hidden="true" />
+                           )}
+                           {routerPhase === 'Checking my ability' && (
+                             <Settings className="w-4 h-4 text-purple-500 animate-pulse" aria-hidden="true" />
+                           )}
+                           {routerPhase === 'Analyzing server' && (
+                             <Search className="w-4 h-4 text-orange-500 animate-pulse" aria-hidden="true" />
+                           )}
+                           {routerPhase === 'Selecting installer' && (
+                             <CheckCircle className="w-4 h-4 text-green-500 animate-pulse" aria-hidden="true" />
+                           )}
+                           <span className="text-sm text-muted-foreground font-medium">
+                             {routerPhase}
+                             {routerPhase === 'Selecting installer' && '...'}
+                           </span>
                           {candidateCount > 0 && routerPhase === 'Analyzing server' && (
                             <Badge variant="outline" className="text-xs" aria-label={`${candidateCount} matches found`}>
                               {candidateCount} matches
