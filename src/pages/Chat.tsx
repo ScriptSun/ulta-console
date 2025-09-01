@@ -506,101 +506,150 @@ export default function Chat() {
         </p>
       </div>
 
-      <Card className="h-[calc(100vh-200px)] flex flex-col bg-background border shadow-lg">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-3">
-            <h3 className="font-semibold">AI Assistant</h3>
-            {selectedAgentData && (
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  selectedAgentData.status === 'online' ? 'bg-success' : 'bg-muted-foreground'
-                }`} />
-                <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-                  <SelectTrigger className="w-40 h-8 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {agents.map(agent => (
-                      <SelectItem key={agent.id} value={agent.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{agent.hostname || `${agent.agent_type} Agent`}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {agent.os}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setLogViewerOpen(true)}
-              title="View API Logs"
-            >
-              <FileText className="w-4 h-4" />
-              {apiLogs.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-4 text-xs">
-                  {apiLogs.length}
-                </Badge>
+      {/* Agent Selection Section */}
+      <div className="mb-6">
+        <div className="bg-card border rounded-lg p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <h3 className="text-lg font-semibold text-foreground">Connected Agent</h3>
+              {selectedAgentData && (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      selectedAgentData.status === 'online' ? 'bg-green-500' : 'bg-gray-400'
+                    }`} />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {selectedAgentData.status === 'online' ? 'Online' : 'Offline'}
+                    </span>
+                  </div>
+                  
+                  <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+                    <SelectTrigger className="w-64 h-10 bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-2 border-border shadow-xl z-50">
+                      {agents.map(agent => (
+                        <SelectItem key={agent.id} value={agent.id} className="hover:bg-muted focus:bg-muted cursor-pointer">
+                          <div className="flex items-center gap-3 py-1">
+                            <div className={`w-2 h-2 rounded-full ${
+                              agent.status === 'online' ? 'bg-green-500' : 'bg-gray-400'
+                            }`} />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{agent.hostname || `${agent.agent_type} Agent`}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {agent.os}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {agent.agent_type}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
-            </Button>
+            </div>
             
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Chat Settings</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm">Real-time Updates</label>
-                      <Switch
-                        checked={enableRealTime}
-                        onCheckedChange={setEnableRealTime}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm">Auto Clear</label>
-                      <Switch
-                        checked={autoClear}
-                        onCheckedChange={setAutoClear}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm">Play sound</label>
-                      <Switch
-                        checked={playSound}
-                        onCheckedChange={setPlaySound}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm">Compact density</label>
-                      <Switch
-                        checked={compactDensity}
-                        onCheckedChange={setCompactDensity}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm">Chat without server actions</label>
-                      <Switch
-                        checked={conversationOnly}
-                        onCheckedChange={setConversationOnly}
-                      />
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setLogViewerOpen(true)}
+                title="View API Logs"
+                className="gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Logs</span>
+                {apiLogs.length > 0 && (
+                  <Badge variant="secondary" className="h-5 text-xs">
+                    {apiLogs.length}
+                  </Badge>
+                )}
+              </Button>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Settings className="w-4 h-4" />
+                    <span>Settings</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 bg-background border-2 border-border shadow-xl z-50">
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-lg">Chat Settings</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Real-time Updates</label>
+                        <Switch
+                          checked={enableRealTime}
+                          onCheckedChange={setEnableRealTime}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Auto Clear</label>
+                        <Switch
+                          checked={autoClear}
+                          onCheckedChange={setAutoClear}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Play Sound</label>
+                        <Switch
+                          checked={playSound}
+                          onCheckedChange={setPlaySound}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Compact Density</label>
+                        <Switch
+                          checked={compactDensity}
+                          onCheckedChange={setCompactDensity}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Chat Only Mode</label>
+                        <Switch
+                          checked={conversationOnly}
+                          onCheckedChange={setConversationOnly}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Card className="h-[calc(100vh-280px)] flex flex-col bg-background border shadow-lg">
+        {/* Simplified Header */}
+        <div className="flex items-center justify-between p-4 border-b bg-muted/20">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold">Chat Session</h3>
+            {conversationOnly && (
+              <Badge variant="secondary" className="text-xs">
+                Chat Only Mode
+              </Badge>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {isConnected ? (
+              <span className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                Connected
+              </span>
+            ) : (
+              <span className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                Disconnected
+              </span>
+            )}
           </div>
         </div>
 
