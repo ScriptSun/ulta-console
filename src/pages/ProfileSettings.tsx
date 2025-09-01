@@ -92,6 +92,7 @@ export default function ProfileSettings() {
   const [cropImage, setCropImage] = useState<File | null>(null);
   const [cropScale, setCropScale] = useState(1);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [showSessionsSection, setShowSessionsSection] = useState(false);
   
   const [profile, setProfile] = useState({
     full_name: user?.user_metadata?.full_name || '',
@@ -1454,92 +1455,100 @@ export default function ProfileSettings() {
 
             {/* Account Activity */}
             <Card className="bg-gradient-card border-card-border shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Account Activity
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setShowSessionsSection(!showSessionsSection)}
+              >
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Account Activity
+                  </div>
+                  <ChevronRight className={`h-5 w-5 transition-transform ${showSessionsSection ? 'rotate-90' : ''}`} />
                 </CardTitle>
                 <CardDescription>
-                  Monitor your recent login sessions and account access.
+                  Monitor your recent login sessions and manage account access.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  {sessions.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground">
-                      <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>No recent sessions found</p>
-                    </div>
-                  ) : (
-                    sessions.slice(0, 5).map((session) => (
-                      <div key={session.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-2 w-2 rounded-full ${session.is_active ? 'bg-green-500' : 'bg-muted-foreground'}`} />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{session.device_type || 'Unknown Device'}</p>
-                              {session.is_active && <Badge variant="secondary" className="text-xs">Current</Badge>}
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formatSessionTime(session.session_start)}
-                              </span>
-                              {session.location && (
+              {showSessionsSection && (
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    {sessions.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No recent sessions found</p>
+                      </div>
+                    ) : (
+                      sessions.slice(0, 5).map((session) => (
+                        <div key={session.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-2 w-2 rounded-full ${session.is_active ? 'bg-green-500' : 'bg-muted-foreground'}`} />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{session.device_type || 'Unknown Device'}</p>
+                                {session.is_active && <Badge variant="secondary" className="text-xs">Current</Badge>}
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {session.location}
+                                  <Clock className="h-3 w-3" />
+                                  {formatSessionTime(session.session_start)}
                                 </span>
-                              )}
-                              {session.ip_address && (
-                                <span className="text-xs font-mono">
-                                  {session.ip_address}
-                                </span>
-                              )}
+                                {session.location && (
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    {session.location}
+                                  </span>
+                                )}
+                                {session.ip_address && (
+                                  <span className="text-xs font-mono">
+                                    {session.ip_address}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
+                          
+                          {!session.is_active && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Revoke Session?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will immediately terminate the selected session. The user will need to log in again.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleSessionRevoke(session.id)}>
+                                    Revoke Session
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </div>
-                        
-                        {!session.is_active && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Revoke Session?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will immediately terminate the selected session. The user will need to log in again.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleSessionRevoke(session.id)}>
-                                  Revoke Session
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
+                      ))
+                    )}
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-5 w-5 text-success mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-green-800 dark:text-green-200">Security Status</h4>
+                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                          Your account security is up to date. Last login: {new Date().toLocaleDateString()}
+                        </p>
                       </div>
-                    ))
-                  )}
-                </div>
-                
-                <div className="pt-4 border-t">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-5 w-5 text-success mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-green-800 dark:text-green-200">Security Status</h4>
-                      <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                        Your account security is up to date. Last login: {new Date().toLocaleDateString()}
-                      </p>
                     </div>
                   </div>
-                </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
 
             {/* 2FA Setup Dialog */}
