@@ -39,27 +39,25 @@ Deno.serve(async (req) => {
           );
         }
 
-        // First, check if user is banned before attempting login
-        const { data: banCheck } = await supabase.rpc('track_login_attempt', {
-          _email: email,
-          _user_id: null,
-          _success: false,
-          _ip_address: ip_address || null,
-          _user_agent: user_agent || null
-        });
+        // Check if user exists and get their current security status
+        const { data: userCheck } = await supabase
+          .from('user_security_status')
+          .select('is_banned, ban_reason, failed_login_count')
+          .or(`email.eq.${email}`)
+          .single();
 
-        if (banCheck && banCheck[0]?.is_banned) {
+        if (userCheck?.is_banned) {
           return new Response(
             JSON.stringify({ 
               error: 'Account is banned', 
-              ban_reason: banCheck[0].ban_reason,
+              ban_reason: userCheck.ban_reason,
               is_banned: true 
             }),
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
-        // Attempt login
+        // Attempt login with Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email,
           password
@@ -67,18 +65,32 @@ Deno.serve(async (req) => {
 
         if (authError) {
           // Track failed login attempt
-          await supabase.rpc('track_login_attempt', {
+          const { data: trackResult } = await supabase.rpc('track_login_attempt', {
             _email: email,
-            _user_id: authData?.user?.id || null,
+            _user_id: null,
             _success: false,
             _ip_address: ip_address || null,
             _user_agent: user_agent || null
           });
 
+          const attemptsRemaining = trackResult?.[0]?.attempts_remaining || 0;
+          const isBanned = trackResult?.[0]?.is_banned || false;
+
+          if (isBanned) {
+            return new Response(
+              JSON.stringify({ 
+                error: 'Account has been banned due to too many failed login attempts',
+                is_banned: true,
+                ban_reason: trackResult[0]?.ban_reason
+              }),
+              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
           return new Response(
             JSON.stringify({ 
-              error: authError.message,
-              attempts_remaining: banCheck?.[0]?.attempts_remaining - 1 || 0
+              error: 'Invalid email or password',
+              attempts_remaining: attemptsRemaining
             }),
             { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
