@@ -417,16 +417,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           setStreamingResponse('');
           setIsTyping(true);
           startRouterTimeout();
-          
-          // Add streaming bubble message
-          const streamingMessage: Message = {
-            id: `streaming-${data.rid}-${Date.now()}`,
-            role: 'assistant',
-            content: '',
-            timestamp: new Date(),
-            pending: true
-          };
-          setMessages(prev => [...prev, streamingMessage]);
+          // Don't add message bubble yet - wait for first token
           break;
           
         case 'router.retrieved':
@@ -439,19 +430,34 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           console.log('Router token:', data);
           setStreamingResponse(data.accumulated);
           
-          // Update the last pending message with streaming content
+          // Create or update streaming message
           setMessages(prev => {
             const updated = [...prev];
             // Find the most recent pending message
+            let foundPending = false;
             for (let i = updated.length - 1; i >= 0; i--) {
               if (updated[i].pending && updated[i].role === 'assistant') {
                 updated[i] = {
                   ...updated[i],
                   content: data.accumulated || data.delta || ''
                 };
+                foundPending = true;
                 break;
               }
             }
+            
+            // If no pending message exists, create one now
+            if (!foundPending) {
+              const streamingMessage: Message = {
+                id: `streaming-${Date.now()}`,
+                role: 'assistant',
+                content: data.accumulated || data.delta || '',
+                timestamp: new Date(),
+                pending: true
+              };
+              updated.push(streamingMessage);
+            }
+            
             return updated;
           });
           break;
