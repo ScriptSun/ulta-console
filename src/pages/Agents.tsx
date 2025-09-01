@@ -76,51 +76,11 @@ export default function Agents() {
     
     loadAgents();
     
-    // Set up real-time subscription with error handling
-    let channel: any = null;
+    // Note: Realtime disabled temporarily to avoid WebSocket connection issues
+    // Data will refresh when user performs actions or refreshes the page
     
-    try {
-      channel = supabase
-        .channel('agents-changes', {
-          config: {
-            presence: {
-              key: `user-${Date.now()}`
-            }
-          }
-        })
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'agents'
-          },
-          (payload) => {
-            console.log('Agents data changed:', payload);
-            fetchAgents();
-          }
-        )
-        .subscribe((status) => {
-          console.log('Realtime subscription status:', status);
-          if (status === 'SUBSCRIBED') {
-            console.log('Successfully subscribed to agents realtime updates');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.warn('Realtime subscription failed, continuing without live updates');
-          }
-        });
-    } catch (error) {
-      console.warn('Failed to set up realtime subscription:', error);
-      console.log('Continuing without live updates');
-    }
-
     return () => {
-      if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch (error) {
-          console.warn('Error removing realtime channel:', error);
-        }
-      }
+      // Cleanup will be handled by component unmount
     };
   }, []);
 
