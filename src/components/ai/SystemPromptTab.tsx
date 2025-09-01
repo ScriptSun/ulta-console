@@ -141,7 +141,6 @@ export function SystemPromptTab() {
   const [draftContent, setDraftContent] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
   const [draftTargets, setDraftTargets] = useState<string[]>(['chat']);
-  const [publishedVersion, setPublishedVersion] = useState<SystemPromptVersion | null>(null);
   const [previewAgent, setPreviewAgent] = useState<string>('');
   const [previewModel, setPreviewModel] = useState<string>('gpt-4o-mini');
   const [agents, setAgents] = useState<any[]>([]);
@@ -181,9 +180,6 @@ export function SystemPromptTab() {
         console.log('Processed prompts:', prompts);
         setVersions(prompts);
         
-        const published = prompts.find(p => p.published);
-        setPublishedVersion(published || null);
-        
         const latest = prompts[prompts.length - 1];
         console.log('Latest version:', latest);
         setCurrentVersion(latest);
@@ -204,7 +200,6 @@ export function SystemPromptTab() {
         };
         
         setVersions([initialPrompt]);
-        setPublishedVersion(initialPrompt);
         setCurrentVersion(initialPrompt);
         setDraftContent(initialPrompt.content);
         setDraftTargets(initialPrompt.targets);
@@ -302,7 +297,6 @@ export function SystemPromptTab() {
         });
 
       setVersions(updatedVersions);
-      setPublishedVersion(updatedVersions.find(v => v.id === versionId) || null);
 
       toast({
         title: 'Version Published',
@@ -465,37 +459,6 @@ This is exactly what gets sent to OpenAI:
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Current Published Version Info */}
-          {publishedVersion && (
-          <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-green-800 dark:text-green-200">
-                  Active Version {publishedVersion.version} - Currently Used by AI Systems
-                </p>
-                <p className="text-sm text-green-600 dark:text-green-400">
-                  Published by {publishedVersion.author} on {new Date(publishedVersion.created_at).toLocaleDateString()}
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                  ✅ This prompt is actively used by: Chat Router, AI Decision Engine, and all OpenAI API calls
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Badge variant="default" className="bg-green-600">Published</Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { loadVersions(); loadAgents(); }}
-                  className="gap-1"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  Refresh
-                </Button>
-              </div>
-            </div>
-          </div>
-          )}
-
           {/* Find and Replace */}
           <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
             <div>
