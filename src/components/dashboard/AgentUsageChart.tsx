@@ -430,7 +430,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
 
         {/* Chart with same background as MRR/Churn charts */}
         <div className="px-2 pt-2 pb-1 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
-          <div className="h-64 w-full">
+          <div className="h-80 w-full">
             {renderChart()}
           </div>
           {/* Gradient overlay like MRR/Churn charts */}
