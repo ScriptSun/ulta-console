@@ -23,27 +23,33 @@ export function TopBar() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [fullName, setFullName] = useState<string>('');
 
-  // Load user avatar from profile
+  // Load user profile data
   useEffect(() => {
     if (user) {
-      loadUserAvatar();
+      loadUserProfile();
     }
   }, [user]);
 
-  const loadUserAvatar = async () => {
+  const loadUserProfile = async () => {
     try {
       const { data, error } = await supabase
         .from('admin_profiles')
-        .select('avatar_url')
+        .select('avatar_url, full_name')
         .eq('id', user?.id)
         .maybeSingle();
 
-      if (data?.avatar_url) {
-        setAvatarUrl(data.avatar_url);
+      if (data) {
+        if (data.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        }
+        if (data.full_name) {
+          setFullName(data.full_name);
+        }
       }
     } catch (error) {
-      console.error('Error loading avatar:', error);
+      console.error('Error loading user profile:', error);
     }
   };
 
@@ -71,6 +77,9 @@ export function TopBar() {
   };
 
   const getUserDisplayName = () => {
+    if (fullName) {
+      return fullName;
+    }
     if (user?.email === 'admin@admin.com') {
       return 'Admin';
     }
