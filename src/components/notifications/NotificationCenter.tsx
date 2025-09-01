@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
@@ -110,81 +112,81 @@ export function NotificationCenter() {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Sheet>
+      <SheetTrigger asChild>
         <Button 
           variant="ghost" 
           size="icon" 
-          className="relative hover-scale group transition-all duration-300 hover:bg-accent hover:shadow-glow rounded-xl p-2"
+          className="relative hover-scale group transition-all duration-300 hover:bg-accent/50 rounded-xl p-2"
         >
-          <Bell className="h-5 w-5 transition-all duration-300 group-hover:rotate-12 group-hover:text-primary" />
+          <Bell className="h-5 w-5 transition-all duration-300 group-hover:rotate-12 text-red-500" />
           {unreadCount > 0 && (
-            <>
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center p-0 text-[10px] font-bold bg-gradient-to-r from-destructive to-destructive text-destructive-foreground shadow-lg border-2 border-card min-w-[20px]">
-                <span className="leading-none">{unreadCount}</span>
-              </Badge>
-              {/* Notification indicator dot */}
-              <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-card rounded-full"></div>
-            </>
+            <Badge className="absolute -top-2 -right-2 h-6 w-6 rounded-full flex items-center justify-center p-0 text-[11px] font-bold bg-red-500 text-white shadow-lg border-2 border-background min-w-[24px] animate-pulse">
+              <span className="leading-none">{unreadCount > 99 ? '99+' : unreadCount}</span>
+            </Badge>
           )}
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
-        <Card className="border-0 shadow-none">
-          <CardHeader className="pb-3">
+      </SheetTrigger>
+      <SheetContent side="right" className="w-[400px] sm:w-[500px] p-0">
+        <div className="flex flex-col h-full">
+          <SheetHeader className="p-6 pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Notifications</CardTitle>
+              <SheetTitle className="text-xl font-bold">Notifications</SheetTitle>
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={markAllAsRead}
-                  className="text-xs"
+                  className="text-xs hover:bg-primary/10"
                 >
                   Mark all read
                 </Button>
               )}
             </div>
             {unreadCount > 0 && (
-              <CardDescription>
+              <p className="text-sm text-muted-foreground">
                 You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-              </CardDescription>
+              </p>
             )}
-          </CardHeader>
-          <CardContent className="p-0">
-            <ScrollArea className="h-80">
+          </SheetHeader>
+          
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
               {notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                  <Bell className="h-8 w-8 mb-2 opacity-50" />
-                  <p className="text-sm">No notifications</p>
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Bell className="h-12 w-12 mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">No notifications</p>
+                  <p className="text-sm text-center max-w-[280px]">
+                    You're all caught up! We'll notify you when something new happens.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-0">
                   {notifications.map((notification, index) => (
                     <div key={notification.id}>
                       <div
-                        className={`p-4 hover:bg-muted/50 transition-colors cursor-pointer ${
-                          !notification.read ? 'bg-primary/5 border-l-2 border-l-primary' : ''
+                        className={`p-6 hover:bg-muted/50 transition-colors cursor-pointer ${
+                          !notification.read ? 'bg-primary/5 border-l-4 border-l-primary' : ''
                         }`}
                         onClick={() => markAsRead(notification.id)}
                       >
-                        <div className="flex items-start gap-3">
-                          <div className="mt-0.5">
+                        <div className="flex items-start gap-4">
+                          <div className="mt-1">
                             {getIcon(notification.type)}
                           </div>
-                          <div className="flex-1 space-y-1">
+                          <div className="flex-1 space-y-2">
                             <div className="flex items-center justify-between">
-                              <p className={`text-sm font-medium ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              <p className={`text-sm font-semibold ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
                                 {notification.title}
                               </p>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-2">
                                 {!notification.read && (
                                   <div className="w-2 h-2 bg-primary rounded-full" />
                                 )}
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0 hover:bg-destructive/20 hover:text-destructive"
+                                  className="h-7 w-7 p-0 hover:bg-destructive/20 hover:text-destructive"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     removeNotification(notification.id);
@@ -194,10 +196,10 @@ export function NotificationCenter() {
                                 </Button>
                               </div>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm text-muted-foreground leading-relaxed">
                               {notification.message}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground font-medium">
                               {formatTime(notification.timestamp)}
                             </p>
                           </div>
@@ -209,16 +211,17 @@ export function NotificationCenter() {
                 </div>
               )}
             </ScrollArea>
-            {notifications.length > 0 && (
-              <div className="p-4 border-t">
-                <Button variant="outline" className="w-full" size="sm">
-                  View All Notifications
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          </div>
+          
+          {notifications.length > 0 && (
+            <div className="p-6 pt-4 border-t bg-muted/30">
+              <Button variant="outline" className="w-full font-medium" size="default">
+                View All Notifications
+              </Button>
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
