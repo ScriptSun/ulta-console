@@ -7,6 +7,38 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Initialize Supabase client for loading system settings
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
+
+// Function to get system temperature setting
+async function getSystemTemperature(): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'ai_models')
+      .single();
+
+    if (error) {
+      console.warn('Failed to load system temperature, using default:', error);
+      return 0.7; // Default fallback
+    }
+
+    const aiSettings = data?.setting_value;
+    if (aiSettings && typeof aiSettings === 'object' && aiSettings.temperature !== undefined) {
+      return aiSettings.temperature;
+    }
+
+    return 0.7; // Default fallback
+  } catch (error) {
+    console.warn('Error loading system temperature:', error);
+    return 0.7; // Default fallback
+  }
+}
+
 interface RequestBody {
   agent_id: string;
   user_request: string;
@@ -194,9 +226,13 @@ serve(async (req) => {
         throw new Error("OPENAI_API_KEY environment variable is required but not set");
       }
 
+      // Load system temperature setting
+      const systemTemperature = await getSystemTemperature();
+      console.log(`🌡️ Using system temperature: ${systemTemperature}`);
+
       const requestBody: any = {
         model: "gpt-4o-mini",
-        temperature: 0,
+        temperature: systemTemperature,
         response_format: { type: "json_object" }, // Always use JSON mode for dual-mode responses
         messages: [
           { role: "system", content: ULTA_DUAL_MODE_ASSISTANT },

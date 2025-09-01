@@ -6,6 +6,38 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Initialize Supabase client for loading system settings
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
+
+// Function to get system temperature setting
+async function getSystemTemperature(): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'ai_models')
+      .single();
+
+    if (error) {
+      console.warn('Failed to load system temperature, using default:', error);
+      return 0.7; // Default fallback
+    }
+
+    const aiSettings = data?.setting_value;
+    if (aiSettings && typeof aiSettings === 'object' && aiSettings.temperature !== undefined) {
+      return aiSettings.temperature;
+    }
+
+    return 0.7; // Default fallback
+  } catch (error) {
+    console.warn('Error loading system temperature:', error);
+    return 0.7; // Default fallback
+  }
+}
+
 interface AIRequest {
   system: string;
   user: any;
@@ -61,11 +93,19 @@ async function callOpenAI(model: string, params: AIRequest) {
       }
     : { type: "json_object" as const };
 
-  // Handle different model parameter requirements
-  const isNewerModel = model.includes('gpt-5') || model.includes('gpt-4.1') || model.includes('o3') || model.includes('o4');
+  // Load system temperature setting if not provided
+  let temperature = params.temperature;
+  if (temperature === undefined) {
+    temperature = await getSystemTemperature();
+    console.log(`🌡️ Using system temperature setting: ${temperature}`);
+  }
+
+  // Determine if this is a newer model that doesn't support temperature
+  const newerModels = ['gpt-5-2025-08-07', 'gpt-5-mini-2025-08-07', 'o3-2025-04-16', 'o4-mini-2025-04-16'];
+  const isNewerModel = newerModels.includes(model);
+
   const requestParams: any = {
-    model,
-    response_format,
+    model: model,
     messages: [
       { role: "system", content: params.system },
       { role: "user", content: JSON.stringify(params.user) }
@@ -74,11 +114,10 @@ async function callOpenAI(model: string, params: AIRequest) {
 
   if (isNewerModel) {
     requestParams.max_completion_tokens = 4000;
+    // Newer models don't support temperature parameter
   } else {
     requestParams.max_tokens = 4000;
-    if (params.temperature !== undefined) {
-      requestParams.temperature = params.temperature;
-    }
+    requestParams.temperature = temperature;
   }
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {

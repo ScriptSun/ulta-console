@@ -1,10 +1,43 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { AICostTracker } from '../_shared/ai-cost-tracker.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Initialize Supabase client for loading system settings
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
+
+// Function to get system temperature setting
+async function getSystemTemperature(): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'ai_models')
+      .single();
+
+    if (error) {
+      console.warn('Failed to load system temperature, using default:', error);
+      return 0.7; // Default fallback
+    }
+
+    const aiSettings = data?.setting_value;
+    if (aiSettings && typeof aiSettings === 'object' && aiSettings.temperature !== undefined) {
+      return aiSettings.temperature;
+    }
+
+    return 0.7; // Default fallback
+  } catch (error) {
+    console.warn('Error loading system temperature:', error);
+    return 0.7; // Default fallback
+  }
+}
 
 interface RequestBody {
   inputs_schema: Record<string, unknown>;
@@ -20,13 +53,16 @@ async function callGPT({
   system,
   user,
   schema,
-  temperature = 0
+  temperature
 }: {
   system: string;
   user: any;
   schema?: Record<string, unknown>;
   temperature?: number;
 }): Promise<any> {
+  // Load system temperature setting if not provided
+  const finalTemperature = temperature !== undefined ? temperature : await getSystemTemperature();
+  console.log(`🌡️ Using temperature: ${finalTemperature}`);
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   
   if (!openaiApiKey) {
@@ -52,7 +88,7 @@ async function callGPT({
     },
     body: JSON.stringify({
       model: "gpt-5-thinking",
-      temperature,
+      temperature: finalTemperature,
       response_format,
       messages: [
         { role: "system", content: system },

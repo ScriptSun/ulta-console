@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { rateLimitService } from './rateLimitService';
+import { systemSettingsService } from './systemSettingsService';
 
 export interface AIRequestParams {
   system: string;
@@ -225,6 +226,12 @@ class AIService {
     const finishRequest = await rateLimitService.startRequest(params.tenantId || 'global');
     
     try {
+      // Load system temperature setting if not provided
+      if (params.temperature === undefined) {
+        params.temperature = await systemSettingsService.getTemperature();
+        console.log(`🌡️ Using system temperature setting: ${params.temperature}`);
+      }
+
       // The edge function now handles all failover logic
       const result = await this.callModel('', params); // Model selection happens in edge function
       
