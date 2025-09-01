@@ -66,9 +66,11 @@ const Auth = () => {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
+    console.log('Attempting login for:', email);
     const { error } = await signIn(email, password);
     
     if (error) {
+      console.log('Login failed:', error.message);
       toast({
         title: 'Sign In Failed',
         description: error.message || 'Invalid email or password',
@@ -76,14 +78,33 @@ const Auth = () => {
       });
       setIsSubmitting(false);
     } else {
-      // Immediately redirect on success - no delay
-      console.log('Login successful, redirecting immediately...');
-      navigate('/dashboard', { replace: true });
+      console.log('Login successful! Attempting redirect...');
       
+      // Show success message
       toast({
         title: 'Welcome back!',
-        description: 'You have been signed in successfully.',
+        description: 'Redirecting to dashboard...',
       });
+      
+      // Try multiple redirect methods
+      try {
+        // Method 1: React Router navigate
+        console.log('Trying React Router navigate...');
+        navigate('/dashboard', { replace: true });
+        
+        // Method 2: Fallback with window.location (in case React Router fails)
+        setTimeout(() => {
+          if (window.location.pathname === '/auth') {
+            console.log('React Router failed, using window.location...');
+            window.location.href = '/dashboard';
+          }
+        }, 100);
+        
+      } catch (navError) {
+        console.error('Navigation error:', navError);
+        // Method 3: Direct window location as last resort
+        window.location.href = '/dashboard';
+      }
     }
   };
 
