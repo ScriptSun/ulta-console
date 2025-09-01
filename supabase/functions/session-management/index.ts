@@ -131,81 +131,30 @@ serve(async (req) => {
         )
       }
 
-      // Check if there's an active session for current browser/device
-      const currentSession = (userSessions || []).find(session => 
-        session.user_agent === userAgent && 
-        session.ip_address === clientIP &&
-        session.is_active
-      )
-      
-      // If no current session exists, create one
-      if (!currentSession) {
-        console.log('No active session found for current device, creating one...')
+      // Don't automatically create sessions on GET - let the POST handle it
+      // Just return the existing sessions for display
+
+      // Enhance sessions with parsed user agent info
+      const enhancedSessions: SessionInfo[] = (userSessions || []).map((session) => {
+        const { browser, os } = parseUserAgent(session.user_agent || '')
+        const deviceType = getDeviceType(session.user_agent || '')
         
-        const { browser, os } = parseUserAgent(userAgent)
-        const deviceType = getDeviceType(userAgent)
-        const location = await getLocationFromIP(clientIP)
-
-        const { error: createError } = await supabase
-          .from('user_sessions')
-          .insert({
-            user_id: user.id,
-            ip_address: clientIP,
-            user_agent: userAgent,
-            device_type: deviceType,
-            location,
-            is_active: true,
-            session_start: new Date().toISOString()
-          })
-
-        if (createError) {
-          console.error('Error creating current session:', createError)
-          // Don't fail the request, just log the error
-        } else {
-          console.log('Created new session for current device')
-          
-          // Fetch sessions again to include the newly created one
-          const { data: updatedSessions } = await supabase
-            .from('user_sessions')
-            .select('*')
-            .eq('user_id', user.id)
-            .gte('updated_at', oneHourAgo)
-            .order('created_at', { ascending: false })
-          
-          userSessions.push(...(updatedSessions || []).filter(s => 
-            !userSessions.find(existing => existing.id === s.id)
-          ))
+        return {
+          id: session.id,
+          user_id: session.user_id,
+          session_start: session.session_start || session.created_at,
+          session_end: session.session_end,
+          ip_address: session.ip_address,
+          user_agent: session.user_agent,
+          device_type: deviceType,
+          browser,
+          os,
+          location: session.location || 'Unknown Location',
+          is_active: session.is_active,
+          last_seen: session.updated_at,
+          created_at: session.created_at
         }
-      }
-
-      // Enhance sessions with parsed user agent info and location
-      const enhancedSessions: SessionInfo[] = await Promise.all(
-        (userSessions || []).map(async (session) => {
-          const { browser, os } = parseUserAgent(session.user_agent || '')
-          const deviceType = getDeviceType(session.user_agent || '')
-          
-          let location = session.location || 'Unknown Location'
-          if (session.ip_address && session.ip_address !== 'Unknown Location') {
-            location = await getLocationFromIP(session.ip_address)
-          }
-
-          return {
-            id: session.id,
-            user_id: session.user_id,
-            session_start: session.session_start || session.created_at,
-            session_end: session.session_end,
-            ip_address: session.ip_address,
-            user_agent: session.user_agent,
-            device_type: deviceType,
-            browser,
-            os,
-            location,
-            is_active: session.is_active,
-            last_seen: session.updated_at,
-            created_at: session.created_at
-          }
-        })
-      )
+      })
 
       return new Response(
         JSON.stringify({ sessions: enhancedSessions }),

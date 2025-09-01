@@ -136,7 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Set up session tracking and heartbeat for authenticated users
   useEffect(() => {
     if (user && session) {
-      // Create initial session tracking
+      // Create initial session tracking (with better error handling)
       const initializeSession = async () => {
         try {
           console.log('Initializing session tracking for user:', user.email);
@@ -145,13 +145,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         } catch (error) {
           console.warn('Session initialization failed (non-fatal):', error);
+          // Don't block app functionality if session tracking fails
         }
       };
       
       // Initialize session immediately
       initializeSession();
       
-      // Set up periodic heartbeat to keep session active
+      // Set up periodic heartbeat to keep session active (with error handling)
       const interval = setInterval(async () => {
         try {
           await supabase.functions.invoke('session-management', {
@@ -159,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         } catch (error) {
           console.warn('Session heartbeat failed (non-fatal):', error);
+          // Don't block app functionality if heartbeat fails
         }
       }, 5 * 60 * 1000); // Heartbeat every 5 minutes
       
@@ -176,7 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearInterval(heartbeatInterval);
       }
     };
-  }, [user, session]);
+  }, [user, session, heartbeatInterval]); // Add heartbeatInterval to dependencies
 
   const assignOwnerRole = async (userId: string) => {
     try {
