@@ -361,7 +361,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
   }
 
   return (
-    <Card className="bg-gradient-card border-card-border shadow-card">
+    <Card className="bg-gradient-card border-card-border shadow-card pb-3">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" />
