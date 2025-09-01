@@ -3064,6 +3064,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      ensure_current_user_session: {
+        Args: { _ip_address: string; _user_agent: string }
+        Returns: string
+      }
       extend_user_session: {
         Args: { _user_id: string }
         Returns: string
@@ -3187,6 +3191,10 @@ export type Database = {
           _team_id: string
         }
         Returns: undefined
+      }
+      reset_user_security_status: {
+        Args: { _email: string }
+        Returns: boolean
       }
       set_agent_heartbeat: {
         Args: { p_id: string; p_json: Json }
