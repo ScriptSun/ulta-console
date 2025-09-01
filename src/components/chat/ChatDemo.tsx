@@ -382,16 +382,17 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         console.log('Router started:', data);
         setRouterPhase('Thinking');
         setStreamingResponse('');
+        setIsTyping(true);
         
-        // Add typing message
-        const thinkingMessage: Message = {
-          id: `thinking-${Date.now()}`,
+        // Add streaming bubble message
+        const streamingMessage: Message = {
+          id: `streaming-${data.rid}-${Date.now()}`,
           role: 'assistant',
           content: '',
           timestamp: new Date(),
           pending: true
         };
-        setMessages(prev => [...prev, thinkingMessage]);
+        setMessages(prev => [...prev, streamingMessage]);
       }),
       
       on('router.retrieved', (data) => {
@@ -407,66 +408,222 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         // Update the last pending message with streaming content
         setMessages(prev => {
           const updated = [...prev];
-          const lastMessage = updated[updated.length - 1];
-          if (lastMessage && lastMessage.pending) {
-            lastMessage.content = data.accumulated;
-          }
-          return updated;
-        });
-      }),
-      
-      on('router.selected', (data) => {
-        console.log('Router selected decision:', data);
-        setRouterPhase('');
-        setStreamingResponse('');
-        
-        // Update the last pending message with final decision
-        setMessages(prev => {
-          const updated = [...prev];
-          const lastMessage = updated[updated.length - 1];
-          if (lastMessage && lastMessage.pending) {
-            lastMessage.pending = false;
-            lastMessage.decision = data;
-            
-            // Handle different decision modes
-            if (data.mode === 'chat') {
-              lastMessage.content = data.message || data.text || 'Response received';
-            } else {
-              lastMessage.content = JSON.stringify(data, null, 2);
-              
-              // Set up needs inputs if missing params
-              if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
-                handleMissingParams(lastMessage, data);
-              }
+          // Find the most recent pending message
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].pending && updated[i].role === 'assistant') {
+              updated[i] = {
+                ...updated[i],
+                content: data.accumulated || data.delta || ''
+              };
+              break;
             }
           }
           return updated;
         });
       }),
       
+      on('router.selected', async (data) => {
+        console.log('Router selected decision:', data);
+        setRouterPhase('Selecting installer');
+        
+        // Give a moment for the "Selecting installer" label to show
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setRouterPhase('');
+        setStreamingResponse('');
+        setIsTyping(false);
+        
+        // Update the last pending message with final decision
+        setMessages(prev => {
+          const updated = [...prev];
+          // Find the most recent pending message
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].pending && updated[i].role === 'assistant') {
+              updated[i] = {
+                ...updated[i],
+                pending: false,
+                decision: data
+              };
+              
+              // Handle different decision modes
+              if (data.mode === 'chat') {
+                updated[i].content = data.message || data.text || streamingResponse || 'Response received';
+              } else if (data.mode === 'action') {
+                // For action mode, show a more user-friendly message
+                updated[i].content = data.summary || `I'll help you ${data.task || 'execute this task'}.`;
+                
+                // Set up needs inputs if missing params
+                if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
+                  handleMissingParams(updated[i], data);
+                } else if (data.status === 'confirmed' && data.batch_id) {
+                  // Ready for preflight
+                  updated[i].preflightStatus = {
+                    agent_id: selectedAgent!,
+                    decision: data,
+                    streaming: true
+                  };
+                }
+              } else {
+                // Fallback - show the raw decision
+                updated[i].content = JSON.stringify(data, null, 2);
+              }
+              break;
+            }
+          }
+          return updated;
+        });
+        
+        // Store the conversation in React Query cache if needed
+        if (conversationId) {
+          // This would trigger a refetch of conversation data
+          // The actual message will be stored via the real-time listener
+        }
+      }),
+      
       on('router.done', (data) => {
         console.log('Router completed:', data);
         setIsTyping(false);
         setRouterPhase('');
+        setStreamingResponse('');
       }),
       
       on('router.error', (data) => {
         console.error('Router error:', data);
         setIsTyping(false);
         setRouterPhase('');
+        setStreamingResponse('');
         
-        // Add error message
-        const errorMessage: Message = {
-          id: `error-${Date.now()}`,
-          role: 'assistant',
-          content: `Error: ${data.error}`,
-          timestamp: new Date(),
-          pending: false
-        };
-        setMessages(prev => [...prev, errorMessage]);
+        // Update any pending message to show error
+        setMessages(prev => {
+          const updated = [...prev];
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].pending && updated[i].role === 'assistant') {
+              updated[i] = {
+                ...updated[i],
+                pending: false,
+                content: `I encountered an error: ${data.error}. Please try again.`
+              };
+              break;
+            }
+          }
+          return updated;
+        });
         
         toast({
-          title: "Router Error",
+          title: "Assistant Error",
+          description: data.error,
+          variant: "destructive",
+        });
+      })
+    ];
+    
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [on, toast, selectedAgent, conversationId, streamingResponse]);
+
+  // Set up WebSocket execution event listeners
+  useEffect(() => {
+    const unsubscribers = [
+      on('exec.queued', (data) => {
+        console.log('Execution queued:', data);
+        // Update execution status in messages
+        setMessages(prev => {
+          const updated = [...prev];
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].executionStatus?.run_id === data.run_id) {
+              updated[i] = {
+                ...updated[i],
+                executionStatus: {
+                  ...updated[i].executionStatus!,
+                  status: 'queued'
+                }
+              };
+              break;
+            }
+          }
+          return updated;
+        });
+      }),
+      
+      on('exec.started', (data) => {
+        console.log('Execution started:', data);
+        setMessages(prev => {
+          const updated = [...prev];
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].executionStatus?.run_id === data.run_id) {
+              updated[i] = {
+                ...updated[i],
+                executionStatus: {
+                  ...updated[i].executionStatus!,
+                  status: 'running'
+                }
+              };
+              break;
+            }
+          }
+          return updated;
+        });
+      }),
+      
+      on('exec.progress', (data) => {
+        console.log('Execution progress:', data);
+        // Progress updates are handled by ExecutionStatusCard
+      }),
+      
+      on('exec.stdout', (data) => {
+        console.log('Execution stdout:', data);
+        // Stdout updates are handled by ExecutionStatusCard
+      }),
+      
+      on('exec.finished', (data) => {
+        console.log('Execution finished:', data);
+        setMessages(prev => {
+          const updated = [...prev];
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].executionStatus?.run_id === data.run_id) {
+              updated[i] = {
+                ...updated[i],
+                executionStatus: {
+                  ...updated[i].executionStatus!,
+                  status: data.success ? 'completed' : 'failed'
+                }
+              };
+              break;
+            }
+          }
+          return updated;
+        });
+      }),
+      
+      on('exec.error', (data) => {
+        console.error('Execution error:', data);
+        toast({
+          title: "Execution Error",
+          description: data.error,
+          variant: "destructive",
+        });
+      }),
+      
+      // Preflight event listeners
+      on('preflight.start', (data) => {
+        console.log('Preflight started:', data);
+      }),
+      
+      on('preflight.item', (data) => {
+        console.log('Preflight check:', data);
+        // Individual preflight checks are handled by PreflightBlockCard
+      }),
+      
+      on('preflight.done', (data) => {
+        console.log('Preflight completed:', data);
+        // Preflight completion is handled by PreflightBlockCard
+      }),
+      
+      on('preflight.error', (data) => {
+        console.error('Preflight error:', data);
+        toast({
+          title: "Preflight Error",
           description: data.error,
           variant: "destructive",
         });
@@ -1569,23 +1726,33 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
               ))}
               
               {isTyping && (
-                <div className="flex justify-start">
+                <div className="flex justify-start" role="status" aria-live="polite">
                   <div className="bg-muted rounded-lg p-3">
                     <div className="flex gap-2 items-center">
                       {routerPhase && (
-                        <div className="flex items-center gap-2">
-                          {routerPhase === 'Thinking' && <Brain className="w-4 h-4 text-blue-500 animate-pulse" />}
-                          {routerPhase === 'Analyzing server' && <Search className="w-4 h-4 text-orange-500 animate-pulse" />}
-                          <span className="text-sm text-muted-foreground">{routerPhase}</span>
+                        <div className="flex items-center gap-2" aria-label={`Status: ${routerPhase}`}>
+                          {routerPhase === 'Thinking' && (
+                            <Brain className="w-4 h-4 text-blue-500 animate-pulse" aria-hidden="true" />
+                          )}
+                          {routerPhase === 'Analyzing server' && (
+                            <Search className="w-4 h-4 text-orange-500 animate-pulse" aria-hidden="true" />
+                          )}
+                          {routerPhase === 'Selecting installer' && (
+                            <CheckCircle className="w-4 h-4 text-green-500 animate-pulse" aria-hidden="true" />
+                          )}
+                          <span className="text-sm text-muted-foreground font-medium">
+                            {routerPhase}
+                            {routerPhase === 'Selecting installer' && '...'}
+                          </span>
                           {candidateCount > 0 && routerPhase === 'Analyzing server' && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs" aria-label={`${candidateCount} matches found`}>
                               {candidateCount} matches
                             </Badge>
                           )}
                         </div>
                       )}
                        {!routerPhase && (
-                         <div className="flex gap-1">
+                         <div className="flex gap-1" aria-label="Processing...">
                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />

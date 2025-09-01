@@ -110,13 +110,26 @@ export function ConversationViewer({
     if (!open) return;
     
     const unsubscribers = [
+      on('router.start', (data) => {
+        console.log('Router started in conversation viewer:', data);
+        // Could show a loading indicator if needed
+      }),
+      on('router.token', (data) => {
+        console.log('Router token in conversation viewer:', data);
+        // Real-time token streaming could be shown here if needed
+      }),
       on('router.selected', (data) => {
-        // Update conversation with new decision if relevant
         console.log('Router decision received in conversation viewer:', data);
+        // Update conversation with new decision if relevant
       }),
       on('router.done', () => {
+        console.log('Router completed in conversation viewer');
         // Refresh conversation data when router completes
         fetchConversationData();
+      }),
+      on('router.error', (data) => {
+        console.error('Router error in conversation viewer:', data);
+        // Could show error state if needed
       })
     ];
 
