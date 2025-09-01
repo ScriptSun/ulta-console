@@ -151,9 +151,11 @@ export function TopBar() {
                   System Settings
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Shield className="mr-2 h-4 w-4" />
-                Security Center
+              <DropdownMenuItem asChild>
+                <Link to="/security" className="flex items-center">
+                  <Shield className="mr-2 h-4 w-4" />
+                  Security Center
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
