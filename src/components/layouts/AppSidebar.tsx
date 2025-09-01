@@ -55,7 +55,7 @@ const toolsItems = [
   { title: 'Integrations', url: '/integrations', icon: Puzzle, pageKey: 'integrations' },
   { title: 'Access Control', url: '/access-control', icon: Users, pageKey: 'teams' },
   { title: 'AI Settings', url: '/ai-settings', icon: Brain, pageKey: 'ai-settings' },
-  { title: 'Assertion Check', url: '/assertion-check', icon: TestTube, pageKey: 'qa' },
+  
 ]
 
 // AppSidebar Component - Navigation menu with Winster Hub inspired design

@@ -19,7 +19,7 @@ import Audit from "./pages/Audit";
 import Integrations from "./pages/Integrations";
 import AccessControl from "./pages/AccessControl";
 import TeamManagement from "./pages/TeamManagement";
-import AssertionCheck from "./pages/AssertionCheck";
+
 import Scripts from "./pages/Scripts";
 import ScriptsTemplates from "./pages/ScriptsTemplates";
 import ScriptDetail from "./pages/ScriptDetail";
@@ -151,13 +151,6 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <AccessControl />
-                </RootLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/assertion-check" element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <AssertionCheck />
                 </RootLayout>
               </ProtectedRoute>
             } />

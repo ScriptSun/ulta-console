@@ -12,7 +12,7 @@ interface PagePermissions {
 const ALL_PAGE_KEYS = [
   'dashboard', 'users', 'agents', 'chat', 'scripts', 'tasks',
   'security', 'policies', 'api_keys', 'plans', 'widgets', 
-  'deployment', 'integrations', 'teams', 'ai-settings', 'qa'
+  'deployment', 'integrations', 'teams', 'ai-settings'
 ];
 
 export function usePagePermissions() {
