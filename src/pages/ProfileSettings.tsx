@@ -30,7 +30,9 @@ import {
   Trash2,
   Download
 } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeSelector } from '@/components/theme/ThemeSelector';
+import { ThemeCustomizer } from '@/components/theme/ThemeCustomizer';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -60,7 +62,7 @@ interface UserSession {
 export default function ProfileSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
+  const { mode } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [loading, setLoading] = useState(false);
@@ -147,10 +149,7 @@ export default function ProfileSettings() {
           theme_preference: data.theme_preference,
         });
         
-        // Sync theme with user preference
-        if (data.theme_preference && data.theme_preference !== theme) {
-          setTheme(data.theme_preference);
-        }
+        // Sync theme with user preference (removed - handled by ThemeContext)
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
@@ -297,24 +296,9 @@ export default function ProfileSettings() {
     }
   };
 
-  const handleThemeChange = async (newTheme: string) => {
-    setTheme(newTheme);
-    const updatedPrefs = { ...preferences, theme_preference: newTheme };
-    setPreferences(updatedPrefs);
-    
-    // Auto-save theme preference
-    if (user) {
-      try {
-        await supabase
-          .from('user_preferences')
-          .upsert({
-            user_id: user.id,
-            ...updatedPrefs,
-          });
-      } catch (error) {
-        console.error('Error saving theme preference:', error);
-      }
-    }
+  const handleThemeChange = async (newMode: string) => {
+    // This will be handled by the new ThemeSelector component
+    console.log('Theme change:', newMode);
   };
 
   const handlePasswordChange = async () => {
@@ -584,76 +568,10 @@ export default function ProfileSettings() {
         </TabsContent>
 
         <TabsContent value="appearance">
-          <Card className="bg-gradient-card border-card-border shadow-card">
-            <CardHeader>
-              <CardTitle>Appearance Settings</CardTitle>
-              <CardDescription>
-                Customize the look and feel of your UltaAI dashboard.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-base font-medium">Theme Preference</Label>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Choose your preferred color scheme for the interface.
-                  </p>
-                  <div className="grid gap-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Sun className="h-5 w-5" />
-                        <div>
-                          <p className="font-medium">Light Mode</p>
-                          <p className="text-sm text-muted-foreground">Clean, bright interface</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant={theme === 'light' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleThemeChange('light')}
-                      >
-                        {theme === 'light' ? 'Active' : 'Select'}
-                      </Button>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Moon className="h-5 w-5" />
-                        <div>
-                          <p className="font-medium">Dark Mode</p>
-                          <p className="text-sm text-muted-foreground">Easy on the eyes</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant={theme === 'dark' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleThemeChange('dark')}
-                      >
-                        {theme === 'dark' ? 'Active' : 'Select'}
-                      </Button>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Monitor className="h-5 w-5" />
-                        <div>
-                          <p className="font-medium">System</p>
-                          <p className="text-sm text-muted-foreground">Follow device settings</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant={theme === 'system' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleThemeChange('system')}
-                      >
-                        {theme === 'system' ? 'Active' : 'Select'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <ThemeSelector />
+            <ThemeCustomizer />
+          </div>
         </TabsContent>
 
         <TabsContent value="notifications">

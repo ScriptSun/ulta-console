@@ -32,8 +32,8 @@ interface ThemeContextType {
   setMode: (mode: ThemeMode) => void;
   currentTheme: CompanyTheme;
   availableThemes: CompanyTheme[];
-  setActiveTheme: (theme: CompanyTheme) => void;
-  createCustomTheme: (theme: Omit<CompanyTheme, 'id'>) => Promise<void>;
+  setActiveTheme: (theme: CompanyTheme) => Promise<void>;
+  createCustomTheme: (theme: Omit<CompanyTheme, 'id'>) => Promise<CompanyTheme>;
   updateTheme: (themeId: string, updates: Partial<CompanyTheme>) => Promise<void>;
   loading: boolean;
 }
@@ -111,19 +111,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setModeState(savedMode);
       }
 
-      // Load available company themes from database
-      const { data: themes, error } = await supabase
-        .from('company_themes')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (!error && themes) {
-        setAvailableThemes(themes);
-        
-        // Find active theme
-        const activeTheme = themes.find(t => t.is_active);
-        if (activeTheme) {
-          setCurrentTheme(activeTheme);
+      // For now, use localStorage for themes until types are updated
+      const savedThemes = localStorage.getItem('custom-themes');
+      if (savedThemes) {
+        try {
+          const themes = JSON.parse(savedThemes) as CompanyTheme[];
+          setAvailableThemes(themes);
+          
+          const activeTheme = themes.find(t => t.is_active);
+          if (activeTheme) {
+            setCurrentTheme(activeTheme);
+          }
+        } catch (e) {
+          console.error('Error parsing saved themes:', e);
         }
       }
     } catch (error) {
@@ -160,44 +160,37 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setActiveTheme = async (theme: CompanyTheme) => {
     try {
-      // Update database - set all themes inactive first
-      await supabase
-        .from('company_themes')
-        .update({ is_active: false })
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Don't update system themes
-
-      // Set selected theme as active
-      if (theme.id) {
-        await supabase
-          .from('company_themes')
-          .update({ is_active: true })
-          .eq('id', theme.id);
-      }
+      // Update available themes to mark new active theme
+      setAvailableThemes(prev => 
+        prev.map(t => ({ ...t, is_active: t.name === theme.name }))
+      );
 
       setCurrentTheme(theme);
       
       // Save preference locally
       localStorage.setItem('active-theme', JSON.stringify(theme));
+      
+      // Save custom themes to localStorage
+      const customThemes = availableThemes.filter(t => t.id && t.id !== 'preview');
+      localStorage.setItem('custom-themes', JSON.stringify(customThemes));
     } catch (error) {
       console.error('Error setting active theme:', error);
     }
   };
 
-  const createCustomTheme = async (theme: Omit<CompanyTheme, 'id'>) => {
+  const createCustomTheme = async (theme: Omit<CompanyTheme, 'id'>): Promise<CompanyTheme> => {
     try {
-      const { data, error } = await supabase
-        .from('company_themes')
-        .insert([{
-          ...theme,
-          created_by: (await supabase.auth.getUser()).data.user?.id
-        }])
-        .select()
-        .single();
+      const newTheme: CompanyTheme = {
+        ...theme,
+        id: `custom-${Date.now()}`,
+        created_by: (await supabase.auth.getUser()).data.user?.id || 'anonymous'
+      };
 
-      if (error) throw error;
-
-      const newTheme = data as CompanyTheme;
       setAvailableThemes(prev => [...prev, newTheme]);
+      
+      // Save to localStorage
+      const allThemes = [...availableThemes, newTheme];
+      localStorage.setItem('custom-themes', JSON.stringify(allThemes));
       
       return newTheme;
     } catch (error) {
@@ -206,15 +199,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const updateTheme = async (themeId: string, updates: Partial<CompanyTheme>) => {
+  const updateTheme = async (themeId: string, updates: Partial<CompanyTheme>): Promise<void> => {
     try {
-      const { error } = await supabase
-        .from('company_themes')
-        .update(updates)
-        .eq('id', themeId);
-
-      if (error) throw error;
-
       // Update local state
       setAvailableThemes(prev =>
         prev.map(theme => 
@@ -226,6 +212,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (currentTheme.id === themeId) {
         setCurrentTheme(prev => ({ ...prev, ...updates }));
       }
+      
+      // Save to localStorage
+      const updatedThemes = availableThemes.map(theme => 
+        theme.id === themeId ? { ...theme, ...updates } : theme
+      );
+      localStorage.setItem('custom-themes', JSON.stringify(updatedThemes));
     } catch (error) {
       console.error('Error updating theme:', error);
       throw error;

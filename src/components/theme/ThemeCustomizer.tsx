@@ -99,7 +99,7 @@ export const ThemeCustomizer: React.FC = () => {
     setIsCreating(true);
     try {
       const savedTheme = await createCustomTheme(newTheme);
-      setActiveTheme(savedTheme);
+      await setActiveTheme(savedTheme);
       
       toast({
         title: 'Theme created',
