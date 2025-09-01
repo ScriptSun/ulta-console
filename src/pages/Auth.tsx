@@ -4,21 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useCompanyLogo } from '@/hooks/useCompanyLogo';
-import { useTheme } from 'next-themes';
-import { Loader2, Mail, Lock, Building, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Loader2, Shield } from 'lucide-react';
 
 const Auth = () => {
   const { user, signIn, loading } = useAuth();
   const { toast } = useToast();
-  const { logoSettings } = useCompanyLogo();
-  const { theme } = useTheme();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
   // Redirect if already authenticated
   if (user && !loading) {
@@ -27,8 +20,8 @@ const Auth = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -59,82 +52,54 @@ const Auth = () => {
     setIsSubmitting(false);
   };
 
-  const handleForgotPassword = () => {
-    toast({
-      title: 'Feature Coming Soon',
-      description: 'Password reset functionality will be available soon.',
-    });
-  };
-
-  const logoUrl = theme === 'dark' ? logoSettings.logo_dark_url : logoSettings.logo_light_url;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-      <div className="w-full max-w-sm relative z-10">
-        <Card className="border-0 shadow-lg bg-white">
-          <CardContent className="p-8">
-            {/* Logo Section */}
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center mb-6">
-                {logoUrl ? (
-                  <img
-                    src={`${logoUrl}?t=${Date.now()}`}
-                    alt="Company Logo"
-                    className="h-16 w-16 object-contain rounded-2xl"
-                  />
-                ) : (
-                  <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center">
-                    <span className="text-white text-2xl font-bold">A</span>
-                  </div>
-                )}
-              </div>
-              <h1 className="text-2xl font-semibold text-gray-900 mb-2">Welcome back,</h1>
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <Shield className="h-12 w-12 text-primary" />
+          </div>
+          <h1 className="text-3xl font-bold">UltaAI Control</h1>
+          <p className="text-muted-foreground mt-2">
+            Secure access to your control panel
+          </p>
+        </div>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Sign In</CardTitle>
+            <CardDescription>
+              Sign in to your control panel
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <form onSubmit={handleSignIn} className="space-y-4">
-              {/* Email Field */}
-              <div className="space-y-1">
+              <div className="space-y-2">
+                <Label htmlFor="signin-email">Email</Label>
                 <Input
                   id="signin-email"
                   name="email"
                   type="email"
-                  placeholder="Email"
+                  placeholder="admin@admin.com"
                   required
-                  className="h-12 bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-purple-500 focus:ring-purple-500 text-base"
                   disabled={isSubmitting}
                 />
               </div>
-
-              {/* Password Field */}
-              <div className="space-y-1">
-                <div className="relative">
-                  <Input
-                    id="signin-password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Password"
-                    required
-                    className="h-12 bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-purple-500 focus:ring-purple-500 text-base pr-10"
-                    disabled={isSubmitting}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="signin-password">Password</Label>
+                <Input
+                  id="signin-password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  disabled={isSubmitting}
+                />
               </div>
-
-              {/* Login Button */}
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-base mt-6"
+                className="w-full" 
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -143,20 +108,15 @@ const Auth = () => {
                     Signing In...
                   </>
                 ) : (
-                  'Login'
+                  'Sign In'
                 )}
               </Button>
             </form>
-
-            {/* Forgot Password */}
-            <div className="text-center mt-6">
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                className="text-purple-600 hover:text-purple-800 text-sm font-medium"
-              >
-                Forgotten password?
-              </button>
+            
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground mb-2">Demo Admin Account:</p>
+              <p className="text-xs font-mono">Email: admin@admin.com</p>
+              <p className="text-xs font-mono">Password: admin</p>
             </div>
           </CardContent>
         </Card>
