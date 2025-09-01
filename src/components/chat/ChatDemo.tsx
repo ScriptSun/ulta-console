@@ -451,66 +451,28 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             data: data
           }]);
           
-          // Check if the accumulated content looks like JSON
           const accumulated = data.accumulated || data.delta || '';
-          const isJsonResponse = accumulated.trim().startsWith('{') && accumulated.includes('"mode"');
+          const isJsonResponse = accumulated.trim().startsWith('{');
           
           if (isJsonResponse) {
-            // Always show "Checking my ability" for JSON responses initially
-            setRouterPhase('Checking my ability');
-            
-            // Try to extract summary/message from partial JSON
-            let extractedText = '';
+            // Try to parse complete JSON
             try {
-              // Look for complete summary or message fields
-              const summaryMatch = accumulated.match(/"summary":\s*"([^"]+)"/);
-              const messageMatch = accumulated.match(/"message":\s*"([^"]+)"/);
+              const jsonData = JSON.parse(accumulated);
               
-              if (summaryMatch && summaryMatch[1]) {
-                extractedText = summaryMatch[1];
-              } else if (messageMatch && messageMatch[1]) {
-                extractedText = messageMatch[1];
+              if (jsonData.mode === 'action' && jsonData.summary) {
+                // Start the action sequence
+                startActionSequence(jsonData);
+                return; // Exit early, sequence will handle everything
               }
             } catch (e) {
-              console.log('JSON parsing error:', e);
+              // JSON not complete yet, show checking phase
+              setRouterPhase('Checking my ability');
+              return;
             }
             
-            // Only show content when we have clean extracted text (not JSON)
-            if (extractedText && extractedText.length > 10) {
-              // Add small delay to ensure "Checking my ability" is seen
-              setTimeout(() => {
-                setRouterPhase(''); // Clear the checking phase
-                
-                setMessages(prev => {
-                  const updated = [...prev];
-                  let foundPending = false;
-                  
-                  for (let i = updated.length - 1; i >= 0; i--) {
-                    if (updated[i].pending && updated[i].role === 'assistant') {
-                      updated[i] = {
-                        ...updated[i],
-                        content: extractedText
-                      };
-                      foundPending = true;
-                      break;
-                    }
-                  }
-                  
-                  if (!foundPending) {
-                    const streamingMessage: Message = {
-                      id: `streaming-${Date.now()}`,
-                      role: 'assistant',
-                      content: extractedText,
-                      timestamp: new Date(),
-                      pending: true
-                    };
-                    updated.push(streamingMessage);
-                  }
-                  
-                  return updated;
-                });
-              }, 800); // 800ms delay to show "Checking my ability"
-            }
+            // If we reach here, JSON is not complete or not action mode
+            setRouterPhase('Checking my ability');
+            
           } else {
             // For regular text responses, show immediately and clear phase
             setRouterPhase('');
@@ -833,6 +795,89 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       disconnectExec();
     };
   }, [selectedAgent, shouldShowDemo, connect, disconnect, connectExec, disconnectExec]);
+
+  // Start action sequence for install commands
+  const startActionSequence = async (jsonData: any) => {
+    console.log('Starting action sequence with data:', jsonData);
+    
+    // Phase 1: Checking my ability (2 seconds)
+    setRouterPhase('Checking my ability');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Phase 2: Analyzing server (2 seconds)
+    setRouterPhase('Analyzing server');
+    setCandidateCount(5); // Show some matches found
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Phase 3: Clear phase and start streaming summary
+    setRouterPhase('');
+    
+    const summaryText = jsonData.summary || jsonData.message || 'I\'ll help you with this task.';
+    
+    // Create message bubble and simulate streaming
+    const messageId = `streaming-${Date.now()}`;
+    setMessages(prev => [...prev, {
+      id: messageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      pending: true
+    }]);
+    
+    // Stream the summary text character by character
+    for (let i = 0; i <= summaryText.length; i++) {
+      const partialText = summaryText.substring(0, i);
+      
+      setMessages(prev => {
+        const updated = [...prev];
+        const msgIndex = updated.findIndex(m => m.id === messageId);
+        if (msgIndex !== -1) {
+          updated[msgIndex] = {
+            ...updated[msgIndex],
+            content: partialText
+          };
+        }
+        return updated;
+      });
+      
+      // Adjust speed: faster for spaces, slower for other characters
+      const delay = summaryText[i] === ' ' ? 20 : 40;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    // Phase 4: Finalize message and add input handling
+    setMessages(prev => {
+      const updated = [...prev];
+      const msgIndex = updated.findIndex(m => m.id === messageId);
+      if (msgIndex !== -1) {
+        updated[msgIndex] = {
+          ...updated[msgIndex],
+          pending: false,
+          decision: jsonData
+        };
+        
+        // Set up input requirements
+        if (jsonData.status === 'unconfirmed' && jsonData.missing_params && jsonData.batch_id) {
+          handleMissingParams(updated[msgIndex], jsonData);
+          
+          // Show input form after a brief delay
+          setTimeout(() => {
+            setMessages(prevMsgs => {
+              const msgsUpdated = [...prevMsgs];
+              const msgIdx = msgsUpdated.findIndex(m => m.id === messageId);
+              if (msgIdx !== -1) {
+                msgsUpdated[msgIdx].showInputsDelayed = true;
+              }
+              return msgsUpdated;
+            });
+          }, 300); // 300ms delay for input fields
+        }
+      }
+      return updated;
+    });
+    
+    setIsTyping(false);
+  };
 
   // Handle missing parameters for batch execution
   const handleMissingParams = async (message: Message, decision: any) => {
