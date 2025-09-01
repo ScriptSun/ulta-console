@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, Filter, Search, AlertTriangle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { AgentDetailsDrawer } from '@/components/agents/AgentDetailsDrawer';
 import { AgentsTable } from '@/components/agents/AgentsTable';
 import { DeployAgentModal } from '@/components/agents/DeployAgentModal';
@@ -137,20 +137,6 @@ export default function Agents() {
 
       console.log('Successfully fetched agents:', agentsWithStatus.length);
       setAgents(agentsWithStatus as Agent[]);
-      
-      if (agentsWithStatus.length === 0) {
-        toast({
-          title: 'No Agents Found',
-          description: 'No agents found in the database. Check your permissions or add some agents.',
-          variant: 'default',
-        });
-      } else {
-        toast({
-          title: 'Success',
-          description: `Loaded ${agentsWithStatus.length} agents successfully.`,
-          variant: 'default',
-        });
-      }
       
     } catch (error: any) {
       console.error('Error fetching agents:', error);

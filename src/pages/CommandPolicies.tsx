@@ -18,7 +18,7 @@ import {
 import { PolicyDrawer } from '@/components/policies/PolicyDrawer';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface CommandPolicy {
