@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type DarkThemeVariant = 'default' | 'warm-dark' | 'cool-dark' | 'soft-dark' | 'ocean-dark';
 
@@ -71,15 +73,44 @@ const STORAGE_KEY = 'ultaai-dark-theme-variant';
 
 export const useDarkThemeVariant = () => {
   const { mode } = useTheme();
+  const { user } = useAuth();
   const [darkThemeVariant, setDarkThemeVariant] = useState<DarkThemeVariant>('default');
 
-  // Load saved theme variant on mount
+  // Load saved theme variant on mount from database
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && DARK_THEMES.find(t => t.id === saved)) {
-      setDarkThemeVariant(saved as DarkThemeVariant);
+    if (user) {
+      loadThemeVariantFromDatabase();
+    } else {
+      // Fallback to localStorage for unauthenticated users
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved && DARK_THEMES.find(t => t.id === saved)) {
+        setDarkThemeVariant(saved as DarkThemeVariant);
+      }
     }
-  }, []);
+  }, [user]);
+
+  const loadThemeVariantFromDatabase = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('dark_theme_variant')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading theme variant:', error);
+        return;
+      }
+
+      if (data?.dark_theme_variant && DARK_THEMES.find(t => t.id === data.dark_theme_variant)) {
+        setDarkThemeVariant(data.dark_theme_variant as DarkThemeVariant);
+      }
+    } catch (error) {
+      console.error('Error loading theme variant:', error);
+    }
+  };
 
   // Apply theme class to document
   useEffect(() => {
@@ -99,9 +130,39 @@ export const useDarkThemeVariant = () => {
     }
   }, [mode, darkThemeVariant]);
 
-  const setThemeVariant = (variant: DarkThemeVariant) => {
+  const setThemeVariant = async (variant: DarkThemeVariant) => {
     setDarkThemeVariant(variant);
-    localStorage.setItem(STORAGE_KEY, variant);
+    
+    if (user) {
+      // Save to database for authenticated users
+      try {
+        const { error } = await supabase
+          .from('user_preferences')
+          .upsert(
+            {
+              user_id: user.id,
+              dark_theme_variant: variant,
+              updated_at: new Date().toISOString(),
+            },
+            {
+              onConflict: 'user_id',
+            }
+          );
+
+        if (error) {
+          console.error('Error saving theme variant:', error);
+          // Fallback to localStorage if database save fails
+          localStorage.setItem(STORAGE_KEY, variant);
+        }
+      } catch (error) {
+        console.error('Error saving theme variant:', error);
+        // Fallback to localStorage if database save fails
+        localStorage.setItem(STORAGE_KEY, variant);
+      }
+    } else {
+      // Fallback to localStorage for unauthenticated users
+      localStorage.setItem(STORAGE_KEY, variant);
+    }
   };
 
   const getCurrentTheme = () => {

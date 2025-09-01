@@ -8,6 +8,9 @@ import { Palette, Sun, Moon, Monitor } from 'lucide-react';
 
 export const ThemeSelector: React.FC = () => {
   const { mode, setMode, currentTheme, availableThemes, setActiveTheme } = useTheme();
+  
+  // Hide Color Scheme section when Dark theme is selected
+  const showColorScheme = mode !== 'dark';
 
   const themeIcons = {
     light: Sun,
@@ -56,58 +59,60 @@ export const ThemeSelector: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Theme Color Scheme Selector */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Color Scheme</CardTitle>
-          <CardDescription>
-            Choose from available themes or create your own custom theme.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid gap-3">
-              {availableThemes.map((theme) => (
-                <div
-                  key={theme.name}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
-                    currentTheme.name === theme.name ? 'border-primary bg-primary/5' : ''
-                  }`}
-                  onClick={() => setActiveTheme(theme)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1">
-                        <div 
-                          className="w-4 h-4 rounded-full border"
-                          style={{ backgroundColor: `hsl(${theme.colors.primary})` }}
-                        />
-                        <div 
-                          className="w-4 h-4 rounded-full border"
-                          style={{ backgroundColor: `hsl(${theme.colors.secondary})` }}
-                        />
-                        <div 
-                          className="w-4 h-4 rounded-full border"
-                          style={{ backgroundColor: `hsl(${theme.colors.accent})` }}
-                        />
+      {/* Theme Color Scheme Selector - Only show when not in dark mode */}
+      {showColorScheme && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Color Scheme</CardTitle>
+            <CardDescription>
+              Choose from available themes or create your own custom theme.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid gap-3">
+                {availableThemes.map((theme) => (
+                  <div
+                    key={theme.name}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
+                      currentTheme.name === theme.name ? 'border-primary bg-primary/5' : ''
+                    }`}
+                    onClick={() => setActiveTheme(theme)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex gap-1">
+                          <div 
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: `hsl(${theme.colors.primary})` }}
+                          />
+                          <div 
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: `hsl(${theme.colors.secondary})` }}
+                          />
+                          <div 
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: `hsl(${theme.colors.accent})` }}
+                          />
+                        </div>
+                        <div>
+                          <p className="font-medium">{theme.name}</p>
+                          {theme.created_by && (
+                            <p className="text-xs text-muted-foreground">Custom theme</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{theme.name}</p>
-                        {theme.created_by && (
-                          <p className="text-xs text-muted-foreground">Custom theme</p>
-                        )}
-                      </div>
+                      {currentTheme.name === theme.name && (
+                        <Badge>Current</Badge>
+                      )}
                     </div>
-                    {currentTheme.name === theme.name && (
-                      <Badge>Current</Badge>
-                    )}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
