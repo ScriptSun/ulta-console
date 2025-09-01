@@ -254,10 +254,12 @@ Rules:
         try {
           // For WordPress installation, create proper decision structure
           const userRequestLower = request.user_request.toLowerCase();
-          if (userRequestLower.includes('wordpress') || userRequestLower.includes('wp')) {
+          if (userRequestLower.includes('wordpress') || userRequestLower.includes('wp') || 
+              userRequestLower.includes('install wordpress') || userRequestLower.match(/\binstall\s+wp\b/)) {
             // Find WordPress batch from candidates or create mock structure
             let wordpressBatch = candidates.find((c: any) => 
-              c.key?.includes('wordpress') || c.name?.toLowerCase().includes('wordpress')
+              c.key?.includes('wordpress') || c.name?.toLowerCase().includes('wordpress') ||
+              c.description?.toLowerCase().includes('wordpress')
             );
             
             decision = {
@@ -324,6 +326,7 @@ Rules:
         }
 
         // Send router.selected with final decision
+        console.log('Final decision being sent:', JSON.stringify(decision, null, 2));
         sendMessage('router.selected', decision);
 
         // Send router.done to mark completion
