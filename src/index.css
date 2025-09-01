@@ -137,10 +137,10 @@ All colors MUST be HSL. Modern gradients, shadows, and transitions.
     --destructive: 0 84% 60%;
     --destructive-foreground: 220 15% 95%;
 
-    /* Border and Input - Darker */
-    --border: 220 15% 12%;
-    --input: 220 15% 6%;
-    --input-border: 220 15% 15%;
+    /* Border and Input - Better Contrast for Dark Mode */
+    --border: 220 15% 18%;
+    --input: 220 15% 12%;
+    --input-border: 220 15% 25%;
     --ring: 250 70% 60%;
 
     /* Sidebar Specific - Dark */
