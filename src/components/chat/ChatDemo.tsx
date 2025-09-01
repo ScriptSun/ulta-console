@@ -417,9 +417,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       switch (eventType) {
         case 'router.start':
           console.log('Router started:', data);
-          setRouterPhase('Thinking');
-          setStreamingResponse('');
-          setIsTyping(true);
+          // Start router timeout since API has begun
           startRouterTimeout();
           
           // Add router request to logs
@@ -435,8 +433,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           
         case 'router.retrieved':
           console.log('Router retrieved candidates:', data);
-          setRouterPhase('Analyzing server');
-          setCandidateCount(data.candidate_count);
+          // Phase management now handled in sendMessage
           break;
           
         case 'router.token':
@@ -465,13 +462,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                 return; // Exit early, sequence will handle everything
               }
             } catch (e) {
-              // JSON not complete yet, show checking phase
-              setRouterPhase('Checking my ability');
+              // JSON not complete yet, keep current phase
               return;
             }
             
             // If we reach here, JSON is not complete or not action mode
-            setRouterPhase('Checking my ability');
             
           } else {
             // For regular text responses, show immediately and clear phase
@@ -800,16 +795,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const startActionSequence = async (jsonData: any) => {
     console.log('Starting action sequence with data:', jsonData);
     
-    // Phase 1: Checking my ability (2 seconds)
-    setRouterPhase('Checking my ability');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Phase 2: Analyzing server (2 seconds)
-    setRouterPhase('Analyzing server');
-    setCandidateCount(5); // Show some matches found
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Phase 3: Clear phase and start streaming summary
+    // Clear the thinking phases and start streaming summary
     setRouterPhase('');
     
     const summaryText = jsonData.summary || jsonData.message || 'I\'ll help you with this task.';
@@ -1148,7 +1134,6 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
 
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
-    setIsTyping(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -1210,11 +1195,23 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         throw new Error('WebSocket router not connected');
       }
       
-      // Send request via WebSocket
-      sendRequest({
-        agent_id: selectedAgent,
-        user_request: content.trim()
-      });
+      // Start thinking sequence first, then send API request
+      setIsTyping(true);
+      setRouterPhase('Checking my ability');
+      
+      // Wait 2 seconds, then show Analyzing server
+      setTimeout(() => {
+        setRouterPhase('Analyzing server');
+        setCandidateCount(5);
+        
+        // After another 2 seconds, send the actual API request
+        setTimeout(() => {
+          sendRequest({
+            agent_id: selectedAgent,
+            user_request: content.trim()
+          });
+        }, 2000);
+      }, 2000);
       
       // The response will be handled by the event listeners
 
@@ -1235,7 +1232,6 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         pending: false
       };
       setMessages(prev => [...prev, errorMessage]);
-    } finally {
       setIsTyping(false);
     }
   };
