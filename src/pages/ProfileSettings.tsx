@@ -127,6 +127,7 @@ export default function ProfileSettings() {
   const [setupStep, setSetupStep] = useState<'qr' | 'verify' | 'backup'>('qr');
   const [mfaLoading, setMfaLoading] = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [show2FASection, setShow2FASection] = useState(false);
 
   // Email change requests hook
   const {
@@ -1474,44 +1475,57 @@ export default function ProfileSettings() {
 
             {/* Two-Factor Authentication */}
             <Card className="bg-gradient-card border-card-border shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Smartphone className="h-5 w-5" />
-                  Two-Factor Authentication
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setShow2FASection(!show2FASection)}
+              >
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="h-5 w-5" />
+                    Two-Factor Authentication
+                    {is2FAEnabled && (
+                      <Badge variant="default" className="ml-2 bg-green-500 text-white hover:bg-green-600">
+                        Enabled
+                      </Badge>
+                    )}
+                  </div>
+                  <ChevronRight className={`h-5 w-5 transition-transform ${show2FASection ? 'rotate-90' : ''}`} />
                 </CardTitle>
                 <CardDescription>
                   Add an extra layer of security to your account.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Shield className={`h-5 w-5 ${is2FAEnabled ? 'text-green-500' : 'text-muted-foreground'}`} />
-                    <div>
-                      <p className="font-medium">Authenticator App</p>
-                      <p className="text-sm text-muted-foreground">
-                        {is2FAEnabled ? '2FA is enabled for your account' : 'Use an authenticator app like Google Authenticator'}
-                      </p>
+              {show2FASection && (
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Shield className={`h-5 w-5 ${is2FAEnabled ? 'text-green-500' : 'text-muted-foreground'}`} />
+                      <div>
+                        <p className="font-medium">Authenticator App</p>
+                        <p className="text-sm text-muted-foreground">
+                          {is2FAEnabled ? '2FA is enabled for your account' : 'Use an authenticator app like Google Authenticator'}
+                        </p>
+                      </div>
                     </div>
+                    <Badge variant={is2FAEnabled ? 'default' : 'secondary'}>
+                      {is2FAEnabled ? 'Enabled' : 'Disabled'}
+                    </Badge>
                   </div>
-                  <Badge variant={is2FAEnabled ? 'default' : 'secondary'}>
-                    {is2FAEnabled ? 'Enabled' : 'Disabled'}
-                  </Badge>
-                </div>
-                
-                <Button 
-                  onClick={handle2FASetup}
-                  variant={is2FAEnabled ? 'destructive' : 'default'}
-                  disabled={mfaLoading}
-                >
-                  {mfaLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Smartphone className="mr-2 h-4 w-4" />
-                  )}
-                  {mfaLoading ? 'Processing...' : is2FAEnabled ? 'Disable 2FA' : 'Setup 2FA'}
-                </Button>
-              </CardContent>
+                  
+                  <Button 
+                    onClick={handle2FASetup}
+                    variant={is2FAEnabled ? 'destructive' : 'default'}
+                    disabled={mfaLoading}
+                  >
+                    {mfaLoading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Smartphone className="mr-2 h-4 w-4" />
+                    )}
+                    {mfaLoading ? 'Processing...' : is2FAEnabled ? 'Disable 2FA' : 'Setup 2FA'}
+                  </Button>
+                </CardContent>
+              )}
             </Card>
 
             {/* Account Activity */}
