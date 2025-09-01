@@ -2190,6 +2190,7 @@ export type Database = {
         Row: {
           agent_notifications: boolean
           created_at: string
+          dark_theme_variant: string | null
           email_alerts: boolean
           id: string
           security_alerts: boolean
@@ -2201,6 +2202,7 @@ export type Database = {
         Insert: {
           agent_notifications?: boolean
           created_at?: string
+          dark_theme_variant?: string | null
           email_alerts?: boolean
           id?: string
           security_alerts?: boolean
@@ -2212,6 +2214,7 @@ export type Database = {
         Update: {
           agent_notifications?: boolean
           created_at?: string
+          dark_theme_variant?: string | null
           email_alerts?: boolean
           id?: string
           security_alerts?: boolean

@@ -952,7 +952,13 @@ export default function ProfileSettings() {
                             ? 'border-primary ring-2 ring-primary/20'
                             : 'border-border'
                         }`}
-                        onClick={() => setThemeVariant(theme.id)}
+                        onClick={() => {
+                          setThemeVariant(theme.id);
+                          toast({
+                            title: 'Theme Updated',
+                            description: `Switched to ${theme.name} theme`,
+                          });
+                        }}
                       >
                         {/* Theme preview */}
                         <div className="mb-3 rounded-md overflow-hidden border">

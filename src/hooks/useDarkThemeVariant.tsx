@@ -95,7 +95,7 @@ export const useDarkThemeVariant = () => {
     try {
       const { data, error } = await supabase
         .from('user_preferences')
-        .select('dark_theme_variant')
+        .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -104,8 +104,8 @@ export const useDarkThemeVariant = () => {
         return;
       }
 
-      if (data?.dark_theme_variant && DARK_THEMES.find(t => t.id === data.dark_theme_variant)) {
-        setDarkThemeVariant(data.dark_theme_variant as DarkThemeVariant);
+      if (data && (data as any).dark_theme_variant && DARK_THEMES.find(t => t.id === (data as any).dark_theme_variant)) {
+        setDarkThemeVariant((data as any).dark_theme_variant as DarkThemeVariant);
       }
     } catch (error) {
       console.error('Error loading theme variant:', error);
