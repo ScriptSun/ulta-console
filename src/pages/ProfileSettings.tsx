@@ -973,7 +973,7 @@ export default function ProfileSettings() {
                           >
                             <div className="flex justify-between items-center">
                               <div 
-                                className="text-gray-800 font-medium"
+                                className="text-foreground font-medium"
                                 style={{ color: theme.primaryColor }}
                               >
                                 UltaAI
@@ -1004,7 +1004,7 @@ export default function ProfileSettings() {
                             style={{ backgroundColor: theme.backgroundColor }}
                           >
                             <div 
-                              className={`px-3 py-1 rounded text-xs font-medium text-white ${theme.buttonClass}`}
+                              className={`px-3 py-1 rounded text-xs font-medium text-foreground ${theme.buttonClass}`}
                               style={{ backgroundColor: theme.primaryColor }}
                             >
                               Button
@@ -1089,7 +1089,7 @@ export default function ProfileSettings() {
                           >
                             <div className="flex justify-between items-center">
                               <div 
-                                className="text-white font-medium"
+                                className="text-foreground font-medium"
                                 style={{ color: theme.primaryColor }}
                               >
                                 UltaAI
@@ -1120,7 +1120,7 @@ export default function ProfileSettings() {
                             style={{ backgroundColor: theme.backgroundColor }}
                           >
                             <div 
-                              className={`px-3 py-1 rounded text-xs font-medium text-white ${theme.buttonClass}`}
+                              className={`px-3 py-1 rounded text-xs font-medium text-foreground ${theme.buttonClass}`}
                               style={{ backgroundColor: theme.primaryColor }}
                             >
                               Button
@@ -1440,7 +1440,7 @@ export default function ProfileSettings() {
                 
                 <div className="pt-4 border-t">
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                    <CheckCircle className="h-5 w-5 text-success mt-0.5" />
                     <div>
                       <h4 className="font-medium text-green-800 dark:text-green-200">Security Status</h4>
                       <p className="text-sm text-green-700 dark:text-green-300 mt-1">

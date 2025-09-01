@@ -187,7 +187,7 @@ export function ConversationViewer({
       inputs_requested: "text-orange-500",
       task_queued: "text-yellow-500",
       task_started: "text-blue-600",
-      task_succeeded: "text-green-600",
+      task_succeeded: "text-success",
       task_failed: "text-red-500",
       task_done: "text-green-700",
       preflight_blocked: "text-red-600",
@@ -354,7 +354,7 @@ export function ConversationViewer({
                         <div className={`p-2 rounded-full ${
                           (item as Message).role === 'user' 
                             ? 'bg-blue-100 text-blue-600' 
-                            : 'bg-green-100 text-green-600'
+                            : 'bg-success/10 text-success border-success/20 hover:bg-success/20'
                         }`}>
                           {(item as Message).role === 'user' ? (
                             <User className="h-4 w-4" />

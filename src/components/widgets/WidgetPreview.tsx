@@ -236,7 +236,7 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
         
         {/* View Mode Toggle */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center border rounded-lg p-1 bg-gray-900 backdrop-blur-sm">
+          <div className="flex items-center border rounded-lg p-1 bg-card backdrop-blur-sm">
             <Button
               variant={viewMode === 'desktop' ? 'default' : 'ghost'}
               size="sm"

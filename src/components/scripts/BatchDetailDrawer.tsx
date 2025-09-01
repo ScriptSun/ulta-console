@@ -67,7 +67,7 @@ interface BatchDetailDrawerProps {
 }
 
 const riskColors = {
-  low: 'text-green-600 bg-green-50 border-green-200',
+  low: 'text-success bg-success/10 border-success/20',
   medium: 'text-yellow-600 bg-yellow-50 border-yellow-200',
   high: 'text-red-600 bg-red-50 border-red-200'
 };
@@ -188,9 +188,9 @@ export function BatchDetailDrawer({ batch, isOpen, onClose, onSuccess, userRole 
 
   const getStatusIcon = () => {
     return batch?.active_version ? (
-      <Play className="h-4 w-4 text-green-600" />
+      <Play className="h-4 w-4 text-success" />
     ) : (
-      <Pause className="h-4 w-4 text-gray-600" />
+      <Pause className="h-4 w-4 text-muted-foreground" />
     );
   };
 

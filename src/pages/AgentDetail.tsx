@@ -104,10 +104,10 @@ export default function AgentDetail() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      running: { variant: 'default' as const, label: 'Running', color: 'text-white' },
-      idle: { variant: 'secondary' as const, label: 'Idle', color: 'text-white' },
-      error: { variant: 'destructive' as const, label: 'Error', color: 'text-white' },
-      offline: { variant: 'outline' as const, label: 'Offline', color: 'text-white' },
+      running: { variant: 'default' as const, label: 'Running', color: 'text-foreground' },
+      idle: { variant: 'secondary' as const, label: 'Idle', color: 'text-foreground' },
+      error: { variant: 'destructive' as const, label: 'Error', color: 'text-foreground' },
+      offline: { variant: 'outline' as const, label: 'Offline', color: 'text-foreground' },
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;

@@ -231,7 +231,7 @@ function SortableFieldItem({
                 size="sm" 
                 onClick={handleSave}
               >
-                <Check className="h-3 w-3 text-green-600" />
+                <Check className="h-3 w-3 text-success" />
               </Button>
               <Button variant="ghost" size="sm" onClick={onCancelEdit}>
                 <X className="h-3 w-3 text-red-600" />

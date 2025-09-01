@@ -465,7 +465,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 className={`
                   px-3 py-2 rounded text-sm font-medium transition-colors
                   ${iframeSafe
-                    ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white'
+                    ? 'bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground'
                     : 'bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground'
                   }
                 `}

@@ -22,7 +22,7 @@ const ACTION_COLORS = {
   'team.member.widgets.update': 'bg-primary/10 text-primary',
   'team.member.remove': 'bg-red-100 text-red-800',
   'console.invite.create': 'bg-yellow-100 text-yellow-800',
-  'console.invite.cancel': 'bg-gray-100 text-gray-800',
+  'console.invite.cancel': 'bg-muted/50 text-muted-foreground',
   'console.invite.accept': 'bg-emerald-100 text-emerald-800',
   'rate.limit': 'bg-orange-100 text-orange-800'
 } as const;
@@ -240,7 +240,7 @@ export function TeamAuditTab({ teamId }: TeamAuditTabProps) {
                     <TableCell>
                       <Badge 
                         variant="secondary"
-                        className={ACTION_COLORS[log.action as keyof typeof ACTION_COLORS] || 'bg-gray-100 text-gray-800'}
+                        className={ACTION_COLORS[log.action as keyof typeof ACTION_COLORS] || 'bg-muted/50 text-muted-foreground'}
                       >
                         {log.action}
                       </Badge>

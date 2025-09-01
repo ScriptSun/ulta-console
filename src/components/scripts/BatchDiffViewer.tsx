@@ -163,7 +163,7 @@ export function BatchDiffViewer({ leftVersion, rightVersion, onClose }: BatchDif
         <div className="flex items-center gap-4">
           <h3 className="font-semibold">Diff Viewer</h3>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-green-600">
+            <Badge variant="outline" className="text-success border-success/20 bg-success/10 hover:bg-success/20">
               <Plus className="h-3 w-3 mr-1" />
               +{stats.added}
             </Badge>

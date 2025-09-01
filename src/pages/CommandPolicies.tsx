@@ -160,20 +160,20 @@ export default function CommandPolicies() {
 
   const getModeColor = (mode: string) => {
     switch (mode) {
-      case 'auto': return 'bg-green-400/30 text-white border-green-400/50';
-      case 'confirm': return 'bg-yellow-400/30 text-white border-yellow-400/50';
-      case 'forbid': return 'bg-red-400/30 text-white border-red-400/50';
-      default: return 'bg-gray-400/30 text-white border-gray-400/50';
+      case 'auto': return 'bg-success/20 text-success border-success/30';
+      case 'confirm': return 'bg-warning/20 text-warning border-warning/30';
+      case 'forbid': return 'bg-destructive/20 text-destructive border-destructive/30';
+      default: return 'bg-muted/50 text-muted-foreground border-muted';
     }
   };
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
-      case 'low': return 'bg-blue-400/30 text-white border-blue-400/50';
-      case 'medium': return 'bg-yellow-400/30 text-white border-yellow-400/50';
-      case 'high': return 'bg-orange-400/30 text-white border-orange-400/50';
-      case 'critical': return 'bg-red-400/30 text-white border-red-400/50';
-      default: return 'bg-gray-400/30 text-white border-gray-400/50';
+      case 'low': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'medium': return 'bg-warning/20 text-warning border-warning/30';
+      case 'high': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+      case 'critical': return 'bg-destructive/20 text-destructive border-destructive/30';
+      default: return 'bg-muted/50 text-muted-foreground border-muted';
     }
   };
 

@@ -86,10 +86,10 @@ export function BatchVersionsTab({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'text-green-600 bg-green-50 border-green-200';
+      case 'active': return 'text-success bg-success/10 border-success/20';
       case 'draft': return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'archived': return 'text-gray-600 bg-gray-50 border-gray-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+      case 'archived': return 'text-muted-foreground bg-muted/50 border-muted';
+      default: return 'text-muted-foreground bg-muted/50 border-muted';
     }
   };
 
@@ -161,7 +161,7 @@ export function BatchVersionsTab({
                   <div className="flex items-center gap-2">
                     v{version.version}
                     {version.status === 'active' && (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <CheckCircle2 className="h-4 w-4 text-success" />
                     )}
                   </div>
                 </TableCell>

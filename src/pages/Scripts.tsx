@@ -10,7 +10,7 @@ const scriptSections = [
     description: "Script templates with batch management",
     icon: FileText,
     url: "/scripts/allowlist/batches",
-    color: "bg-green-500/10 text-green-600"
+    color: "bg-success/10 text-success border-success/20 hover:bg-success/20"
   },
   {
     title: "Batches",

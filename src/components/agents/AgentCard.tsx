@@ -46,10 +46,10 @@ interface AgentCardProps {
 }
 
 const statusConfig = {
-  running: { color: 'bg-green-500', textColor: 'text-green-700', bgColor: 'bg-green-50' },
-  idle: { color: 'bg-yellow-500', textColor: 'text-yellow-700', bgColor: 'bg-yellow-50' },
-  error: { color: 'bg-red-500', textColor: 'text-red-700', bgColor: 'bg-red-50' },
-  offline: { color: 'bg-gray-500', textColor: 'text-gray-700', bgColor: 'bg-gray-50' }
+  running: { color: 'bg-success', textColor: 'text-success', bgColor: 'bg-success/10' },
+  idle: { color: 'bg-warning', textColor: 'text-warning', bgColor: 'bg-warning/10' },
+  error: { color: 'bg-destructive', textColor: 'text-destructive', bgColor: 'bg-destructive/10' },
+  offline: { color: 'bg-muted-foreground', textColor: 'text-muted-foreground', bgColor: 'bg-muted/50' }
 };
 
 function formatUptime(seconds: number): string {

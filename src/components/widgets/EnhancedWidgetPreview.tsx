@@ -1158,8 +1158,8 @@ export function EnhancedWidgetPreview({ widget, previewConfig }: EnhancedWidgetP
                                     <div className="w-1.5 h-1.5 bg-white rounded-full m-0.75"></div>
                                   </div>
                                 ) : (
-                                  <div className="w-3 h-3 bg-gray-400 rounded-full" title="Task status unknown">
-                                    <div className="w-1.5 h-1.5 bg-white rounded-full m-0.75"></div>
+                  <div className="w-3 h-3 bg-muted-foreground rounded-full" title="Task status unknown">
+                    <div className="w-1.5 h-1.5 bg-background rounded-full m-0.75"></div>
                                   </div>
                                 )}
                               </div>

@@ -119,85 +119,85 @@ export default function Integrations() {
 
       {/* Billing API Integration Guide */}
       <Card className="bg-gradient-primary border-primary shadow-glow">
-        <CardHeader className="text-white">
+        <CardHeader className="text-card-foreground">
           <CardTitle className="flex items-center gap-2">
             <Code2 className="h-5 w-5" />
             Billing Platform Integration
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-white space-y-4">
-          <p className="text-white/90">
+        <CardContent className="text-card-foreground space-y-4">
+          <p className="text-muted-foreground">
             Integrate your billing platform with UltaAI using our Partner API. Follow these steps to get started:
           </p>
           
           {/* Integration Checklist */}
           <div className="space-y-3">
-            <h4 className="font-medium text-white">Integration Checklist:</h4>
-            <div className="space-y-2 text-sm text-white/90">
+            <h4 className="font-medium text-card-foreground">Integration Checklist:</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-white" />
+                <CheckCircle className="h-4 w-4 text-success" />
                 <span>✓ Create subscription plans in the Plans section</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-white" />
+                <CheckCircle className="h-4 w-4 text-success" />
                 <span>✓ Map your billing SKUs to plan slugs and periods</span>
               </div>
               <div className="flex items-center gap-2">
-                <Key className="h-4 w-4 text-white" />
+                <Key className="h-4 w-4 text-primary" />
                 <span>• Generate a Partner API key with billing permissions</span>
               </div>
               <div className="flex items-center gap-2">
-                <Code2 className="h-4 w-4 text-white" />
+                <Code2 className="h-4 w-4 text-primary" />
                 <span>• Call Activate Plan on successful purchase</span>
               </div>
               <div className="flex items-center gap-2">
-                <Code2 className="h-4 w-4 text-white" />
+                <Code2 className="h-4 w-4 text-primary" />
                 <span>• Call Renew Plan on successful charge renewal</span>
               </div>
               <div className="flex items-center gap-2">
-                <Puzzle className="h-4 w-4 text-white" />
+                <Puzzle className="h-4 w-4 text-primary" />
                 <span>• Monitor usage limits in your dashboard</span>
               </div>
             </div>
           </div>
 
           {/* API Endpoints */}
-          <div className="space-y-3 pt-4 border-t border-white/20">
-            <h4 className="font-medium text-white">Partner API Endpoints:</h4>
+          <div className="space-y-3 pt-4 border-t border-border/20">
+            <h4 className="font-medium text-card-foreground">Partner API Endpoints:</h4>
             
             <div className="space-y-3">
-              <div className="bg-white/10 rounded-lg p-3">
+              <div className="bg-card/50 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <code className="text-sm font-mono text-white">POST /activate-plan</code>
+                  <code className="text-sm font-mono text-foreground">POST /activate-plan</code>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-6 w-6 text-white hover:bg-white/20"
+                    className="h-6 w-6 text-foreground hover:bg-muted"
                     onClick={() => copyToClipboard('POST /activate-plan', 'Endpoint')}
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
-                <p className="text-xs text-white/80 mb-2">Activate a subscription plan for a user</p>
-                <div className="text-xs text-white/70">
+                <p className="text-xs text-muted-foreground mb-2">Activate a subscription plan for a user</p>
+                <div className="text-xs text-muted-foreground">
                   <strong>Required fields:</strong> partner_key, plan_slug, period, user_email, agent_id, external_reference
                 </div>
               </div>
 
-              <div className="bg-white/10 rounded-lg p-3">
+              <div className="bg-card/50 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <code className="text-sm font-mono text-white">POST /renew-plan</code>
+                  <code className="text-sm font-mono text-foreground">POST /renew-plan</code>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-6 w-6 text-white hover:bg-white/20"
+                    className="h-6 w-6 text-foreground hover:bg-muted"
                     onClick={() => copyToClipboard('POST /renew-plan', 'Endpoint')}
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
-                <p className="text-xs text-white/80 mb-2">Extend an existing subscription</p>
-                <div className="text-xs text-white/70">
+                <p className="text-xs text-muted-foreground mb-2">Extend an existing subscription</p>
+                <div className="text-xs text-muted-foreground">
                   <strong>Required fields:</strong> partner_key, activation_id (or external_reference), extend_days
                 </div>
               </div>
@@ -205,26 +205,26 @@ export default function Integrations() {
           </div>
 
           {/* Available Plans */}
-          <div className="space-y-3 pt-4 border-t border-white/20">
-            <h4 className="font-medium text-white">Available Plans:</h4>
+          <div className="space-y-3 pt-4 border-t border-border/20">
+            <h4 className="font-medium text-card-foreground">Available Plans:</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {plans.map((plan) => (
-                <div key={plan.slug} className="bg-white/10 rounded-lg p-3">
+                <div key={plan.slug} className="bg-card/50 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-white">{plan.name}</span>
+                    <span className="font-medium text-foreground">{plan.name}</span>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-5 w-5 text-white hover:bg-white/20"
+                      className="h-5 w-5 text-foreground hover:bg-muted"
                       onClick={() => copyToClipboard(plan.slug, 'Plan slug')}
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
-                  <code className="text-xs text-white/80 bg-white/10 px-2 py-1 rounded">
+                  <code className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">
                     {plan.slug}
                   </code>
-                  <div className="text-xs text-white/70 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     Periods: {plan.periods.join(', ')}
                   </div>
                 </div>
@@ -395,27 +395,27 @@ export default function Integrations() {
 
       {/* Chat Widget Specific Section */}
       <Card className="bg-gradient-primary border-primary shadow-glow">
-        <CardHeader className="text-white">
+        <CardHeader className="text-card-foreground">
           <CardTitle className="flex items-center gap-2">
             <Puzzle className="h-5 w-5" />
             Chat Widget Integration
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-white space-y-4">
-          <p className="text-white/90">
+        <CardContent className="text-card-foreground space-y-4">
+          <p className="text-muted-foreground">
             Your chat widget is successfully embedded in the billing platform and functioning normally.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <p className="text-sm text-white/80">Active Sessions</p>
+              <p className="text-sm text-muted-foreground">Active Sessions</p>
               <p className="text-xl font-bold">23</p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-white/80">Messages Today</p>
+              <p className="text-sm text-muted-foreground">Messages Today</p>
               <p className="text-xl font-bold">1,247</p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-white/80">Response Time</p>
+              <p className="text-sm text-muted-foreground">Response Time</p>
               <p className="text-xl font-bold">1.2s</p>
             </div>
           </div>

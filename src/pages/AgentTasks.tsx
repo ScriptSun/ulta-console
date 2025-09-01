@@ -64,9 +64,9 @@ const getStatusColor = (status: string) => {
     case 'pending':
       return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
     case 'cancelled':
-      return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+      return 'bg-muted/50 text-muted-foreground border-muted hover:bg-muted/70';
     default:
-      return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+      return 'bg-muted/50 text-muted-foreground border-muted hover:bg-muted/70';
   }
 };
 

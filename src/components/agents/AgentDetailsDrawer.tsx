@@ -112,13 +112,13 @@ const statusConfig = {
 const taskStatusConfig = {
   pending: { icon: Clock, color: 'text-yellow-600' },
   running: { icon: Activity, color: 'text-blue-600' },
-  success: { icon: CheckCircle2, color: 'text-green-600' },
+  success: { icon: CheckCircle2, color: 'text-success' },
   failed: { icon: XCircle, color: 'text-red-600' },
-  cancelled: { icon: XCircle, color: 'text-gray-600' }
+  cancelled: { icon: XCircle, color: 'text-muted-foreground' }
 };
 
 const logLevelConfig = {
-  debug: { color: 'text-gray-600', bgColor: 'bg-gray-100' },
+  debug: { color: 'text-muted-foreground', bgColor: 'bg-muted/50' },
   info: { color: 'text-blue-600', bgColor: 'bg-blue-100' },
   warn: { color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
   error: { color: 'text-red-600', bgColor: 'bg-red-100' }
@@ -347,7 +347,7 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
                           <p className="text-sm font-medium flex items-center gap-2">
                             {agent.certificate_fingerprint ? (
                               <>
-                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                <CheckCircle2 className="h-4 w-4 text-success" />
                                 Active
                               </>
                             ) : (

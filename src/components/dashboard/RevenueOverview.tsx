@@ -80,12 +80,12 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
       return isChurn ? (
         <TrendingUp className="h-4 w-4 text-destructive" />
       ) : (
-        <TrendingUp className="h-4 w-4 text-green-600" />
+        <TrendingUp className="h-4 w-4 text-success" />
       );
     }
     if (trend === 'down') {
       return isChurn ? (
-        <TrendingDown className="h-4 w-4 text-green-600" />
+        <TrendingDown className="h-4 w-4 text-success" />
       ) : (
         <TrendingDown className="h-4 w-4 text-destructive" />
       );

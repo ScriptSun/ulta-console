@@ -63,13 +63,13 @@ export function TopActiveAgents({ agents, isLoading }: TopActiveAgentsProps) {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
-        return 'bg-green-500/10 text-green-700 border-green-500/20';
+        return 'bg-success/10 text-success border-success/20 hover:bg-success/20';
       case 'suspended':
-        return 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20';
+        return 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20';
       case 'terminated':
-        return 'bg-red-500/10 text-red-700 border-red-500/20';
+        return 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20';
       default:
-        return 'bg-gray-500/10 text-gray-700 border-gray-500/20';
+        return 'bg-muted/50 text-muted-foreground border-muted hover:bg-muted/70';
     }
   };
 
