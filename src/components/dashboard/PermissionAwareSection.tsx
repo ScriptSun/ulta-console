@@ -1,6 +1,5 @@
 import React from 'react';
 import { usePermissionGuards } from '@/hooks/usePermissionGuards';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface PermissionAwareSectionProps {
   pageKey: string;
@@ -21,13 +20,6 @@ export function PermissionAwareSection({
   hideOnNoPermission = true
 }: PermissionAwareSectionProps) {
   const { PermissionGate } = usePermissionGuards();
-  const { user } = useAuth();
-
-  // Admin user gets full access - bypass permission checks entirely
-  if (user?.email === 'elin@ultahost.com') {
-    console.log('Admin user - showing dashboard section:', pageKey);
-    return <>{children}</>;
-  }
 
   return (
     <PermissionGate

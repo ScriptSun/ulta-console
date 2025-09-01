@@ -23,7 +23,7 @@ export function usePagePermissions() {
   const { user } = useAuth();
   const defaultCustomerId = '00000000-0000-0000-0000-000000000001';
 
-  const { data: permissions, isLoading } = useQuery({
+  const { data: permissions, isLoading, error } = useQuery({
     queryKey: ['page-permissions', user?.id],
     queryFn: async () => {
       if (!user?.id) {
@@ -31,41 +31,15 @@ export function usePagePermissions() {
         return {};
       }
 
-      console.log('usePagePermissions: Fetching permissions for user:', user.id);
+      console.log('=== usePagePermissions: Starting permission fetch ===');
+      console.log('usePagePermissions: User ID:', user.id);
+      console.log('usePagePermissions: User email:', user.email);
       
-      // ADMIN OVERRIDE: If this is the specific admin user, give full access
-      if (user.email === 'elin@ultahost.com') {
-        console.log('usePagePermissions: Admin user detected, granting full access');
-        const adminPermissions: PagePermissions = {
-          'dashboard': { can_view: true, can_edit: true, can_delete: true },
-          'users': { can_view: true, can_edit: true, can_delete: true },
-          'agents': { can_view: true, can_edit: true, can_delete: true },
-          'chat': { can_view: true, can_edit: true, can_delete: true },
-          'scripts': { can_view: true, can_edit: true, can_delete: true },
-          'tasks': { can_view: true, can_edit: true, can_delete: true },
-          'security': { can_view: true, can_edit: true, can_delete: true },
-          'policies': { can_view: true, can_edit: true, can_delete: true },
-          'api_keys': { can_view: true, can_edit: true, can_delete: true },
-          'plans': { can_view: true, can_edit: true, can_delete: true },
-          'widgets': { can_view: true, can_edit: true, can_delete: true },
-          'deployment': { can_view: true, can_edit: true, can_delete: true },
-          'integrations': { can_view: true, can_edit: true, can_delete: true },
-          'teams': { can_view: true, can_edit: true, can_delete: true },
-          'ai-settings': { can_view: true, can_edit: true, can_delete: true },
-          'qa': { can_view: true, can_edit: true, can_delete: true },
-          'dashboard-revenue': { can_view: true, can_edit: true, can_delete: true },
-          'dashboard-ai-costs': { can_view: true, can_edit: true, can_delete: true },
-          'dashboard-top-agents': { can_view: true, can_edit: true, can_delete: true },
-          'dashboard-error-rates': { can_view: true, can_edit: true, can_delete: true },
-          'dashboard-recent-logins': { can_view: true, can_edit: true, can_delete: true }
-        };
-        return adminPermissions;
-      }
-
       const finalPermissions: PagePermissions = {};
 
       try {
         // Get all available pages first
+        console.log('usePagePermissions: Step 1 - Fetching console pages...');
         const { data: pages, error: pagesError } = await supabase
           .from('console_pages')
           .select('key, label');
@@ -74,8 +48,10 @@ export function usePagePermissions() {
           console.error('usePagePermissions: Error fetching pages:', pagesError);
           throw pagesError;
         }
+        console.log('usePagePermissions: Found pages:', pages?.length, 'pages');
 
         // Get user's explicit page permissions
+        console.log('usePagePermissions: Step 2 - Fetching user page permissions...');
         const { data: userPermissions, error: userPermError } = await supabase
           .from('user_page_permissions')
           .select('*')
@@ -85,8 +61,10 @@ export function usePagePermissions() {
           console.error('usePagePermissions: Error fetching user permissions:', userPermError);
           throw userPermError;
         }
+        console.log('usePagePermissions: Found user permissions:', userPermissions?.length || 0, 'explicit permissions');
 
         // Get user's roles
+        console.log('usePagePermissions: Step 3 - Fetching user roles...');
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select('role')
@@ -101,6 +79,7 @@ export function usePagePermissions() {
         console.log('usePagePermissions: User roles found:', userRoles);
 
         // Get role templates
+        console.log('usePagePermissions: Step 4 - Fetching role templates...');
         const { data: roleTemplates, error: templatesError } = await supabase
           .from('console_role_templates')
           .select('*');
@@ -109,8 +88,10 @@ export function usePagePermissions() {
           console.error('usePagePermissions: Error fetching role templates:', templatesError);
           throw templatesError;
         }
+        console.log('usePagePermissions: Found role templates:', roleTemplates?.length || 0, 'templates');
 
         // Initialize all pages with default (no access)
+        console.log('usePagePermissions: Step 5 - Initializing page permissions...');
         pages?.forEach(page => {
           finalPermissions[page.key] = {
             can_view: false,
@@ -120,8 +101,14 @@ export function usePagePermissions() {
         });
 
         // Apply explicit user permissions first (takes priority)
+        console.log('usePagePermissions: Step 6 - Applying explicit permissions...');
         const explicitPageKeys = new Set<string>();
         userPermissions?.forEach(perm => {
+          console.log(`usePagePermissions: Explicit permission for ${perm.page_key}:`, {
+            can_view: perm.can_view,
+            can_edit: perm.can_edit,
+            can_delete: perm.can_delete
+          });
           finalPermissions[perm.page_key] = {
             can_view: perm.can_view,
             can_edit: perm.can_edit,
@@ -131,11 +118,12 @@ export function usePagePermissions() {
         });
 
         // For pages without explicit permissions, use role templates
+        console.log('usePagePermissions: Step 7 - Applying role templates...');
         const roleHierarchy = ['owner', 'admin', 'editor', 'viewer', 'guest'];
         const userRoleNames = userRoles?.map(r => r.role.toLowerCase()) || [];
         const highestEnumRole = roleHierarchy.find(role => userRoleNames.includes(role));
 
-        console.log('usePagePermissions: Role hierarchy check:', {
+        console.log('usePagePermissions: Role hierarchy analysis:', {
           userRoleNames,
           highestEnumRole,
           roleTemplatesCount: roleTemplates?.length || 0
@@ -145,29 +133,43 @@ export function usePagePermissions() {
           const displayRole = ENUM_TO_DISPLAY[highestEnumRole];
           console.log('usePagePermissions: Using display role:', displayRole);
           
+          let templatesApplied = 0;
           roleTemplates?.forEach(template => {
             if (template.role === displayRole && !explicitPageKeys.has(template.page_key)) {
               if (finalPermissions[template.page_key]) {
+                console.log(`usePagePermissions: Applying template for ${template.page_key}:`, {
+                  can_view: template.can_view,
+                  can_edit: template.can_edit,
+                  can_delete: template.can_delete
+                });
                 finalPermissions[template.page_key] = {
                   can_view: template.can_view,
                   can_edit: template.can_edit,
                   can_delete: template.can_delete
                 };
+                templatesApplied++;
               }
             }
           });
+          console.log('usePagePermissions: Applied', templatesApplied, 'role templates');
+        } else {
+          console.warn('usePagePermissions: No matching role found in hierarchy!');
         }
 
-        console.log('usePagePermissions: Final permissions:', finalPermissions);
+        const viewablePages = Object.entries(finalPermissions).filter(([_, perm]) => perm.can_view).length;
+        console.log('usePagePermissions: Final result:', viewablePages, 'viewable pages out of', Object.keys(finalPermissions).length);
+        console.log('usePagePermissions: Sample permissions:', {
+          dashboard: finalPermissions['dashboard'],
+          users: finalPermissions['users'],
+          agents: finalPermissions['agents']
+        });
+        console.log('=== usePagePermissions: Permission fetch complete ===');
+        
         return finalPermissions;
       } catch (error) {
-        console.error('usePagePermissions: Database query failed:', error);
-        // Fallback: If anything fails, give basic permissions to prevent blank screen
-        return {
-          'dashboard': { can_view: true, can_edit: false, can_delete: false },
-          'users': { can_view: true, can_edit: false, can_delete: false },
-          'agents': { can_view: true, can_edit: false, can_delete: false }
-        };
+        console.error('usePagePermissions: Critical error during fetch:', error);
+        // Return empty permissions on error
+        return {};
       }
     },
     enabled: !!user?.id,
@@ -175,37 +177,38 @@ export function usePagePermissions() {
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
 
+  // Log the query state whenever it changes
+  console.log('usePagePermissions: Current query state:', {
+    isLoading,
+    hasError: !!error,
+    errorMessage: error?.message,
+    permissionsCount: permissions ? Object.keys(permissions).length : 0,
+    userId: user?.id
+  });
+
   const canView = (pageKey: string): boolean => {
-    // Admin user gets full access always
-    if (user?.email === 'elin@ultahost.com') {
-      return true;
-    }
-    return permissions?.[pageKey]?.can_view ?? false;
+    const result = permissions?.[pageKey]?.can_view ?? false;
+    console.log(`usePagePermissions: canView(${pageKey}) = ${result}`);
+    return result;
   };
 
   const canEdit = (pageKey: string): boolean => {
-    // Admin user gets full access always
-    if (user?.email === 'elin@ultahost.com') {
-      return true;
-    }
-    return permissions?.[pageKey]?.can_edit ?? false;
+    const result = permissions?.[pageKey]?.can_edit ?? false;
+    console.log(`usePagePermissions: canEdit(${pageKey}) = ${result}`);
+    return result;
   };
 
   const canDelete = (pageKey: string): boolean => {
-    // Admin user gets full access always
-    if (user?.email === 'elin@ultahost.com') {
-      return true;
-    }
-    return permissions?.[pageKey]?.can_delete ?? false;
+    const result = permissions?.[pageKey]?.can_delete ?? false;
+    console.log(`usePagePermissions: canDelete(${pageKey}) = ${result}`);
+    return result;
   };
 
   const hasAnyAccess = (pageKey: string): boolean => {
-    // Admin user gets full access always
-    if (user?.email === 'elin@ultahost.com') {
-      return true;
-    }
     const perm = permissions?.[pageKey];
-    return perm?.can_view || perm?.can_edit || perm?.can_delete || false;
+    const result = perm?.can_view || perm?.can_edit || perm?.can_delete || false;
+    console.log(`usePagePermissions: hasAnyAccess(${pageKey}) = ${result}`);
+    return result;
   };
 
   return {

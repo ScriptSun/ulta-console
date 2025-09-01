@@ -77,50 +77,17 @@ export function AppSidebar() {
   }
 
   const NavItem = ({ item }: { item: typeof mainItems[0] }) => {
-    // Admin user gets full access - bypass permission checks entirely
-    if (user?.email === 'elin@ultahost.com') {
-      console.log('Admin user - showing menu item:', item.title);
-      const active = isActive(item.url);
-      
-      return (
-        <SidebarMenuItem>
-          <SidebarMenuButton asChild>
-            <Link 
-              to={item.url}
-              className={cn(
-                'flex items-center gap-3 px-6 py-5 rounded-lg transition-all duration-300 group',
-                'hover:bg-sidebar-accent/50 hover:backdrop-blur-sm',
-                active && 'bg-sidebar-accent shadow-lg backdrop-blur-sm'
-              )}
-            >
-              <item.icon className={cn(
-                "h-5 w-5 flex-shrink-0 transition-all duration-300",
-                active ? 'text-sidebar-primary' : 'text-sidebar-foreground/70 group-hover:text-sidebar-foreground'
-              )} />
-              {!collapsed && (
-                <span className={cn(
-                  "truncate font-medium transition-all duration-300",
-                  active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-sidebar-foreground'
-                )}>
-                  {item.title}
-                </span>
-              )}
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      )
-    }
-
-    // For other users, check permissions
+    // Check permissions properly
     let hasPermission = true;
     
     try {
       if (item.pageKey) {
         hasPermission = canView(item.pageKey);
+        console.log(`NavItem: ${item.title} (${item.pageKey}) - permission: ${hasPermission}`);
       }
     } catch (error) {
       console.warn(`Permission check failed for pageKey: ${item.pageKey}`, error);
-      hasPermission = true; // Safe fallback - show the item
+      hasPermission = false; // Be strict about permissions
     }
     
     if (!hasPermission) return null;
