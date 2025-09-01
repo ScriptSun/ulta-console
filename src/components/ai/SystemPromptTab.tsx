@@ -83,28 +83,35 @@ export function SystemPromptTab() {
 
   const loadVersions = async () => {
     try {
+      console.log('Loading versions...');
       const { data, error } = await supabase
         .from('system_settings')
         .select('*')
         .eq('setting_key', 'ai.systemPrompt')
         .maybeSingle();
 
+      console.log('Versions data:', data, 'error:', error);
+
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data?.setting_value) {
+        console.log('Setting value type:', typeof data.setting_value, data.setting_value);
         const prompts = Array.isArray(data.setting_value) ? 
           data.setting_value as unknown as SystemPromptVersion[] : 
           [data.setting_value as unknown as SystemPromptVersion];
+        console.log('Processed prompts:', prompts);
         setVersions(prompts);
         
         const published = prompts.find(p => p.published);
         setPublishedVersion(published || null);
         
         const latest = prompts[prompts.length - 1];
+        console.log('Latest version:', latest);
         setCurrentVersion(latest);
         setDraftContent(latest?.content || 'You are a helpful AI assistant.');
         setDraftTargets(latest?.targets || ['chat']);
       } else {
+        console.log('No data found, creating initial version');
         // Create initial version
         const initialPrompt: SystemPromptVersion = {
           id: crypto.randomUUID(),
@@ -134,11 +141,13 @@ export function SystemPromptTab() {
 
   const loadAgents = async () => {
     try {
+      console.log('Loading agents...');
       const { data, error } = await supabase
         .from('agents')
         .select('id, hostname')
         .order('hostname');
 
+      console.log('Agents data:', data, 'error:', error);
       if (error) throw error;
       setAgents(data || []);
       if (data?.length > 0) {
@@ -146,6 +155,7 @@ export function SystemPromptTab() {
       }
     } catch (error) {
       console.error('Error loading agents:', error);
+      setAgents([]); // Ensure agents is always an array
     }
   };
 
@@ -488,7 +498,9 @@ export function SystemPromptTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {(versions || []).map((version) => (
+            {(versions || []).map((version) => {
+              console.log('Rendering version:', version, 'targets:', version?.targets);
+              return (
               <div key={version.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -527,7 +539,8 @@ export function SystemPromptTab() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
