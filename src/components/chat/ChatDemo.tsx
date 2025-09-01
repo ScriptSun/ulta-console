@@ -141,6 +141,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const [enableRealTime, setEnableRealTime] = useState(true);
   const [autoClear, setAutoClear] = useState(false);
   const [showUnreadBadge, setShowUnreadBadge] = useState(true);
+  const [conversationOnly, setConversationOnly] = useState(false);
   const [apiLogs, setApiLogs] = useState<any[]>([]);
   const [logViewerOpen, setLogViewerOpen] = useState(false);
   
@@ -176,6 +177,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       setPlaySound(settings.playSound ?? false);
       setCompactDensity(settings.compactDensity ?? false);
       setIsDemoEnabled(settings.isDemoEnabled ?? true);
+      setConversationOnly(settings.conversationOnly ?? false);
     }
 
     const savedAgent = localStorage.getItem('chatDemoSelectedAgent');
@@ -195,9 +197,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       enableBadge,
       playSound,
       compactDensity,
-      isDemoEnabled
+      isDemoEnabled,
+      conversationOnly
     }));
-  }, [enableBadge, playSound, compactDensity, isDemoEnabled]);
+  }, [enableBadge, playSound, compactDensity, isDemoEnabled, conversationOnly]);
 
   useEffect(() => {
     saveSettings();
@@ -1026,7 +1029,22 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         return;
       }
 
-      // Normal chat flow - use WebSocket router for streaming
+      // Normal chat flow - use WebSocket router for streaming or conversation-only mode
+      if (conversationOnly) {
+        // Conversation-only mode - provide chat response without server actions
+        const conversationResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: generateConversationResponse(content.trim()),
+          timestamp: new Date(),
+          pending: false
+        };
+        
+        setMessages(prev => [...prev, conversationResponse]);
+        setIsTyping(false);
+        return;
+      }
+      
       if (!isConnected) {
         throw new Error('WebSocket router not connected');
       }
@@ -1059,6 +1077,34 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     } finally {
       setIsTyping(false);
     }
+  };
+
+  // Generate conversation-only responses
+  const generateConversationResponse = (userInput: string): string => {
+    const input = userInput.toLowerCase();
+    
+    // WordPress installation
+    if (input.includes('wordpress') || input.includes('wp')) {
+      return "I'd be happy to help you with WordPress! In conversation-only mode, I can discuss installation steps, requirements, and best practices, but I won't actually install anything on your server. Would you like me to explain the WordPress installation process?";
+    }
+    
+    // System checks
+    if (input.includes('cpu') || input.includes('memory') || input.includes('disk')) {
+      return "I understand you want to check system resources. In conversation-only mode, I can explain how to monitor CPU, memory, and disk usage, and discuss what to look for, but I won't run any actual system commands. Would you like me to explain the monitoring process?";
+    }
+    
+    // Service management
+    if (input.includes('restart') || input.includes('nginx') || input.includes('apache') || input.includes('service')) {
+      return "I see you're interested in service management. In conversation-only mode, I can discuss service management best practices and explain commands, but I won't actually restart or modify any services. What would you like to know about service management?";
+    }
+    
+    // General technical questions
+    if (input.includes('how') || input.includes('what') || input.includes('why')) {
+      return "That's a great question! I'm in conversation-only mode, so I can provide information, explanations, and guidance, but I won't perform any actual system operations. How can I help explain or discuss this topic with you?";
+    }
+    
+    // Default response
+    return "I'm currently in conversation-only mode, which means I can chat and provide information, but I won't make any changes to your systems or run any commands. I'm here to discuss, explain, and guide you through technical topics. What would you like to talk about?";
   };
 
   // Helper function to generate decision message content
@@ -1449,6 +1495,13 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                             onCheckedChange={setCompactDensity}
                           />
                         </div>
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm">Chat without making edits</label>
+                          <Switch
+                            checked={conversationOnly}
+                            onCheckedChange={setConversationOnly}
+                          />
+                        </div>
                       </div>
                     </div>
                   </PopoverContent>
@@ -1469,7 +1522,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground">
                   <p className="mb-2">👋 Welcome to Chat Demo!</p>
-                  <p className="text-sm">Try asking me to install WordPress, check system resources, or manage services.</p>
+                  <p className="text-sm">
+                    {conversationOnly 
+                      ? "I'm in conversation-only mode - I can chat and provide guidance without making any system changes."
+                      : "Try asking me to install WordPress, check system resources, or manage services."
+                    }
+                  </p>
+                  {conversationOnly && (
+                    <div className="mt-2 p-2 bg-muted rounded-lg text-xs flex items-center justify-center gap-2">
+                      <MessageCircle className="w-3 h-3" />
+                      Chat without making edits to your project
+                    </div>
+                  )}
                 </div>
               )}
               
