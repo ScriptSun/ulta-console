@@ -78,7 +78,7 @@ export function CompanyLogoSection() {
             </div>
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
               <div className="space-y-4">
-                <div className="h-16 bg-background border rounded flex items-center justify-center">
+                <div className="h-16 bg-white border rounded flex items-center justify-center">
                   {logoSettings.logo_light_url ? (
                     <img
                       src={logoSettings.logo_light_url}
