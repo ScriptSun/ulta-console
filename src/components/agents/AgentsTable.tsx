@@ -153,7 +153,7 @@ export function AgentsTable({
                 <div className="font-semibold">{agent.id.slice(0, 5).toLowerCase()}@srvultahost.com</div>
               </TableCell>
               <TableCell>
-                <code className="text-xs bg-muted/20 text-muted-foreground border border-border px-2 py-1 rounded font-mono">
+                <code className="text-xs bg-primary/10 text-primary/70 border border-primary/20 px-2 py-1 rounded font-mono">
                   {agent.id.slice(0, 8)}...
                 </code>
               </TableCell>
