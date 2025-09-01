@@ -1165,6 +1165,10 @@ export type Database = {
           id: string
           is_active: boolean | null
           logo: string | null
+          logo_dark_url: string | null
+          logo_height: number | null
+          logo_light_url: string | null
+          logo_width: number | null
           name: string
           updated_at: string | null
         }
@@ -1176,6 +1180,10 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           logo?: string | null
+          logo_dark_url?: string | null
+          logo_height?: number | null
+          logo_light_url?: string | null
+          logo_width?: number | null
           name: string
           updated_at?: string | null
         }
@@ -1187,6 +1195,10 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           logo?: string | null
+          logo_dark_url?: string | null
+          logo_height?: number | null
+          logo_light_url?: string | null
+          logo_width?: number | null
           name?: string
           updated_at?: string | null
         }
