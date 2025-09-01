@@ -53,15 +53,33 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const validateResetToken = async () => {
-      console.log('Validating reset tokens:', { accessToken, refreshToken, type });
+      console.log('Validating reset tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+      console.log('Full URL:', window.location.href);
       
+      // Handle Supabase auth callback first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Current session:', session, 'Session error:', sessionError);
+      
+      // If we have a session from Supabase redirect, we're good to proceed
+      if (session?.user) {
+        console.log('Valid session found from Supabase redirect');
+        setIsTokenValid(true);
+        setIsValidating(false);
+        toast({
+          title: 'Reset Link Verified',
+          description: 'Please enter your new password below.',
+        });
+        return;
+      }
+      
+      // If no session, check for tokens in URL
       if (!accessToken || !refreshToken || type !== 'recovery') {
-        console.log('Invalid tokens or type:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+        console.log('No valid tokens found:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
         setIsValidating(false);
         setIsTokenValid(false);
         toast({
           title: 'Invalid Reset Link',
-          description: 'This password reset link is invalid or has expired.',
+          description: 'This password reset link is invalid or has expired. Please request a new one.',
           variant: 'destructive',
         });
         return;
@@ -93,7 +111,7 @@ const ResetPassword = () => {
         setIsTokenValid(false);
         toast({
           title: 'Invalid Reset Link',
-          description: 'This password reset link is invalid or has expired.',
+          description: 'This password reset link is invalid or has expired. Please request a new one.',
           variant: 'destructive',
         });
       } finally {
@@ -108,10 +126,10 @@ const ResetPassword = () => {
       setIsTokenValid(false);
       toast({
         title: 'Validation Timeout',
-        description: 'The reset link validation timed out. Please try again.',
+        description: 'The reset link validation timed out. Please request a new reset link.',
         variant: 'destructive',
       });
-    }, 10000); // 10 second timeout
+    }, 15000); // 15 second timeout
 
     validateResetToken().finally(() => {
       clearTimeout(timeoutId);
