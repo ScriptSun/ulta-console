@@ -186,23 +186,12 @@ export function SystemPromptTab() {
         setDraftContent(latest?.content || ULTAAI_SYSTEM_PROMPT);
         setDraftTargets(latest?.targets || ['router', 'chat']);
       } else {
-        console.log('No data found, creating initial version');
-        // Create initial version with the actual system prompt from code
-        const initialPrompt: SystemPromptVersion = {
-          id: crypto.randomUUID(),
-          content: ULTAAI_SYSTEM_PROMPT,
-          version: 1,
-          published: true,
-          created_at: new Date().toISOString(),
-          author: user?.email || 'system',
-          targets: ['router', 'chat'],
-          notes: 'Initial UltaAI system prompt migrated from code'
-        };
-        
-        setVersions([initialPrompt]);
-        setCurrentVersion(initialPrompt);
-        setDraftContent(initialPrompt.content);
-        setDraftTargets(initialPrompt.targets);
+        console.log('No data found, using fallback content');
+        // Don't automatically create and save a version - just use the prompt in memory
+        setDraftContent(ULTAAI_SYSTEM_PROMPT);
+        setDraftTargets(['router', 'chat']);
+        setVersions([]);
+        setCurrentVersion(null);
       }
     } catch (error) {
       console.error('Error loading prompt versions:', error);
