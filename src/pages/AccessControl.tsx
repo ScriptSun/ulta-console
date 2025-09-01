@@ -21,6 +21,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { PagePermissionsDialog } from '@/components/teams/PagePermissionsDialog';
 import { ReportPermissionsDialog } from '@/components/teams/ReportPermissionsDialog';
+import { InviteStaffDialog } from '@/components/teams/InviteStaffDialog';
+import { AddMemberDialog } from '@/components/teams/AddMemberDialog';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface TeamMember {
@@ -51,6 +53,8 @@ export default function AccessControl() {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [reportPermissionsDialogOpen, setReportPermissionsDialogOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
 
   // Fetch team members
@@ -254,6 +258,25 @@ export default function AccessControl() {
                     className="pl-9"
                   />
                 </div>
+                {canManageAccess && (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setInviteDialogOpen(true)}
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Invite Member
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setAddMemberDialogOpen(true)}
+                      className="gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      Add Existing User
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -517,6 +540,22 @@ export default function AccessControl() {
         onOpenChange={setReportPermissionsDialogOpen}
         member={selectedMember}
         currentUserRole={currentUserRole}
+      />
+
+      <InviteStaffDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        team={teamMembers?.[0] ? { id: teamMembers[0].team_id } : undefined}
+        onInvite={async (email: string, role: string, teamId: string) => {
+          queryClient.invalidateQueries({ queryKey: ['console-team-members'] });
+          queryClient.invalidateQueries({ queryKey: ['console-invites'] });
+        }}
+      />
+
+      <AddMemberDialog
+        open={addMemberDialogOpen}
+        onOpenChange={setAddMemberDialogOpen}
+        team={teamMembers?.[0] ? { id: teamMembers[0].team_id } : undefined}
       />
     </div>
   );
