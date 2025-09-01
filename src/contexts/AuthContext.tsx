@@ -180,6 +180,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         console.log('Direct Supabase auth succeeded');
+        // Update session state immediately
+        setSession(data.session);
+        setUser(data.user);
         return { error: null };
       } catch (directError: any) {
         console.error('Direct auth also failed:', directError);

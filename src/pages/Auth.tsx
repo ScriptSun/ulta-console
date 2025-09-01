@@ -74,20 +74,17 @@ const Auth = () => {
         description: error.message || 'Invalid email or password',
         variant: 'destructive',
       });
+      setIsSubmitting(false);
     } else {
+      // Immediately redirect on success - no delay
+      console.log('Login successful, redirecting immediately...');
+      navigate('/dashboard', { replace: true });
+      
       toast({
         title: 'Welcome back!',
         description: 'You have been signed in successfully.',
       });
-      
-      // Force redirect immediately after successful login
-      console.log('Login successful, redirecting to dashboard...');
-      setTimeout(() => {
-        navigate('/dashboard', { replace: true });
-      }, 1000); // Small delay to let the toast show
     }
-    
-    setIsSubmitting(false);
   };
 
   const handleForgotPassword = async (e?: React.FormEvent) => {
