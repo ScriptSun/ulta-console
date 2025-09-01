@@ -82,11 +82,11 @@ const Auth = () => {
                   <img
                     src={`${logoUrl}?t=${Date.now()}`}
                     alt="Company Logo"
-                    className="h-16 w-16 object-contain rounded-2xl"
+                    className="h-24 w-24 object-contain rounded-2xl"
                   />
                 ) : (
-                  <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center">
-                    <span className="text-white text-2xl font-bold">A</span>
+                  <div className="w-24 h-24 bg-purple-600 rounded-2xl flex items-center justify-center">
+                    <span className="text-white text-3xl font-bold">A</span>
                   </div>
                 )}
               </div>
