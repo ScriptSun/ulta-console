@@ -93,18 +93,18 @@ export function AppSidebar() {
             to={item.url}
             className={cn(
               'flex items-center gap-3 px-6 py-5 rounded-lg transition-all duration-300 group',
-              'hover:bg-white/5 hover:backdrop-blur-sm',
-              active && 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 shadow-lg shadow-blue-500/10 backdrop-blur-sm'
+              'hover:bg-sidebar-accent/50 hover:backdrop-blur-sm',
+              active && 'bg-sidebar-accent shadow-lg backdrop-blur-sm'
             )}
           >
             <item.icon className={cn(
               "h-5 w-5 flex-shrink-0 transition-all duration-300",
-              active ? 'text-blue-300' : 'text-gray-400 group-hover:text-gray-300'
+              active ? 'text-sidebar-primary' : 'text-sidebar-foreground/70 group-hover:text-sidebar-foreground'
             )} />
             {!collapsed && (
               <span className={cn(
                 "truncate font-medium transition-all duration-300",
-                active ? 'text-white' : 'text-gray-300 group-hover:text-white'
+                active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-sidebar-foreground'
               )}>
                 {item.title}
               </span>
@@ -116,18 +116,18 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar className="border-r-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl">
+    <Sidebar className="border-r-0 bg-sidebar shadow-2xl">
       <SidebarContent className="px-0 py-6 overflow-y-auto scrollbar-none"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {/* Logo Section */}
         <div className="flex items-center gap-3 px-6 mb-8">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-            <Bot className="h-5 w-5 text-white" />
+          <div className="h-10 w-10 rounded-xl bg-sidebar-primary flex items-center justify-center shadow-lg">
+            <Bot className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="font-bold text-white text-lg">UltaAI</span>
-              <span className="text-xs text-blue-300 font-medium">Control Hub</span>
+              <span className="font-bold text-sidebar-foreground text-lg">UltaAI</span>
+              <span className="text-xs text-sidebar-primary font-medium">Control Hub</span>
             </div>
           )}
         </div>
@@ -147,7 +147,7 @@ export function AppSidebar() {
           {/* Security */}
           <SidebarGroup>
             {!collapsed && (
-              <SidebarGroupLabel className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-6 mb-2">
+              <SidebarGroupLabel className="text-xs font-semibold text-sidebar-primary uppercase tracking-wider px-6 mb-2">
                 Security
               </SidebarGroupLabel>
             )}
@@ -163,7 +163,7 @@ export function AppSidebar() {
           {/* Configure */}
           <SidebarGroup>
             {!collapsed && (
-              <SidebarGroupLabel className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-6 mb-2">
+              <SidebarGroupLabel className="text-xs font-semibold text-sidebar-primary uppercase tracking-wider px-6 mb-2">
                 Configure
               </SidebarGroupLabel>
             )}

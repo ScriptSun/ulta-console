@@ -58,25 +58,28 @@ interface AgentsTableProps {
 const getStatusBadge = (status: string) => {
   const statusConfig = {
     active: { 
-      color: 'bg-gradient-to-r from-emerald-500/5 to-green-500/5 text-emerald-200 border-0 ring-1 ring-emerald-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
-      dot: 'bg-emerald-400 ring-2 ring-emerald-400/20 ring-offset-1 ring-offset-transparent' 
+      variant: 'default' as const,
+      className: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
+      dot: 'bg-success' 
     },
     suspended: { 
-      color: 'bg-gradient-to-r from-yellow-500/5 to-amber-500/5 text-yellow-200 border-0 ring-1 ring-yellow-400/30 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
-      dot: 'bg-yellow-400 ring-2 ring-yellow-400/20 ring-offset-1 ring-offset-transparent' 
+      variant: 'secondary' as const,
+      className: 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20',
+      dot: 'bg-warning' 
     },
     terminated: { 
-      color: 'bg-gradient-to-r from-red-500/8 via-red-500/6 to-red-500/8 text-red-200 border-0 ring-1 ring-red-400/40 ring-inset backdrop-blur-xl rounded-full px-3 py-1', 
-      dot: 'bg-gradient-to-r from-red-400 to-red-500 ring-2 ring-red-400/30 ring-offset-1 ring-offset-transparent' 
+      variant: 'destructive' as const,
+      className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20',
+      dot: 'bg-destructive' 
     },
   };
 
   const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.terminated;
 
   return (
-    <Badge variant="secondary" className={`${config.color} gap-1`}>
+    <Badge variant={config.variant} className={`${config.className} gap-1.5 font-medium`}>
       <div className={`w-2 h-2 rounded-full ${config.dot}`} />
-      <span className="ml-1">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+      <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
     </Badge>
   );
 };
@@ -150,7 +153,7 @@ export function AgentsTable({
                 <div className="font-semibold">{agent.id.slice(0, 5).toLowerCase()}@srvultahost.com</div>
               </TableCell>
               <TableCell>
-                <code className="text-xs bg-purple-500/20 text-white px-1 py-0.5 rounded">
+                <code className="text-xs bg-muted/20 text-muted-foreground border border-border px-2 py-1 rounded font-mono">
                   {agent.id.slice(0, 8)}...
                 </code>
               </TableCell>
