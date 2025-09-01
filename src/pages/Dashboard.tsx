@@ -5,13 +5,16 @@ import { RevenueOverview } from '@/components/dashboard/RevenueOverview';
 import { ErrorRatesCard } from '@/components/dashboard/ErrorRatesCard';
 import { AIInsightsCard } from '@/components/dashboard/AIInsightsCard';
 import { RecentLoginsCard } from '@/components/dashboard/RecentLoginsCard';
+import { TopActiveAgents } from '@/components/dashboard/TopActiveAgents';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
+import { useAIInsights } from '@/hooks/useDashboardData';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function Dashboard() {
   const { dateRange, setDateRange, lastUpdated } = useDateRangeFilter();
   const { canView } = usePagePermissions();
+  const { data: aiInsightsData, isLoading: aiInsightsLoading } = useAIInsights(dateRange);
 
   return (
     <div className="space-y-6">
@@ -45,8 +48,14 @@ export default function Dashboard() {
       {/* AI and Agent Insights */}
       <AIInsightsCard dateRange={dateRange} />
 
-      {/* Error Rates and Task Failures */}
-      <ErrorRatesCard dateRange={dateRange} />
+      {/* Top Active Agents + Error Rates - Same Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TopActiveAgents 
+          agents={aiInsightsData?.topAgents || []}
+          isLoading={aiInsightsLoading}
+        />
+        <ErrorRatesCard dateRange={dateRange} />
+      </div>
 
       {/* Security - Recent Logins */}
       <RecentLoginsCard dateRange={dateRange} />

@@ -4,7 +4,6 @@ import { Bot } from 'lucide-react';
 import { DateRange } from '@/hooks/useDateRangeFilter';
 import { useAIInsights } from '@/hooks/useDashboardData';
 import { AgentUsageChart } from './AgentUsageChart';
-import { TopActiveAgents } from './TopActiveAgents';
 import { AICostMonitor } from './AICostMonitor';
 
 interface AIInsightsCardProps {
@@ -35,7 +34,7 @@ export function AIInsightsCard({ dateRange }: AIInsightsCardProps) {
   return (
     <div className="col-span-full space-y-6">
       {/* Two Components Grid - AI Cost Monitor + Agent Status Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* AI Cost Monitor */}
         <AICostMonitor 
           costData={data?.costData || []}
@@ -50,12 +49,6 @@ export function AIInsightsCard({ dateRange }: AIInsightsCardProps) {
           groupBy="day"
         />
       </div>
-
-      {/* Top Active Agents - Full width below */}
-      <TopActiveAgents 
-        agents={data?.topAgents || []}
-        isLoading={isLoading}
-      />
     </div>
   );
 }
