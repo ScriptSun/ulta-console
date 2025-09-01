@@ -96,8 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Handle additional logic after auth state changes
         if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          // Auto-assign owner role to admin@admin.com
-          if (session.user.email === 'admin@admin.com') {
+          // Auto-assign owner role to elin@ultahost.com  
+          if (session.user.email === 'elin@ultahost.com') {
             assignOwnerRole(session.user.id);
           }
           

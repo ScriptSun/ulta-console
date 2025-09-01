@@ -90,17 +90,13 @@ export default function Agents() {
     console.log('Fetching agents - user authenticated:', !!user);
     
     try {
-      // Test basic connection first
+      // Simple query without user join since auth.users isn't accessible via API
       const { data, error } = await supabase
         .from('agents')
         .select(`
           *, 
           heartbeat, 
-          last_heartbeat,
-          users:user_id (
-            email,
-            full_name
-          )
+          last_heartbeat
         `)
         .order('created_at', { ascending: false });
 
