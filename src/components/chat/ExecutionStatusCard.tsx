@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,6 +32,7 @@ export function ExecutionStatusCard({ run_id, onComplete }: ExecutionStatusCardP
   const [duration, setDuration] = useState<number | null>(null);
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [showLogs, setShowLogs] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsubscribers = [
@@ -39,6 +40,7 @@ export function ExecutionStatusCard({ run_id, onComplete }: ExecutionStatusCardP
         if (data.run_id === run_id) {
           console.log('Execution queued:', data);
           setStatus('queued');
+          setProgress(0);
         }
       }),
       
@@ -47,20 +49,29 @@ export function ExecutionStatusCard({ run_id, onComplete }: ExecutionStatusCardP
           console.log('Execution started:', data);
           setStatus('running');
           setStartedAt(data.started_at);
+          setProgress(0);
         }
       }),
       
       on('exec.progress', (data) => {
         if (data.run_id === run_id) {
           console.log('Execution progress:', data);
-          setProgress(data.pct || 0);
+          setProgress(Math.min(100, Math.max(0, data.pct || 0)));
         }
       }),
       
       on('exec.stdout', (data) => {
         if (data.run_id === run_id) {
-          console.log('Execution stdout:', data);
-          setStdoutLines(prev => [...prev, data.line]);
+          console.log('Execution stdout:', data.line);
+          setStdoutLines(prev => {
+            const updated = [...prev, data.line];
+            // Keep only last 20 lines for performance
+            return updated.slice(-20);
+          });
+          // Auto-show logs when stdout comes in
+          if (!showLogs) {
+            setShowLogs(true);
+          }
         }
       }),
       
@@ -69,6 +80,9 @@ export function ExecutionStatusCard({ run_id, onComplete }: ExecutionStatusCardP
           console.log('Execution finished:', data);
           setStatus(data.success ? 'completed' : 'failed');
           setDuration(data.duration_ms);
+          if (data.success) {
+            setProgress(100);
+          }
           onComplete?.(data.success);
         }
       }),
@@ -83,7 +97,17 @@ export function ExecutionStatusCard({ run_id, onComplete }: ExecutionStatusCardP
     return () => {
       unsubscribers.forEach(unsub => unsub());
     };
-  }, [on, run_id, onComplete]);
+  }, [on, run_id, onComplete, showLogs]);
+
+  // Auto-scroll to bottom when new stdout lines are added
+  useEffect(() => {
+    if (scrollAreaRef.current && showLogs) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [stdoutLines, showLogs]);
 
   const getStatusIcon = () => {
     switch (status) {
@@ -175,7 +199,7 @@ export function ExecutionStatusCard({ run_id, onComplete }: ExecutionStatusCardP
               <span className="text-sm text-muted-foreground">Progress</span>
               <span className="text-sm font-medium">{progress}%</span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progress} className="h-2 transition-all duration-500" />
           </div>
         )}
 
@@ -185,10 +209,10 @@ export function ExecutionStatusCard({ run_id, onComplete }: ExecutionStatusCardP
               <Terminal className="h-4 w-4" />
               Live Output
             </h4>
-            <ScrollArea className="h-32 w-full rounded border bg-background p-2">
-              <div className="font-mono text-xs space-y-0.5">
-                {stdoutLines.slice(-20).map((line, index) => (
-                  <div key={index} className="text-foreground/80">
+            <ScrollArea ref={scrollAreaRef} className="h-32 w-full rounded border bg-background p-2">
+              <div className="font-mono text-xs space-y-0.5" style={{ scrollBehavior: 'smooth' }}>
+                {stdoutLines.map((line, index) => (
+                  <div key={`${index}-${line.substring(0, 10)}`} className="text-foreground/80">
                     {line}
                   </div>
                 ))}

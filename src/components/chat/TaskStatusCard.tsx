@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, CheckCircle, XCircle, Clock, Play, BarChart3, AlertCircle, Brain, Search } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ExternalLink, CheckCircle, XCircle, Clock, Play, BarChart3, AlertCircle, Brain, Search, Terminal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEventBus } from '@/hooks/useEventBus';
 
@@ -17,6 +19,7 @@ interface TaskStatusCardProps {
   error?: string;
   duration?: number;
   onViewTask?: (runId: string) => void;
+  enableStreaming?: boolean; // New prop to enable streaming updates
 }
 
 export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
@@ -25,13 +28,70 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
   runId,
   batchId,
   summary,
-  progress,
+  progress: initialProgress,
   contract,
   error,
-  duration,
-  onViewTask
+  duration: initialDuration,
+  onViewTask,
+  enableStreaming = false
 }) => {
   const navigate = useNavigate();
+  const { on } = useEventBus();
+  
+  // Local state for streaming updates
+  const [streamingProgress, setStreamingProgress] = useState(initialProgress || 0);
+  const [streamingDuration, setStreamingDuration] = useState(initialDuration);
+  const [streamingStatus, setStreamingStatus] = useState(type);
+  const [stdoutLines, setStdoutLines] = useState<string[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
+
+  // Listen to streaming events if enabled
+  useEffect(() => {
+    if (!enableStreaming || !runId) return;
+    
+    const unsubscribers = [
+      on('exec.started', (data) => {
+        if (data.run_id === runId) {
+          setStreamingStatus('task_started');
+        }
+      }),
+      
+      on('exec.progress', (data) => {
+        if (data.run_id === runId) {
+          setStreamingProgress(Math.min(100, Math.max(0, data.pct || 0)));
+          setStreamingStatus('task_progress');
+        }
+      }),
+      
+      on('exec.stdout', (data) => {
+        if (data.run_id === runId) {
+          setStdoutLines(prev => {
+            const updated = [...prev, data.line];
+            return updated.slice(-20); // Keep last 20 lines
+          });
+        }
+      }),
+      
+      on('exec.finished', (data) => {
+        if (data.run_id === runId) {
+          setStreamingStatus(data.success ? 'task_succeeded' : 'task_failed');
+          setStreamingDuration(data.duration_ms);
+          if (data.success) {
+            setStreamingProgress(100);
+          }
+        }
+      })
+    ];
+    
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [on, runId, enableStreaming]);
+
+  // Use streaming values if available, otherwise use props
+  const currentProgress = enableStreaming ? streamingProgress : (initialProgress || 0);
+  const currentDuration = enableStreaming ? streamingDuration : initialDuration;
+  const currentType = enableStreaming ? streamingStatus : type;
 
   const handleViewDetails = () => {
     if (onViewTask && runId) {
@@ -45,7 +105,7 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
     }
   };
   const getStatusConfig = () => {
-    switch (type) {
+    switch (currentType) {
       case 'task_queued':
         return {
           icon: Clock,
@@ -59,7 +119,7 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
           icon: Play,
           color: 'bg-yellow-50 border-yellow-200 text-yellow-800',
           badgeColor: 'bg-yellow-100 text-yellow-800',
-          title: 'Task Running',
+          title: 'Working on server',
           description: summary || `Your ${intent.replace('_', ' ')} task is now running.`
         };
       case 'task_progress':
@@ -67,7 +127,7 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
           icon: BarChart3,
           color: 'bg-orange-50 border-orange-200 text-orange-800',
           badgeColor: 'bg-orange-100 text-orange-800',
-          title: `Progress ${progress || 0}%`,
+          title: `Progress ${currentProgress}%`,
           description: summary || `Your ${intent.replace('_', ' ')} task is in progress.`
         };
       case 'task_succeeded':
@@ -76,7 +136,7 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
           color: 'bg-green-50 border-green-200 text-green-800',
           badgeColor: 'bg-green-100 text-green-800',
           title: 'Task Completed',
-          description: contract?.message || summary || `Your ${intent.replace('_', ' ')} task completed successfully${duration ? ` in ${duration}s` : ''}.`
+          description: contract?.message || summary || `Your ${intent.replace('_', ' ')} task completed successfully${currentDuration ? ` in ${Math.round(currentDuration / 1000)}s` : ''}.`
         };
       case 'task_failed':
         return {
@@ -117,11 +177,16 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
   const Icon = config.icon;
 
   // For successful tasks, show compact indicator
-  if (type === 'task_succeeded' || type === 'done') {
+  if (currentType === 'task_succeeded' || currentType === 'done') {
     return (
       <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium">
         <CheckCircle className="w-4 h-4" />
         <span>Success</span>
+        {currentDuration && (
+          <Badge variant="outline" className="text-xs">
+            {Math.round(currentDuration / 1000)}s
+          </Badge>
+        )}
       </div>
     );
   }
@@ -140,19 +205,52 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
           <p className="text-sm opacity-90 mb-3">{config.description}</p>
 
           {/* Progress bar for in-progress tasks */}
-          {type === 'task_progress' && typeof progress === 'number' && (
+          {(currentType === 'task_progress' || currentType === 'task_started') && (
             <div className="mb-3">
               <div className="w-full bg-muted/30 rounded-full h-2">
                 <div 
-                  className="bg-primary h-2 rounded-full transition-all duration-300" 
-                  style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                  className="bg-primary h-2 rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(100, Math.max(0, currentProgress))}%` }}
                 />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>Progress</span>
+                <span>{currentProgress}%</span>
               </div>
             </div>
           )}
 
-          {/* Contract details - this code is unreachable now */}
-          
+          {/* Live stdout logs */}
+          {enableStreaming && stdoutLines.length > 0 && (
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium flex items-center gap-1">
+                  <Terminal className="h-3 w-3" />
+                  Live Output
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowLogs(!showLogs)}
+                  className="h-5 text-xs"
+                >
+                  {showLogs ? 'Hide' : 'Show'}
+                </Button>
+              </div>
+              {showLogs && (
+                <ScrollArea className="h-20 w-full rounded border bg-background p-2">
+                  <div className="font-mono text-xs space-y-0.5">
+                    {stdoutLines.map((line, index) => (
+                      <div key={`${index}-${line.substring(0, 10)}`} className="text-foreground/80">
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          )}
+
           {(runId || batchId) && (
             <div className="flex items-center gap-2">
               <Button
