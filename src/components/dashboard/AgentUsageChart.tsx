@@ -386,7 +386,7 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
           </SelectContent>
         </Select>
       </CardHeader>
-      <CardContent className="pb-3">
+      <CardContent className="pb-1">
         <div className="mb-4 p-3 bg-muted/50 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm justify-items-center">
             <div 
