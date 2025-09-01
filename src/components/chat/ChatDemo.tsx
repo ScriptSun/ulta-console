@@ -152,6 +152,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sessionStartTime = useRef(Date.now());
+  const routerTimeoutRef = useRef<NodeJS.Timeout>();
   
   // WebSocket router and event bus
   const { connect, disconnect, sendRequest, isConnected } = useWebSocketRouter();
@@ -377,7 +378,6 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
 
   // Set up WebSocket router event listeners
   useEffect(() => {
-    const routerTimeoutRef = useRef<NodeJS.Timeout>();
     
     // Set router timeout (25 seconds)
     const startRouterTimeout = () => {
