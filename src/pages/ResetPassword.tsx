@@ -26,17 +26,24 @@ const ResetPassword = () => {
 
   // Get tokens from URL - check both search params and hash fragments
   const getTokensFromUrl = () => {
-    // First try search params
-    let accessToken = searchParams.get('access_token');
-    let refreshToken = searchParams.get('refresh_token');
-    let type = searchParams.get('type');
+    console.log('Current URL:', window.location.href);
+    console.log('Hash:', window.location.hash);
+    console.log('Search:', window.location.search);
+    
+    // First try hash fragments (this is where Supabase usually puts them)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    let accessToken = hashParams.get('access_token');
+    let refreshToken = hashParams.get('refresh_token');
+    let type = hashParams.get('type');
 
-    // If not in search params, try hash fragments
+    console.log('Hash tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+
+    // If not in hash, try search params as fallback
     if (!accessToken || !refreshToken) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      accessToken = hashParams.get('access_token');
-      refreshToken = hashParams.get('refresh_token');
-      type = hashParams.get('type');
+      accessToken = searchParams.get('access_token');
+      refreshToken = searchParams.get('refresh_token');
+      type = searchParams.get('type');
+      console.log('Search param tokens:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
     }
 
     return { accessToken, refreshToken, type };
