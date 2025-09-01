@@ -718,17 +718,6 @@ export default function ProfileSettings() {
                       <Camera className="h-4 w-4" />
                     )}
                   </Button>
-                  {profile.avatar_url && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="absolute -bottom-2 -left-2 h-8 w-8 rounded-full p-0"
-                      onClick={handleAvatarRemove}
-                      disabled={uploading}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
                   <input
                     ref={fileInputRef}
                     type="file"
