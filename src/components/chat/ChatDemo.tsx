@@ -455,40 +455,58 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           const accumulated = data.accumulated || data.delta || '';
           const isJsonResponse = accumulated.trim().startsWith('{') && accumulated.includes('"mode"');
           
-          // For JSON responses, don't show content during streaming - wait for final decision
-          // For text responses, show the streaming content
-          const shouldShowContent = !isJsonResponse;
+          let contentToShow = '';
           
-          // Create or update streaming message
-          setMessages(prev => {
-            const updated = [...prev];
-            // Find the most recent pending message
-            let foundPending = false;
-            for (let i = updated.length - 1; i >= 0; i--) {
-              if (updated[i].pending && updated[i].role === 'assistant') {
-                updated[i] = {
-                  ...updated[i],
-                  content: shouldShowContent ? accumulated : ''
-                };
-                foundPending = true;
-                break;
+          if (isJsonResponse) {
+            // Try to extract summary/message from partial JSON for streaming
+            try {
+              // Look for the message or summary field in the JSON
+              const messageMatch = accumulated.match(/"message":\s*"([^"]*)"/) || 
+                                 accumulated.match(/"summary":\s*"([^"]*)"/);
+              if (messageMatch) {
+                contentToShow = messageMatch[1];
               }
+            } catch (e) {
+              // If parsing fails, don't show content yet
+              contentToShow = '';
             }
-            
-            // If no pending message exists, create one now
-            if (!foundPending) {
-              const streamingMessage: Message = {
-                id: `streaming-${Date.now()}`,
-                role: 'assistant',
-                content: shouldShowContent ? accumulated : '',
-                timestamp: new Date(),
-                pending: true
-              };
-              updated.push(streamingMessage);
-            }
-            
-            return updated;
-          });
+          } else {
+            // For regular text responses, show everything
+            contentToShow = accumulated;
+          }
+          
+          // Only create/update message if we have content to show
+          if (contentToShow) {
+            setMessages(prev => {
+              const updated = [...prev];
+              // Find the most recent pending message
+              let foundPending = false;
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].pending && updated[i].role === 'assistant') {
+                  updated[i] = {
+                    ...updated[i],
+                    content: contentToShow
+                  };
+                  foundPending = true;
+                  break;
+                }
+              }
+              
+              // If no pending message exists, create one now
+              if (!foundPending) {
+                const streamingMessage: Message = {
+                  id: `streaming-${Date.now()}`,
+                  role: 'assistant',
+                  content: contentToShow,
+                  timestamp: new Date(),
+                  pending: true
+                };
+                updated.push(streamingMessage);
+              }
+              
+              return updated;
+            });
+          }
           break;
           
         case 'router.selected':
