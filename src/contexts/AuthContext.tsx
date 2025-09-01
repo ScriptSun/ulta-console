@@ -133,17 +133,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Set up session heartbeat for authenticated users - disabled temporarily
-  // useEffect(() => {
-  //   if (user && session) {
-  //     // Session heartbeat functionality disabled to prevent loading issues
-  //   }
-  //   return () => {
-  //     if (heartbeatInterval) {
-  //       clearInterval(heartbeatInterval);
-  //     }
-  //   };
-  // }, [user, session]);
+  // Set up session tracking and heartbeat for authenticated users
+  useEffect(() => {
+    if (user && session) {
+      // Create initial session tracking
+      const initializeSession = async () => {
+        try {
+          console.log('Initializing session tracking for user:', user.email);
+          await supabase.functions.invoke('session-management', {
+            body: { action: 'create' }
+          });
+        } catch (error) {
+          console.warn('Session initialization failed (non-fatal):', error);
+        }
+      };
+      
+      // Initialize session immediately
+      initializeSession();
+      
+      // Set up periodic heartbeat to keep session active
+      const interval = setInterval(async () => {
+        try {
+          await supabase.functions.invoke('session-management', {
+            body: { action: 'heartbeat' }
+          });
+        } catch (error) {
+          console.warn('Session heartbeat failed (non-fatal):', error);
+        }
+      }, 5 * 60 * 1000); // Heartbeat every 5 minutes
+      
+      setHeartbeatInterval(interval);
+    } else {
+      // Clear heartbeat when user logs out
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        setHeartbeatInterval(null);
+      }
+    }
+    
+    return () => {
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+    };
+  }, [user, session]);
 
   const assignOwnerRole = async (userId: string) => {
     try {

@@ -98,6 +98,13 @@ serve(async (req) => {
     const url = new URL(req.url)
 
     if (method === 'GET') {
+      // Get client info for potential session creation
+      const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                      req.headers.get('x-real-ip') || 
+                      req.headers.get('cf-connecting-ip') ||
+                      'Unknown'
+      const userAgent = req.headers.get('user-agent') || 'Unknown'
+      
       // Clean up inactive sessions first - delete sessions inactive for more than 1 hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
       await supabase
@@ -122,6 +129,53 @@ serve(async (req) => {
           JSON.stringify({ error: 'Failed to fetch sessions' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
+      }
+
+      // Check if there's an active session for current browser/device
+      const currentSession = (userSessions || []).find(session => 
+        session.user_agent === userAgent && 
+        session.ip_address === clientIP &&
+        session.is_active
+      )
+      
+      // If no current session exists, create one
+      if (!currentSession) {
+        console.log('No active session found for current device, creating one...')
+        
+        const { browser, os } = parseUserAgent(userAgent)
+        const deviceType = getDeviceType(userAgent)
+        const location = await getLocationFromIP(clientIP)
+
+        const { error: createError } = await supabase
+          .from('user_sessions')
+          .insert({
+            user_id: user.id,
+            ip_address: clientIP,
+            user_agent: userAgent,
+            device_type: deviceType,
+            location,
+            is_active: true,
+            session_start: new Date().toISOString()
+          })
+
+        if (createError) {
+          console.error('Error creating current session:', createError)
+          // Don't fail the request, just log the error
+        } else {
+          console.log('Created new session for current device')
+          
+          // Fetch sessions again to include the newly created one
+          const { data: updatedSessions } = await supabase
+            .from('user_sessions')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('updated_at', oneHourAgo)
+            .order('created_at', { ascending: false })
+          
+          userSessions.push(...(updatedSessions || []).filter(s => 
+            !userSessions.find(existing => existing.id === s.id)
+          ))
+        }
       }
 
       // Enhance sessions with parsed user agent info and location
