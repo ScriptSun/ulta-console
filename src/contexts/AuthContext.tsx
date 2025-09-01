@@ -29,6 +29,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   
+  // Session heartbeat interval
+  const [heartbeatInterval, setHeartbeatInterval] = useState<NodeJS.Timeout | null>(null);
+  
   // Use security enforcement hook
   const { 
     isSessionValid, 
@@ -52,12 +55,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               assignAdminRole(session.user.id);
             }
             
-            // Track user session
+            // Track user session using session-management edge function
             try {
-              await supabase.rpc('track_user_session', {
-                user_uuid: session.user.id,
-                client_ip: null, // In production, you'd get this from request headers
-                client_user_agent: navigator.userAgent
+              await supabase.functions.invoke('session-management', {
+                body: {
+                  action: 'create'
+                }
               });
             } catch (error) {
               console.error('Failed to track session:', error);
@@ -76,6 +79,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Set up session heartbeat for authenticated users
+  useEffect(() => {
+    if (user && session) {
+      // Clear existing interval
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+      
+      // Send heartbeat every 5 minutes to keep session alive
+      const interval = setInterval(async () => {
+        try {
+          await supabase.functions.invoke('session-management', {
+            body: {
+              action: 'heartbeat'
+            }
+          });
+        } catch (error) {
+          console.error('Failed to send session heartbeat:', error);
+        }
+      }, 5 * 60 * 1000); // 5 minutes
+      
+      setHeartbeatInterval(interval);
+    } else {
+      // Clear heartbeat when user logs out
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        setHeartbeatInterval(null);
+      }
+    }
+
+    return () => {
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+    };
+  }, [user, session]);
 
   const assignAdminRole = async (userId: string) => {
     try {
