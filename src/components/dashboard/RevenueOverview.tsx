@@ -106,6 +106,9 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="h-5 w-5 text-primary" />
           Revenue Overview
+          <Badge variant="secondary" className="ml-2">
+            Active Subscriptions: {data.activeSubscriptions}
+          </Badge>
           <Badge variant="outline" className="ml-auto">
             {dateRange.label}
           </Badge>
@@ -320,14 +323,6 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
             {/* Red gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 via-transparent to-red-500/10 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-card/50 to-transparent pointer-events-none"></div>
-          </div>
-        </div>
-
-        {/* Additional Stats */}
-        <div className="mt-6 pt-4 border-t border-border/50">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Active Subscriptions</span>
-            <span className="font-medium text-foreground">{data.activeSubscriptions}</span>
           </div>
         </div>
       </CardContent>
