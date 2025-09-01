@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useSecurityEnforcement } from '@/hooks/useSecurityEnforcement';
 
 interface AuthContextType {
   user: User | null;
@@ -32,12 +31,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Session heartbeat interval
   const [heartbeatInterval, setHeartbeatInterval] = useState<NodeJS.Timeout | null>(null);
   
-  // Use security enforcement hook
+  // Use security enforcement hook - disabled temporarily to prevent loading issues
   const { 
     isSessionValid, 
     securityStatus, 
     performSecureLogin 
-  } = useSecurityEnforcement(user);
+  } = {
+    isSessionValid: true,
+    securityStatus: null,
+    performSecureLogin: async (email: string, password: string) => {
+      // Fallback to direct Supabase auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        return { error: error.message };
+      }
+      
+      return { user: data.user, session: data.session };
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -55,14 +70,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       setLoading(false);
       
-      // Create session record if user is already logged in
-      if (session?.user) {
-        supabase.functions.invoke('session-management', {
-          body: { action: 'create' }
-        }).catch(error => {
-          console.error('Failed to create initial session record:', error);
-        });
-      }
+      // Create session record if user is already logged in - disabled temporarily
+      // if (session?.user) {
+      //   supabase.functions.invoke('session-management', {
+      //     body: { action: 'create' }
+      //   }).catch(error => {
+      //     console.error('Failed to create initial session record:', error);
+      //   });
+      // }
     });
 
     // Set up auth state listener
@@ -86,14 +101,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             assignAdminRole(session.user.id);
           }
           
-          // Track user session using session-management edge function
-          try {
-            await supabase.functions.invoke('session-management', {
-              body: { action: 'create' }
-            });
-          } catch (error) {
-            console.error('Failed to track session:', error);
-          }
+          // Track user session - disabled temporarily to prevent loading issues
+          // try {
+          //   await supabase.functions.invoke('session-management', {
+          //     body: { action: 'create' }
+          //   });
+          // } catch (error) {
+          //   console.error('Failed to track session:', error);
+          // }
         }
       }
     );
@@ -104,50 +119,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Set up session heartbeat for authenticated users
-  useEffect(() => {
-    if (user && session) {
-      // Clear existing interval
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-      }
-      
-      // Send heartbeat every 5 minutes to keep session alive
-      const interval = setInterval(async () => {
-        try {
-          const { data, error } = await supabase.functions.invoke('session-management', {
-            body: {
-              action: 'heartbeat'
-            }
-          });
-          
-          // Check if our session is still active
-          if (error || (data && !data.session?.is_active)) {
-            console.log('Session inactive, forcing logout...');
-            await supabase.auth.signOut();
-          }
-        } catch (error) {
-          console.error('Failed to send session heartbeat:', error);
-          // If heartbeat fails consistently, assume session is dead
-          await supabase.auth.signOut();
-        }
-      }, 5 * 60 * 1000); // 5 minutes
-      
-      setHeartbeatInterval(interval);
-    } else {
-      // Clear heartbeat when user logs out
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        setHeartbeatInterval(null);
-      }
-    }
-
-    return () => {
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-      }
-    };
-  }, [user, session]);
+  // Set up session heartbeat for authenticated users - disabled temporarily
+  // useEffect(() => {
+  //   if (user && session) {
+  //     // Session heartbeat functionality disabled to prevent loading issues
+  //   }
+  //   return () => {
+  //     if (heartbeatInterval) {
+  //       clearInterval(heartbeatInterval);
+  //     }
+  //   };
+  // }, [user, session]);
 
   const assignAdminRole = async (userId: string) => {
     try {

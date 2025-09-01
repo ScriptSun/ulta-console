@@ -113,17 +113,36 @@ export function useAIInsights(dateRange: DateRange) {
           last_heartbeat
         `);
 
-      if (agentsError) throw agentsError;
+      if (agentsError) {
+        console.warn('Error fetching agents:', agentsError);
+        // Return fallback data if agents can't be fetched
+        return {
+          topAgents: [],
+          agentsByPeriod: [],
+          costData: [],
+          totalActiveAgents: 0,
+          agentErrors: 0,
+          totalCost: 0,
+          totalTokens: 0
+        };
+      }
 
-      // Fetch real AI usage logs
-      const { data: aiUsageLogs, error: aiLogsError } = await supabase
-        .from('ai_usage_logs')
-        .select('*')
-        .gte('created_at', dateRange.start.toISOString())
-        .lte('created_at', dateRange.end.toISOString())
-        .order('created_at', { ascending: false });
+      // Fetch real AI usage logs with error handling
+      let aiUsageLogs: any[] = [];
+      try {
+        const { data: aiLogsData, error: aiLogsError } = await supabase
+          .from('ai_usage_logs')
+          .select('*')
+          .gte('created_at', dateRange.start.toISOString())
+          .lte('created_at', dateRange.end.toISOString())
+          .order('created_at', { ascending: false });
 
-      if (aiLogsError) throw aiLogsError;
+        if (!aiLogsError && aiLogsData) {
+          aiUsageLogs = aiLogsData;
+        }
+      } catch (err) {
+        console.warn('AI usage logs not accessible:', err);
+      }
 
       // Fetch agent logs for errors - handle gracefully if table doesn't exist or has different schema
       let logs: any[] = [];
@@ -162,6 +181,8 @@ export function useAIInsights(dateRange: DateRange) {
       };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1, // Only retry once on failure
+    retryDelay: 1000, // 1 second delay between retries
   });
 }
 
