@@ -735,9 +735,14 @@ export default function ProfileSettings() {
 
   const handleRevokeAllSessions = async () => {
     try {
+      console.log('Starting revoke all sessions process...');
       const { data, error } = await supabase.functions.invoke('session-management', {
-        method: 'DELETE'
+        body: {
+          action: 'revoke_all'
+        }
       });
+
+      console.log('Revoke all sessions response:', { data, error });
 
       if (error) {
         console.error('Error revoking all sessions:', error);

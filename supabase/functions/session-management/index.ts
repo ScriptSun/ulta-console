@@ -214,6 +214,66 @@ serve(async (req) => {
         )
       }
 
+      if (action === 'revoke_all') {
+        console.log('Revoking all sessions for user:', user.id)
+        
+        // Get all active sessions for this user
+        const { data: currentSessions } = await supabase
+          .from('user_sessions')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+
+        if (currentSessions && currentSessions.length > 0) {
+          const sessionIds = currentSessions.map(s => s.id)
+          
+          // Mark all sessions as inactive
+          const { error: revokeAllError } = await supabase
+            .from('user_sessions')
+            .update({ 
+              is_active: false, 
+              session_end: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .in('id', sessionIds)
+            .eq('user_id', user.id)
+
+          if (revokeAllError) {
+            console.error('Error revoking all sessions:', revokeAllError)
+            return new Response(
+              JSON.stringify({ error: 'Failed to revoke all sessions' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
+          // Log the bulk session revocation
+          const { error: auditError } = await supabase
+            .from('audit_logs')
+            .insert({
+              customer_id: user.id,
+              actor: user.email || 'Unknown',
+              action: 'all_sessions_revoked',
+              target: 'sessions:all',
+              meta: {
+                revoked_count: sessionIds.length,
+                revoked_by: user.id,
+                revoked_at: new Date().toISOString()
+              }
+            })
+
+          if (auditError) {
+            console.error('Error logging bulk revocation audit event:', auditError)
+          }
+
+          console.log(`Successfully revoked ${sessionIds.length} sessions`)
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, message: 'All sessions revoked successfully' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       if (action === 'create' || action === 'heartbeat') {
         // Create/track or update a session
         const clientIP = req.headers.get('x-forwarded-for') || 
@@ -322,61 +382,6 @@ serve(async (req) => {
           { status: existingSession ? 200 : 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-    }
-
-    if (method === 'DELETE') {
-      // Revoke all sessions except current one
-      const { data: currentSessions } = await supabase
-        .from('user_sessions')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-
-      if (currentSessions && currentSessions.length > 0) {
-        const sessionIds = currentSessions.map(s => s.id)
-        
-        const { error: revokeAllError } = await supabase
-          .from('user_sessions')
-          .update({ 
-            is_active: false, 
-            session_end: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .in('id', sessionIds)
-          .eq('user_id', user.id)
-
-        if (revokeAllError) {
-          console.error('Error revoking all sessions:', revokeAllError)
-          return new Response(
-            JSON.stringify({ error: 'Failed to revoke all sessions' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-
-        // Log the bulk session revocation
-        const { error: auditError } = await supabase
-          .from('audit_logs')
-          .insert({
-            customer_id: user.id,
-            actor: user.email || 'Unknown',
-            action: 'all_sessions_revoked',
-            target: 'sessions:all',
-            meta: {
-              revoked_count: sessionIds.length,
-              revoked_by: user.id,
-              revoked_at: new Date().toISOString()
-            }
-          })
-
-        if (auditError) {
-          console.error('Error logging bulk revocation audit event:', auditError)
-        }
-      }
-
-      return new Response(
-        JSON.stringify({ success: true, message: 'All sessions revoked successfully' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
     }
 
     return new Response(
