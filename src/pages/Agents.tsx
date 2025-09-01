@@ -1,23 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Plus, Search, Users, UserPlus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { AgentsTable } from '@/components/agents/AgentsTable';
+import { Loader2, Plus, Filter, Search, AlertTriangle, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 import { AgentDetailsDrawer } from '@/components/agents/AgentDetailsDrawer';
+import { AgentsTable } from '@/components/agents/AgentsTable';
 import { DeployAgentModal } from '@/components/agents/DeployAgentModal';
 import { AssignUserToAgentDialog } from '@/components/agents/AssignUserToAgentDialog';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Agent {
   id: string;
@@ -51,6 +47,10 @@ interface Agent {
 
 export default function Agents() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { isConnected, hasUserRoles, errorDetails, isLoading: connectionLoading, retryConnection } = useSupabaseConnection();
+  
   const [agents, setAgents] = useState<Agent[]>([]);
   const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +65,6 @@ export default function Agents() {
   const [agentToAssign, setAgentToAssign] = useState<Agent | null>(null);
   const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('admin');
   const [defaultTab, setDefaultTab] = useState<string>('overview');
-  const { toast } = useToast();
 
   useEffect(() => {
     const loadAgents = async () => {
@@ -89,7 +88,10 @@ export default function Agents() {
   }, [agents, searchQuery, statusFilter, osFilter, regionFilter]);
 
   const fetchAgents = async () => {
+    console.log('Fetching agents - user authenticated:', !!user);
+    
     try {
+      // Test basic connection first
       const { data, error } = await supabase
         .from('agents')
         .select(`
@@ -103,21 +105,49 @@ export default function Agents() {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('Agents query result:', { data: data?.length, error });
+
+      if (error) {
+        console.error('Supabase query error:', error);
+        throw error;
+      }
 
       // Use actual status from database
       const agentsWithStatus = (data || []).map((agent) => ({
         ...agent
       }));
 
+      console.log('Setting agents data:', agentsWithStatus.length);
       setAgents(agentsWithStatus as Agent[]);
-    } catch (error) {
+      
+      if (agentsWithStatus.length === 0) {
+        toast({
+          title: 'No Data',
+          description: 'No agents found. Check your permissions or create some agents.',
+          variant: 'default',
+        });
+      }
+    } catch (error: any) {
       console.error('Error fetching agents:', error);
+      
+      // Provide more detailed error information
+      let errorMessage = 'Failed to load agents';
+      if (error?.message?.includes('Failed to fetch')) {
+        errorMessage = 'Network connection failed. Check your internet connection or try refreshing.';
+      } else if (error?.code === 'PGRST116') {
+        errorMessage = 'Access denied. You may not have permission to view agents.';
+      } else if (error?.message) {
+        errorMessage = `Database error: ${error.message}`;
+      }
+
       toast({
-        title: 'Error',
-        description: 'Failed to load agents',
+        title: 'Connection Error',
+        description: errorMessage,
         variant: 'destructive',
       });
+      
+      // Set empty array to show "no agents" state instead of loading forever
+      setAgents([]);
     } finally {
       setLoading(false);
     }
@@ -299,6 +329,36 @@ export default function Agents() {
         </Button>
       </div>
 
+      {/* Connection Status Warning */}
+      {!isConnected && (
+        <Card className="border-destructive">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                <div>
+                  <p className="font-medium">Connection Issue</p>
+                  <p className="text-sm text-muted-foreground">{errorDetails}</p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={retryConnection}
+                disabled={connectionLoading}
+              >
+                {connectionLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Retry Connection
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -403,7 +463,7 @@ export default function Agents() {
         <Card>
           <CardContent className="py-12">
             <div className="text-center">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">
                 {agents.length === 0 ? 'No agents deployed yet' : 'No agents match your filters'}
               </h3>

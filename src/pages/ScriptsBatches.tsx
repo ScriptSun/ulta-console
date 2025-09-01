@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, FileText, Copy, MoreVertical, Link } from 'lucide-react';
+import { Plus, Search, Filter, FileText, Copy, MoreVertical, Link, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,8 @@ import { BatchQuickRunModal } from '@/components/scripts/BatchQuickRunModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ScriptBatch {
   id: string;
@@ -70,6 +72,10 @@ const riskColors = {
 };
 
 export default function ScriptsBatches() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { isConnected, hasUserRoles, errorDetails, isLoading: connectionLoading, retryConnection } = useSupabaseConnection();
+  
   const [batches, setBatches] = useState<ScriptBatch[]>([]);
   const [filteredBatches, setFilteredBatches] = useState<ScriptBatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,8 +88,6 @@ export default function ScriptsBatches() {
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [quickRunModalOpen, setQuickRunModalOpen] = useState(false);
   const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('admin');
-  
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchBatches();
@@ -125,14 +129,23 @@ export default function ScriptsBatches() {
   }, [batches, searchQuery, statusFilter, osFilter, riskFilter]);
 
   const fetchBatches = async () => {
+    console.log('Fetching batches - user authenticated:', !!user);
+    
     try {
+      setLoading(true);
+      
       // First, fetch batches without requiring versions
       let { data: batchData, error: batchError } = await supabase
         .from('script_batches')
         .select('*')
         .order('updated_at', { ascending: false });
 
-      if (batchError) throw batchError;
+      console.log('Batches query result:', { data: batchData?.length, error: batchError });
+
+      if (batchError) {
+        console.error('Supabase query error:', batchError);
+        throw batchError;
+      }
 
       // Now fetch version information and dependencies for each batch
       const processedBatches: ScriptBatch[] = [];
@@ -172,13 +185,35 @@ export default function ScriptsBatches() {
       }
 
       setBatches(processedBatches);
-    } catch (error) {
+      
+      if (processedBatches.length === 0) {
+        toast({
+          title: 'No Data',
+          description: 'No script batches found. Check your permissions or create some batches.',
+          variant: 'default',
+        });
+      }
+    } catch (error: any) {
       console.error('Error fetching batches:', error);
+      
+      // Provide more detailed error information
+      let errorMessage = 'Failed to load script batches';
+      if (error?.message?.includes('Failed to fetch')) {
+        errorMessage = 'Network connection failed. Check your internet connection or try refreshing.';
+      } else if (error?.code === 'PGRST116') {
+        errorMessage = 'Access denied. You may not have permission to view batches.';
+      } else if (error?.message) {
+        errorMessage = `Database error: ${error.message}`;
+      }
+
       toast({
-        title: 'Error',
-        description: 'Failed to load script batches',
+        title: 'Connection Error',
+        description: errorMessage,
         variant: 'destructive',
       });
+      
+      // Set empty array to show "no batches" state instead of loading forever
+      setBatches([]);
     } finally {
       setLoading(false);
     }
@@ -389,6 +424,36 @@ export default function ScriptsBatches() {
           New Batch
         </Button>
       </div>
+
+      {/* Connection Status Warning */}
+      {!isConnected && (
+        <Card className="border-destructive">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                <div>
+                  <p className="font-medium">Connection Issue</p>
+                  <p className="text-sm text-muted-foreground">{errorDetails}</p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={retryConnection}
+                disabled={connectionLoading}
+              >
+                {connectionLoading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Retry Connection
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-4">
