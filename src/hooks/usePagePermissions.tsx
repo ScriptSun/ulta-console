@@ -135,20 +135,23 @@ export function usePagePermissions() {
           
           let templatesApplied = 0;
           roleTemplates?.forEach(template => {
+            console.log(`usePagePermissions: Checking template - role: ${template.role}, page: ${template.page_key}, displayRole: ${displayRole}`);
+            
             if (template.role === displayRole && !explicitPageKeys.has(template.page_key)) {
-              if (finalPermissions[template.page_key]) {
-                console.log(`usePagePermissions: Applying template for ${template.page_key}:`, {
-                  can_view: template.can_view,
-                  can_edit: template.can_edit,
-                  can_delete: template.can_delete
-                });
-                finalPermissions[template.page_key] = {
-                  can_view: template.can_view,
-                  can_edit: template.can_edit,
-                  can_delete: template.can_delete
-                };
-                templatesApplied++;
-              }
+              // BUG FIX: Always apply the template, don't check if finalPermissions[template.page_key] exists first
+              // because we may not have initialized that page key yet
+              console.log(`usePagePermissions: Applying template for ${template.page_key}:`, {
+                can_view: template.can_view,
+                can_edit: template.can_edit,
+                can_delete: template.can_delete
+              });
+              
+              finalPermissions[template.page_key] = {
+                can_view: template.can_view,
+                can_edit: template.can_edit,
+                can_delete: template.can_delete
+              };
+              templatesApplied++;
             }
           });
           console.log('usePagePermissions: Applied', templatesApplied, 'role templates');

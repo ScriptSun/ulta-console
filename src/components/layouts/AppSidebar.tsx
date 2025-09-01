@@ -32,7 +32,6 @@ import { cn } from '@/lib/utils'
 import { usePagePermissions } from '@/hooks/usePagePermissions'
 import { useCompanyLogo } from '@/hooks/useCompanyLogo'
 import { useTheme } from 'next-themes'
-import { useAuth } from '@/contexts/AuthContext'
 
 const mainItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, pageKey: 'dashboard' },
@@ -69,7 +68,6 @@ export function AppSidebar() {
   const { canView } = usePagePermissions()
   const { logoSettings } = useCompanyLogo()
   const { theme } = useTheme()
-  const { user } = useAuth()
 
   const isActive = (path: string) => {
     if (path === '/dashboard' && currentPath === '/') return true
