@@ -525,7 +525,9 @@ export default function Chat() {
                   
                   <Select value={selectedAgent} onValueChange={setSelectedAgent}>
                     <SelectTrigger className="w-80 h-10 bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors">
-                      <SelectValue />
+                      <SelectValue>
+                        {selectedAgentData ? selectedAgentData.hostname || `${selectedAgentData.agent_type} Agent` : "Select an agent..."}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="bg-background border-2 border-border shadow-xl z-50 w-80">
                       {agents.map(agent => (
