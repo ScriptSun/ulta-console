@@ -291,7 +291,7 @@ const ResetPassword = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-12 bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-purple-500 focus:ring-purple-500 text-base pr-10"
+                    className="h-12 bg-input border-input-border rounded-lg focus:bg-background focus:border-ring focus:ring-ring text-base pr-10"
                     disabled={isSubmitting}
                     minLength={6}
                   />
@@ -319,7 +319,7 @@ const ResetPassword = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    className="h-12 bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-purple-500 focus:ring-purple-500 text-base pr-10"
+                    className="h-12 bg-input border-input-border rounded-lg focus:bg-background focus:border-ring focus:ring-ring text-base pr-10"
                     disabled={isSubmitting}
                     minLength={6}
                   />
