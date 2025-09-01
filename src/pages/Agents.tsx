@@ -13,7 +13,10 @@ import { AgentsTable } from '@/components/agents/AgentsTable';
 import { DeployAgentModal } from '@/components/agents/DeployAgentModal';
 import { AssignUserToAgentDialog } from '@/components/agents/AssignUserToAgentDialog';
 
+import { supabaseEnhanced, queryWithRetry, testSupabaseConnection } from '@/lib/supabaseClient';
+import { SupabaseConnectionTest } from '@/components/debug/SupabaseConnectionTest';
 import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface Agent {
   id: string;
@@ -64,6 +67,7 @@ export default function Agents() {
   const [agentToAssign, setAgentToAssign] = useState<Agent | null>(null);
   const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('admin');
   const [defaultTab, setDefaultTab] = useState<string>('overview');
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadAgents = async () => {
@@ -87,10 +91,25 @@ export default function Agents() {
   }, [agents, searchQuery, statusFilter, osFilter, regionFilter]);
 
   const fetchAgents = async () => {
-    console.log('Fetching agents - user authenticated:', !!user);
+    console.log('Starting agent fetch - user authenticated:', !!user);
+    setLoading(true);
+    setConnectionError(null);
+    
+    // First test the connection with a simple query
+    const connectionTest = await testSupabaseConnection();
+    if (!connectionTest.success) {
+      setConnectionError(connectionTest.error || 'Connection test failed');
+      setLoading(false);
+      toast({
+        title: 'Connection Failed',
+        description: connectionTest.error,
+        variant: 'destructive',
+      });
+      return;
+    }
     
     try {
-      // Simple query without user join since auth.users isn't accessible via API
+      // Simple query with retry logic built-in
       const { data, error } = await supabase
         .from('agents')
         .select(`
@@ -100,49 +119,59 @@ export default function Agents() {
         `)
         .order('created_at', { ascending: false });
 
-      console.log('Agents query result:', { data: data?.length, error });
+      console.log('Agents query completed:', { 
+        success: !error, 
+        dataCount: data?.length, 
+        error: error?.message 
+      });
 
       if (error) {
-        console.error('Supabase query error:', error);
+        console.error('Supabase agents query error:', error);
+        setConnectionError(`Database query failed: ${error.message}`);
         throw error;
       }
 
-      // Use actual status from database
       const agentsWithStatus = (data || []).map((agent) => ({
         ...agent
       }));
 
-      console.log('Setting agents data:', agentsWithStatus.length);
+      console.log('Successfully fetched agents:', agentsWithStatus.length);
       setAgents(agentsWithStatus as Agent[]);
       
       if (agentsWithStatus.length === 0) {
         toast({
-          title: 'No Data',
-          description: 'No agents found. Check your permissions or create some agents.',
+          title: 'No Agents Found',
+          description: 'No agents found in the database. Check your permissions or add some agents.',
+          variant: 'default',
+        });
+      } else {
+        toast({
+          title: 'Success',
+          description: `Loaded ${agentsWithStatus.length} agents successfully.`,
           variant: 'default',
         });
       }
+      
     } catch (error: any) {
       console.error('Error fetching agents:', error);
       
-      // Provide more detailed error information
-      let errorMessage = 'Failed to load agents';
-      if (error?.message?.includes('Failed to fetch')) {
-        errorMessage = 'Network connection failed. Check your internet connection or try refreshing.';
-      } else if (error?.code === 'PGRST116') {
-        errorMessage = 'Access denied. You may not have permission to view agents.';
-      } else if (error?.message) {
+      let errorMessage = 'Failed to load agents from database.';
+      
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
+        errorMessage = 'Network connection to database failed. Check your internet connection.';
+      } else if (error.message?.includes('JWT') || error.message?.includes('auth')) {
+        errorMessage = 'Authentication issue. Try refreshing the page.';
+      } else if (error.message) {
         errorMessage = `Database error: ${error.message}`;
       }
-
+      
+      setConnectionError(errorMessage);
+      
       toast({
         title: 'Connection Error',
         description: errorMessage,
         variant: 'destructive',
       });
-      
-      // Set empty array to show "no agents" state instead of loading forever
-      setAgents([]);
     } finally {
       setLoading(false);
     }
@@ -324,7 +353,33 @@ export default function Agents() {
         </Button>
       </div>
 
-      {/* Connection Status - Simplified */}
+      {/* Connection Error Alert */}
+      {connectionError && (
+        <Alert className="mb-6 border-destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Database Connection Issue</AlertTitle>
+          <AlertDescription className="mt-2">
+            <div>{connectionError}</div>
+            <div className="mt-3 space-x-2">
+              <Button size="sm" variant="outline" onClick={fetchAgents}>
+                Retry Connection
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Debug Panel - Show when there are connection issues */}
+      {connectionError && (
+        <div className="mb-6">
+          <SupabaseConnectionTest />
+        </div>
+      )}
+
+      {/* Connection Status - Show when no agents and not loading */}
       {agents.length === 0 && !loading && (
         <Card className="border-warning">
           <CardContent className="p-4">
