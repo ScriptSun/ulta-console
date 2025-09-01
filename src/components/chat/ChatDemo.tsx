@@ -455,57 +455,86 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           const accumulated = data.accumulated || data.delta || '';
           const isJsonResponse = accumulated.trim().startsWith('{') && accumulated.includes('"mode"');
           
-          let contentToShow = '';
-          let shouldShowCheckingPhase = false;
-          
           if (isJsonResponse) {
-            // Try to extract summary/message from partial JSON for streaming
+            // Always show "Checking my ability" for JSON responses initially
+            setRouterPhase('Checking my ability');
+            
+            // Try to extract summary/message from partial JSON
+            let extractedText = '';
             try {
-              // Look for the message or summary field in the JSON
-              const messageMatch = accumulated.match(/"message":\s*"([^"]*)"/) || 
-                                 accumulated.match(/"summary":\s*"([^"]*)"/);
-              if (messageMatch) {
-                contentToShow = messageMatch[1];
-                setRouterPhase(''); // Clear the checking phase when we have content
-              } else {
-                // Show "Checking my ability" phase when we don't have summary yet
-                shouldShowCheckingPhase = true;
-                setRouterPhase('Checking my ability');
+              // Look for complete summary or message fields
+              const summaryMatch = accumulated.match(/"summary":\s*"([^"]+)"/);
+              const messageMatch = accumulated.match(/"message":\s*"([^"]+)"/);
+              
+              if (summaryMatch && summaryMatch[1]) {
+                extractedText = summaryMatch[1];
+              } else if (messageMatch && messageMatch[1]) {
+                extractedText = messageMatch[1];
               }
             } catch (e) {
-              // If parsing fails, show checking phase
-              shouldShowCheckingPhase = true;
-              setRouterPhase('Checking my ability');
+              console.log('JSON parsing error:', e);
+            }
+            
+            // Only show content when we have clean extracted text (not JSON)
+            if (extractedText && extractedText.length > 10) {
+              // Add small delay to ensure "Checking my ability" is seen
+              setTimeout(() => {
+                setRouterPhase(''); // Clear the checking phase
+                
+                setMessages(prev => {
+                  const updated = [...prev];
+                  let foundPending = false;
+                  
+                  for (let i = updated.length - 1; i >= 0; i--) {
+                    if (updated[i].pending && updated[i].role === 'assistant') {
+                      updated[i] = {
+                        ...updated[i],
+                        content: extractedText
+                      };
+                      foundPending = true;
+                      break;
+                    }
+                  }
+                  
+                  if (!foundPending) {
+                    const streamingMessage: Message = {
+                      id: `streaming-${Date.now()}`,
+                      role: 'assistant',
+                      content: extractedText,
+                      timestamp: new Date(),
+                      pending: true
+                    };
+                    updated.push(streamingMessage);
+                  }
+                  
+                  return updated;
+                });
+              }, 800); // 800ms delay to show "Checking my ability"
             }
           } else {
-            // For regular text responses, show everything and clear phase
-            contentToShow = accumulated;
+            // For regular text responses, show immediately and clear phase
             setRouterPhase('');
-          }
-          
-          // Only create/update message if we have content to show (not during checking phase)
-          if (contentToShow && !shouldShowCheckingPhase) {
+            
             setMessages(prev => {
               const updated = [...prev];
-              // Find the most recent pending message
               let foundPending = false;
+              
               for (let i = updated.length - 1; i >= 0; i--) {
                 if (updated[i].pending && updated[i].role === 'assistant') {
                   updated[i] = {
                     ...updated[i],
-                    content: contentToShow
+                    content: accumulated
                   };
                   foundPending = true;
                   break;
                 }
               }
               
-              // If no pending message exists, create one now
               if (!foundPending) {
                 const streamingMessage: Message = {
                   id: `streaming-${Date.now()}`,
                   role: 'assistant',
-                  content: contentToShow,
+                  content: accumulated,
                   timestamp: new Date(),
                   pending: true
                 };
