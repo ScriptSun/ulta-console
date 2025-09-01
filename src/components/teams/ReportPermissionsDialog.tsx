@@ -248,8 +248,8 @@ export function ReportPermissionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
             Report Permissions for {member.admin_profiles?.full_name}
@@ -259,7 +259,7 @@ export function ReportPermissionsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-4 flex-shrink-0">
           <Badge variant="secondary">{member.role}</Badge>
           <span className="text-sm text-muted-foreground">
             {member.admin_profiles?.email}
@@ -267,12 +267,13 @@ export function ReportPermissionsDialog({
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-8 flex-1">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="space-y-6 overflow-y-auto pr-2" style={{ maxHeight: 'calc(80vh - 200px)' }}>
-            {reports && Object.entries(groupReportsByCategory(reports)).map(([category, categoryReports]) => {
+          <div className="flex-1 overflow-y-auto pr-2">
+            <div className="space-y-6 pb-4">
+              {reports && Object.entries(groupReportsByCategory(reports)).map(([category, categoryReports]) => {
               return (
                 <div key={category} className="space-y-3">
                   <h3 className="text-lg font-semibold text-foreground">
@@ -350,10 +351,11 @@ export function ReportPermissionsDialog({
                 </div>
               );
             })}
+            </div>
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
+        <div className="flex justify-end gap-2 pt-4 border-t mt-4 bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
