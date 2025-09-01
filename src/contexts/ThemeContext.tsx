@@ -109,8 +109,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const savedMode = localStorage.getItem('theme-mode') as ThemeMode;
       if (savedMode) {
         setModeState(savedMode);
+        // Automatically set appropriate theme variant based on saved mode
+        if (savedMode === 'light') {
+          setCurrentTheme(defaultLightTheme);
+        } else if (savedMode === 'dark') {
+          setCurrentTheme(defaultDarkTheme);
+        }
       } else {
         setModeState('dark');
+        setCurrentTheme(defaultDarkTheme);
         localStorage.setItem('theme-mode', 'dark');
       }
 
@@ -120,11 +127,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         try {
           const themes = JSON.parse(savedThemes) as CompanyTheme[];
           setAvailableThemes(themes);
-          
-          const activeTheme = themes.find(t => t.is_active);
-          if (activeTheme) {
-            setCurrentTheme(activeTheme);
-          }
         } catch (e) {
           console.error('Error parsing saved themes:', e);
         }
@@ -140,6 +142,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setModeState(newMode);
     localStorage.setItem('theme-mode', newMode);
     applyThemeMode(newMode);
+    
+    // Automatically set appropriate theme variant based on mode
+    if (newMode === 'light') {
+      setCurrentTheme(defaultLightTheme);
+    } else if (newMode === 'dark') {
+      setCurrentTheme(defaultDarkTheme);
+    }
   };
 
   const applyThemeMode = (themeMode: ThemeMode) => {
