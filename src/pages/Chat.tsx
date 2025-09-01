@@ -40,7 +40,7 @@ interface Message {
   timestamp: Date;
   pending?: boolean;
   collapsed?: boolean;
-  showInputsDelayed?: boolean;
+  showInputsDelayed?: boolean; // Flag to control input form visibility timing
   taskStatus?: {
     type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done' | 'input_error';
     intent: string;
@@ -67,6 +67,7 @@ interface Message {
       [key: string]: any;
     }>;
   };
+  // New router decision fields
   decision?: {
     task: string;
     status?: string;
@@ -95,10 +96,12 @@ interface Message {
     suggested_fixes: string[];
   };
   renderConfig?: RenderConfig;
+  // Execution tracking
   executionStatus?: {
     run_id: string;
     status: 'queued' | 'running' | 'completed' | 'failed';
   };
+  // Preflight tracking
   preflightStatus?: {
     agent_id: string;
     decision: any;
@@ -130,7 +133,6 @@ export default function Chat() {
   const [compactDensity, setCompactDensity] = useState(false);
   const [enableRealTime, setEnableRealTime] = useState(true);
   const [autoClear, setAutoClear] = useState(false);
-  const [showUnreadBadge, setShowUnreadBadge] = useState(true);
   const [conversationOnly, setConversationOnly] = useState(false);
   const [apiLogs, setApiLogs] = useState<any[]>([]);
   const [logViewerOpen, setLogViewerOpen] = useState(false);
@@ -267,15 +269,236 @@ export default function Chat() {
     }
   };
 
+  // Bootstrap chat session
+  const bootstrapChat = async () => {
+    if (conversationId) return conversationId;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Authentication required');
+      }
+
+      const { data, error } = await supabase.functions.invoke('chat-api', {
+        body: {
+          action: 'start_conversation',
+          agent_id: selectedAgent,
+          session_start_time: sessionStartTime.current
+        }
+      });
+
+      if (error) throw error;
+
+      setConversationId(data.conversation_id);
+      return data.conversation_id;
+    } catch (error) {
+      console.error('Error starting chat session:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to start chat session",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  // Send message using new router functionality
+  const sendMessage = async (content: string, isAction = false) => {
+    if (!content.trim() || !selectedAgent) return;
+
+    const currentConversationId = await bootstrapChat();
+    if (!currentConversationId) return;
+
+    // Check if this is an execution command (JSON with inputs or confirm flags)
+    let isExecutionCommand = false;
+    let executionData: any = null;
+    
+    try {
+      if (content.startsWith('{')) {
+        executionData = JSON.parse(content);
+        isExecutionCommand = true;
+      }
+    } catch (error) {
+      // Not JSON, treat as normal message
+    }
+
+    // Add user message immediately
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: isExecutionCommand ? 'Execute with provided inputs' : content.trim(),
+      timestamp: new Date(),
+      pending: false
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Authentication required');
+      }
+
+      // Handle execution commands (from InputForm submissions)
+      if (isExecutionCommand && executionData?.inputs) {
+        // Get the last decision from messages
+        const lastDecision = messages.filter(m => m.decision).pop()?.decision;
+        if (!lastDecision) {
+          throw new Error('No previous decision found for execution');
+        }
+
+        // Call execution endpoint
+        const { data: execData, error: execError } = await supabase.functions.invoke('ultaai-exec-run', {
+          body: {
+            agent_id: selectedAgent,
+            decision: { ...lastDecision, params: executionData.inputs },
+            confirm: true
+          }
+        });
+
+        if (execError) throw execError;
+
+        // Add execution result message
+        const execMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: getExecutionMessage(execData),
+          timestamp: new Date(),
+          pending: false,
+          executionResult: execData
+        };
+
+        setMessages(prev => [...prev, execMessage]);
+        setIsTyping(false);
+        return;
+      }
+
+      // Normal chat flow - use WebSocket router for streaming or conversation-only mode
+      if (conversationOnly) {
+        // Conversation-only mode - provide chat response without server actions
+        const conversationResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: generateConversationResponse(content.trim()),
+          timestamp: new Date(),
+          pending: false
+        };
+        
+        setMessages(prev => [...prev, conversationResponse]);
+        setIsTyping(false);
+        return;
+      }
+      
+      if (!isConnected) {
+        throw new Error('WebSocket router not connected');
+      }
+      
+      // Start thinking sequence first, then send API request
+      setIsTyping(true);
+      setRouterPhase('Checking my ability');
+      
+      // Wait 2 seconds, then show Analyzing server
+      setTimeout(() => {
+        setRouterPhase('Analyzing server');
+        setCandidateCount(5);
+        
+        // After another 2 seconds, send the actual API request
+        setTimeout(() => {
+          sendRequest({
+            agent_id: selectedAgent,
+            user_request: content.trim()
+          });
+        }, 2000);
+      }, 2000);
+      
+      // The response will be handled by the event listeners
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
+      
+      // Add error message
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+        pending: false
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      setIsTyping(false);
+    }
+  };
+
+  // Generate conversation-only responses
+  const generateConversationResponse = (userInput: string): string => {
+    const input = userInput.toLowerCase();
+    
+    // WordPress installation
+    if (input.includes('wordpress') || input.includes('wp')) {
+      return "I'd be happy to help you with WordPress! In conversation-only mode, I can discuss installation steps, requirements, and best practices, but I won't actually install anything on your server. Would you like me to explain the WordPress installation process?";
+    }
+    
+    // System monitoring
+    if (input.includes('cpu') || input.includes('memory') || input.includes('disk')) {
+      return "For system monitoring, I can explain various commands and tools. In conversation-only mode, I won't execute these commands, but I can guide you through checking CPU usage with `top` or `htop`, memory with `free -h`, and disk space with `df -h`. Would you like detailed explanations of any of these?";
+    }
+    
+    // Service management
+    if (input.includes('service') || input.includes('nginx') || input.includes('apache')) {
+      return "I can help explain service management! In conversation-only mode, I can guide you through using `systemctl` commands to manage services like nginx or apache. For example, `systemctl status nginx` to check status, `systemctl restart nginx` to restart. What specific service would you like to learn about?";
+    }
+    
+    // Default response
+    return "I'm here to help! In conversation-only mode, I can provide guidance, explanations, and best practices without making changes to your system. What would you like to learn about or discuss?";
+  };
+
+  // Get execution message from result
+  const getExecutionMessage = (result: any): string => {
+    if (result.status === 'success') {
+      return `✅ Task completed successfully!\n\n${result.message || 'Execution finished.'}`;
+    } else if (result.status === 'error') {
+      return `❌ Task failed: ${result.error || 'Unknown error occurred'}`;
+    } else {
+      return `📋 Task status: ${result.status}\n\n${result.message || 'Task is being processed.'}`;
+    }
+  };
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Handle textarea input
+  const handleTextareaKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(inputValue);
+    }
+  };
+
+  // Connect WebSocket when component mounts and agent is selected
+  useEffect(() => {
+    if (selectedAgent) {
+      connect();
+      connectExec();
+    }
+    
+    return () => {
+      disconnect();
+      disconnectExec();
+    };
+  }, [selectedAgent, connect, disconnect, connectExec, disconnectExec]);
+
   const selectedAgentData = agents.find(a => a.id === selectedAgent);
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">AI Chat Assistant</h1>
         <p className="text-muted-foreground">
@@ -368,7 +591,7 @@ export default function Chat() {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <label className="text-sm">Chat without making edits</label>
+                      <label className="text-sm">Chat without server actions</label>
                       <Switch
                         checked={conversationOnly}
                         onCheckedChange={setConversationOnly}
@@ -395,11 +618,28 @@ export default function Chat() {
               {conversationOnly && (
                 <div className="mt-2 p-2 bg-muted rounded-lg text-xs flex items-center justify-center gap-2">
                   <MessageCircle className="w-3 h-3" />
-                  Chat without making edits to your project
+                  Chat without making server actions
                 </div>
               )}
             </div>
           )}
+          
+          {/* Messages */}
+          {messages.map((message) => (
+            <div key={message.id} className={`group flex gap-3 ${
+              message.role === 'user' ? 'justify-end' : 'justify-start'
+            }`}>
+              <div className={`max-w-[80%] rounded-lg p-3 ${
+                message.role === 'user'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted'
+              } ${compactDensity ? 'p-2 text-sm' : ''}`}>
+                <div className="whitespace-pre-wrap">
+                  {typeof message.content === 'string' ? message.content : JSON.stringify(message.content)}
+                </div>
+              </div>
+            </div>
+          ))}
           
           {/* Typing indicator with phases */}
           {isTyping && (
@@ -448,6 +688,7 @@ export default function Chat() {
               ref={textareaRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleTextareaKeyDown}
               placeholder="Type a message..."
               className="min-h-[40px] resize-none"
               rows={1}
@@ -463,7 +704,7 @@ export default function Chat() {
                 <MessageCircle className="w-4 h-4" />
               </Button>
               <Button
-                onClick={() => {}}
+                onClick={() => sendMessage(inputValue)}
                 disabled={!inputValue.trim() || isTyping}
                 size="sm"
               >
@@ -488,7 +729,7 @@ export default function Chat() {
                       variant="ghost"
                       size="sm"
                       className="w-full justify-start"
-                      onClick={() => {}}
+                      onClick={() => sendMessage(action.label, true)}
                     >
                       {action.label}
                     </Button>
