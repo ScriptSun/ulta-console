@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, X, AlertCircle, Info, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Bell, Check, X, AlertCircle, Info, CheckCircle, AlertTriangle, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEmailNotifications } from '@/hooks/useEmailNotifications';
 
 interface Notification {
   id: string;
@@ -26,6 +28,8 @@ interface Notification {
 
 export function NotificationCenter() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { sendCustomNotification, loading: emailLoading } = useEmailNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: '1',
@@ -82,6 +86,22 @@ export function NotificationCenter() {
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(notification => notification.id !== id));
+  };
+
+  const sendEmailNotification = async (notification: Notification) => {
+    if (!user?.email) {
+      toast({
+        title: 'Email Required',
+        description: 'You must be logged in to send email notifications.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    await sendCustomNotification(
+      notification.title,
+      notification.message
+    );
   };
 
   const getIcon = (type: Notification['type']) => {
@@ -183,6 +203,19 @@ export function NotificationCenter() {
                                 {!notification.read && (
                                   <div className="w-2 h-2 bg-primary rounded-full" />
                                 )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    sendEmailNotification(notification);
+                                  }}
+                                  disabled={emailLoading}
+                                  className="h-7 w-7 p-0 hover:bg-blue-100 hover:text-blue-600"
+                                  title="Send as email"
+                                >
+                                  <Mail className="h-3 w-3" />
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"

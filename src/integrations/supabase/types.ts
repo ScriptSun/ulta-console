@@ -1625,6 +1625,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_logs: {
+        Row: {
+          created_at: string
+          email: string
+          error_message: string | null
+          id: string
+          sent_at: string
+          status: string
+          subject: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          error_message?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+          subject: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+          subject?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       intent_mappings: {
         Row: {
           active: boolean
