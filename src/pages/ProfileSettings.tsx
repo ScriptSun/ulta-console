@@ -72,7 +72,6 @@ interface UserSession {
 export default function ProfileSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { mode } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<AvatarEditor>(null);
   
@@ -125,20 +124,6 @@ export default function ProfileSettings() {
     rejectEmailChangeRequest,
     cancelEmailChangeRequest,
   } = useEmailChangeRequests();
-
-  // Dark theme variants hook
-  const {
-    darkThemeVariant,
-    setDarkThemeVariant,
-    getCurrentDarkTheme,
-    darkThemes,
-    lightThemeVariant,
-    setLightThemeVariant,
-    getCurrentLightTheme,
-    lightThemes,
-    isDarkMode,
-    isLightMode,
-  } = useThemeVariants();
 
   // Load user profile data and preferences
   useEffect(() => {
@@ -469,11 +454,6 @@ export default function ProfileSettings() {
     }
   };
 
-  const handleThemeChange = async (newMode: string) => {
-    // This will be handled by the new ThemeSelector component
-    console.log('Theme change:', newMode);
-  };
-
   const handlePasswordChange = async () => {
     if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
       toast({
@@ -666,14 +646,10 @@ export default function ProfileSettings() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Profile
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2">
-            <Monitor className="h-4 w-4" />
-            Appearance
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
@@ -1107,16 +1083,6 @@ export default function ProfileSettings() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-
-         <TabsContent value="appearance">
-          <div className="space-y-6">
-            <CompanyLogoSection />
-            
-            <ThemeSelector />
-            
-            <ThemeCustomizer />
-          </div>
         </TabsContent>
 
         <TabsContent value="notifications">

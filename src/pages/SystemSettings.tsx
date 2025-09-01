@@ -24,7 +24,8 @@ import {
   ChevronUp,
   ChevronDown,
   MessageSquare,
-  Bot
+  Bot,
+  Palette
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -49,6 +50,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AITestPanel } from '@/components/ai/AITestPanel';
+import { CompanyLogoSection } from '@/components/settings/CompanyLogoSection';
+import { ThemeSelector } from '@/components/theme/ThemeSelector';
+import { ThemeCustomizer } from '@/components/theme/ThemeCustomizer';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SystemSetting {
   id: string;
@@ -61,8 +66,11 @@ interface SystemSetting {
 
 export default function SystemSettings() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<SystemSetting[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
 
   // AI Models Configuration
   const [aiSettings, setAiSettings] = useState({
@@ -110,7 +118,34 @@ export default function SystemSettings() {
 
   useEffect(() => {
     loadSystemSettings();
-  }, []);
+    if (user) {
+      checkUserRole();
+    }
+  }, [user]);
+
+  const checkUserRole = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('console_team_members')
+        .select('role')
+        .eq('admin_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking user role:', error);
+        return;
+      }
+
+      if (data) {
+        setUserRole(data.role);
+        setIsOwnerOrAdmin(['Owner', 'Admin'].includes(data.role));
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error);
+    }
+  };
 
   const loadSystemSettings = async () => {
     try {
@@ -456,7 +491,7 @@ export default function SystemSettings() {
       </div>
 
       <Tabs defaultValue="ai" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="ai" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
             AI Models
@@ -473,6 +508,12 @@ export default function SystemSettings() {
             <Bell className="h-4 w-4" />
             Notifications
           </TabsTrigger>
+          {isOwnerOrAdmin && (
+            <TabsTrigger value="theme" className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Theme
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="ai">
@@ -1013,6 +1054,35 @@ export default function SystemSettings() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isOwnerOrAdmin && (
+          <TabsContent value="theme">
+            <div className="space-y-6">
+              <Card className="bg-gradient-card border-card-border shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="h-5 w-5" />
+                    Theme & Branding Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Configure system-wide theme, colors, and company branding. Only owners and administrators can modify these settings.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <CompanyLogoSection />
+                  
+                  <div className="border-t pt-6">
+                    <ThemeSelector />
+                  </div>
+                  
+                  <div className="border-t pt-6">
+                    <ThemeCustomizer />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
