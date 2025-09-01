@@ -19,6 +19,8 @@ import {
   Play
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import Editor from '@monaco-editor/react';
+import { useTheme } from 'next-themes';
 import {
   Dialog,
   DialogContent,
@@ -133,6 +135,7 @@ const PROMPT_TARGETS = [
 export function SystemPromptTab() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [versions, setVersions] = useState<SystemPromptVersion[]>([]);
   const [currentVersion, setCurrentVersion] = useState<SystemPromptVersion | null>(null);
@@ -179,7 +182,10 @@ export function SystemPromptTab() {
         const latest = prompts[prompts.length - 1];
         console.log('Latest version:', latest);
         setCurrentVersion(latest);
-        setDraftContent(latest?.content || ULTAAI_SYSTEM_PROMPT);
+        
+        // Format content as JSON for editor
+        const formattedContent = formatContentAsJson(latest?.content || ULTAAI_SYSTEM_PROMPT);
+        setDraftContent(formattedContent);
         setDraftTargets(latest?.targets || ['router', 'chat']);
       } else {
         console.log('No data found, creating initial version');
@@ -197,7 +203,10 @@ export function SystemPromptTab() {
         
         setVersions([initialPrompt]);
         setCurrentVersion(initialPrompt);
-        setDraftContent(initialPrompt.content);
+        
+        // Format content as JSON for editor
+        const formattedContent = formatContentAsJson(initialPrompt.content);
+        setDraftContent(formattedContent);
         setDraftTargets(initialPrompt.targets);
       }
     } catch (error) {
@@ -207,6 +216,40 @@ export function SystemPromptTab() {
         description: 'Failed to load system prompt versions.',
         variant: 'destructive',
       });
+    }
+  };
+
+  const formatContentAsJson = (content: string) => {
+    try {
+      // Create a JSON object with the system prompt
+      const jsonObject = {
+        systemPrompt: content,
+        metadata: {
+          type: "system_prompt",
+          version: "1.0",
+          lastModified: new Date().toISOString()
+        }
+      };
+      return JSON.stringify(jsonObject, null, 2);
+    } catch (error) {
+      console.error('Error formatting content as JSON:', error);
+      // Fallback to simple JSON structure
+      return JSON.stringify({
+        systemPrompt: content,
+        metadata: {
+          type: "system_prompt"
+        }
+      }, null, 2);
+    }
+  };
+
+  const parseJsonContent = (jsonContent: string): string => {
+    try {
+      const parsed = JSON.parse(jsonContent);
+      return parsed.systemPrompt || jsonContent;
+    } catch (error) {
+      console.error('Error parsing JSON content:', error);
+      return jsonContent;
     }
   };
 
@@ -233,9 +276,12 @@ export function SystemPromptTab() {
   const saveDraft = async () => {
     setLoading(true);
     try {
+      // Parse the JSON content to extract the actual system prompt
+      const actualContent = parseJsonContent(draftContent);
+      
       const newVersion: SystemPromptVersion = {
         id: crypto.randomUUID(),
-        content: draftContent,
+        content: actualContent,
         version: (versions.length || 0) + 1,
         published: false,
         created_at: new Date().toISOString(),
@@ -314,7 +360,9 @@ export function SystemPromptTab() {
     const version = versions.find(v => v.id === versionId);
     if (!version) return;
 
-    setDraftContent(version.content);
+    // Format the rolled-back content as JSON
+    const formattedContent = formatContentAsJson(version.content);
+    setDraftContent(formattedContent);
     setDraftTargets(version.targets);
     
     toast({
@@ -443,24 +491,43 @@ This is exactly what gets sent to OpenAI:
         </CardHeader>
         <CardContent className="space-y-6">
 
-          {/* Prompt Editor */}
+          {/* JSON Code Editor */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label htmlFor="prompt-content" className="text-base font-medium">
-                System Prompt Content
+                System Prompt Content (JSON Format)
               </Label>
               <div className="text-sm text-muted-foreground">
                 {draftContent.length} characters
               </div>
             </div>
-            <Textarea
-              id="prompt-content"
-              data-prompt-editor="true"
-              value={draftContent}
-              onChange={(e) => setDraftContent(e.target.value)}
-              placeholder="Enter your system prompt here..."
-              className="min-h-[300px] font-mono text-sm"
-            />
+            <div className="border border-border rounded-lg overflow-hidden">
+              <Editor
+                height="400px"
+                language="json"
+                theme={theme === 'dark' ? 'vs-dark' : 'vs'}
+                value={draftContent}
+                onChange={(value) => setDraftContent(value || '')}
+                options={{
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  automaticLayout: true,
+                  fontSize: 14,
+                  lineNumbers: 'on',
+                  folding: true,
+                  bracketMatching: 'always',
+                  autoIndent: 'full',
+                  formatOnPaste: true,
+                  formatOnType: true,
+                  tabSize: 2,
+                  insertSpaces: true
+                }}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Edit the systemPrompt field in the JSON object above. The content will be automatically parsed when saved.
+            </p>
           </div>
 
           {/* Target Selection */}
