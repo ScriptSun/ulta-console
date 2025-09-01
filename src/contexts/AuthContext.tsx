@@ -75,6 +75,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // Create session record if user is already logged in
+      if (session?.user) {
+        supabase.functions.invoke('session-management', {
+          body: { action: 'create' }
+        }).catch(error => {
+          console.error('Failed to create initial session record:', error);
+        });
+      }
     });
 
     return () => subscription.unsubscribe();

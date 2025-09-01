@@ -116,16 +116,16 @@ serve(async (req) => {
         .from('user_sessions')
         .delete()
         .eq('user_id', user.id)
-        .lt('last_seen', oneHourAgo)
+        .lt('updated_at', oneHourAgo)
       
       console.log('Fetching sessions for user:', user.id)
       
-      // Get only active sessions (last seen within 1 hour)
+      // Get only active sessions (updated within 1 hour)
       const { data: userSessions, error: sessionsError } = await supabase
         .from('user_sessions')
         .select('*')
         .eq('user_id', user.id)
-        .gte('last_seen', oneHourAgo)
+        .gte('updated_at', oneHourAgo)
         .order('created_at', { ascending: false })
 
       if (sessionsError) {
@@ -159,7 +159,7 @@ serve(async (req) => {
             os,
             location,
             is_active: session.is_active,
-            last_seen: session.updated_at || session.created_at,
+            last_seen: session.updated_at,
             created_at: session.created_at
           }
         })
@@ -235,7 +235,7 @@ serve(async (req) => {
         if (currentSessions && currentSessions.length > 0) {
           const sessionIds = currentSessions.map(s => s.id)
           
-          // Mark all sessions as inactive
+          // Mark all sessions as inactive and delete them
           const { error: revokeAllError } = await supabase
             .from('user_sessions')
             .update({ 
@@ -295,12 +295,13 @@ serve(async (req) => {
         
         console.log('Processing session for user:', user.id, 'fingerprint:', deviceFingerprint)
         
-        // Check if an active session exists for this device fingerprint
+        // Check if an active session exists for this device (using user_agent + ip as identifier)
         const { data: existingSession, error: findError } = await supabase
           .from('user_sessions')
           .select('*')
           .eq('user_id', user.id)
-          .eq('device_fingerprint', deviceFingerprint)
+          .eq('user_agent', userAgent)
+          .eq('ip_address', clientIP)
           .eq('is_active', true)
           .single()
         
@@ -321,7 +322,6 @@ serve(async (req) => {
           const { data: updatedSession, error: updateError } = await supabase
             .from('user_sessions')
             .update({
-              last_seen: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               ip_address: clientIP, // Update IP in case it changed
               user_agent: userAgent, // Update user agent in case browser was updated
@@ -353,11 +353,9 @@ serve(async (req) => {
               ip_address: clientIP,
               user_agent: userAgent,
               device_type: deviceType,
-              device_fingerprint: deviceFingerprint,
               location,
               is_active: true,
-              session_start: new Date().toISOString(),
-              last_seen: new Date().toISOString()
+              session_start: new Date().toISOString()
             })
             .select()
             .single()
@@ -379,7 +377,7 @@ serve(async (req) => {
           os,
           device_type: deviceType,
           location: sessionData.location,
-          last_seen: sessionData.last_seen || sessionData.updated_at || sessionData.created_at
+          last_seen: sessionData.updated_at || sessionData.created_at
         }
 
         return new Response(
