@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText, Brain, Search } from 'lucide-react';
+import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText, Brain, Search, Code } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
@@ -40,6 +40,7 @@ interface Message {
   timestamp: Date;
   pending?: boolean;
   collapsed?: boolean;
+  rawResponse?: string; // Store raw API response for debugging
   taskStatus?: {
     type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done' | 'input_error';
     intent: string;
@@ -433,6 +434,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           console.log('Router token:', data);
           setStreamingResponse(data.accumulated);
           
+          // Check if the accumulated content looks like JSON
+          const accumulated = data.accumulated || data.delta || '';
+          const isJsonResponse = accumulated.trim().startsWith('{') && accumulated.includes('"mode"');
+          
           // Create or update streaming message
           setMessages(prev => {
             const updated = [...prev];
@@ -442,7 +447,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
               if (updated[i].pending && updated[i].role === 'assistant') {
                 updated[i] = {
                   ...updated[i],
-                  content: data.accumulated || data.delta || ''
+                  // Store raw response for debugging but don't show JSON in chat
+                  content: isJsonResponse ? '' : accumulated,
+                  rawResponse: accumulated // Store raw response for code inspection
                 };
                 foundPending = true;
                 break;
@@ -454,7 +461,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
               const streamingMessage: Message = {
                 id: `streaming-${Date.now()}`,
                 role: 'assistant',
-                content: data.accumulated || data.delta || '',
+                content: isJsonResponse ? '' : accumulated,
+                rawResponse: accumulated, // Store raw response for code inspection
                 timestamp: new Date(),
                 pending: true
               };
@@ -489,7 +497,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                   updated[i] = {
                     ...updated[i],
                     pending: false,
-                    decision: data
+                    decision: data,
+                    rawResponse: updated[i].rawResponse || JSON.stringify(data, null, 2)
                   };
                   
                   // Handle different decision modes
@@ -1756,14 +1765,49 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                         <span className="text-xs opacity-70">
                           {message.timestamp.toLocaleTimeString()}
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0"
-                          onClick={() => copyMessage(typeof message.content === 'string' ? message.content : JSON.stringify(message.content))}
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0"
+                            onClick={() => copyMessage(typeof message.content === 'string' ? message.content : JSON.stringify(message.content))}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                          {message.rawResponse && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0"
+                                  aria-label="View raw API response"
+                                >
+                                  <Code className="w-3 h-3" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[600px] max-h-[400px] p-0" align="end">
+                                <div className="relative">
+                                  <div className="flex items-center justify-between p-3 border-b">
+                                    <h4 className="text-sm font-medium">Raw API Response</h4>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => navigator.clipboard.writeText(message.rawResponse!)}
+                                      className="h-6 px-2"
+                                    >
+                                      <Copy className="w-3 h-3 mr-1" />
+                                      Copy
+                                    </Button>
+                                  </div>
+                                  <pre className="p-3 text-xs overflow-auto max-h-[300px] whitespace-pre-wrap font-mono bg-muted/50">
+                                    {message.rawResponse}
+                                  </pre>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
                        </div>
                      </div>
                    </div>

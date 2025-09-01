@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, Brain, Search, CheckCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Copy, Brain, Search, CheckCircle, Code } from 'lucide-react';
 
 interface StreamingChatBubbleProps {
   content: string;
@@ -10,6 +11,7 @@ interface StreamingChatBubbleProps {
   candidateCount?: number;
   onCopy?: (content: string) => void;
   timestamp?: Date;
+  rawResponse?: string; // Raw API response for debugging
 }
 
 export const StreamingChatBubble: React.FC<StreamingChatBubbleProps> = ({
@@ -18,8 +20,10 @@ export const StreamingChatBubble: React.FC<StreamingChatBubbleProps> = ({
   routerPhase,
   candidateCount,
   onCopy,
-  timestamp
+  timestamp,
+  rawResponse
 }) => {
+  const [showRawResponse, setShowRawResponse] = useState(false);
   const getPhaseIcon = (phase: string) => {
     switch (phase) {
       case 'Thinking':
@@ -83,17 +87,52 @@ export const StreamingChatBubble: React.FC<StreamingChatBubbleProps> = ({
               {timestamp.toLocaleTimeString()}
             </span>
           )}
-          {content && onCopy && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0"
-              onClick={() => onCopy(content)}
-              aria-label="Copy message"
-            >
-              <Copy className="w-3 h-3" />
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {content && onCopy && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0"
+                onClick={() => onCopy(content)}
+                aria-label="Copy message"
+              >
+                <Copy className="w-3 h-3" />
+              </Button>
+            )}
+            {rawResponse && (
+              <Dialog open={showRawResponse} onOpenChange={setShowRawResponse}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"  
+                    size="sm"
+                    className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0"
+                    aria-label="View raw API response"
+                  >
+                    <Code className="w-3 h-3" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden">
+                  <DialogHeader>
+                    <DialogTitle>Raw API Response</DialogTitle>
+                  </DialogHeader>
+                  <div className="relative">
+                    <pre className="bg-muted p-4 rounded-md text-xs overflow-auto max-h-[60vh] whitespace-pre-wrap">
+                      {rawResponse}
+                    </pre>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => navigator.clipboard.writeText(rawResponse)}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copy
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
         </div>
       </div>
     </div>
