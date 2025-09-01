@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import AvatarEditor from 'react-avatar-editor';
 import { 
   User, 
   Camera, 
@@ -73,6 +74,7 @@ export default function ProfileSettings() {
   const { toast } = useToast();
   const { mode } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<AvatarEditor>(null);
   
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -86,6 +88,9 @@ export default function ProfileSettings() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
+  const [showCropDialog, setShowCropDialog] = useState(false);
+  const [cropImage, setCropImage] = useState<File | null>(null);
+  const [cropScale, setCropScale] = useState(1);
   
   const [profile, setProfile] = useState({
     full_name: user?.user_metadata?.full_name || '',
@@ -315,14 +320,32 @@ export default function ProfileSettings() {
       return;
     }
 
+    // Open crop dialog instead of direct upload
+    setCropImage(file);
+    setShowCropDialog(true);
+  };
+
+  const handleCropSave = async () => {
+    if (!editorRef.current || !cropImage || !user) return;
+
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      // Get the cropped image as canvas
+      const canvas = editorRef.current.getImage();
+      
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+        }, 'image/jpeg', 0.9);
+      });
+
+      const fileExt = 'jpg';
       const fileName = `${user.id}/avatar.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('profile-images')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, blob, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -331,6 +354,8 @@ export default function ProfileSettings() {
         .getPublicUrl(fileName);
 
       setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+      setShowCropDialog(false);
+      setCropImage(null);
 
       toast({
         title: 'Avatar Updated',
@@ -341,6 +366,50 @@ export default function ProfileSettings() {
       toast({
         title: 'Upload Failed',
         description: 'Failed to upload avatar. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    if (!user) return;
+
+    setUploading(true);
+    try {
+      // Remove from storage if exists
+      if (profile.avatar_url) {
+        const fileName = `${user.id}/avatar.jpg`;
+        await supabase.storage
+          .from('profile-images')
+          .remove([fileName]);
+      }
+
+      // Clear avatar URL from profile
+      setProfile(prev => ({ ...prev, avatar_url: '' }));
+
+      // Update database
+      const { error } = await supabase
+        .from('admin_profiles')
+        .upsert({
+          id: user.id,
+          email: profile.email,
+          full_name: profile.full_name,
+          avatar_url: '',
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Avatar Removed',
+        description: 'Your profile picture has been removed successfully.',
+      });
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+      toast({
+        title: 'Remove Failed',
+        description: 'Failed to remove avatar. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -627,6 +696,17 @@ export default function ProfileSettings() {
                       <Camera className="h-4 w-4" />
                     )}
                   </Button>
+                  {profile.avatar_url && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute -bottom-2 -left-2 h-8 w-8 rounded-full p-0"
+                      onClick={handleAvatarRemove}
+                      disabled={uploading}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -640,8 +720,94 @@ export default function ProfileSettings() {
                   <p className="text-sm text-muted-foreground">
                     Upload a professional photo for your UltaAI profile. Max size 5MB.
                   </p>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Change Photo
+                    </Button>
+                    {profile.avatar_url && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleAvatarRemove}
+                        disabled={uploading}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* Image Cropping Dialog */}
+              <Dialog open={showCropDialog} onOpenChange={setShowCropDialog}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Crop Your Profile Picture</DialogTitle>
+                    <DialogDescription>
+                      Adjust the image to fit perfectly in a circle.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex flex-col items-center space-y-4">
+                    {cropImage && (
+                      <>
+                        <AvatarEditor
+                          ref={editorRef}
+                          image={cropImage}
+                          width={200}
+                          height={200}
+                          border={20}
+                          borderRadius={100}
+                          color={[255, 255, 255, 0.6]}
+                          scale={cropScale}
+                          rotate={0}
+                        />
+                        <div className="w-full space-y-2">
+                          <Label>Zoom</Label>
+                          <input
+                            type="range"
+                            min="1"
+                            max="3"
+                            step="0.1"
+                            value={cropScale}
+                            onChange={(e) => setCropScale(parseFloat(e.target.value))}
+                            className="w-full"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowCropDialog(false);
+                        setCropImage(null);
+                        setCropScale(1);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCropSave} disabled={uploading}>
+                      {uploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Photo'
+                      )}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               <Separator />
 
