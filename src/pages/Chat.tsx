@@ -524,10 +524,10 @@ export default function Chat() {
                   </div>
                   
                   <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-                    <SelectTrigger className="w-64 h-10 bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors">
+                    <SelectTrigger className="w-80 h-10 bg-background border-2 border-border hover:border-primary/50 focus:border-primary transition-colors">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-background border-2 border-border shadow-xl z-50">
+                    <SelectContent className="bg-background border-2 border-border shadow-xl z-50 w-80">
                       {agents.map(agent => (
                         <SelectItem key={agent.id} value={agent.id} className="hover:bg-muted focus:bg-muted cursor-pointer">
                           <div className="flex items-center gap-3 py-1">
