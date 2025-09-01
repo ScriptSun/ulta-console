@@ -353,13 +353,32 @@ export default function ProfileSettings() {
         .from('profile-images')
         .getPublicUrl(fileName);
 
-      setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+      // Add timestamp to force refresh of cached image
+      const timestampedUrl = `${publicUrl}?t=${Date.now()}`;
+
+      // Update profile in database immediately
+      const { error: updateError } = await supabase
+        .from('admin_profiles')
+        .upsert({
+          id: user.id,
+          email: profile.email || user.email,
+          full_name: profile.full_name,
+          avatar_url: timestampedUrl,
+        });
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setProfile(prev => ({ ...prev, avatar_url: timestampedUrl }));
       setShowCropDialog(false);
       setCropImage(null);
 
+      // Trigger a profile reload to refresh TopBar
+      await loadProfile();
+
       toast({
         title: 'Avatar Updated',
-        description: 'Your profile picture has been uploaded successfully.',
+        description: 'Your profile picture has been saved automatically.',
       });
     } catch (error) {
       console.error('Error uploading avatar:', error);
@@ -386,24 +405,27 @@ export default function ProfileSettings() {
           .remove([fileName]);
       }
 
-      // Clear avatar URL from profile
-      setProfile(prev => ({ ...prev, avatar_url: '' }));
-
-      // Update database
+      // Update database immediately
       const { error } = await supabase
         .from('admin_profiles')
         .upsert({
           id: user.id,
-          email: profile.email,
+          email: profile.email || user.email,
           full_name: profile.full_name,
           avatar_url: '',
         });
 
       if (error) throw error;
 
+      // Update local state
+      setProfile(prev => ({ ...prev, avatar_url: '' }));
+
+      // Trigger a profile reload to refresh TopBar
+      await loadProfile();
+
       toast({
         title: 'Avatar Removed',
-        description: 'Your profile picture has been removed successfully.',
+        description: 'Your profile picture has been removed automatically.',
       });
     } catch (error) {
       console.error('Error removing avatar:', error);

@@ -32,6 +32,33 @@ export function TopBar() {
     }
   }, [user]);
 
+  // Set up real-time listener for profile changes
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = supabase
+      .channel('profile_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'admin_profiles',
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Profile updated:', payload);
+          // Reload profile when it changes
+          loadUserProfile();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user]);
+
   const loadUserProfile = async () => {
     try {
       const { data, error } = await supabase
@@ -43,6 +70,8 @@ export function TopBar() {
       if (data) {
         if (data.avatar_url) {
           setAvatarUrl(data.avatar_url);
+        } else {
+          setAvatarUrl(''); // Clear avatar if removed
         }
         if (data.full_name) {
           setFullName(data.full_name);
