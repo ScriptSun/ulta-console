@@ -17,7 +17,7 @@ export default function Dashboard() {
   const { data: aiInsightsData, isLoading: aiInsightsLoading } = useAIInsights(dateRange);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header with Date Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
