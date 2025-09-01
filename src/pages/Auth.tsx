@@ -69,22 +69,9 @@ const Auth = () => {
   const logoUrl = theme === 'dark' ? logoSettings.logo_dark_url : logoSettings.logo_light_url;
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{
-        background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 30%, #c084fc 70%, #a855f7 100%)',
-      }}
-    >
-      {/* Background Pattern */}
-      <div 
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.6'%3E%3Ccircle cx='7' cy='7' r='1'/%3E%3Ccircle cx='37' cy='37' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-      
-      <div className="w-full max-w-md relative z-10">
-        <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+      <div className="w-full max-w-sm relative z-10">
+        <Card className="border-0 shadow-lg bg-white">
           <CardContent className="p-8">
             {/* Logo Section */}
             <div className="text-center mb-8">
@@ -93,48 +80,41 @@ const Auth = () => {
                   <img
                     src={`${logoUrl}?t=${Date.now()}`}
                     alt="Company Logo"
-                    className="h-16 w-auto object-contain"
+                    className="h-16 w-16 object-contain rounded-2xl"
                   />
                 ) : (
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                    <ArrowLeft className="h-8 w-8 text-blue-600 rotate-180" />
+                  <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center">
+                    <span className="text-white text-2xl font-bold">A</span>
                   </div>
                 )}
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Login</h1>
-              <p className="text-gray-600 text-sm">
-                Enter your credentials to log back in
-              </p>
+              <h1 className="text-2xl font-semibold text-gray-900 mb-2">Welcome back,</h1>
             </div>
 
-            <form onSubmit={handleSignIn} className="space-y-6">
+            <form onSubmit={handleSignIn} className="space-y-4">
               {/* Email Field */}
-              <div className="space-y-2">
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="signin-email"
-                    name="email"
-                    type="email"
-                    placeholder="Email"
-                    required
-                    className="pl-10 h-12 bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 focus:ring-blue-500"
-                    disabled={isSubmitting}
-                  />
-                </div>
+              <div className="space-y-1">
+                <Input
+                  id="signin-email"
+                  name="email"
+                  type="email"
+                  placeholder="Email"
+                  required
+                  className="h-12 bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-purple-500 focus:ring-purple-500 text-base"
+                  disabled={isSubmitting}
+                />
               </div>
 
               {/* Password Field */}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
                     id="signin-password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Password"
                     required
-                    className="pl-10 pr-10 h-12 bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 focus:ring-blue-500"
+                    className="h-12 bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-purple-500 focus:ring-purple-500 text-base pr-10"
                     disabled={isSubmitting}
                   />
                   <button
@@ -151,31 +131,10 @@ const Auth = () => {
                 </div>
               </div>
 
-              {/* Remember Me and Forgot Password */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  />
-                  <Label htmlFor="remember" className="text-sm text-gray-600">
-                    Remember me
-                  </Label>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  forgot password ?
-                </button>
-              </div>
-
               {/* Login Button */}
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-medium"
+                className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-base mt-6"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -184,10 +143,21 @@ const Auth = () => {
                     Signing In...
                   </>
                 ) : (
-                  'login'
+                  'Login'
                 )}
               </Button>
             </form>
+
+            {/* Forgot Password */}
+            <div className="text-center mt-6">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+              >
+                Forgotten password?
+              </button>
+            </div>
           </CardContent>
         </Card>
       </div>
