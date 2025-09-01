@@ -132,7 +132,7 @@ export function AppSidebar() {
             return hasLogo ? (
               <>
                 <img
-                  src={logoUrl}
+                  src={`${logoUrl}?t=${Date.now()}`}
                   alt="Company Logo"
                   className="object-contain"
                   style={{

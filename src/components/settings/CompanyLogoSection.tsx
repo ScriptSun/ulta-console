@@ -79,9 +79,9 @@ export function CompanyLogoSection() {
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
               <div className="space-y-4">
                 <div className="h-16 bg-white border rounded flex items-center justify-center">
-                  {logoSettings.logo_light_url ? (
+                   {logoSettings.logo_light_url ? (
                     <img
-                      src={logoSettings.logo_light_url}
+                      src={`${logoSettings.logo_light_url}?t=${Date.now()}`}
                       alt="Light theme logo"
                       className="max-h-full max-w-full object-contain"
                       style={{
@@ -150,9 +150,9 @@ export function CompanyLogoSection() {
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
               <div className="space-y-4">
                 <div className="h-16 bg-gray-900 border rounded flex items-center justify-center">
-                  {logoSettings.logo_dark_url ? (
+                   {logoSettings.logo_dark_url ? (
                     <img
-                      src={logoSettings.logo_dark_url}
+                      src={`${logoSettings.logo_dark_url}?t=${Date.now()}`}
                       alt="Dark theme logo"
                       className="max-h-full max-w-full object-contain"
                       style={{
