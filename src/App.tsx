@@ -28,6 +28,7 @@ import ScriptsBatches from "./pages/ScriptsBatches";
 import ScriptsSettings from "./pages/ScriptsSettings";
 import CommandPolicies from "./pages/CommandPolicies";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import AgentTasks from "./pages/AgentTasks";
 import ChatInbox from "./pages/ChatInbox";
 import WidgetManagement from "./pages/WidgetManagement";
@@ -52,8 +53,9 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
           <Routes>
-            {/* Public route */}
+            {/* Public routes */}
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             
             {/* Protected routes */}
             <Route path="/" element={

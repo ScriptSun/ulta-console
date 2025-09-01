@@ -50,34 +50,20 @@ serve(async (req: Request) => {
     if (action === 'request') {
       console.log(`Password reset requested for: ${email}`);
 
+      // Get the origin from the request
+      const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://your-app.com';
+      const resetUrl = `${origin}/reset-password`;
+
       // Generate password reset using Supabase Auth
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${Deno.env.get('SUPABASE_URL')?.replace('https://', 'https://').replace('.supabase.co', '')}auth/reset-password`
+        redirectTo: resetUrl
       });
 
       if (error) {
         console.error('Supabase password reset error:', error);
         // Don't reveal if the email exists or not for security
-      }
-
-      // Send custom email via SendGrid
-      const sendGridResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/sendgrid-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-        },
-        body: JSON.stringify({
-          type: 'password_reset',
-          to: email,
-          data: {
-            resetLink: `${req.headers.get('origin') || 'https://your-app.com'}/reset-password?token=${token || 'placeholder'}`
-          }
-        })
-      });
-
-      if (!sendGridResponse.ok) {
-        console.error('SendGrid email failed:', await sendGridResponse.text());
+      } else {
+        console.log(`Password reset email sent for: ${email}`);
       }
 
       return new Response(

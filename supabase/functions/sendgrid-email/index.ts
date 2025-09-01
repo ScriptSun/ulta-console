@@ -211,7 +211,7 @@ function getEmailContent(type: string, data: any) {
             <h2 style="color: #333; margin-bottom: 20px;">Reset Your Password</h2>
             
             <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
-              We received a request to reset your password. Click the button below to reset it:
+              We received a request to reset your password for your UltaAI account. Click the button below to reset it:
             </p>
             
             <div style="text-align: center; margin: 30px 0;">
@@ -223,12 +223,19 @@ function getEmailContent(type: string, data: any) {
               </a>
             </div>
             
-            <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
-              If you didn't request this password reset, you can safely ignore this email.
+            <p style="color: #555; line-height: 1.6; margin-bottom: 10px;">
+              Or copy and paste this link into your browser:
+            </p>
+            <p style="color: #7c3aed; word-break: break-all; margin-bottom: 20px; padding: 10px; background-color: #f3f4f6; border-radius: 4px;">
+              ${data?.resetLink}
             </p>
             
             <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
-              This link will expire in 24 hours for security reasons.
+              If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.
+            </p>
+            
+            <p style="color: #555; line-height: 1.6; margin-bottom: 20px;">
+              This link will expire in 1 hour for security reasons.
             </p>
             
             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
