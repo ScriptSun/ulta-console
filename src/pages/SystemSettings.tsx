@@ -185,10 +185,15 @@ export default function SystemSettings() {
     try {
       const { error } = await supabase
         .from('system_settings')
-        .upsert({
-          setting_key: key,
-          setting_value: value,
-        });
+        .upsert(
+          {
+            setting_key: key,
+            setting_value: value,
+          },
+          {
+            onConflict: 'setting_key'
+          }
+        );
 
       if (error) throw error;
 
