@@ -83,6 +83,8 @@ export default function ProfileSettings() {
   const [newEmailRequest, setNewEmailRequest] = useState('');
   const [emailChangeReason, setEmailChangeReason] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
   
   const [profile, setProfile] = useState({
     full_name: user?.user_metadata?.full_name || '',
@@ -133,8 +135,33 @@ export default function ProfileSettings() {
       loadProfile();
       loadPreferences();
       loadUserSessions();
+      checkUserRole();
     }
   }, [user]);
+
+  const checkUserRole = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('console_team_members')
+        .select('role')
+        .eq('admin_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking user role:', error);
+        return;
+      }
+
+      if (data) {
+        setUserRole(data.role);
+        setIsOwnerOrAdmin(['Owner', 'Admin'].includes(data.role));
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error);
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -215,6 +242,23 @@ export default function ProfileSettings() {
     
     setLoading(true);
     try {
+      // Handle email change for owners/admins directly
+      if (isOwnerOrAdmin && profile.email !== user.email) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: profile.email
+        });
+
+        if (emailError) {
+          throw new Error(`Email update failed: ${emailError.message}`);
+        }
+
+        toast({
+          title: 'Email Updated',
+          description: 'Your email has been updated successfully. Please check your new email for confirmation.',
+        });
+      }
+
+      // Update profile in admin_profiles table
       const { error } = await supabase
         .from('admin_profiles')
         .upsert({
@@ -230,11 +274,11 @@ export default function ProfileSettings() {
         title: 'Profile Updated',
         description: 'Your profile has been successfully updated.',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating profile:', error);
       toast({
         title: 'Update Failed',
-        description: 'Failed to update profile. Please try again.',
+        description: error.message || 'Failed to update profile. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -609,69 +653,81 @@ export default function ProfileSettings() {
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="email">Email Address</Label>
-                    <Dialog open={showEmailChangeDialog} onOpenChange={setShowEmailChangeDialog}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Mail className="h-4 w-4 mr-2" />
-                          Request Change
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Request Email Change</DialogTitle>
-                          <DialogDescription>
-                            Email changes require approval from administrators for security purposes.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="grid gap-2">
-                            <Label>Current Email</Label>
-                            <Input value={profile.email} disabled />
+                    {!isOwnerOrAdmin && (
+                      <Dialog open={showEmailChangeDialog} onOpenChange={setShowEmailChangeDialog}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Mail className="h-4 w-4 mr-2" />
+                            Request Change
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Request Email Change</DialogTitle>
+                            <DialogDescription>
+                              Email changes require approval from administrators for security purposes.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="grid gap-2">
+                              <Label>Current Email</Label>
+                              <Input value={profile.email} disabled />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="new-email">New Email Address</Label>
+                              <Input
+                                id="new-email"
+                                type="email"
+                                value={newEmailRequest}
+                                onChange={(e) => setNewEmailRequest(e.target.value)}
+                                placeholder="Enter new email address"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="reason">Reason for Change (Optional)</Label>
+                              <Textarea
+                                id="reason"
+                                value={emailChangeReason}
+                                onChange={(e) => setEmailChangeReason(e.target.value)}
+                                placeholder="Provide a reason for this email change..."
+                                rows={3}
+                              />
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="outline"
+                                onClick={() => setShowEmailChangeDialog(false)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button onClick={handleEmailChangeRequest}>
+                                Submit Request
+                              </Button>
+                            </div>
                           </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="new-email">New Email Address</Label>
-                            <Input
-                              id="new-email"
-                              type="email"
-                              value={newEmailRequest}
-                              onChange={(e) => setNewEmailRequest(e.target.value)}
-                              placeholder="Enter new email address"
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="reason">Reason for Change (Optional)</Label>
-                            <Textarea
-                              id="reason"
-                              value={emailChangeReason}
-                              onChange={(e) => setEmailChangeReason(e.target.value)}
-                              placeholder="Provide a reason for this email change..."
-                              rows={3}
-                            />
-                          </div>
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              variant="outline"
-                              onClick={() => setShowEmailChangeDialog(false)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button onClick={handleEmailChangeRequest}>
-                              Submit Request
-                            </Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                    {isOwnerOrAdmin && (
+                      <Badge variant="default" className="text-xs">
+                        {userRole} - Direct Edit Enabled
+                      </Badge>
+                    )}
                   </div>
                   <Input
                     id="email"
                     type="email"
                     value={profile.email}
-                    disabled
-                    className="bg-muted"
+                    onChange={isOwnerOrAdmin ? (e) => setProfile(prev => ({ ...prev, email: e.target.value })) : undefined}
+                    disabled={!isOwnerOrAdmin}
+                    className={!isOwnerOrAdmin ? "bg-muted" : ""}
+                    placeholder="Enter your email address"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Email changes require admin approval for security reasons.
+                    {isOwnerOrAdmin 
+                      ? `As ${userRole?.toLowerCase()}, you can change your email directly. A confirmation will be sent to your new email.`
+                      : "Email changes require admin approval for security reasons."
+                    }
                   </p>
                 </div>
               </div>
