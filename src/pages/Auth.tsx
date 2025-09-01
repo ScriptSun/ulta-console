@@ -108,19 +108,6 @@ const Auth = () => {
             </div>
 
             <form onSubmit={handleSignIn} className="space-y-6">
-              {/* Tenant Field */}
-              <div className="space-y-2">
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Tenant"
-                    className="pl-10 h-12 bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 focus:ring-blue-500"
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-
               {/* Email Field */}
               <div className="space-y-2">
                 <div className="relative">
