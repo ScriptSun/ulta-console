@@ -125,14 +125,6 @@ Rules:
 - Add a very short "human" sentence to help the UI.
 - For chat, text only. For actions, JSON only.`;
 
-const AVAILABLE_VARIABLES = [
-  { key: '{{agent_name}}', description: 'Name of the current agent' },
-  { key: '{{customer}}', description: 'Customer or tenant name' },
-  { key: '{{plan}}', description: 'Current subscription plan' },
-  { key: '{{date}}', description: 'Current date and time' },
-  { key: '{{locale}}', description: 'User locale/language' },
-];
-
 const PROMPT_TARGETS = [
   { value: 'chat', label: 'Chat Conversations' },
   { value: 'router', label: 'Command Router' },
@@ -355,24 +347,6 @@ export function SystemPromptTab() {
     });
   };
 
-  const insertVariable = (variable: string) => {
-    const textarea = document.querySelector('textarea[data-prompt-editor="true"]') as HTMLTextAreaElement;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newContent = draftContent.substring(0, start) + variable + draftContent.substring(end);
-      setDraftContent(newContent);
-      
-      // Restore cursor position
-      setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + variable.length;
-        textarea.focus();
-      }, 0);
-    } else {
-      setDraftContent(prev => prev + variable);
-    }
-  };
-
   const runDryRun = async () => {
     if (!previewAgent) return;
     
@@ -551,27 +525,6 @@ This is exactly what gets sent to OpenAI:
                 <Replace className="h-4 w-4" />
                 Replace All
               </Button>
-            </div>
-          </div>
-
-          {/* Variables */}
-          <div>
-            <Label className="text-base font-medium">Available Variables</Label>
-            <p className="text-sm text-muted-foreground mb-2">
-              Click to insert variables that will be replaced at runtime.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {AVAILABLE_VARIABLES.map((variable) => (
-                <Button
-                  key={variable.key}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => insertVariable(variable.key)}
-                  title={variable.description}
-                >
-                  {variable.key}
-                </Button>
-              ))}
             </div>
           </div>
 
