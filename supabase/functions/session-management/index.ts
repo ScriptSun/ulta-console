@@ -286,15 +286,16 @@ serve(async (req) => {
         
         console.log('Processing session for user:', user.id)
         
-        // Check if an active session exists for this device (using user_agent + ip as identifier)
-        const { data: existingSession, error: findError } = await supabase
+        // Check if an active session exists for this device (use limit(1) to handle duplicates gracefully)
+        const { data: existingSessions, error: findError } = await supabase
           .from('user_sessions')
           .select('*')
           .eq('user_id', user.id)
           .eq('user_agent', userAgent)
           .eq('ip_address', clientIP)
           .eq('is_active', true)
-          .maybeSingle()
+          .order('created_at', { ascending: false })
+          .limit(5) // Get up to 5 to handle duplicates
         
         if (findError) {
           console.error('Error finding existing session:', findError)
@@ -305,6 +306,23 @@ serve(async (req) => {
         }
 
         let sessionData: any
+        let existingSession = existingSessions && existingSessions.length > 0 ? existingSessions[0] : null
+
+        // If we found duplicates, clean them up (keep the most recent, deactivate others)
+        if (existingSessions && existingSessions.length > 1) {
+          console.log(`Found ${existingSessions.length} duplicate sessions, cleaning up...`)
+          const duplicateIds = existingSessions.slice(1).map(s => s.id)
+          
+          // Deactivate duplicate sessions
+          await supabase
+            .from('user_sessions')
+            .update({ 
+              is_active: false, 
+              session_end: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .in('id', duplicateIds)
+        }
 
         if (existingSession) {
           // Update existing session with new heartbeat
@@ -330,11 +348,12 @@ serve(async (req) => {
 
           sessionData = updatedSession
         } else {
-          // Create new session for this device
+          // Create new session for this device (with better duplicate prevention)
           console.log('Creating new session for device')
           
           const location = await getLocationFromIP(clientIP)
 
+          // Try to create session, but handle race conditions gracefully
           const { data: newSession, error: createError } = await supabase
             .from('user_sessions')
             .insert({
@@ -344,20 +363,37 @@ serve(async (req) => {
               device_type: deviceType,
               location,
               is_active: true,
-              session_start: new Date().toISOString()
+              session_start: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             })
             .select()
             .single()
 
           if (createError) {
             console.error('Error creating session:', createError)
-            return new Response(
-              JSON.stringify({ error: 'Failed to create session' }),
-              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
+            
+            // If creation failed, maybe another request created it - try to find it
+            const { data: fallbackSessions } = await supabase
+              .from('user_sessions')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('user_agent', userAgent)
+              .eq('ip_address', clientIP)
+              .eq('is_active', true)
+              .order('created_at', { ascending: false })
+              .limit(1)
+            
+            if (fallbackSessions && fallbackSessions.length > 0) {
+              sessionData = fallbackSessions[0]
+            } else {
+              return new Response(
+                JSON.stringify({ error: 'Failed to create session' }),
+                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+          } else {
+            sessionData = newSession
           }
-
-          sessionData = newSession
         }
 
         const enhancedSession: SessionInfo = {

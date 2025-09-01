@@ -136,8 +136,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Set up session tracking and heartbeat for authenticated users
   useEffect(() => {
     if (user && session) {
-      // Create initial session tracking (with better error handling)
+      // Prevent multiple concurrent session initializations
+      let isInitializing = false;
+      
+      // Create initial session tracking (with better error handling and rate limiting)
       const initializeSession = async () => {
+        if (isInitializing) return; // Prevent concurrent calls
+        isInitializing = true;
+        
         try {
           console.log('Initializing session tracking for user:', user.email);
           await supabase.functions.invoke('session-management', {
@@ -146,11 +152,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
           console.warn('Session initialization failed (non-fatal):', error);
           // Don't block app functionality if session tracking fails
+        } finally {
+          isInitializing = false;
         }
       };
       
-      // Initialize session immediately
-      initializeSession();
+      // Initialize session immediately (with a small delay to prevent race conditions)
+      const initTimeout = setTimeout(initializeSession, 100);
       
       // Set up periodic heartbeat to keep session active (with error handling)
       const interval = setInterval(async () => {
@@ -165,6 +173,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }, 5 * 60 * 1000); // Heartbeat every 5 minutes
       
       setHeartbeatInterval(interval);
+      
+      return () => {
+        clearTimeout(initTimeout);
+        if (interval) {
+          clearInterval(interval);
+        }
+      };
     } else {
       // Clear heartbeat when user logs out
       if (heartbeatInterval) {
@@ -172,12 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setHeartbeatInterval(null);
       }
     }
-    
-    return () => {
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-      }
-    };
   }, [user, session]); // Remove heartbeatInterval from dependencies to prevent infinite loop
 
   const assignOwnerRole = async (userId: string) => {
