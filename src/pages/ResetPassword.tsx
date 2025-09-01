@@ -46,8 +46,12 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const validateResetToken = async () => {
+      console.log('Validating reset tokens:', { accessToken, refreshToken, type });
+      
       if (!accessToken || !refreshToken || type !== 'recovery') {
+        console.log('Invalid tokens or type:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
         setIsValidating(false);
+        setIsTokenValid(false);
         toast({
           title: 'Invalid Reset Link',
           description: 'This password reset link is invalid or has expired.',
@@ -57,16 +61,21 @@ const ResetPassword = () => {
       }
 
       try {
+        console.log('Setting session with tokens...');
+        
         // Set the session using the tokens from the URL
-        const { error } = await supabase.auth.setSession({
+        const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken
         });
+
+        console.log('Session set result:', { data, error });
 
         if (error) {
           throw error;
         }
 
+        console.log('Reset link verified successfully');
         setIsTokenValid(true);
         toast({
           title: 'Reset Link Verified',
@@ -74,6 +83,7 @@ const ResetPassword = () => {
         });
       } catch (error: any) {
         console.error('Token validation error:', error);
+        setIsTokenValid(false);
         toast({
           title: 'Invalid Reset Link',
           description: 'This password reset link is invalid or has expired.',
@@ -84,7 +94,25 @@ const ResetPassword = () => {
       }
     };
 
-    validateResetToken();
+    // Add a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.log('Validation timeout reached');
+      setIsValidating(false);
+      setIsTokenValid(false);
+      toast({
+        title: 'Validation Timeout',
+        description: 'The reset link validation timed out. Please try again.',
+        variant: 'destructive',
+      });
+    }, 10000); // 10 second timeout
+
+    validateResetToken().finally(() => {
+      clearTimeout(timeoutId);
+    });
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [accessToken, refreshToken, type, toast]);
 
   const handlePasswordReset = async (e: React.FormEvent<HTMLFormElement>) => {
