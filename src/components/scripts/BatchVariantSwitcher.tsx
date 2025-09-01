@@ -174,8 +174,8 @@ export function BatchVariantSwitcher({
                   )}
                 </div>
                 <div className={`absolute -top-1 -right-1 h-2 w-2 rounded-full ${
-                  status.status === 'active' ? 'bg-green-500' : 
-                  status.status === 'draft' ? 'bg-blue-500' : 'bg-orange-500'
+                  status.status === 'active' ? 'bg-success' : 
+                  status.status === 'draft' ? 'bg-primary' : 'bg-warning'
                 }`} />
               </TabsTrigger>
             );

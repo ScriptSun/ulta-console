@@ -284,7 +284,7 @@ export function WidgetPreview({ widget, previewConfig }: WidgetPreviewProps) {
                   {selectedAgentData && (
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${
-                        selectedAgentData.status === 'online' ? 'bg-green-500' : 'bg-gray-400'
+                        selectedAgentData.status === 'online' ? 'bg-success' : 'bg-muted-foreground'
                       }`} />
                       <Select value={selectedAgent} onValueChange={handleAgentChange}>
                         <SelectTrigger className="w-32 h-7 text-xs">

@@ -223,7 +223,13 @@ export function ConversationViewer({
                 <Bot className="h-4 w-4" />
                 {conversation.agents?.hostname || `Agent-${conversation.agent_id.slice(0, 8)}`}
               </Link>
-              <Badge variant={conversation.agents?.status === 'online' ? 'default' : 'secondary'}>
+              <Badge 
+                variant={conversation.agents?.status === 'online' ? 'default' : 'secondary'} 
+                className={conversation.agents?.status === 'online' ? 'bg-success/10 text-success border-success/20 hover:bg-success/20 gap-1.5 font-medium' : ''}
+              >
+                {conversation.agents?.status === 'online' && (
+                  <div className="w-2 h-2 rounded-full bg-success" />
+                )}
                 {conversation.agents?.status || 'unknown'}
               </Badge>
               {conversation.agents?.version && (

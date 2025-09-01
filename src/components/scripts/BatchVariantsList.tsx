@@ -62,31 +62,43 @@ export function BatchVariantsList({
   };
 
   const getStatusBadge = (status: 'active' | 'draft' | 'missing', version?: number) => {
-    const baseClasses = "flex items-center gap-1";
+    const statusConfig = {
+      // Positive statuses - use Active design from Agents table
+      active: {
+        variant: 'default' as const,
+        className: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
+        dot: 'bg-success',
+        icon: CheckCircle,
+        text: `Active v${version}`
+      },
+      // Warning statuses
+      draft: {
+        variant: 'secondary' as const,
+        className: 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20',
+        dot: 'bg-warning',
+        icon: Monitor,
+        text: `Draft v${version}`
+      },
+      // Negative statuses
+      missing: {
+        variant: 'destructive' as const,
+        className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20',
+        dot: 'bg-destructive',
+        icon: AlertTriangle,
+        text: 'Missing'
+      },
+    };
+
+    const config = statusConfig[status];
+    const IconComponent = config.icon;
     
-    switch (status) {
-      case 'active':
-        return (
-          <Badge variant="default" className={baseClasses}>
-            <CheckCircle className="h-3 w-3" />
-            Active v{version}
-          </Badge>
-        );
-      case 'draft':
-        return (
-          <Badge variant="secondary" className={baseClasses}>
-            <Monitor className="h-3 w-3" />
-            Draft v{version}
-          </Badge>
-        );
-      case 'missing':
-        return (
-          <Badge variant="destructive" className={baseClasses}>
-            <AlertTriangle className="h-3 w-3" />
-            Missing
-          </Badge>
-        );
-    }
+    return (
+      <Badge variant={config.variant} className={`${config.className} gap-1.5 font-medium flex items-center`}>
+        <div className={`w-2 h-2 rounded-full ${config.dot}`} />
+        <IconComponent className="h-3 w-3" />
+        <span>{config.text}</span>
+      </Badge>
+    );
   };
 
   return (

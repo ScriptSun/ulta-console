@@ -104,27 +104,71 @@ export function ConversationTable({
   const uniqueSources = Array.from(new Set(conversations.map(c => c.source)));
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      open: "default",
-      closed: "secondary",
+    const statusConfig = {
+      // Positive statuses - use Active design from Agents table
+      open: { 
+        variant: 'default' as const,
+        className: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
+        dot: 'bg-success'
+      },
+      active: { 
+        variant: 'default' as const,
+        className: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
+        dot: 'bg-success'
+      },
+      // Warning/neutral statuses
+      closed: { 
+        variant: 'secondary' as const,
+        className: 'bg-muted/50 text-muted-foreground border-muted/20 hover:bg-muted/70',
+        dot: 'bg-muted-foreground'
+      },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || {
+      variant: 'outline' as const,
+      className: '',
+      dot: 'bg-muted-foreground'
     };
     
     return (
-      <Badge variant={variants[status] || "outline"}>
-        {status}
+      <Badge variant={config.variant} className={`${config.className} gap-1.5 font-medium`}>
+        <div className={`w-2 h-2 rounded-full ${config.dot}`} />
+        <span>{status}</span>
       </Badge>
     );
   };
 
   const getAgentStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      online: "default",
-      offline: "secondary",
+    const statusConfig = {
+      // Positive statuses - use Active design from Agents table
+      online: { 
+        variant: 'default' as const,
+        className: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
+        dot: 'bg-success'
+      },
+      active: { 
+        variant: 'default' as const,
+        className: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
+        dot: 'bg-success'
+      },
+      // Negative statuses
+      offline: { 
+        variant: 'destructive' as const,
+        className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20',
+        dot: 'bg-destructive'
+      },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || {
+      variant: 'outline' as const,
+      className: '',
+      dot: 'bg-muted-foreground'
     };
     
     return (
-      <Badge variant={variants[status] || "outline"} className="text-xs">
-        {status}
+      <Badge variant={config.variant} className={`${config.className} gap-1 font-medium text-xs`}>
+        <div className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
+        <span>{status}</span>
       </Badge>
     );
   };

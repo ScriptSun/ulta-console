@@ -188,7 +188,10 @@ export function BatchDiffViewer({ leftVersion, rightVersion, onClose }: BatchDif
                 {formatDate(leftVersion.created_at)}
               </div>
             </div>
-            <Badge variant="outline" className={leftVersion.status === 'active' ? 'text-green-600' : ''}>
+            <Badge variant="outline" className={leftVersion.status === 'active' ? 'bg-success/10 text-success border-success/20 hover:bg-success/20 gap-1.5 font-medium' : ''}>
+              {leftVersion.status === 'active' && (
+                <div className="w-2 h-2 rounded-full bg-success" />
+              )}
               {leftVersion.status}
             </Badge>
           </div>
@@ -214,7 +217,10 @@ export function BatchDiffViewer({ leftVersion, rightVersion, onClose }: BatchDif
                 {formatDate(rightVersion.created_at)}
               </div>
             </div>
-            <Badge variant="outline" className={rightVersion.status === 'active' ? 'text-green-600' : ''}>
+            <Badge variant="outline" className={rightVersion.status === 'active' ? 'bg-success/10 text-success border-success/20 hover:bg-success/20 gap-1.5 font-medium' : ''}>
+              {rightVersion.status === 'active' && (
+                <div className="w-2 h-2 rounded-full bg-success" />
+              )}
               {rightVersion.status}
             </Badge>
           </div>

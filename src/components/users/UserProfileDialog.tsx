@@ -49,17 +49,47 @@ export function UserProfileDialog({ user, open, onOpenChange }: UserProfileDialo
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      online: { variant: 'default', label: 'Online' },
-      offline: { variant: 'secondary', label: 'Offline' },
-      error: { variant: 'destructive', label: 'Error' },
-      deploying: { variant: 'outline', label: 'Deploying' },
+      // Positive statuses - use Active design from Agents table
+      online: { 
+        variant: 'default' as const,
+        className: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
+        dot: 'bg-success',
+        label: 'Online'
+      },
+      active: { 
+        variant: 'default' as const,
+        className: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
+        dot: 'bg-success',
+        label: 'Active'
+      },
+      // Warning statuses
+      deploying: { 
+        variant: 'secondary' as const,
+        className: 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20',
+        dot: 'bg-warning',
+        label: 'Deploying'
+      },
+      // Negative statuses
+      offline: { 
+        variant: 'destructive' as const,
+        className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20',
+        dot: 'bg-destructive',
+        label: 'Offline'
+      },
+      error: { 
+        variant: 'destructive' as const,
+        className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20',
+        dot: 'bg-destructive',
+        label: 'Error'
+      },
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.offline;
     
     return (
-      <Badge variant={config.variant as any}>
-        {config.label}
+      <Badge variant={config.variant} className={`${config.className} gap-1.5 font-medium`}>
+        <div className={`w-2 h-2 rounded-full ${config.dot}`} />
+        <span>{config.label}</span>
       </Badge>
     );
   };

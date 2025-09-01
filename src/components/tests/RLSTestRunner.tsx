@@ -146,15 +146,37 @@ export function RLSTestRunner() {
   };
 
   const getStatusBadge = (status: TestResult['status']) => {
-    const variants = {
-      pass: 'default',
-      fail: 'destructive',
-      pending: 'secondary'
-    } as const;
+    const statusConfig = {
+      // Positive statuses - use Active design from Agents table
+      pass: {
+        variant: 'default' as const,
+        className: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
+        dot: 'bg-success'
+      },
+      // Warning statuses
+      pending: {
+        variant: 'secondary' as const,
+        className: 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20',
+        dot: 'bg-warning'
+      },
+      // Negative statuses
+      fail: {
+        variant: 'destructive' as const,
+        className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20',
+        dot: 'bg-destructive'
+      },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || {
+      variant: 'outline' as const,
+      className: '',
+      dot: 'bg-muted-foreground'
+    };
 
     return (
-      <Badge variant={variants[status]} className="capitalize">
-        {status}
+      <Badge variant={config.variant} className={`${config.className} gap-1.5 font-medium capitalize`}>
+        <div className={`w-2 h-2 rounded-full ${config.dot}`} />
+        <span>{status}</span>
       </Badge>
     );
   };
