@@ -115,7 +115,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* MRR */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
+          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-success/40 relative overflow-hidden shadow-sm shadow-success/20">
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm font-medium text-muted-foreground">Monthly Recurring Revenue</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/20 text-success text-xs font-medium">
@@ -134,6 +134,10 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
              <div className="text-sm text-muted-foreground">
               vs {formatCurrency(data.previousPeriodMrr)} prev period
             </div>
+            {/* Enhanced green gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-success/15 via-success/5 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-success/25 via-success/10 to-transparent pointer-events-none"></div>
+            <div className="absolute -top-4 -right-4 w-16 h-16 bg-success/30 rounded-full blur-xl pointer-events-none"></div>
           </div>
 
           {/* ARPU */}
