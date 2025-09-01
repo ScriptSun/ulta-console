@@ -1587,16 +1587,15 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
               
                {messages.map((message) => (
                  <div key={message.id}>
-                   {/* Only show chat message bubble if there's no input form needed */}
-                   {!message.needsInputs && (
-                     <div className={`group flex gap-3 ${
-                       message.role === 'user' ? 'justify-end' : 'justify-start'
-                     }`}>
-                       <div className={`max-w-[80%] rounded-lg p-3 ${
-                         message.role === 'user'
-                           ? 'bg-primary text-primary-foreground'
-                           : 'bg-muted'
-                       } ${compactDensity ? 'p-2 text-sm' : ''}`}>
+                   {/* Always show chat message bubble */}
+                   <div className={`group flex gap-3 ${
+                     message.role === 'user' ? 'justify-end' : 'justify-start'
+                   }`}>
+                     <div className={`max-w-[80%] rounded-lg p-3 ${
+                       message.role === 'user'
+                         ? 'bg-primary text-primary-foreground'
+                         : 'bg-muted'
+                     } ${compactDensity ? 'p-2 text-sm' : ''}`}>
                       {typeof message.content === 'string' && message.content.split('\n').length > 10 && !message.collapsed ? (
                         <div>
                           <div className="flex items-start gap-2">
@@ -1801,9 +1800,21 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                        </div>
                      </div>
                    </div>
-                   )}
                    
-                   {/* Remove the large TaskStatusCard since we now show small icons */}
+                     {/* Input Form */}
+                    {message.needsInputs && (
+                      <div className="mt-2">
+                        <InputForm
+                          schema={message.needsInputs.schema}
+                          defaults={message.needsInputs.defaults}
+                          errors={message.inputErrors}
+                          onSubmit={handleInputFormSubmit}
+                          loading={isTyping}
+                        />
+                      </div>
+                    )}
+
+                    {/* Remove the large TaskStatusCard since we now show small icons */}
                   
                    {/* Preflight Status Card - NEW */}
                    {message.preflightStatus && (
