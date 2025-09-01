@@ -104,8 +104,8 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
       default:
         return {
           icon: AlertCircle,
-          color: 'bg-gray-50 border-gray-200 text-gray-800',
-          badgeColor: 'bg-gray-100 text-gray-800',
+          color: 'bg-muted border-muted text-muted-foreground',
+          badgeColor: 'bg-muted text-muted-foreground',
           title: 'Task Status',
           description: 'Task status update'
         };
@@ -141,9 +141,9 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
           {/* Progress bar for in-progress tasks */}
           {type === 'task_progress' && typeof progress === 'number' && (
             <div className="mb-3">
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-muted/30 rounded-full h-2">
                 <div 
-                  className="bg-orange-500 h-2 rounded-full transition-all duration-300" 
+                  className="bg-primary h-2 rounded-full transition-all duration-300" 
                   style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
               </div>

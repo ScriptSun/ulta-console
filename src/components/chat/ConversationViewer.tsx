@@ -182,7 +182,7 @@ export function ConversationViewer({
   const getEventColor = (type: string) => {
     const colors: Record<string, string> = {
       conversation_started: "text-blue-500",
-      conversation_closed: "text-gray-500",
+      conversation_closed: "text-muted-foreground",
       message_received: "text-green-500",
       inputs_requested: "text-orange-500",
       task_queued: "text-yellow-500",
@@ -195,7 +195,7 @@ export function ConversationViewer({
       security_blocked: "text-red-700",
     };
     
-    return colors[type] || "text-gray-500";
+    return colors[type] || "text-muted-foreground";
   };
 
   // Merge messages and events into timeline
@@ -334,8 +334,8 @@ export function ConversationViewer({
               <div className="space-y-4">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-8 bg-gray-100 rounded"></div>
+                    <div className="h-4 bg-muted/30 rounded w-3/4 mb-2"></div>
+                    <div className="h-8 bg-muted/20 rounded"></div>
                   </div>
                 ))}
               </div>
@@ -388,7 +388,7 @@ export function ConversationViewer({
                       </>
                     ) : (
                       <>
-                        <div className={`p-2 rounded-full bg-gray-100 ${getEventColor((item as Event).type)}`}>
+                        <div className={`p-2 rounded-full bg-muted/20 ${getEventColor((item as Event).type)}`}>
                           {getEventIcon((item as Event).type)}
                         </div>
                          <div className="flex-1">
@@ -412,11 +412,11 @@ export function ConversationViewer({
                              )}
                            </div>
                            {(item as Event).payload && (
-                             <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded">
-                               <pre className="whitespace-pre-wrap">
-                                 {JSON.stringify((item as Event).payload, null, 2)}
-                               </pre>
-                             </div>
+                              <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+                                <pre className="whitespace-pre-wrap">
+                                  {JSON.stringify((item as Event).payload, null, 2)}
+                                </pre>
+                              </div>
                            )}
                          </div>
                       </>

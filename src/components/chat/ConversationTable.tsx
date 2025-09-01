@@ -137,7 +137,7 @@ export function ConversationTable({
     };
     
     return (
-      <Badge className={colors[source] || "bg-gray-100 text-gray-800"}>
+      <Badge className={colors[source] || "bg-muted/20 text-muted-foreground border border-border"}>
         {source}
       </Badge>
     );
@@ -147,10 +147,10 @@ export function ConversationTable({
     return (
       <div className="space-y-4">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-muted/30 rounded w-1/4 mb-4"></div>
           <div className="space-y-2">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-200 rounded"></div>
+              <div key={i} className="h-12 bg-muted/20 rounded"></div>
             ))}
           </div>
         </div>

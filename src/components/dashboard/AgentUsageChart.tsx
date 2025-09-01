@@ -418,12 +418,12 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
         </div>
 
         {/* Chart Area with Dark Gradient Design */}
-        <div className="p-4 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 relative overflow-hidden">
+        <div className="p-4 rounded-lg bg-card border border-card-border relative overflow-hidden shadow-glow">
           <div className="w-full h-80">
             {renderChart()}
           </div>
           {/* Chart gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none"></div>
         </div>
       </CardContent>
     </Card>
