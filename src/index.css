@@ -8,6 +8,85 @@ All colors MUST be HSL. Modern gradients, shadows, and transitions.
 
 @layer base {
   :root {
+    /* Animation Variables */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --radius: 0.75rem;
+  }
+
+  /* Light Theme */
+  .light {
+    /* Core Light Theme Colors */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    /* Card and Panel Colors */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --card-border: 214.3 31.8% 91.4%;
+
+    /* Popover Colors */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Primary Brand Colors */
+    --primary: 250 70% 60%;
+    --primary-foreground: 210 40% 98%;
+    --primary-glow: 250 70% 70%;
+    --primary-dark: 250 70% 45%;
+
+    /* Secondary Colors */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+
+    /* Muted Colors */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accent Colors */
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+
+    /* Status Colors */
+    --success: 142 76% 36%;
+    --success-foreground: 355.7 100% 97.3%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Border and Input */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --input-border: 214.3 31.8% 85%;
+    --ring: 250 70% 60%;
+
+    /* Sidebar Specific */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 250 70% 60%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 250 70% 60%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(250 70% 60%), hsl(260 65% 55%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 40% 98%));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(250 70% 60% / 0.1), transparent 70%);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 4px 6px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px hsl(0 0% 0% / 0.1);
+    --shadow-glow: 0 0 20px hsl(250 70% 60% / 0.2);
+    --shadow-card: 0 4px 12px hsl(0 0% 0% / 0.1);
+  }
+
+  /* Dark Theme */
+  .dark {
     /* Core Dark Theme Colors */
     --background: 240 10% 6%;
     --foreground: 240 5% 95%;
@@ -21,7 +100,7 @@ All colors MUST be HSL. Modern gradients, shadows, and transitions.
     --popover: 240 8% 10%;
     --popover-foreground: 240 5% 95%;
 
-    /* Primary Brand Colors - Deep Purple/Blue */
+    /* Primary Brand Colors */
     --primary: 250 70% 60%;
     --primary-foreground: 240 5% 95%;
     --primary-glow: 250 70% 70%;
@@ -75,12 +154,6 @@ All colors MUST be HSL. Modern gradients, shadows, and transitions.
     --shadow-lg: 0 10px 15px hsl(240 10% 0% / 0.4);
     --shadow-glow: 0 0 20px hsl(250 70% 60% / 0.3);
     --shadow-card: 0 4px 12px hsl(240 10% 0% / 0.5);
-
-    /* Animation Variables */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-
-    --radius: 0.75rem;
   }
 }
 
