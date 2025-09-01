@@ -63,8 +63,11 @@ interface UserSession {
   ip_address?: string | null;
   user_agent?: string | null;
   device_type?: string | null;
+  browser?: string;
+  os?: string;
   location?: string | null;
   is_active: boolean;
+  last_seen?: string;
   created_at?: string;
   updated_at?: string;
   user_id?: string;
@@ -123,6 +126,7 @@ export default function ProfileSettings() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [setupStep, setSetupStep] = useState<'qr' | 'verify' | 'backup'>('qr');
   const [mfaLoading, setMfaLoading] = useState(false);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
 
   // Email change requests hook
   const {
@@ -223,24 +227,32 @@ export default function ProfileSettings() {
   };
 
   const loadUserSessions = async () => {
+    setSessionsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      const { data, error } = await supabase.functions.invoke('session-management', {
+        method: 'GET'
+      });
 
-      if (error) throw error;
-      setSessions((data || []).map(session => ({
-        ...session,
-        ip_address: session.ip_address as string | null,
-        user_agent: session.user_agent as string | null,
-        device_type: session.device_type as string | null,
-        location: session.location as string | null,
-      })));
+      if (error) {
+        console.error('Error loading sessions:', error);
+        toast({
+          title: 'Sessions Load Failed',
+          description: 'Failed to load session information.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setSessions(data.sessions || []);
     } catch (error) {
       console.error('Error loading sessions:', error);
+      toast({
+        title: 'Sessions Load Failed',
+        description: 'Failed to load session information.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSessionsLoading(false);
     }
   };
 
@@ -686,8 +698,24 @@ export default function ProfileSettings() {
 
   const handleSessionRevoke = async (sessionId: string) => {
     try {
-      // In a real implementation, you'd revoke the specific session
-      // For now, we'll just update the UI
+      const { data, error } = await supabase.functions.invoke('session-management', {
+        body: {
+          action: 'revoke',
+          sessionId: sessionId
+        }
+      });
+
+      if (error) {
+        console.error('Error revoking session:', error);
+        toast({
+          title: 'Revoke Failed',
+          description: 'Failed to revoke session. Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Remove the session from local state
       setSessions(sessions.filter(s => s.id !== sessionId));
       
       toast({
@@ -699,6 +727,39 @@ export default function ProfileSettings() {
       toast({
         title: 'Revoke Failed',
         description: 'Failed to revoke session. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRevokeAllSessions = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('session-management', {
+        method: 'DELETE'
+      });
+
+      if (error) {
+        console.error('Error revoking all sessions:', error);
+        toast({
+          title: 'Revoke All Failed',
+          description: 'Failed to revoke all sessions. Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Reload sessions to reflect changes
+      await loadUserSessions();
+      
+      toast({
+        title: 'All Sessions Revoked',
+        description: 'All sessions have been successfully terminated.',
+      });
+    } catch (error) {
+      console.error('Error revoking all sessions:', error);
+      toast({
+        title: 'Revoke All Failed',
+        description: 'Failed to revoke all sessions. Please try again.',
         variant: 'destructive',
       });
     }
@@ -1472,69 +1533,132 @@ export default function ProfileSettings() {
               </CardHeader>
               {showSessionsSection && (
                 <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    {sessions.length === 0 ? (
-                      <div className="text-center py-6 text-muted-foreground">
-                        <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>No recent sessions found</p>
+                  {sessionsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <span className="ml-2">Loading sessions...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-sm text-muted-foreground">
+                          {sessions.filter(s => s.is_active).length} active session(s)
+                        </p>
+                        {sessions.filter(s => s.is_active).length > 1 && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Revoke All Sessions
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Revoke All Sessions?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will immediately terminate all active sessions on all devices. You will remain logged in on this device.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleRevokeAllSessions} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                  Revoke All Sessions
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
-                    ) : (
-                      sessions.slice(0, 5).map((session) => (
-                        <div key={session.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div className={`h-2 w-2 rounded-full ${session.is_active ? 'bg-green-500' : 'bg-muted-foreground'}`} />
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium">{session.device_type || 'Unknown Device'}</p>
-                                {session.is_active && <Badge variant="secondary" className="text-xs">Current</Badge>}
-                              </div>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {formatSessionTime(session.session_start)}
-                                </span>
-                                {session.location && (
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="h-3 w-3" />
-                                    {session.location}
-                                  </span>
-                                )}
-                                {session.ip_address && (
-                                  <span className="text-xs font-mono">
-                                    {session.ip_address}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
+                      
+                      <div className="space-y-3">
+                        {sessions.length === 0 ? (
+                          <div className="text-center py-6 text-muted-foreground">
+                            <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p>No recent sessions found</p>
                           </div>
-                          
-                          {!session.is_active && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Revoke Session?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will immediately terminate the selected session. The user will need to log in again.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleSessionRevoke(session.id)}>
-                                    Revoke Session
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
+                        ) : (
+                          sessions.map((session) => (
+                            <div key={session.id} className="flex items-start justify-between p-4 border rounded-lg bg-card">
+                              <div className="flex items-start gap-3 flex-1">
+                                <div className={`h-3 w-3 rounded-full mt-1 ${session.is_active ? 'bg-green-500' : 'bg-muted-foreground'}`} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="font-medium">{session.device_type || 'Unknown Device'}</p>
+                                    {session.is_active && <Badge variant="secondary" className="text-xs">Active</Badge>}
+                                    {!session.is_active && <Badge variant="outline" className="text-xs">Inactive</Badge>}
+                                  </div>
+                                  
+                                  <div className="space-y-1 text-sm text-muted-foreground">
+                                    {session.browser && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="font-medium">Browser:</span>
+                                        <span>{session.browser}</span>
+                                      </div>
+                                    )}
+                                    {session.os && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="font-medium">OS:</span>
+                                        <span>{session.os}</span>
+                                      </div>
+                                    )}
+                                    {session.location && (
+                                      <div className="flex items-center gap-1">
+                                        <MapPin className="h-3 w-3" />
+                                        <span>{session.location}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      <span>Started: {formatSessionTime(session.session_start)}</span>
+                                    </div>
+                                    {session.last_seen && (
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        <span>Last seen: {formatSessionTime(session.last_seen)}</span>
+                                      </div>
+                                    )}
+                                    {session.ip_address && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="font-medium">IP:</span>
+                                        <span className="font-mono text-xs">{session.ip_address}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {session.is_active && (
+                                <div className="ml-3">
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Revoke
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Revoke Session?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will immediately terminate this session. The user will need to log in again on this device.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleSessionRevoke(session.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                          Revoke Session
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
                   
                   <div className="pt-4 border-t">
                     <div className="flex items-start gap-2">
