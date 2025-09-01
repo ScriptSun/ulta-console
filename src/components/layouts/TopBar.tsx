@@ -97,14 +97,8 @@ export function TopBar() {
           </div>
         </div>
 
-        {/* Center - Quota Badges and Notifications */}
+        {/* Center - Notifications */}
         <div className="flex items-center gap-4">
-          {/* Quota Badges */}
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
-              Quota: 92%
-            </Badge>
-          </div>
 
           {/* Notifications */}
           <NotificationCenter />
