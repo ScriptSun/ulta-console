@@ -101,9 +101,6 @@ export function TopBar() {
         <div className="flex items-center gap-4">
           {/* Quota Badges */}
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-              API: 85%
-            </Badge>
             <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
               Quota: 92%
             </Badge>
