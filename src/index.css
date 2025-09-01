@@ -307,6 +307,160 @@ All colors MUST be HSL. Modern gradients, shadows, and transitions.
     --gradient-glow: radial-gradient(circle at 50% 50%, hsl(193 95% 68% / 0.1), transparent 70%);
     --shadow-glow: 0 0 20px hsl(193 95% 68% / 0.3);
   }
+
+  /* Light Theme Variants */
+  
+  /* Soft White Light Theme */
+  .light.theme-soft-white {
+    --background: 60 9% 98%;
+    --foreground: 60 9% 15%;
+    --card: 60 9% 99%;
+    --card-foreground: 60 9% 15%;
+    --card-border: 50 20% 90%;
+    --popover: 60 9% 99%;
+    --popover-foreground: 60 9% 15%;
+    --primary: 250 60% 58%;
+    --primary-foreground: 60 9% 98%;
+    --primary-glow: 250 60% 68%;
+    --primary-dark: 250 60% 48%;
+    --secondary: 50 20% 94%;
+    --secondary-foreground: 60 9% 15%;
+    --muted: 50 20% 94%;
+    --muted-foreground: 60 5% 55%;
+    --accent: 50 20% 94%;
+    --accent-foreground: 60 9% 15%;
+    --border: 50 20% 90%;
+    --input: 50 20% 92%;
+    --input-border: 50 20% 85%;
+    --ring: 250 60% 58%;
+    --sidebar-background: 60 9% 97%;
+    --sidebar-foreground: 60 9% 20%;
+    --sidebar-primary: 250 60% 58%;
+    --sidebar-primary-foreground: 60 9% 98%;
+    --sidebar-accent: 50 20% 92%;
+    --sidebar-accent-foreground: 60 9% 20%;
+    --sidebar-border: 50 20% 88%;
+    --sidebar-ring: 250 60% 58%;
+    --gradient-primary: linear-gradient(135deg, hsl(250 60% 58%), hsl(260 55% 53%));
+    --gradient-subtle: linear-gradient(180deg, hsl(60 9% 98%), hsl(50 20% 96%));
+    --gradient-card: linear-gradient(145deg, hsl(60 9% 99%), hsl(50 20% 97%));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(250 60% 58% / 0.1), transparent 70%);
+    --shadow-glow: 0 0 20px hsl(250 60% 58% / 0.2);
+  }
+
+  /* Cool Gray Light Theme */
+  .light.theme-cool-gray {
+    --background: 210 20% 98%;
+    --foreground: 210 20% 15%;
+    --card: 210 20% 99%;
+    --card-foreground: 210 20% 15%;
+    --card-border: 210 16% 88%;
+    --popover: 210 20% 99%;
+    --popover-foreground: 210 20% 15%;
+    --primary: 210 100% 50%;
+    --primary-foreground: 210 20% 98%;
+    --primary-glow: 210 100% 60%;
+    --primary-dark: 210 100% 40%;
+    --secondary: 210 16% 93%;
+    --secondary-foreground: 210 20% 15%;
+    --muted: 210 16% 93%;
+    --muted-foreground: 210 10% 55%;
+    --accent: 210 16% 93%;
+    --accent-foreground: 210 20% 15%;
+    --border: 210 16% 88%;
+    --input: 210 16% 90%;
+    --input-border: 210 16% 82%;
+    --ring: 210 100% 50%;
+    --sidebar-background: 210 20% 96%;
+    --sidebar-foreground: 210 20% 20%;
+    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 210 16% 91%;
+    --sidebar-accent-foreground: 210 20% 20%;
+    --sidebar-border: 210 16% 85%;
+    --sidebar-ring: 210 100% 50%;
+    --gradient-primary: linear-gradient(135deg, hsl(210 100% 50%), hsl(220 95% 45%));
+    --gradient-subtle: linear-gradient(180deg, hsl(210 20% 98%), hsl(210 16% 96%));
+    --gradient-card: linear-gradient(145deg, hsl(210 20% 99%), hsl(210 16% 97%));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(210 100% 50% / 0.1), transparent 70%);
+    --shadow-glow: 0 0 20px hsl(210 100% 50% / 0.2);
+  }
+
+  /* Warm Cream Light Theme */
+  .light.theme-warm-cream {
+    --background: 48 15% 97%;
+    --foreground: 48 15% 15%;
+    --card: 48 15% 98%;
+    --card-foreground: 48 15% 15%;
+    --card-border: 48 25% 88%;
+    --popover: 48 15% 98%;
+    --popover-foreground: 48 15% 15%;
+    --primary: 35 85% 55%;
+    --primary-foreground: 48 15% 97%;
+    --primary-glow: 35 85% 65%;
+    --primary-dark: 35 85% 45%;
+    --secondary: 48 25% 92%;
+    --secondary-foreground: 48 15% 15%;
+    --muted: 48 25% 92%;
+    --muted-foreground: 48 10% 55%;
+    --accent: 48 25% 92%;
+    --accent-foreground: 48 15% 15%;
+    --border: 48 25% 88%;
+    --input: 48 25% 90%;
+    --input-border: 48 25% 82%;
+    --ring: 35 85% 55%;
+    --sidebar-background: 48 15% 95%;
+    --sidebar-foreground: 48 15% 20%;
+    --sidebar-primary: 35 85% 55%;
+    --sidebar-primary-foreground: 48 15% 97%;
+    --sidebar-accent: 48 25% 90%;
+    --sidebar-accent-foreground: 48 15% 20%;
+    --sidebar-border: 48 25% 85%;
+    --sidebar-ring: 35 85% 55%;
+    --gradient-primary: linear-gradient(135deg, hsl(35 85% 55%), hsl(25 80% 50%));
+    --gradient-subtle: linear-gradient(180deg, hsl(48 15% 97%), hsl(48 25% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(48 15% 98%), hsl(48 25% 96%));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(35 85% 55% / 0.1), transparent 70%);
+    --shadow-glow: 0 0 20px hsl(35 85% 55% / 0.2);
+  }
+
+  /* Minimal Light Theme */
+  .light.theme-minimal-light {
+    --background: 0 0% 99%;
+    --foreground: 0 0% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 20%;
+    --card-border: 0 0% 90%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+    --primary: 0 0% 20%;
+    --primary-foreground: 0 0% 99%;
+    --primary-glow: 0 0% 30%;
+    --primary-dark: 0 0% 10%;
+    --secondary: 0 0% 97%;
+    --secondary-foreground: 0 0% 20%;
+    --muted: 0 0% 97%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 0 0% 97%;
+    --accent-foreground: 0 0% 20%;
+    --border: 0 0% 90%;
+    --input: 0 0% 95%;
+    --input-border: 0 0% 85%;
+    --ring: 0 0% 20%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 25%;
+    --sidebar-primary: 0 0% 20%;
+    --sidebar-primary-foreground: 0 0% 99%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 0 0% 25%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 0 0% 20%;
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 20%), hsl(0 0% 30%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 99%), hsl(0 0% 97%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(0 0% 20% / 0.1), transparent 70%);
+    --shadow-glow: 0 0 20px hsl(0 0% 20% / 0.2);
+  }
 }
 
 @layer base {
@@ -391,6 +545,31 @@ All colors MUST be HSL. Modern gradients, shadows, and transitions.
     border-radius: 10px;
   }
 
+  /* Light Theme Button Styles */
+  .light .btn-theme-default-light {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/20;
+  }
+
+  .light.theme-soft-white .btn-theme-soft-white {
+    @apply bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 border border-purple-400/30 shadow-lg shadow-purple-400/20;
+    border-radius: 12px;
+  }
+
+  .light.theme-cool-gray .btn-theme-cool-gray {
+    @apply bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 border border-blue-400/30 shadow-lg shadow-blue-400/20;
+    border-radius: 8px;
+  }
+
+  .light.theme-warm-cream .btn-theme-warm-cream {
+    @apply bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 border border-orange-400/30 shadow-lg shadow-orange-400/20;
+    border-radius: 12px;
+  }
+
+  .light.theme-minimal-light .btn-theme-minimal {
+    @apply bg-gray-800 text-white hover:bg-gray-900 border border-gray-700/30 shadow-lg shadow-gray-700/20;
+    border-radius: 6px;
+  }
+
   /* Theme-specific card styles */
   .dark.theme-warm-dark .card-theme-warm {
     @apply bg-gradient-to-br from-orange-950/20 to-amber-950/20 border border-orange-800/20 shadow-xl shadow-orange-900/10;
@@ -406,5 +585,22 @@ All colors MUST be HSL. Modern gradients, shadows, and transitions.
 
   .dark.theme-ocean-dark .card-theme-ocean {
     @apply bg-gradient-to-br from-teal-950/20 to-cyan-950/20 border border-teal-800/20 shadow-xl shadow-teal-900/10;
+  }
+
+  /* Light Theme Card Styles */
+  .light.theme-soft-white .card-theme-soft-white {
+    @apply bg-gradient-to-br from-purple-50/30 to-indigo-50/30 border border-purple-200/40 shadow-xl shadow-purple-200/10;
+  }
+
+  .light.theme-cool-gray .card-theme-cool-gray {
+    @apply bg-gradient-to-br from-blue-50/30 to-cyan-50/30 border border-blue-200/40 shadow-xl shadow-blue-200/10;
+  }
+
+  .light.theme-warm-cream .card-theme-warm-cream {
+    @apply bg-gradient-to-br from-orange-50/30 to-amber-50/30 border border-orange-200/40 shadow-xl shadow-orange-200/10;
+  }
+
+  .light.theme-minimal-light .card-theme-minimal {
+    @apply bg-gradient-to-br from-gray-50/30 to-slate-50/30 border border-gray-200/40 shadow-xl shadow-gray-200/10;
   }
 }
