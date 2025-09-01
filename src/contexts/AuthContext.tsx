@@ -91,13 +91,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Send heartbeat every 5 minutes to keep session alive
       const interval = setInterval(async () => {
         try {
-          await supabase.functions.invoke('session-management', {
+          const { data, error } = await supabase.functions.invoke('session-management', {
             body: {
               action: 'heartbeat'
             }
           });
+          
+          // Check if our session is still active
+          if (error || (data && !data.session?.is_active)) {
+            console.log('Session inactive, forcing logout...');
+            await supabase.auth.signOut();
+          }
         } catch (error) {
           console.error('Failed to send session heartbeat:', error);
+          // If heartbeat fails consistently, assume session is dead
+          await supabase.auth.signOut();
         }
       }, 5 * 60 * 1000); // 5 minutes
       

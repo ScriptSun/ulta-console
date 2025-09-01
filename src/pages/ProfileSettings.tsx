@@ -1590,13 +1590,13 @@ export default function ProfileSettings() {
                       </div>
                       
                       <div className="space-y-3">
-                        {sessions.length === 0 ? (
+                        {sessions.filter(s => s.is_active).length === 0 ? (
                           <div className="text-center py-6 text-muted-foreground">
                             <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p>No recent sessions found</p>
+                            <p>No active sessions found</p>
                           </div>
                         ) : (
-                          sessions.map((session) => (
+                          sessions.filter(s => s.is_active).map((session) => (
                             <div key={session.id} className="flex items-start justify-between p-4 border rounded-lg bg-card">
                               <div className="flex items-start gap-3 flex-1">
                                 <div className={`h-3 w-3 rounded-full mt-1 ${session.is_active ? 'bg-green-500' : 'bg-muted-foreground'}`} />

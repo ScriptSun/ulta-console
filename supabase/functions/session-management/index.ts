@@ -110,14 +110,22 @@ serve(async (req) => {
     const url = new URL(req.url)
 
     if (method === 'GET') {
-      // Get all sessions for the user
+      // Clean up inactive sessions first - delete sessions inactive for more than 1 hour
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+      await supabase
+        .from('user_sessions')
+        .delete()
+        .eq('user_id', user.id)
+        .lt('last_seen', oneHourAgo)
+      
       console.log('Fetching sessions for user:', user.id)
       
-      // Get current sessions from auth.sessions (if available) and user_sessions table
+      // Get only active sessions (last seen within 1 hour)
       const { data: userSessions, error: sessionsError } = await supabase
         .from('user_sessions')
         .select('*')
         .eq('user_id', user.id)
+        .gte('last_seen', oneHourAgo)
         .order('created_at', { ascending: false })
 
       if (sessionsError) {
