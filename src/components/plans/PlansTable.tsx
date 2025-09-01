@@ -80,7 +80,7 @@ export function PlansTable({
                 <TableCell>
                   <Badge 
                     variant="outline" 
-                    className="bg-purple-500/10 text-purple-700 border-purple-500/20 dark:text-purple-300 font-mono"
+                    className="bg-primary/10 text-primary border-primary/20 dark:text-primary-foreground font-mono"
                   >
                     {plan.key}
                   </Badge>

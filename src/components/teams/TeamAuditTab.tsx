@@ -19,7 +19,7 @@ interface TeamAuditTabProps {
 const ACTION_COLORS = {
   'team.member.role.change': 'bg-blue-100 text-blue-800',
   'team.member.pages.update': 'bg-green-100 text-green-800', 
-  'team.member.widgets.update': 'bg-purple-100 text-purple-800',
+  'team.member.widgets.update': 'bg-primary/10 text-primary',
   'team.member.remove': 'bg-red-100 text-red-800',
   'console.invite.create': 'bg-yellow-100 text-yellow-800',
   'console.invite.cancel': 'bg-gray-100 text-gray-800',

@@ -38,8 +38,8 @@ const securitySections = [
     description: 'API keys and authentication settings',
     icon: Key,
     url: '/api-keys',
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-500/10',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
   },
   {
     title: 'Compliance',
@@ -156,8 +156,8 @@ export default function Security() {
         {/* AI Suggestions Card */}
         <Card className="group hover:shadow-md transition-smooth">
           <CardHeader className="pb-4">
-            <div className="w-12 h-12 rounded-lg bg-violet-500/10 flex items-center justify-center mb-4">
-              <Bot className="h-6 w-6 text-violet-500" />
+             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+               <Bot className="h-6 w-6 text-primary" />
             </div>
             <CardTitle>AI Suggestions</CardTitle>
             <CardDescription>

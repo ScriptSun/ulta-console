@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { useTheme, CompanyTheme, ThemeColors } from '@/contexts/ThemeContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Palette, Save, Plus, Eye, Download, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useThemeVariants } from '@/hooks/useDarkThemeVariant';
 
 const ColorInput: React.FC<{
   label: string;
@@ -46,13 +47,47 @@ const ColorInput: React.FC<{
 };
 
 export const ThemeCustomizer: React.FC = () => {
-  const { currentTheme, createCustomTheme, updateTheme, setActiveTheme } = useTheme();
+  const { currentTheme, createCustomTheme, updateTheme, setActiveTheme, mode } = useTheme();
+  const { getCurrentDarkTheme, getCurrentLightTheme, darkThemeVariant, lightThemeVariant } = useThemeVariants();
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [newTheme, setNewTheme] = useState<Omit<CompanyTheme, 'id'>>({
     name: '',
     colors: { ...currentTheme.colors }
   });
+
+  // Load default colors from selected theme variant
+  const loadVariantColors = () => {
+    const currentVariant = mode === 'dark' ? getCurrentDarkTheme() : getCurrentLightTheme();
+    const variantColors = getColorsFromVariant(currentVariant);
+    setNewTheme(prev => ({
+      ...prev,
+      colors: variantColors
+    }));
+  };
+
+  // Extract colors from theme variant
+  const getColorsFromVariant = (variant: any) => {
+    const rootStyles = getComputedStyle(document.documentElement);
+    return {
+      primary: rootStyles.getPropertyValue('--primary').trim() || variant.primaryColor.replace('hsl(', '').replace(')', ''),
+      secondary: rootStyles.getPropertyValue('--secondary').trim() || '210 40% 96%',
+      accent: rootStyles.getPropertyValue('--accent').trim() || variant.accentColor.replace('hsl(', '').replace(')', ''),
+      background: rootStyles.getPropertyValue('--background').trim() || variant.backgroundColor.replace('hsl(', '').replace(')', ''),
+      foreground: rootStyles.getPropertyValue('--foreground').trim() || '222.2 84% 4.9%',
+      muted: rootStyles.getPropertyValue('--muted').trim() || '210 40% 96%',
+      card: rootStyles.getPropertyValue('--card').trim() || '0 0% 100%',
+      border: rootStyles.getPropertyValue('--border').trim() || '214.3 31.8% 91.4%',
+      destructive: rootStyles.getPropertyValue('--destructive').trim() || '0 84% 60%',
+      success: rootStyles.getPropertyValue('--success').trim() || '142 76% 36%',
+      warning: rootStyles.getPropertyValue('--warning').trim() || '38 92% 50%',
+    };
+  };
+
+  // Update colors when theme variant changes
+  useEffect(() => {
+    loadVariantColors();
+  }, [darkThemeVariant, lightThemeVariant, mode]);
 
   const colorDefinitions = [
     { key: 'primary' as keyof ThemeColors, label: 'Primary', description: 'Main brand color' },
@@ -212,30 +247,34 @@ export const ThemeCustomizer: React.FC = () => {
                 ))}
               </div>
 
-              <div className="flex gap-2 flex-wrap">
-                <Button onClick={handlePreviewTheme} variant="outline">
-                  <Eye className="mr-2 h-4 w-4" />
-                  Preview
-                </Button>
-                <Button onClick={exportTheme} variant="outline">
-                  <Download className="mr-2 h-4 w-4" />
-                  Export
-                </Button>
-                <label className="cursor-pointer">
-                  <Button variant="outline" asChild>
-                    <span>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Import
-                    </span>
-                  </Button>
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={importTheme}
-                    className="hidden"
-                  />
-                </label>
-              </div>
+               <div className="flex gap-2 flex-wrap">
+                 <Button onClick={loadVariantColors} variant="outline">
+                   <Palette className="mr-2 h-4 w-4" />
+                   Load {mode === 'dark' ? getCurrentDarkTheme().name : getCurrentLightTheme().name} Colors
+                 </Button>
+                 <Button onClick={handlePreviewTheme} variant="outline">
+                   <Eye className="mr-2 h-4 w-4" />
+                   Preview
+                 </Button>
+                 <Button onClick={exportTheme} variant="outline">
+                   <Download className="mr-2 h-4 w-4" />
+                   Export
+                 </Button>
+                 <label className="cursor-pointer">
+                   <Button variant="outline" asChild>
+                     <span>
+                       <Upload className="mr-2 h-4 w-4" />
+                       Import
+                     </span>
+                   </Button>
+                   <input
+                     type="file"
+                     accept=".json"
+                     onChange={importTheme}
+                     className="hidden"
+                   />
+                 </label>
+               </div>
             </div>
           </TabsContent>
 

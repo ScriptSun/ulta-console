@@ -93,7 +93,7 @@ export default function WidgetEdit() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold">
-              Edit widget / <span className="text-purple-600">{widget.name}</span>
+              Edit widget / <span className="text-primary">{widget.name}</span>
             </h1>
           </div>
         </div>

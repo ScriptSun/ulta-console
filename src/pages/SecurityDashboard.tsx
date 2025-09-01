@@ -298,7 +298,7 @@ export default function SecurityDashboard() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-purple-500" />
+              <Users className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">Active Conversations</span>
             </div>
             <div className="text-2xl font-bold">{dashboardStats.activeConversations}</div>

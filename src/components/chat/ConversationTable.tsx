@@ -133,7 +133,7 @@ export function ConversationTable({
     const colors: Record<string, string> = {
       website: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
       billing: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-      whmcs: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+      whmcs: "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground",
     };
     
     return (
@@ -290,7 +290,7 @@ export function ConversationTable({
         
         <div className="bg-card p-4 rounded-lg border">
           <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-purple-500" />
+            <User className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">Closed</span>
           </div>
           <div className="text-2xl font-bold">

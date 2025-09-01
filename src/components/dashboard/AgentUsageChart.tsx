@@ -49,7 +49,7 @@ const STATUS_COLORS = {
   active: 'hsl(142, 76%, 36%)',    // green
   suspended: 'hsl(38, 92%, 50%)',  // yellow/amber
   terminated: 'hsl(0, 84%, 60%)',  // red
-  total: 'hsl(250, 70%, 60%)',     // purple
+  total: 'hsl(var(--primary))',
 };
 
 export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartProps) {

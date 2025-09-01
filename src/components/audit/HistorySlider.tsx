@@ -54,7 +54,7 @@ const getActionIcon = (action: string) => {
       return <Power className="h-4 w-4 text-red-500" />;
     case 'command_validation':
     case 'batch_validation':
-      return <Activity className="h-4 w-4 text-purple-500" />;
+      return <Activity className="h-4 w-4 text-primary" />;
     default:
       return <FileText className="h-4 w-4 text-muted-foreground" />;
   }

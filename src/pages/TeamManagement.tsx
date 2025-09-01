@@ -36,7 +36,7 @@ const ROLE_MAPPING = {
 const DISPLAY_ROLES = Object.keys(ROLE_MAPPING) as Array<keyof typeof ROLE_MAPPING>;
 
 const ROLE_COLORS = {
-  'Owner': 'bg-gradient-to-r from-purple-500/20 to-violet-600/20 text-purple-200 border-purple-400/30 backdrop-blur-sm shadow-sm ring-1 ring-purple-400/20',
+  'Owner': 'bg-gradient-to-r from-primary/20 to-primary-glow/20 text-primary-foreground border-primary/30 backdrop-blur-sm shadow-sm ring-1 ring-primary/20',
   'Admin': 'bg-gradient-to-r from-rose-500/20 to-pink-600/20 text-rose-200 border-rose-400/30 backdrop-blur-sm shadow-sm ring-1 ring-rose-400/20',
   'Developer': 'bg-gradient-to-r from-emerald-500/20 to-green-600/20 text-emerald-200 border-emerald-400/30 backdrop-blur-sm shadow-sm ring-1 ring-emerald-400/20',
   'Analyst': 'bg-gradient-to-r from-sky-500/20 to-blue-600/20 text-sky-200 border-sky-400/30 backdrop-blur-sm shadow-sm ring-1 ring-sky-400/20',

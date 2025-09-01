@@ -42,7 +42,7 @@ export default function SecurityTests() {
 
         <div className="p-6 rounded-lg border bg-card">
           <div className="flex items-center gap-3 mb-3">
-            <Shield className="h-5 w-5 text-purple-500" />
+            <Shield className="h-5 w-5 text-primary" />
             <h3 className="font-semibold">Profile Security</h3>
           </div>
           <p className="text-sm text-muted-foreground">

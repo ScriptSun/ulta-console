@@ -236,7 +236,7 @@ export default function Users() {
                   <TableRow key={user.id}>
                     <TableCell>
                       <code 
-                        className="text-xs bg-purple-500/10 text-purple-300 px-2 py-1 rounded font-mono cursor-pointer hover:bg-purple-500/20 transition-colors"
+                        className="text-xs bg-primary/10 text-primary-foreground px-2 py-1 rounded font-mono cursor-pointer hover:bg-primary/20 transition-colors"
                         onClick={() => handleViewProfile(user)}
                         title="Click to view user profile"
                       >

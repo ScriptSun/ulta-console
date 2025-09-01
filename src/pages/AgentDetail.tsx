@@ -164,7 +164,7 @@ export default function AgentDetail() {
           Agents
         </Link>
         <span className="text-lg text-muted-foreground">/</span>
-        <span className="text-lg font-medium text-purple-600">
+        <span className="text-lg font-medium text-primary">
           {agent.hostname || `Agent ${agent.id.slice(0, 8)}`}
         </span>
       </div>

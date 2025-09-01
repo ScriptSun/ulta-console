@@ -484,7 +484,7 @@ export default function ScriptsBatches() {
                     <TableCell>
                       {batch.key ? (
                         <div className="flex flex-col">
-                          <span className="text-purple-500 font-mono text-sm font-semibold">
+                          <span className="text-primary font-mono text-sm font-semibold">
                             {batch.key}
                           </span>
                           {batch.description && (

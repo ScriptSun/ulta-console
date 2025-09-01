@@ -17,7 +17,7 @@ const scriptSections = [
     description: "Batch script execution and monitoring", 
     icon: Package,
     url: "/scripts/batches",
-    color: "bg-purple-500/10 text-purple-600"
+    color: "bg-primary/10 text-primary"
   },
   {
     title: "Settings",

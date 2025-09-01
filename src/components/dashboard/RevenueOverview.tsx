@@ -165,10 +165,10 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           </div>
 
           {/* Net Revenue */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-purple-500/30 relative overflow-hidden">
+          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-primary/30 relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-slate-400">Net Revenue After AI Costs</div>
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-medium">
+              <div className="text-sm font-medium text-muted-foreground">Net Revenue After AI Costs</div>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary-foreground text-xs font-medium">
                 {getTrendIcon(data.netRevenue > data.previousPeriodNetRevenue ? 'up' : data.netRevenue < data.previousPeriodNetRevenue ? 'down' : 'same')}
                 <span>
                   {data.previousPeriodNetRevenue > 0 
@@ -178,15 +178,15 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
                 </span>
               </div>
             </div>
-            <div className="text-4xl font-bold text-white mb-2">
+            <div className="text-4xl font-bold text-foreground mb-2">
               {formatCurrency(data.netRevenue)}
             </div>
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-muted-foreground">
               Revenue: {formatCurrency(data.mrr)} - AI Costs: {formatCurrency(data.aiCosts)}
             </div>
-            {/* Purple gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-purple-500/30 to-transparent pointer-events-none"></div>
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-primary/30 to-transparent pointer-events-none"></div>
           </div>
 
           {/* Churn Rate */}

@@ -575,8 +575,8 @@ export function EmbedCodeGenerator({ widget }: EmbedCodeGeneratorProps) {
                 </ul>
               </div>
               
-              <div className="p-4 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 rounded-lg backdrop-blur-sm">
-                <h4 className="font-medium text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
+               <div className="p-4 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-lg backdrop-blur-sm">
+                 <h4 className="font-medium text-primary dark:text-primary-foreground mb-2 flex items-center gap-2">
                   🎨 Dynamic Customization
                 </h4>
                 <ul className="text-sm text-foreground/70 space-y-1">
