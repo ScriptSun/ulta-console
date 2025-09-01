@@ -114,7 +114,7 @@ export function TopBar() {
         </div>
 
         {/* Right Side - User Menu */}
-        <div className="flex items-center">
+        <div className="flex items-center ml-8">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 h-10 px-3">
