@@ -1528,7 +1528,7 @@ export default function ProfileSettings() {
               )}
             </Card>
 
-            {/* Account Activity */}
+            {/* Trusted Devices & Sessions */}
             <Card className="bg-gradient-card border-card-border shadow-card">
               <CardHeader 
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -1537,12 +1537,12 @@ export default function ProfileSettings() {
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Clock className="h-5 w-5" />
-                    Account Activity
+                    Trusted Devices & Sessions
                   </div>
                   <ChevronRight className={`h-5 w-5 transition-transform ${showSessionsSection ? 'rotate-90' : ''}`} />
                 </CardTitle>
                 <CardDescription>
-                  Monitor your recent login sessions and manage account access.
+                  View all devices currently signed in to your account. Revoke access from any session remotely.
                 </CardDescription>
               </CardHeader>
               {showSessionsSection && (

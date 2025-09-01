@@ -35,6 +35,18 @@ function parseUserAgent(userAgent: string) {
   }
 }
 
+function generateDeviceFingerprint(userAgent: string, ip: string): string {
+  const { browser, os } = parseUserAgent(userAgent)
+  const deviceType = getDeviceType(userAgent)
+  
+  // Create a unique fingerprint based on device characteristics
+  // Using a hash of browser + os + device type + IP subnet
+  const ipSubnet = ip.split('.').slice(0, 3).join('.') // Use /24 subnet for some IP privacy
+  const fingerprint = `${browser}_${os}_${deviceType}_${ipSubnet}`
+  
+  return fingerprint.replace(/[^a-zA-Z0-9_]/g, '_') // Sanitize for consistency
+}
+
 function getDeviceType(userAgent: string): string {
   if (/Mobile|Android|iPhone|iPad/i.test(userAgent)) {
     if (/iPad/i.test(userAgent)) return 'Tablet'
@@ -202,8 +214,8 @@ serve(async (req) => {
         )
       }
 
-      if (action === 'create') {
-        // Create/track a new session
+      if (action === 'create' || action === 'heartbeat') {
+        // Create/track or update a session
         const clientIP = req.headers.get('x-forwarded-for') || 
                         req.headers.get('x-real-ip') || 
                         'Unknown'
@@ -211,42 +223,103 @@ serve(async (req) => {
         
         const { browser, os } = parseUserAgent(userAgent)
         const deviceType = getDeviceType(userAgent)
-        const location = await getLocationFromIP(clientIP)
-
-        const { data: newSession, error: createError } = await supabase
+        const deviceFingerprint = generateDeviceFingerprint(userAgent, clientIP)
+        
+        console.log('Processing session for user:', user.id, 'fingerprint:', deviceFingerprint)
+        
+        // Check if an active session exists for this device fingerprint
+        const { data: existingSession, error: findError } = await supabase
           .from('user_sessions')
-          .insert({
-            user_id: user.id,
-            ip_address: clientIP,
-            user_agent: userAgent,
-            device_type: deviceType,
-            location,
-            is_active: true,
-            session_start: new Date().toISOString()
-          })
-          .select()
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('device_fingerprint', deviceFingerprint)
+          .eq('is_active', true)
           .single()
-
-        if (createError) {
-          console.error('Error creating session:', createError)
+        
+        if (findError && findError.code !== 'PGRST116') { // PGRST116 = no rows found
+          console.error('Error finding existing session:', findError)
           return new Response(
-            JSON.stringify({ error: 'Failed to create session' }),
+            JSON.stringify({ error: 'Failed to check existing sessions' }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
 
+        let sessionData: any
+
+        if (existingSession) {
+          // Update existing session with new heartbeat
+          console.log('Updating existing session:', existingSession.id)
+          
+          const { data: updatedSession, error: updateError } = await supabase
+            .from('user_sessions')
+            .update({
+              last_seen: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              ip_address: clientIP, // Update IP in case it changed
+              user_agent: userAgent, // Update user agent in case browser was updated
+              location: await getLocationFromIP(clientIP)
+            })
+            .eq('id', existingSession.id)
+            .select()
+            .single()
+
+          if (updateError) {
+            console.error('Error updating session:', updateError)
+            return new Response(
+              JSON.stringify({ error: 'Failed to update session' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
+          sessionData = updatedSession
+        } else {
+          // Create new session for this device
+          console.log('Creating new session for device fingerprint:', deviceFingerprint)
+          
+          const location = await getLocationFromIP(clientIP)
+
+          const { data: newSession, error: createError } = await supabase
+            .from('user_sessions')
+            .insert({
+              user_id: user.id,
+              ip_address: clientIP,
+              user_agent: userAgent,
+              device_type: deviceType,
+              device_fingerprint: deviceFingerprint,
+              location,
+              is_active: true,
+              session_start: new Date().toISOString(),
+              last_seen: new Date().toISOString()
+            })
+            .select()
+            .single()
+
+          if (createError) {
+            console.error('Error creating session:', createError)
+            return new Response(
+              JSON.stringify({ error: 'Failed to create session' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
+          sessionData = newSession
+        }
+
         const enhancedSession: SessionInfo = {
-          ...newSession,
+          ...sessionData,
           browser,
           os,
           device_type: deviceType,
-          location,
-          last_seen: newSession.created_at
+          location: sessionData.location,
+          last_seen: sessionData.last_seen || sessionData.updated_at || sessionData.created_at
         }
 
         return new Response(
-          JSON.stringify({ session: enhancedSession }),
-          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ 
+            session: enhancedSession, 
+            action: existingSession ? 'updated' : 'created' 
+          }),
+          { status: existingSession ? 200 : 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
     }
