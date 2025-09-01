@@ -47,6 +47,19 @@ const Auth = () => {
     checkSessionAndRedirect();
   }, [loading, navigate]);
 
+  // Immediate redirect if already on /auth with valid session
+  useEffect(() => {
+    const immediateRedirect = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && window.location.pathname === '/auth') {
+        console.log('Immediate redirect from auth page');
+        window.location.href = '/dashboard';
+      }
+    };
+    
+    immediateRedirect();
+  }, []);
+
   // Show "Go to Dashboard" button if user is authenticated but still on auth page
   const showDashboardButton = user && !loading;
 
