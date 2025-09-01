@@ -128,10 +128,10 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
                 </span>
               </div>
             </div>
-            <div className="text-4xl font-bold text-white mb-2">
+             <div className="text-4xl font-bold text-foreground mb-2">
               {formatCurrency(data.mrr)}
             </div>
-            <div className="text-sm text-slate-400">
+             <div className="text-sm text-muted-foreground">
               vs {formatCurrency(data.previousPeriodMrr)} prev period
             </div>
             {/* Green gradient overlay */}
@@ -140,9 +140,9 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           </div>
 
           {/* ARPU */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-primary/30 relative overflow-hidden">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-slate-400">Average Revenue Per User</div>
+          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
+             <div className="flex items-center justify-between mb-3">
+               <div className="text-sm font-medium text-muted-foreground">Average Revenue Per User</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium">
                 {getTrendIcon(arpuTrend)}
                 <span>
@@ -153,10 +153,10 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
                 </span>
               </div>
             </div>
-            <div className="text-4xl font-bold text-white mb-2">
+             <div className="text-4xl font-bold text-foreground mb-2">
               {formatCurrency(data.arpu)}
             </div>
-            <div className="text-sm text-slate-400">
+             <div className="text-sm text-muted-foreground">
               vs {formatCurrency(data.previousPeriodArpu)} prev period
             </div>
             {/* Blue gradient overlay */}
@@ -190,18 +190,18 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           </div>
 
           {/* Churn Rate */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-destructive/30 relative overflow-hidden">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-slate-400">Churn Rate</div>
+          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
+             <div className="flex items-center justify-between mb-3">
+               <div className="text-sm font-medium text-muted-foreground">Churn Rate</div>
                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-destructive/20 text-destructive text-xs font-medium">
                  {getTrendIcon(churnTrend, true)}
                  <span>Trend</span>
                </div>
              </div>
-             <div className="text-4xl font-bold text-white mb-2">
+             <div className="text-4xl font-bold text-foreground mb-2">
                {data.churnRate.toFixed(1)}%
              </div>
-             <div className="text-sm text-slate-400">
+             <div className="text-sm text-muted-foreground">
                Current churn rate
              </div>
             {/* Red gradient overlay */}
@@ -213,37 +213,37 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         {/* Charts Section - 2 Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* MRR Trend Chart */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 relative overflow-hidden">
+           <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-semibold text-white">MRR Trend</h4>
+              <h4 className="text-lg font-semibold text-foreground">MRR Trend</h4>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.mrrTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 12, fill: '#94a3b8' }}
-                    axisLine={{ stroke: '#475569' }}
-                    tickLine={{ stroke: '#475569' }}
+                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                   <XAxis 
+                     dataKey="date" 
+                     tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                     axisLine={{ stroke: 'hsl(var(--border))' }}
+                     tickLine={{ stroke: 'hsl(var(--border))' }}
                     tickFormatter={(value) => {
                       const date = new Date(value);
                       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     }}
                   />
-                  <YAxis 
-                    tick={{ fontSize: 12, fill: '#94a3b8' }}
-                    axisLine={{ stroke: '#475569' }}
-                    tickLine={{ stroke: '#475569' }}
+                   <YAxis 
+                     tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                     axisLine={{ stroke: 'hsl(var(--border))' }}
+                     tickLine={{ stroke: 'hsl(var(--border))' }}
                     tickFormatter={(value) => `$${value}`}
                   />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: 'rgba(30, 41, 59, 0.95)',
-                      border: '1px solid rgba(148, 163, 184, 0.2)',
-                      borderRadius: '8px',
-                      color: '#f1f5f9'
-                    }}
+                   <Tooltip 
+                     contentStyle={{
+                       backgroundColor: 'hsl(var(--card))',
+                       border: '1px solid hsl(var(--border))',
+                       borderRadius: '8px',
+                       color: 'hsl(var(--foreground))'
+                     }}
                     formatter={(value) => [formatCurrency(Number(value)), 'MRR']}
                     labelFormatter={(value) => {
                       const date = new Date(value);
@@ -256,48 +256,48 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
                     stroke="#10b981" 
                     strokeWidth={3}
                     dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2, fill: '#ffffff' }}
+                    activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2, fill: 'hsl(var(--card))' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
             {/* Green gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-primary/10 pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none"></div>
+             <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-card/50 to-transparent pointer-events-none"></div>
           </div>
 
           {/* Churn Trend Chart */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 relative overflow-hidden">
+          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-semibold text-white">Churn Trend</h4>
+              <h4 className="text-lg font-semibold text-foreground">Churn Trend</h4>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.churnTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 12, fill: '#94a3b8' }}
-                    axisLine={{ stroke: '#475569' }}
-                    tickLine={{ stroke: '#475569' }}
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                   <XAxis 
+                     dataKey="date" 
+                     tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                     axisLine={{ stroke: 'hsl(var(--border))' }}
+                     tickLine={{ stroke: 'hsl(var(--border))' }}
                     tickFormatter={(value) => {
                       const date = new Date(value);
                       return date.toLocaleDateString('en-US', { month: 'short' });
                     }}
                   />
-                  <YAxis 
-                    tick={{ fontSize: 12, fill: '#94a3b8' }}
-                    axisLine={{ stroke: '#475569' }}
-                    tickLine={{ stroke: '#475569' }}
+                   <YAxis 
+                     tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                     axisLine={{ stroke: 'hsl(var(--border))' }}
+                     tickLine={{ stroke: 'hsl(var(--border))' }}
                     tickFormatter={(value) => `${value}%`}
                   />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: 'rgba(30, 41, 59, 0.95)',
-                      border: '1px solid rgba(148, 163, 184, 0.2)',
-                      borderRadius: '8px',
-                      color: '#f1f5f9'
-                    }}
+                   <Tooltip 
+                     contentStyle={{
+                       backgroundColor: 'hsl(var(--card))',
+                       border: '1px solid hsl(var(--border))',
+                       borderRadius: '8px',
+                       color: 'hsl(var(--foreground))'
+                     }}
                     formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Churn Rate']}
                     labelFormatter={(value) => {
                       const date = new Date(value);
@@ -310,14 +310,14 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
                     stroke="#ef4444" 
                     strokeWidth={3}
                     dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2, fill: '#ffffff' }}
+                    activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2, fill: 'hsl(var(--card))' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
             {/* Red gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 via-transparent to-red-500/10 pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-card/50 to-transparent pointer-events-none"></div>
           </div>
         </div>
 

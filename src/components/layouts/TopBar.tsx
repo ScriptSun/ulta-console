@@ -120,7 +120,7 @@ export function TopBar() {
               <Button variant="ghost" className="flex items-center gap-2 h-10 px-3">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={avatarUrl} />
-                  <AvatarFallback className="bg-gradient-primary text-white">
+                  <AvatarFallback className="bg-gradient-primary text-primary-foreground">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>

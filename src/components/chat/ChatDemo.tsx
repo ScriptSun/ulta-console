@@ -1420,7 +1420,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                   
                    {/* Input Errors Display */}
                    {message.inputErrors && Object.keys(message.inputErrors).length > 0 && (
-                     <div className="mt-4 relative overflow-hidden rounded-xl backdrop-blur-sm bg-gradient-to-br from-red-50/80 to-orange-50/80 dark:from-slate-800/90 dark:to-slate-900/90 border border-red-200/60 dark:border-red-500/30 shadow-lg shadow-red-100/50 dark:shadow-red-500/10 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+                     <div className="mt-4 relative overflow-hidden rounded-xl backdrop-blur-sm bg-gradient-to-br from-destructive/10 to-warning/10 dark:from-card dark:to-muted border border-destructive/20 dark:border-destructive/30 shadow-lg shadow-destructive/10 dark:shadow-destructive/10 animate-in fade-in-0 slide-in-from-top-2 duration-300">
                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-orange-500/5 dark:from-red-500/15 dark:to-orange-500/15"></div>
                        <div className="relative p-4">
                          <div className="flex items-start gap-3">

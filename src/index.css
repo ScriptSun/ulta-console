@@ -87,73 +87,73 @@ All colors MUST be HSL. Modern gradients, shadows, and transitions.
 
   /* Dark Theme */
   .dark {
-    /* Core Dark Theme Colors */
-    --background: 240 10% 6%;
-    --foreground: 240 5% 95%;
+    /* Core Dark Theme Colors - Completely Dark */
+    --background: 220 15% 3%;
+    --foreground: 220 15% 96%;
 
-    /* Card and Panel Colors */
-    --card: 240 8% 8%;
-    --card-foreground: 240 5% 95%;
-    --card-border: 240 8% 12%;
+    /* Card and Panel Colors - Very Dark */
+    --card: 220 15% 4%;
+    --card-foreground: 220 15% 96%;
+    --card-border: 220 15% 8%;
 
     /* Popover Colors */
-    --popover: 240 8% 10%;
-    --popover-foreground: 240 5% 95%;
+    --popover: 220 15% 5%;
+    --popover-foreground: 220 15% 96%;
 
     /* Primary Brand Colors */
     --primary: 250 70% 60%;
-    --primary-foreground: 240 5% 95%;
+    --primary-foreground: 220 15% 96%;
     --primary-glow: 250 70% 70%;
     --primary-dark: 250 70% 45%;
 
-    /* Secondary Colors */
-    --secondary: 240 8% 15%;
-    --secondary-foreground: 240 5% 90%;
+    /* Secondary Colors - Dark */
+    --secondary: 220 15% 8%;
+    --secondary-foreground: 220 15% 90%;
 
-    /* Muted Colors */
-    --muted: 240 8% 12%;
-    --muted-foreground: 240 5% 65%;
+    /* Muted Colors - Dark */
+    --muted: 220 15% 6%;
+    --muted-foreground: 220 8% 65%;
 
     /* Accent Colors */
-    --accent: 240 8% 18%;
-    --accent-foreground: 240 5% 95%;
+    --accent: 220 15% 10%;
+    --accent-foreground: 220 15% 95%;
 
     /* Status Colors */
     --success: 142 76% 36%;
-    --success-foreground: 240 5% 95%;
+    --success-foreground: 220 15% 95%;
     --warning: 38 92% 50%;
-    --warning-foreground: 240 10% 10%;
+    --warning-foreground: 220 15% 10%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 240 5% 95%;
+    --destructive-foreground: 220 15% 95%;
 
-    /* Border and Input */
-    --border: 240 8% 15%;
-    --input: 240 8% 12%;
-    --input-border: 240 8% 20%;
+    /* Border and Input - Darker */
+    --border: 220 15% 12%;
+    --input: 220 15% 6%;
+    --input-border: 220 15% 15%;
     --ring: 250 70% 60%;
 
-    /* Sidebar Specific */
-    --sidebar-background: 240 10% 4%;
-    --sidebar-foreground: 240 5% 85%;
+    /* Sidebar Specific - Dark */
+    --sidebar-background: 220 15% 2%;
+    --sidebar-foreground: 220 15% 85%;
     --sidebar-primary: 250 70% 60%;
-    --sidebar-primary-foreground: 240 5% 95%;
-    --sidebar-accent: 240 8% 10%;
-    --sidebar-accent-foreground: 240 5% 90%;
-    --sidebar-border: 240 8% 8%;
+    --sidebar-primary-foreground: 220 15% 95%;
+    --sidebar-accent: 220 15% 5%;
+    --sidebar-accent-foreground: 220 15% 90%;
+    --sidebar-border: 220 15% 6%;
     --sidebar-ring: 250 70% 60%;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(250 70% 60%), hsl(260 65% 55%));
-    --gradient-subtle: linear-gradient(180deg, hsl(240 10% 6%), hsl(240 8% 8%));
-    --gradient-card: linear-gradient(145deg, hsl(240 8% 8%), hsl(240 8% 10%));
+    --gradient-subtle: linear-gradient(180deg, hsl(220 15% 3%), hsl(220 15% 4%));
+    --gradient-card: linear-gradient(145deg, hsl(220 15% 4%), hsl(220 15% 5%));
     --gradient-glow: radial-gradient(circle at 50% 50%, hsl(250 70% 60% / 0.1), transparent 70%);
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px hsl(240 10% 0% / 0.2);
-    --shadow-md: 0 4px 6px hsl(240 10% 0% / 0.3);
-    --shadow-lg: 0 10px 15px hsl(240 10% 0% / 0.4);
+    --shadow-sm: 0 1px 2px hsl(220 15% 0% / 0.3);
+    --shadow-md: 0 4px 6px hsl(220 15% 0% / 0.4);
+    --shadow-lg: 0 10px 15px hsl(220 15% 0% / 0.5);
     --shadow-glow: 0 0 20px hsl(250 70% 60% / 0.3);
-    --shadow-card: 0 4px 12px hsl(240 10% 0% / 0.5);
+    --shadow-card: 0 4px 12px hsl(220 15% 0% / 0.6);
   }
 
   /* Warm Dark Theme - Eye-comfortable warm blacks */

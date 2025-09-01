@@ -120,11 +120,11 @@ export function NotificationCenter() {
           <Bell className="h-5 w-5 transition-all duration-300 group-hover:rotate-12 group-hover:text-primary" />
           {unreadCount > 0 && (
             <>
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center p-0 text-[10px] font-bold bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg border-2 border-card min-w-[20px]">
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center p-0 text-[10px] font-bold bg-gradient-to-r from-destructive to-destructive text-destructive-foreground shadow-lg border-2 border-card min-w-[20px]">
                 <span className="leading-none">{unreadCount}</span>
               </Badge>
               {/* Notification indicator dot */}
-              <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-white rounded-full"></div>
+              <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-card rounded-full"></div>
             </>
           )}
         </Button>

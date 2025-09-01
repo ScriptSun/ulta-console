@@ -112,24 +112,24 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="rounded-lg border border-slate-600 bg-slate-800/95 p-3 shadow-xl">
+                       <div className="rounded-lg border border-border bg-card/95 p-3 shadow-xl">
                         <div className="grid gap-2">
                           <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-slate-400">
+                             <span className="text-[0.70rem] uppercase text-muted-foreground">
                               {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </span>
-                            <span className="font-bold text-white">
+                             <span className="font-bold text-foreground">
                               {label}
                             </span>
                           </div>
                           {payload.map((entry: any, index: number) => (
                             <div key={index} className="flex flex-col">
-                              <span className="text-[0.70rem] uppercase text-slate-400">
+                               <span className="text-[0.70rem] uppercase text-muted-foreground">
                                 {entry.dataKey === 'active' ? 'Active' : 
                                  entry.dataKey === 'suspended' ? 'Suspended' : 
                                  entry.dataKey === 'terminated' ? 'Terminated' : 'Total'} Agents
                               </span>
-                              <span className="font-bold text-white">
+                               <span className="font-bold text-foreground">
                                 {entry.value}
                               </span>
                             </div>
@@ -176,21 +176,21 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="rounded-lg border border-slate-600 bg-slate-800/95 p-3 shadow-xl">
+                       <div className="rounded-lg border border-border bg-card/95 p-3 shadow-xl">
                         <div className="grid gap-2">
                           <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-slate-400">
+                             <span className="text-[0.70rem] uppercase text-muted-foreground">
                               Status
                             </span>
-                            <span className="font-bold text-white">
+                             <span className="font-bold text-foreground">
                               {payload[0]?.name}
                             </span>
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-slate-400">
+                             <span className="text-[0.70rem] uppercase text-muted-foreground">
                               Count
                             </span>
-                            <span className="font-bold text-white">
+                             <span className="font-bold text-foreground">
                               {payload[0]?.value} agents
                             </span>
                           </div>
@@ -230,25 +230,25 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="rounded-lg border border-slate-600 bg-slate-800/95 p-3 shadow-xl">
+                       <div className="rounded-lg border border-border bg-card/95 p-3 shadow-xl">
                         <div className="grid gap-2">
                           <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-slate-400">
+                             <span className="text-[0.70rem] uppercase text-muted-foreground">
                               {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </span>
-                            <span className="font-bold text-white">
+                             <span className="font-bold text-foreground">
                               {label}
                             </span>
                           </div>
                           {payload.map((entry: any, index: number) => (
                             <div key={index} className="flex flex-col">
-                              <span className="text-[0.70rem] uppercase text-slate-400">
+                               <span className="text-[0.70rem] uppercase text-muted-foreground">
                                 {entry.dataKey === 'active' ? 'Active' : 
                                  entry.dataKey === 'suspended' ? 'Suspended' : 
                                  entry.dataKey === 'terminated' ? 'Terminated' :
                                  'Total'} Agents
                               </span>
-                              <span className="font-bold text-white">
+                               <span className="font-bold text-foreground">
                                 {entry.value}
                               </span>
                             </div>
@@ -293,25 +293,25 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="rounded-lg border border-slate-600 bg-slate-800/95 p-3 shadow-xl">
+                      <div className="rounded-lg border border-border bg-card/95 p-3 shadow-xl">
                         <div className="grid gap-2">
                           <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-slate-400">
+                             <span className="text-[0.70rem] uppercase text-muted-foreground">
                               {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
                             </span>
-                            <span className="font-bold text-white">
+                             <span className="font-bold text-foreground">
                               {label}
                             </span>
                           </div>
                           {payload.map((entry: any, index: number) => (
                             <div key={index} className="flex flex-col">
-                              <span className="text-[0.70rem] uppercase text-slate-400">
+                              <span className="text-[0.70rem] uppercase text-muted-foreground">
                                {entry.dataKey === 'active' ? 'Active' : 
                                  entry.dataKey === 'suspended' ? 'Suspended' : 
                                  entry.dataKey === 'terminated' ? 'Terminated' :
                                  'Total'} Agents
                               </span>
-                              <span className="font-bold text-white">
+                              <span className="font-bold text-foreground">
                                 {entry.value}
                               </span>
                             </div>
