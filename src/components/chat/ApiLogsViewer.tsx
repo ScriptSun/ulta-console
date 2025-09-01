@@ -78,18 +78,20 @@ export const ApiLogsViewer: React.FC<ApiLogsViewerProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Router API Logs ({logs.length})
+            Router Final Responses ({logs.filter(log => log.type === 'router_response').length})
           </DialogTitle>
         </DialogHeader>
         
         <ScrollArea className="h-[600px] w-full">
           <div className="space-y-4">
-            {logs.length === 0 ? (
+            {logs.filter(log => log.type === 'router_response').length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No API logs yet. Send a message to see the logs.
+                No router responses yet. Send a message to see the final responses.
               </div>
             ) : (
-              logs.map((log) => (
+              logs
+                .filter(log => log.type === 'router_response')
+                .map((log) => (
                 <div
                   key={log.id}
                   className="border rounded-lg p-4 space-y-3"
@@ -98,7 +100,7 @@ export const ApiLogsViewer: React.FC<ApiLogsViewerProps> = ({
                     <div className="flex items-center gap-2">
                       {getTypeIcon(log.type)}
                       <Badge variant={getTypeBadgeVariant(log.type)}>
-                        {log.type.toUpperCase()}
+                        FINAL RESPONSE
                       </Badge>
                       <span className="text-sm text-muted-foreground">
                         {formatTimestamp(log.timestamp)}
