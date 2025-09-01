@@ -32,6 +32,21 @@ const Auth = () => {
     }
   }, [user, loading, navigate]);
 
+  // Additional redirect check for session
+  useEffect(() => {
+    const checkSessionAndRedirect = async () => {
+      if (!loading) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          console.log('Session found, redirecting to dashboard:', session.user.email);
+          navigate('/dashboard', { replace: true });
+        }
+      }
+    };
+    
+    checkSessionAndRedirect();
+  }, [loading, navigate]);
+
   // Show "Go to Dashboard" button if user is authenticated but still on auth page
   const showDashboardButton = user && !loading;
 
@@ -64,6 +79,12 @@ const Auth = () => {
         title: 'Welcome back!',
         description: 'You have been signed in successfully.',
       });
+      
+      // Force redirect immediately after successful login
+      console.log('Login successful, redirecting to dashboard...');
+      setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+      }, 1000); // Small delay to let the toast show
     }
     
     setIsSubmitting(false);
