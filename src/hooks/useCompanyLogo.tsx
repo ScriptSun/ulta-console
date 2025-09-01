@@ -25,14 +25,13 @@ export function useCompanyLogo() {
   const [uploading, setUploading] = useState({ light: false, dark: false });
 
   const loadLogoSettings = async () => {
-    if (!user) return;
-
     try {
+      // Load public company logos - get the first active theme (for public display on login)
       const { data, error } = await supabase
         .from('company_themes')
         .select('*')
-        .eq('created_by', user.id)
         .eq('is_active', true)
+        .limit(1)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
@@ -177,10 +176,9 @@ export function useCompanyLogo() {
   };
 
   useEffect(() => {
-    if (user) {
-      loadLogoSettings();
-    }
-  }, [user]);
+    // Load logo settings for public display (doesn't require authentication)
+    loadLogoSettings();
+  }, []);
 
   return {
     logoSettings,
