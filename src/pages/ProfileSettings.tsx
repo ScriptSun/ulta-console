@@ -43,6 +43,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useEmailChangeRequests } from '@/hooks/useEmailChangeRequests';
+import { useDarkThemeVariant, DARK_THEMES } from '@/hooks/useDarkThemeVariant';
 
 interface UserPreferences {
   email_alerts: boolean;
@@ -116,6 +117,15 @@ export default function ProfileSettings() {
     rejectEmailChangeRequest,
     cancelEmailChangeRequest,
   } = useEmailChangeRequests();
+
+  // Dark theme variants hook
+  const {
+    darkThemeVariant,
+    setThemeVariant,
+    getCurrentTheme,
+    darkThemes,
+    isDarkMode,
+  } = useDarkThemeVariant();
 
   // Load user profile data and preferences
   useEffect(() => {
@@ -863,6 +873,117 @@ export default function ProfileSettings() {
         <TabsContent value="appearance">
           <div className="space-y-6">
             <ThemeSelector />
+            
+            {/* Dark Theme Variants - Only show when dark mode is selected */}
+            {isDarkMode && (
+              <Card className="bg-gradient-card border-card-border shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Moon className="h-5 w-5" />
+                    Dark Theme Variants
+                  </CardTitle>
+                  <CardDescription>
+                    Choose from comfortable dark themes designed to be easy on your eyes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {darkThemes.map((theme) => (
+                      <div
+                        key={theme.id}
+                        className={`relative border rounded-lg p-4 cursor-pointer transition-all hover:border-primary/50 ${
+                          darkThemeVariant === theme.id
+                            ? 'border-primary ring-2 ring-primary/20'
+                            : 'border-border'
+                        }`}
+                        onClick={() => setThemeVariant(theme.id)}
+                      >
+                        {/* Theme preview */}
+                        <div className="mb-3 rounded-md overflow-hidden border">
+                          <div 
+                            className="h-20 p-3 flex flex-col justify-between text-xs"
+                            style={{ backgroundColor: theme.backgroundColor }}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div 
+                                className="text-white font-medium"
+                                style={{ color: theme.primaryColor }}
+                              >
+                                UltaAI
+                              </div>
+                              <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                            </div>
+                            <div className="space-y-1">
+                              <div 
+                                className="h-1 w-full rounded"
+                                style={{ backgroundColor: theme.accentColor }}
+                              ></div>
+                              <div className="flex gap-1">
+                                <div 
+                                  className="h-1 w-1/3 rounded"
+                                  style={{ backgroundColor: theme.accentColor }}
+                                ></div>
+                                <div 
+                                  className="h-1 w-1/4 rounded"
+                                  style={{ backgroundColor: theme.accentColor }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Sample button */}
+                          <div 
+                            className="h-8 flex items-center justify-center"
+                            style={{ backgroundColor: theme.backgroundColor }}
+                          >
+                            <div 
+                              className={`px-3 py-1 rounded text-xs font-medium text-white ${theme.buttonClass}`}
+                              style={{ backgroundColor: theme.primaryColor }}
+                            >
+                              Button
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Theme info */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-medium">{theme.name}</h3>
+                            {darkThemeVariant === theme.id && (
+                              <Badge variant="default" className="text-xs">
+                                Active
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {theme.description}
+                          </p>
+                        </div>
+                        
+                        {/* Selection indicator */}
+                        {darkThemeVariant === theme.id && (
+                          <div className="absolute top-2 right-2">
+                            <CheckCircle className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="flex items-start gap-2 p-4 bg-muted/50 rounded-lg">
+                    <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-800 dark:text-amber-200">Eye Comfort Notice</p>
+                      <p className="text-amber-700 dark:text-amber-300 mt-1">
+                        These dark themes are specifically designed to reduce eye strain during extended use. 
+                        Each variant uses different color temperatures and contrasts optimized for comfort.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             <ThemeCustomizer />
           </div>
         </TabsContent>

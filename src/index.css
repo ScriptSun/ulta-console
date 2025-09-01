@@ -155,6 +155,158 @@ All colors MUST be HSL. Modern gradients, shadows, and transitions.
     --shadow-glow: 0 0 20px hsl(250 70% 60% / 0.3);
     --shadow-card: 0 4px 12px hsl(240 10% 0% / 0.5);
   }
+
+  /* Warm Dark Theme - Eye-comfortable warm blacks */
+  .dark.theme-warm-dark {
+    --background: 20 14% 4%;
+    --foreground: 20 14% 91%;
+    --card: 20 14% 6%;
+    --card-foreground: 20 14% 91%;
+    --card-border: 20 14% 12%;
+    --popover: 20 14% 8%;
+    --popover-foreground: 20 14% 91%;
+    --primary: 35 95% 55%;
+    --primary-foreground: 20 14% 4%;
+    --primary-glow: 35 95% 65%;
+    --primary-dark: 35 95% 45%;
+    --secondary: 20 14% 14%;
+    --secondary-foreground: 20 14% 91%;
+    --muted: 20 14% 12%;
+    --muted-foreground: 20 9% 65%;
+    --accent: 20 14% 16%;
+    --accent-foreground: 20 14% 91%;
+    --border: 20 14% 14%;
+    --input: 20 14% 12%;
+    --input-border: 20 14% 18%;
+    --ring: 35 95% 55%;
+    --sidebar-background: 20 14% 3%;
+    --sidebar-foreground: 20 14% 85%;
+    --sidebar-primary: 35 95% 55%;
+    --sidebar-primary-foreground: 20 14% 4%;
+    --sidebar-accent: 20 14% 8%;
+    --sidebar-accent-foreground: 20 14% 90%;
+    --sidebar-border: 20 14% 6%;
+    --sidebar-ring: 35 95% 55%;
+    --gradient-primary: linear-gradient(135deg, hsl(35 95% 55%), hsl(25 85% 50%));
+    --gradient-subtle: linear-gradient(180deg, hsl(20 14% 4%), hsl(20 14% 6%));
+    --gradient-card: linear-gradient(145deg, hsl(20 14% 6%), hsl(20 14% 8%));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(35 95% 55% / 0.1), transparent 70%);
+    --shadow-glow: 0 0 20px hsl(35 95% 55% / 0.3);
+  }
+
+  /* Cool Dark Theme - Eye-comfortable cool blacks */
+  .dark.theme-cool-dark {
+    --background: 200 50% 3%;
+    --foreground: 200 50% 91%;
+    --card: 200 50% 5%;
+    --card-foreground: 200 50% 91%;
+    --card-border: 200 50% 11%;
+    --popover: 200 50% 7%;
+    --popover-foreground: 200 50% 91%;
+    --primary: 193 95% 68%;
+    --primary-foreground: 200 50% 3%;
+    --primary-glow: 193 95% 78%;
+    --primary-dark: 193 95% 58%;
+    --secondary: 200 50% 13%;
+    --secondary-foreground: 200 50% 91%;
+    --muted: 200 50% 11%;
+    --muted-foreground: 200 20% 65%;
+    --accent: 200 50% 15%;
+    --accent-foreground: 200 50% 91%;
+    --border: 200 50% 13%;
+    --input: 200 50% 11%;
+    --input-border: 200 50% 17%;
+    --ring: 193 95% 68%;
+    --sidebar-background: 200 50% 2%;
+    --sidebar-foreground: 200 50% 85%;
+    --sidebar-primary: 193 95% 68%;
+    --sidebar-primary-foreground: 200 50% 3%;
+    --sidebar-accent: 200 50% 7%;
+    --sidebar-accent-foreground: 200 50% 90%;
+    --sidebar-border: 200 50% 5%;
+    --sidebar-ring: 193 95% 68%;
+    --gradient-primary: linear-gradient(135deg, hsl(193 95% 68%), hsl(203 85% 63%));
+    --gradient-subtle: linear-gradient(180deg, hsl(200 50% 3%), hsl(200 50% 5%));
+    --gradient-card: linear-gradient(145deg, hsl(200 50% 5%), hsl(200 50% 7%));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(193 95% 68% / 0.1), transparent 70%);
+    --shadow-glow: 0 0 20px hsl(193 95% 68% / 0.3);
+  }
+
+  /* Soft Dark Theme - Eye-comfortable neutral blacks */
+  .dark.theme-soft-dark {
+    --background: 240 10% 4%;
+    --foreground: 240 10% 91%;
+    --card: 240 10% 6%;
+    --card-foreground: 240 10% 91%;
+    --card-border: 240 10% 12%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 240 10% 91%;
+    --primary: 280 65% 60%;
+    --primary-foreground: 240 10% 4%;
+    --primary-glow: 280 65% 70%;
+    --primary-dark: 280 65% 50%;
+    --secondary: 240 10% 14%;
+    --secondary-foreground: 240 10% 91%;
+    --muted: 240 10% 12%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 10% 16%;
+    --accent-foreground: 240 10% 91%;
+    --border: 240 10% 14%;
+    --input: 240 10% 12%;
+    --input-border: 240 10% 18%;
+    --ring: 280 65% 60%;
+    --sidebar-background: 240 10% 3%;
+    --sidebar-foreground: 240 10% 85%;
+    --sidebar-primary: 280 65% 60%;
+    --sidebar-primary-foreground: 240 10% 4%;
+    --sidebar-accent: 240 10% 8%;
+    --sidebar-accent-foreground: 240 10% 90%;
+    --sidebar-border: 240 10% 6%;
+    --sidebar-ring: 280 65% 60%;
+    --gradient-primary: linear-gradient(135deg, hsl(280 65% 60%), hsl(270 60% 55%));
+    --gradient-subtle: linear-gradient(180deg, hsl(240 10% 4%), hsl(240 10% 6%));
+    --gradient-card: linear-gradient(145deg, hsl(240 10% 6%), hsl(240 10% 8%));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(280 65% 60% / 0.1), transparent 70%);
+    --shadow-glow: 0 0 20px hsl(280 65% 60% / 0.3);
+  }
+
+  /* Deep Ocean Dark Theme - Eye-comfortable deep blues */
+  .dark.theme-ocean-dark {
+    --background: 210 50% 3%;
+    --foreground: 210 50% 91%;
+    --card: 210 50% 5%;
+    --card-foreground: 210 50% 91%;
+    --card-border: 210 50% 11%;
+    --popover: 210 50% 7%;
+    --popover-foreground: 210 50% 91%;
+    --primary: 193 95% 68%;
+    --primary-foreground: 210 50% 3%;
+    --primary-glow: 193 95% 78%;
+    --primary-dark: 193 95% 58%;
+    --secondary: 210 50% 13%;
+    --secondary-foreground: 210 50% 91%;
+    --muted: 210 50% 11%;
+    --muted-foreground: 210 20% 65%;
+    --accent: 210 50% 15%;
+    --accent-foreground: 210 50% 91%;
+    --border: 210 50% 13%;
+    --input: 210 50% 11%;
+    --input-border: 210 50% 17%;
+    --ring: 193 95% 68%;
+    --sidebar-background: 210 50% 2%;
+    --sidebar-foreground: 210 50% 85%;
+    --sidebar-primary: 193 95% 68%;
+    --sidebar-primary-foreground: 210 50% 3%;
+    --sidebar-accent: 210 50% 7%;
+    --sidebar-accent-foreground: 210 50% 90%;
+    --sidebar-border: 210 50% 5%;
+    --sidebar-ring: 193 95% 68%;
+    --gradient-primary: linear-gradient(135deg, hsl(193 95% 68%), hsl(183 85% 63%));
+    --gradient-subtle: linear-gradient(180deg, hsl(210 50% 3%), hsl(210 50% 5%));
+    --gradient-card: linear-gradient(145deg, hsl(210 50% 5%), hsl(210 50% 7%));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(193 95% 68% / 0.1), transparent 70%);
+    --shadow-glow: 0 0 20px hsl(193 95% 68% / 0.3);
+  }
 }
 
 @layer base {
@@ -212,5 +364,47 @@ All colors MUST be HSL. Modern gradients, shadows, and transitions.
 
   .transition-bounce {
     transition: var(--transition-bounce);
+  }
+
+  /* Theme-specific button styles */
+  .dark .btn-theme-default {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/20;
+  }
+
+  .dark.theme-warm-dark .btn-theme-warm {
+    @apply bg-gradient-to-r from-orange-600 to-amber-600 text-white hover:from-orange-700 hover:to-amber-700 border border-orange-500/30 shadow-lg shadow-orange-500/20;
+    border-radius: 12px;
+  }
+
+  .dark.theme-cool-dark .btn-theme-cool {
+    @apply bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-700 hover:to-blue-700 border border-cyan-500/30 shadow-lg shadow-cyan-500/20;
+    border-radius: 8px;
+  }
+
+  .dark.theme-soft-dark .btn-theme-soft {
+    @apply bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 border border-purple-500/30 shadow-lg shadow-purple-500/20;
+    border-radius: 16px;
+  }
+
+  .dark.theme-ocean-dark .btn-theme-ocean {
+    @apply bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 border border-teal-500/30 shadow-lg shadow-teal-500/20;
+    border-radius: 10px;
+  }
+
+  /* Theme-specific card styles */
+  .dark.theme-warm-dark .card-theme-warm {
+    @apply bg-gradient-to-br from-orange-950/20 to-amber-950/20 border border-orange-800/20 shadow-xl shadow-orange-900/10;
+  }
+
+  .dark.theme-cool-dark .card-theme-cool {
+    @apply bg-gradient-to-br from-cyan-950/20 to-blue-950/20 border border-cyan-800/20 shadow-xl shadow-cyan-900/10;
+  }
+
+  .dark.theme-soft-dark .card-theme-soft {
+    @apply bg-gradient-to-br from-purple-950/20 to-indigo-950/20 border border-purple-800/20 shadow-xl shadow-purple-900/10;
+  }
+
+  .dark.theme-ocean-dark .card-theme-ocean {
+    @apply bg-gradient-to-br from-teal-950/20 to-cyan-950/20 border border-teal-800/20 shadow-xl shadow-teal-900/10;
   }
 }
