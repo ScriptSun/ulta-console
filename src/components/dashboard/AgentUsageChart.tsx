@@ -349,95 +349,95 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
 
   if (!data || data.length === 0) {
     return (
-      <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-lg font-semibold text-foreground">Agents Status</h4>
-        </div>
-        <div className="flex items-center justify-center h-64">
+      <Card className="bg-gradient-card border-card-border shadow-card">
+        <CardHeader>
+          <CardTitle>Agent Status Over Time</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-[300px]">
           <p className="text-muted-foreground">No agent data found in the selected date range</p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-semibold text-foreground flex items-center gap-2">
+    <Card className="bg-gradient-card border-card-border shadow-card">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" />
           Agents Status
-        </h4>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">
+          <Badge variant="outline" className="ml-auto">
             {dateRange.label}
           </Badge>
-          <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CHART_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  <div className="flex items-center gap-2">
-                    <type.icon className="h-4 w-4" />
-                    {type.label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        </CardTitle>
+        <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CHART_TYPES.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                <div className="flex items-center gap-2">
+                  <type.icon className="h-4 w-4" />
+                  {type.label}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm justify-items-center">
+            <div 
+              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+                !visibleSeries.active ? 'opacity-50' : ''
+              }`}
+              onClick={() => toggleSeries('active')}
+            >
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.active }}></div>
+              <span className="text-muted-foreground">Active: <span className="font-semibold text-foreground">{totals.active}</span></span>
+            </div>
+            <div 
+              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+                !visibleSeries.suspended ? 'opacity-50' : ''
+              }`}
+              onClick={() => toggleSeries('suspended')}
+            >
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.suspended }}></div>
+              <span className="text-muted-foreground">Suspended: <span className="font-semibold text-foreground">{totals.suspended}</span></span>
+            </div>
+            <div 
+              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+                !visibleSeries.terminated ? 'opacity-50' : ''
+              }`}
+              onClick={() => toggleSeries('terminated')}
+            >
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
+              <span className="text-muted-foreground">Terminated: <span className="font-semibold text-foreground">{totals.terminated}</span></span>
+            </div>
+            <div 
+              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+                !visibleSeries.total ? 'opacity-50' : ''
+              }`}
+              onClick={() => toggleSeries('total')}
+            >
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.total }}></div>
+              <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{totals.total}</span></span>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="mb-4 p-3 bg-muted/30 rounded-lg">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm justify-items-center">
-          <div 
-            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-              !visibleSeries.active ? 'opacity-50' : ''
-            }`}
-            onClick={() => toggleSeries('active')}
-          >
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.active }}></div>
-            <span className="text-muted-foreground">Active: <span className="font-semibold text-foreground">{totals.active}</span></span>
+        {/* Chart with same background as MRR/Churn charts */}
+        <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden flex items-center justify-center">
+          <div className="h-80 w-full">
+            {renderChart()}
           </div>
-          <div 
-            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-              !visibleSeries.suspended ? 'opacity-50' : ''
-            }`}
-            onClick={() => toggleSeries('suspended')}
-          >
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.suspended }}></div>
-            <span className="text-muted-foreground">Suspended: <span className="font-semibold text-foreground">{totals.suspended}</span></span>
-          </div>
-          <div 
-            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-              !visibleSeries.terminated ? 'opacity-50' : ''
-            }`}
-            onClick={() => toggleSeries('terminated')}
-          >
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
-            <span className="text-muted-foreground">Terminated: <span className="font-semibold text-foreground">{totals.terminated}</span></span>
-          </div>
-          <div 
-            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-              !visibleSeries.total ? 'opacity-50' : ''
-            }`}
-            onClick={() => toggleSeries('total')}
-          >
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.total }}></div>
-            <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{totals.total}</span></span>
-          </div>
+          {/* Gradient overlay like MRR/Churn charts */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/10 pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-card/50 to-transparent pointer-events-none"></div>
         </div>
-      </div>
-
-      {/* Chart Area */}
-      <div className="h-64">
-        {renderChart()}
-      </div>
-
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/10 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-card/50 to-transparent pointer-events-none"></div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
