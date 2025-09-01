@@ -115,7 +115,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* MRR */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-success/40 relative overflow-hidden shadow-sm shadow-success/20">
+          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden shadow-sm shadow-success/20">
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm font-medium text-muted-foreground">Monthly Recurring Revenue</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/20 text-success text-xs font-medium">
