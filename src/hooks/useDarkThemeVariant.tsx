@@ -143,24 +143,6 @@ export const useThemeVariants = () => {
   const [darkThemeVariant, setDarkThemeVariantState] = useState<DarkThemeVariant>('default');
   const [lightThemeVariant, setLightThemeVariantState] = useState<LightThemeVariant>('default');
 
-  // Load saved theme variants on mount from database
-  useEffect(() => {
-    if (user) {
-      loadThemeVariantsFromDatabase();
-    } else {
-      // Fallback to localStorage for unauthenticated users
-      const savedDark = localStorage.getItem(STORAGE_KEY_DARK);
-      const savedLight = localStorage.getItem(STORAGE_KEY_LIGHT);
-      
-      if (savedDark && DARK_THEMES.find(t => t.id === savedDark)) {
-        setDarkThemeVariantState(savedDark as DarkThemeVariant);
-      }
-      if (savedLight && LIGHT_THEMES.find(t => t.id === savedLight)) {
-        setLightThemeVariantState(savedLight as LightThemeVariant);
-      }
-    }
-  }, [user]);
-
   const loadThemeVariantsFromDatabase = async () => {
     if (!user) return;
 
@@ -192,6 +174,24 @@ export const useThemeVariants = () => {
     }
   };
 
+  // Load saved theme variants on mount from database
+  useEffect(() => {
+    if (user) {
+      loadThemeVariantsFromDatabase();
+    } else {
+      // Fallback to localStorage for unauthenticated users
+      const savedDark = localStorage.getItem(STORAGE_KEY_DARK);
+      const savedLight = localStorage.getItem(STORAGE_KEY_LIGHT);
+      
+      if (savedDark && DARK_THEMES.find(t => t.id === savedDark)) {
+        setDarkThemeVariantState(savedDark as DarkThemeVariant);
+      }
+      if (savedLight && LIGHT_THEMES.find(t => t.id === savedLight)) {
+        setLightThemeVariantState(savedLight as LightThemeVariant);
+      }
+    }
+  }, [user]);
+
   // Apply theme class to document
   useEffect(() => {
     // Remove all existing theme classes
@@ -214,7 +214,7 @@ export const useThemeVariants = () => {
     }
   }, [mode, darkThemeVariant, lightThemeVariant]);
 
-  const setDarkThemeVariant = async (variant: DarkThemeVariant) => {
+  const updateDarkThemeVariant = async (variant: DarkThemeVariant) => {
     setDarkThemeVariantState(variant);
     
     if (user) {
@@ -245,7 +245,7 @@ export const useThemeVariants = () => {
     }
   };
 
-  const setLightThemeVariant = async (variant: LightThemeVariant) => {
+  const updateLightThemeVariant = async (variant: LightThemeVariant) => {
     setLightThemeVariantState(variant);
     
     if (user) {
@@ -287,13 +287,13 @@ export const useThemeVariants = () => {
   return {
     // Dark theme
     darkThemeVariant,
-    setDarkThemeVariant,
+    setDarkThemeVariant: updateDarkThemeVariant,
     getCurrentDarkTheme,
     darkThemes: DARK_THEMES,
     
     // Light theme
     lightThemeVariant,
-    setLightThemeVariant,
+    setLightThemeVariant: updateLightThemeVariant,
     getCurrentLightTheme,
     lightThemes: LIGHT_THEMES,
     
