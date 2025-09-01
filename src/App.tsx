@@ -41,6 +41,7 @@ import ProfileSettings from "./pages/ProfileSettings";
 import SystemSettings from "./pages/SystemSettings";
 import AiSettings from "./pages/AiSettings";
 import NotFound from "./pages/NotFound";
+import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <Dashboard />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/chat" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Chat />
                 </RootLayout>
               </ProtectedRoute>
             } />
