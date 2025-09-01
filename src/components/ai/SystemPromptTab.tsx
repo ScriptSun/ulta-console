@@ -158,6 +158,10 @@ export function SystemPromptTab() {
   const [dryRunDialog, setDryRunDialog] = useState(false);
   const [renderedPrompt, setRenderedPrompt] = useState('');
   const [tokenEstimate, setTokenEstimate] = useState(0);
+  const [fullPromptPreview, setFullPromptPreview] = useState('');
+  const [showFullPromptDialog, setShowFullPromptDialog] = useState(false);
+  const [sampleUserRequest, setSampleUserRequest] = useState('install wordpress');
+  const [isLoadingFullPreview, setIsLoadingFullPreview] = useState(false);
 
   useEffect(() => {
     loadVersions();
@@ -401,6 +405,79 @@ export function SystemPromptTab() {
     }
   };
 
+  const handlePreviewFullPrompt = async () => {
+    if (!previewAgent) {
+      toast({
+        title: 'Agent Required',
+        description: 'Please select an agent to preview the full prompt with real data.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsLoadingFullPreview(true);
+    try {
+      // Call the router-payload function to get real data
+      console.log('Calling router-payload with agent:', previewAgent);
+      const { data: payloadData, error } = await supabase.functions.invoke('ultaai-router-payload', {
+        body: { 
+          agent_id: previewAgent, 
+          user_request: sampleUserRequest 
+        }
+      });
+
+      if (error) {
+        console.error('Router payload error:', error);
+        throw error;
+      }
+
+      console.log('Router payload response:', payloadData);
+
+      // Transform payload to match router format
+      const transformedPayload = {
+        user_request: payloadData.user_request,
+        heartbeat: payloadData.heartbeat,
+        batches: payloadData.candidates || [], // Rename candidates to batches
+        command_policies: payloadData.command_policies || [],
+        policy_notes: payloadData.policy_notes || {}
+      };
+
+      // Generate the complete prompt that gets sent to OpenAI
+      const systemMessage = currentVersion?.content || ULTAAI_SYSTEM_PROMPT;
+      const userMessage = JSON.stringify(transformedPayload, null, 2);
+      
+      const fullPrompt = `=== SYSTEM MESSAGE ===
+${systemMessage}
+
+=== USER MESSAGE (JSON Payload) ===
+${userMessage}
+
+=== END OF PROMPT ===
+
+This is exactly what gets sent to OpenAI:
+- System Message: Your UltaAI prompt template
+- User Message: Real agent data (heartbeat, available batches, policies, etc.)`;
+
+      setFullPromptPreview(fullPrompt);
+      setShowFullPromptDialog(true);
+
+      toast({
+        title: 'Full Prompt Generated',
+        description: 'Showing complete prompt with real agent data',
+      });
+
+    } catch (error) {
+      console.error('Error generating full prompt preview:', error);
+      toast({
+        title: 'Preview Failed',
+        description: error.message || 'Failed to generate full prompt preview',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoadingFullPreview(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -555,9 +632,27 @@ export function SystemPromptTab() {
               Save Draft
             </Button>
             
-            <Button onClick={runDryRun} variant="outline" disabled={loading} className="gap-2">
-              <Play className="h-4 w-4" />
-              Dry Run Preview
+            <Button onClick={() => setDryRunDialog(true)} variant="outline" className="gap-2">
+              <Eye className="h-4 w-4" />
+              Preview Template
+            </Button>
+            <Button 
+              onClick={handlePreviewFullPrompt} 
+              disabled={!previewAgent || isLoadingFullPreview}
+              variant="outline" 
+              className="gap-2"
+            >
+              {isLoadingFullPreview ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <Calculator className="h-4 w-4" />
+                  Preview Full Prompt
+                </>
+              )}
             </Button>
 
             <Button 
@@ -709,6 +804,64 @@ export function SystemPromptTab() {
             </Button>
             <Button onClick={runDryRun} disabled={loading}>
               Refresh Preview
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Prompt Preview Dialog */}
+      <Dialog open={showFullPromptDialog} onOpenChange={setShowFullPromptDialog}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Complete Prompt Sent to OpenAI
+            </DialogTitle>
+            <DialogDescription>
+              This shows the exact prompt structure sent to AI models: your system prompt template + real agent data payload.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 max-h-[60vh] overflow-hidden">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="sample-request">Sample User Request:</Label>
+              <Input
+                id="sample-request"
+                value={sampleUserRequest}
+                onChange={(e) => setSampleUserRequest(e.target.value)}
+                placeholder="Enter a test user request..."
+                className="flex-1"
+              />
+              <Button 
+                onClick={handlePreviewFullPrompt} 
+                disabled={isLoadingFullPreview}
+                size="sm"
+                className="gap-2"
+              >
+                {isLoadingFullPreview ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="h-4 w-4" />
+                    Refresh
+                  </>
+                )}
+              </Button>
+            </div>
+            <div className="border rounded-lg overflow-hidden flex-1">
+              <Textarea
+                value={fullPromptPreview}
+                readOnly
+                className="w-full h-full min-h-[400px] font-mono text-sm resize-none border-0"
+                placeholder="Full prompt with real agent data will appear here..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFullPromptDialog(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
