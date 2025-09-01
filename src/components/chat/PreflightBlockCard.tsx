@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, RefreshCw, HardDrive, Cpu, MemoryStick, Wifi, Clock, Monitor } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { AlertTriangle, RefreshCw, HardDrive, Cpu, MemoryStick, Wifi, Clock, Monitor, CheckCircle, X, Loader } from 'lucide-react';
+import { useEventBus } from '@/hooks/useEventBus';
 
 interface PreflightDetail {
   check: string;
@@ -25,12 +27,85 @@ interface PreflightDetail {
 }
 
 interface PreflightBlockCardProps {
-  details: PreflightDetail[];
-  onRetry: () => void;
+  details?: PreflightDetail[];
+  onRetry?: () => void;
   loading?: boolean;
+  agent_id?: string;
+  decision?: any;
+  onPreflightComplete?: (success: boolean, runId?: string) => void;
 }
 
-export function PreflightBlockCard({ details, onRetry, loading = false }: PreflightBlockCardProps) {
+export function PreflightBlockCard({ 
+  details = [], 
+  onRetry, 
+  loading = false, 
+  agent_id, 
+  decision, 
+  onPreflightComplete 
+}: PreflightBlockCardProps) {
+  const { on } = useEventBus();
+  const [streamingChecks, setStreamingChecks] = useState<Map<string, { status: string; message?: string; }>>(new Map());
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [preflightDone, setPreflightDone] = useState(false);
+
+  // Listen to preflight streaming events
+  useEffect(() => {
+    if (!agent_id || !decision) return;
+    
+    const unsubscribers = [
+      on('preflight.start', () => {
+        console.log('Preflight checks starting');
+        setIsStreaming(true);
+        setStreamingChecks(new Map());
+        setPreflightDone(false);
+      }),
+      
+      on('preflight.item', (data) => {
+        console.log('Preflight check update:', data);
+        setStreamingChecks(prev => {
+          const updated = new Map(prev);
+          updated.set(data.name, {
+            status: data.status,
+            message: data.message
+          });
+          return updated;
+        });
+      }),
+      
+      on('preflight.done', (data) => {
+        console.log('Preflight checks completed:', data);
+        setIsStreaming(false);
+        setPreflightDone(true);
+        onPreflightComplete?.(data.ok, data.run_id);
+      }),
+      
+      on('preflight.error', (data) => {
+        console.error('Preflight error:', data);
+        setIsStreaming(false);
+      })
+    ];
+    
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [on, agent_id, decision, onPreflightComplete]);
+
+  // Combine static details with streaming checks
+  const allChecks = [...details];
+  streamingChecks.forEach((checkData, checkName) => {
+    if (!allChecks.find(d => d.check === checkName)) {
+      allChecks.push({
+        check: checkName,
+        status: checkData.status,
+        message: checkData.message
+      });
+    }
+  });
+
+  const hasFailures = allChecks.some(check => 
+    streamingChecks.get(check.check)?.status === 'fail' || 
+    (check.status && !['pass', 'ok'].includes(check.status))
+  );
   const getCheckIcon = (checkType: string) => {
     switch (checkType) {
       case 'min_disk':
@@ -128,53 +203,109 @@ export function PreflightBlockCard({ details, onRetry, loading = false }: Prefli
     }
   };
 
+  const getStatusIcon = (check: PreflightDetail) => {
+    const streamingData = streamingChecks.get(check.check);
+    const status = streamingData?.status || check.status;
+    
+    if (isStreaming && !streamingData && !check.status) {
+      return <Loader className="h-4 w-4 animate-spin text-blue-500" />;
+    }
+    
+    switch (status) {
+      case 'pass':
+      case 'ok':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'fail':
+        return <X className="h-4 w-4 text-red-500" />;
+      default:
+        return getCheckIcon(check.check);
+    }
+  };
+
   return (
-    <Card className="border-destructive/20 bg-destructive/5">
+    <Card className={hasFailures ? "border-destructive/20 bg-destructive/5" : "border-green-500/20 bg-green-500/5"}>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base text-destructive">
-          <AlertTriangle className="h-4 w-4" />
-          Preflight Checks Failed
+        <CardTitle className={`flex items-center gap-2 text-base ${hasFailures ? 'text-destructive' : 'text-green-600'}`}>
+          {isStreaming ? (
+            <>
+              <Loader className="h-4 w-4 animate-spin" />
+              Running Preflight Checks
+            </>
+          ) : hasFailures ? (
+            <>
+              <AlertTriangle className="h-4 w-4" />
+              Preflight Checks Failed
+            </>
+          ) : (
+            <>
+              <CheckCircle className="h-4 w-4" />
+              Preflight Checks Passed
+            </>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          The following issues need to be resolved before the task can run:
-        </p>
-        
-        <div className="space-y-2">
-          {details.map((detail, index) => (
-            <div key={index} className="flex items-start gap-3 p-3 rounded-lg border bg-background">
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                {getCheckIcon(detail.check)}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm">{getCheckTitle(detail.check)}</span>
-                    <Badge variant={getStatusColor(detail)} className="text-xs">
-                      {detail.status?.replace(/_/g, ' ') || 'failed'}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {formatCheckDetail(detail)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 pt-2">
-          <Button 
-            onClick={onRetry} 
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Checking...' : 'Retry'}
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Fix the issues on your server and click retry
+        {!preflightDone && !hasFailures && (
+          <p className="text-sm text-muted-foreground">
+            {isStreaming ? 'Checking system requirements...' : 'Preparing to run preflight checks...'}
           </p>
-        </div>
+        )}
+        
+        {hasFailures && (
+          <p className="text-sm text-muted-foreground">
+            The following issues need to be resolved before the task can run:
+          </p>
+        )}
+        
+        {allChecks.length > 0 && (
+          <div className="space-y-2">
+            {allChecks.map((detail, index) => {
+              const streamingData = streamingChecks.get(detail.check);
+              const status = streamingData?.status || detail.status;
+              const message = streamingData?.message || detail.message;
+              
+              return (
+                <div key={index} className="flex items-start gap-3 p-3 rounded-lg border bg-background">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {getStatusIcon(detail)}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm">{getCheckTitle(detail.check)}</span>
+                        {status && (
+                          <Badge 
+                            variant={status === 'pass' || status === 'ok' ? 'default' : getStatusColor(detail)} 
+                            className="text-xs"
+                          >
+                            {status === 'pass' || status === 'ok' ? 'passed' : status?.replace(/_/g, ' ') || 'checking'}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {message || formatCheckDetail(detail)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {hasFailures && onRetry && (
+          <div className="flex items-center gap-2 pt-2">
+            <Button 
+              onClick={onRetry} 
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              {loading ? 'Checking...' : 'Retry'}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Fix the issues on your server and click retry
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
