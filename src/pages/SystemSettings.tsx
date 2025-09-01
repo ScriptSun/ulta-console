@@ -48,6 +48,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { AITestPanel } from '@/components/ai/AITestPanel';
 
 interface SystemSetting {
   id: string;
@@ -207,20 +208,56 @@ export default function SystemSettings() {
     }
   };
 
-  const handleAISettingsUpdate = () => {
-    updateSetting('ai_models', aiSettings);
+  const handleAISettingsUpdate = async () => {
+    setLoading(true);
+    try {
+      await updateSetting('ai_models', aiSettings);
+      
+      // Refresh the AI service settings cache
+      const { aiService } = await import('@/lib/aiService');
+      await aiService.refreshSettings();
+      
+      toast({
+        title: 'AI Settings Updated',
+        description: 'Model failover configuration has been updated and applied.',
+      });
+    } catch (error) {
+      console.error('Error updating AI settings:', error);
+      toast({
+        title: 'Update Failed',
+        description: 'Failed to update AI settings.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAPISettingsUpdate = () => {
-    updateSetting('rate_limits', apiSettings);
+  const handleAPISettingsUpdate = async () => {
+    setLoading(true);
+    try {
+      await updateSetting('rate_limits', apiSettings);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSecuritySettingsUpdate = () => {
-    updateSetting('security', securitySettings);
+  const handleSecuritySettingsUpdate = async () => {
+    setLoading(true);
+    try {
+      await updateSetting('security', securitySettings);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleNotificationSettingsUpdate = () => {
-    updateSetting('notifications', notificationSettings);
+  const handleNotificationSettingsUpdate = async () => {
+    setLoading(true);
+    try {
+      await updateSetting('notifications', notificationSettings);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const availableModels = [
@@ -394,142 +431,149 @@ export default function SystemSettings() {
         </TabsList>
 
         <TabsContent value="ai">
-          <Card className="bg-gradient-card border-card-border shadow-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5" />
-                AI Model Configuration
-              </CardTitle>
-              <CardDescription>
-                Configure AI models, parameters, and behavior for your UltaAI agents and chat system.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-6">
-                <div>
-                  <Label className="text-base font-medium">Default Models with Failover</Label>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Select exactly 3 models in priority order. If the first model fails, the system will try the second, then the third.
-                  </p>
-                  
-                  <div className="space-y-4">
-                    <DndContext 
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <SortableContext 
-                        items={aiSettings.default_models}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <div className="space-y-2">
-                          {aiSettings.default_models.map((model, index) => (
-                            <SortableModelItem key={model} model={model} index={index} />
-                          ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
+          <div className="space-y-6">
+            <Card className="bg-gradient-card border-card-border shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5" />
+                  AI Model Configuration
+                </CardTitle>
+                <CardDescription>
+                  Configure AI models, parameters, and behavior for your UltaAI agents and chat system.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6">
+                  <div>
+                    <Label className="text-base font-medium">Default Models with Failover</Label>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Select exactly 3 models in priority order. If the first model fails, the system will try the second, then the third.
+                    </p>
                     
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                        <div>
-                          <h4 className="font-medium">Failover Configuration</h4>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Priority: {aiSettings.default_models.map((model, index) => {
-                              const modelInfo = availableModels.find(m => m.value === model);
-                              return `${index + 1}. ${modelInfo?.label}`;
-                            }).join(' → ')}
-                          </p>
+                    <div className="space-y-4">
+                      <DndContext 
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext 
+                          items={aiSettings.default_models}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-2">
+                            {aiSettings.default_models.map((model, index) => (
+                              <SortableModelItem key={model} model={model} index={index} />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                      
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                          <div>
+                            <h4 className="font-medium">Failover Configuration</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Priority: {aiSettings.default_models.map((model, index) => {
+                                const modelInfo = availableModels.find(m => m.value === model);
+                                return `${index + 1}. ${modelInfo?.label}`;
+                              }).join(' → ')}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <Label className="text-base font-medium">Available Models</Label>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Select which AI models agents can use for processing tasks and conversations.
-                  </p>
-                  <div className="grid gap-3">
-                    {availableModels.map((model) => (
-                      <div key={model.value} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <p className="font-medium">{model.label}</p>
-                            <p className="text-sm text-muted-foreground">{model.provider}</p>
+                  <div>
+                    <Label className="text-base font-medium">Available Models</Label>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Select which AI models agents can use for processing tasks and conversations.
+                    </p>
+                    <div className="grid gap-3">
+                      {availableModels.map((model) => (
+                        <div key={model.value} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <p className="font-medium">{model.label}</p>
+                              <p className="text-sm text-muted-foreground">{model.provider}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={aiSettings.enabled_models.includes(model.value) ? 'default' : 'secondary'}>
+                              {aiSettings.enabled_models.includes(model.value) ? 'Enabled' : 'Disabled'}
+                            </Badge>
+                            <Switch
+                              checked={aiSettings.enabled_models.includes(model.value)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setAiSettings(prev => ({
+                                    ...prev,
+                                    enabled_models: [...prev.enabled_models, model.value]
+                                  }));
+                                } else {
+                                  setAiSettings(prev => ({
+                                    ...prev,
+                                    enabled_models: prev.enabled_models.filter(m => m !== model.value)
+                                  }));
+                                }
+                              }}
+                            />
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={aiSettings.enabled_models.includes(model.value) ? 'default' : 'secondary'}>
-                            {aiSettings.enabled_models.includes(model.value) ? 'Enabled' : 'Disabled'}
-                          </Badge>
-                          <Switch
-                            checked={aiSettings.enabled_models.includes(model.value)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setAiSettings(prev => ({
-                                  ...prev,
-                                  enabled_models: [...prev.enabled_models, model.value]
-                                }));
-                              } else {
-                                setAiSettings(prev => ({
-                                  ...prev,
-                                  enabled_models: prev.enabled_models.filter(m => m !== model.value)
-                                }));
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="grid md:grid-cols-1 gap-4">
+                  <div className="grid md:grid-cols-1 gap-4">
+                    <div>
+                      <Label htmlFor="max_tokens">Max Tokens</Label>
+                      <Input
+                        id="max_tokens"
+                        type="number"
+                        value={aiSettings.max_tokens}
+                        onChange={(e) => setAiSettings(prev => ({ ...prev, max_tokens: parseInt(e.target.value) || 4000 }))}
+                      />
+                    </div>
+                  </div>
+
                   <div>
-                    <Label htmlFor="max_tokens">Max Tokens</Label>
-                    <Input
-                      id="max_tokens"
-                      type="number"
-                      value={aiSettings.max_tokens}
-                      onChange={(e) => setAiSettings(prev => ({ ...prev, max_tokens: parseInt(e.target.value) || 4000 }))}
+                    <Label>Temperature: {aiSettings.temperature}</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Controls randomness in AI responses (0 = deterministic, 1 = creative)
+                    </p>
+                    <Slider
+                      value={[aiSettings.temperature]}
+                      onValueChange={([value]) => setAiSettings(prev => ({ ...prev, temperature: value }))}
+                      max={1}
+                      min={0}
+                      step={0.1}
+                      className="w-full"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <Label>Temperature: {aiSettings.temperature}</Label>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Controls randomness in AI responses (0 = deterministic, 1 = creative)
-                  </p>
-                  <Slider
-                    value={[aiSettings.temperature]}
-                    onValueChange={([value]) => setAiSettings(prev => ({ ...prev, temperature: value }))}
-                    max={1}
-                    min={0}
-                    step={0.1}
-                    className="w-full"
-                  />
+                  <Button onClick={handleAISettingsUpdate} disabled={loading} className="w-fit">
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save AI Settings
+                      </>
+                    )}
+                  </Button>
                 </div>
+              </CardContent>
+            </Card>
 
-                <Button onClick={handleAISettingsUpdate} disabled={loading} className="w-fit">
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save AI Settings
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            {/* AI Test Panel */}
+            <div className="mt-6">
+              <AITestPanel />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="api">
