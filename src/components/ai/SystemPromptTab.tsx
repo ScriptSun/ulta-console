@@ -172,15 +172,16 @@ export function SystemPromptTab() {
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data?.setting_value) {
-        console.log('Setting value type:', typeof data.setting_value, data.setting_value);
-        const prompts = Array.isArray(data.setting_value) ? 
-          data.setting_value as unknown as SystemPromptVersion[] : 
-          [data.setting_value as unknown as SystemPromptVersion];
-        console.log('Processed prompts:', prompts);
+        const settingValue = data.setting_value as any;
+        console.log('Setting value type:', typeof settingValue, 'Content length:', settingValue.content?.length || 0);
+        const prompts = Array.isArray(settingValue) ? 
+          settingValue as unknown as SystemPromptVersion[] : 
+          [settingValue as unknown as SystemPromptVersion];
+        console.log('Processed prompts:', prompts.length, 'versions');
         setVersions(prompts);
         
         const latest = prompts[prompts.length - 1];
-        console.log('Latest version:', latest);
+        console.log('Latest version content length:', latest?.content?.length || 0);
         setCurrentVersion(latest);
         setDraftContent(latest?.content || ULTAAI_SYSTEM_PROMPT);
         setDraftTargets(latest?.targets || ['router', 'chat']);
