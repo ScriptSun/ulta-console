@@ -73,33 +73,46 @@ serve(async (req) => {
         user_request: request.user_request 
       });
 
-      // Step 1: Get routing data from ultaai-router-payload
+      // Step 1: Retrieve lightweight batch candidates
+      let candidates = [];
       let candidateCount = 0;
       try {
-        const payloadResponse = await supabase.functions.invoke('ultaai-router-payload', {
+        // Get agent OS for filtering
+        const { data: agent } = await supabase
+          .from('agents')
+          .select('heartbeat')
+          .eq('id', request.agent_id)
+          .single();
+
+        const agentOS = agent?.heartbeat?.os || null;
+
+        const retrieveResponse = await supabase.functions.invoke('batches-retrieve', {
           body: {
-            agent_id: request.agent_id,
-            user_request: request.user_request
+            q: request.user_request,
+            os: agentOS,
+            limit: 12
           }
         });
 
-        if (payloadResponse.error) {
-          throw new Error(`Payload error: ${payloadResponse.error.message}`);
+        if (retrieveResponse.error) {
+          throw new Error(`Retrieve error: ${retrieveResponse.error.message}`);
         }
 
-        const payloadData = payloadResponse.data;
-        candidateCount = payloadData?.batch_candidates?.length || 0;
+        const retrieveData = retrieveResponse.data;
+        candidates = retrieveData?.candidates || [];
+        candidateCount = candidates.length;
 
         // Send router.retrieved after getting candidates
         sendMessage('router.retrieved', { 
           candidate_count: candidateCount,
-          candidates: payloadData?.batch_candidates || []
+          candidate_ids: candidates.map((c: any) => c.id),
+          candidates: candidates
         });
 
       } catch (error) {
-        console.error('Error getting router payload:', error);
+        console.error('Error retrieving candidates:', error);
         sendMessage('router.error', { 
-          error: 'Failed to retrieve routing data',
+          error: 'Failed to retrieve batch candidates',
           details: error.message 
         });
         socket.close();
@@ -125,15 +138,24 @@ serve(async (req) => {
         const systemPrompt = systemPromptData?.content || 
           "You are UltaAI, a conversational hosting assistant. Analyze the user request and routing data to make decisions.";
 
-        // Get routing data again for OpenAI
-        const payloadResponse = await supabase.functions.invoke('ultaai-router-payload', {
-          body: {
-            agent_id: request.agent_id,
-            user_request: request.user_request
-          }
-        });
+        // Get command policies for OpenAI
+        const { data: commandPolicies } = await supabase
+          .from('command_policies')
+          .select('id, policy_name, mode, match_type, match_value, os_whitelist, risk, timeout_sec, confirm_message');
 
-        const routingData = payloadResponse.data;
+        const routingData = {
+          user_request: request.user_request,
+          candidates: candidates,
+          command_policies: commandPolicies || [],
+          policy_notes: {
+            wp_min_ram_mb: 2048,
+            wp_min_disk_gb: 5,
+            n8n_min_ram_mb: 2048,
+            n8n_min_disk_gb: 2,
+            ssl_requires_443: true,
+            web_requires_80: true
+          }
+        };
 
         const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -206,6 +228,18 @@ serve(async (req) => {
           const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             decision = JSON.parse(jsonMatch[0]);
+            
+            // If decision includes a batch_id, get full batch details
+            if (decision.mode === 'action' && decision.batch_id) {
+              console.log(`Getting batch details for selected batch: ${decision.batch_id}`);
+              const detailsResponse = await supabase.functions.invoke('batch-details', {
+                body: { batch_id: decision.batch_id }
+              });
+              
+              if (!detailsResponse.error && detailsResponse.data?.batch) {
+                decision.batch_details = detailsResponse.data.batch;
+              }
+            }
           } else {
             // Fallback: treat as chat response
             decision = {

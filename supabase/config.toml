@@ -13,6 +13,12 @@ verify_jwt = false
 [functions.ws-exec]
 verify_jwt = false
 
+[functions.batches-retrieve]
+verify_jwt = false
+
+[functions.batch-details]
+verify_jwt = false
+
 [functions.validate-command]
 verify_jwt = false
 
