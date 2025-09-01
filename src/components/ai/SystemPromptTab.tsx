@@ -488,7 +488,7 @@ export function SystemPromptTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {versions.map((version) => (
+            {(versions || []).map((version) => (
               <div key={version.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -500,7 +500,7 @@ export function SystemPromptTab() {
                     By {version.author} on {new Date(version.created_at).toLocaleString()}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Targets: {version.targets.map(t => PROMPT_TARGETS.find(pt => pt.value === t)?.label).join(', ')}
+                    Targets: {(version.targets || []).map(t => PROMPT_TARGETS.find(pt => pt.value === t)?.label).filter(Boolean).join(', ')}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -554,7 +554,7 @@ export function SystemPromptTab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {agents.map((agent) => (
+                    {(agents || []).map((agent) => (
                       <SelectItem key={agent.id} value={agent.id}>
                         {agent.hostname}
                       </SelectItem>
