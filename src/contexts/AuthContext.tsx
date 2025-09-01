@@ -178,7 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearInterval(heartbeatInterval);
       }
     };
-  }, [user, session, heartbeatInterval]); // Add heartbeatInterval to dependencies
+  }, [user, session]); // Remove heartbeatInterval from dependencies to prevent infinite loop
 
   const assignOwnerRole = async (userId: string) => {
     try {
