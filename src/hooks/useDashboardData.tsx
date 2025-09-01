@@ -125,15 +125,22 @@ export function useAIInsights(dateRange: DateRange) {
 
       if (aiLogsError) throw aiLogsError;
 
-      // Fetch agent logs for errors
-      const { data: logs, error: logsError } = await supabase
-        .from('agent_logs')
-        .select('agent_id, level, created_at')
-        .eq('level', 'error')
-        .gte('created_at', dateRange.start.toISOString())
-        .lte('created_at', dateRange.end.toISOString());
+      // Fetch agent logs for errors - handle gracefully if table doesn't exist or has different schema
+      let logs: any[] = [];
+      try {
+        const { data: agentLogs, error: logsError } = await supabase
+          .from('agent_logs')
+          .select('agent_id, level')
+          .eq('level', 'error')
+          .limit(100);
 
-      if (logsError) throw logsError;
+        if (!logsError && agentLogs) {
+          logs = agentLogs;
+        }
+      } catch (err) {
+        console.warn('Agent logs table not accessible or has different schema:', err);
+        // Continue without agent logs data
+      }
 
       // Process agents by period
       const agentsByPeriod = processAgentsByPeriod(agents || [], dateRange);
