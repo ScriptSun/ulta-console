@@ -83,8 +83,8 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [mode, setModeState] = useState<ThemeMode>('system');
-  const [currentTheme, setCurrentTheme] = useState<CompanyTheme>(defaultLightTheme);
+  const [mode, setModeState] = useState<ThemeMode>('dark');
+  const [currentTheme, setCurrentTheme] = useState<CompanyTheme>(defaultDarkTheme);
   const [availableThemes, setAvailableThemes] = useState<CompanyTheme[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -96,7 +96,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Apply theme mode to document
   useEffect(() => {
     applyThemeMode(mode);
-  }, [mode]);
+  }, []);
 
   // Apply theme colors to CSS custom properties
   useEffect(() => {
@@ -105,10 +105,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const loadThemePreferences = async () => {
     try {
-      // Load user's theme preference
+      // Always default to dark mode if no preference is saved
       const savedMode = localStorage.getItem('theme-mode') as ThemeMode;
       if (savedMode) {
         setModeState(savedMode);
+      } else {
+        setModeState('dark');
+        localStorage.setItem('theme-mode', 'dark');
       }
 
       // For now, use localStorage for themes until types are updated

@@ -274,11 +274,11 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             <span 
               className={`
                 absolute -top-2 -right-2 h-5 w-5 rounded-full flex items-center justify-center text-xs
-                ${iframeSafe ? 'bg-red-500 text-white' : 'bg-destructive text-destructive-foreground'}
+                ${iframeSafe ? 'bg-destructive text-destructive-foreground' : 'bg-destructive text-destructive-foreground'}
               `}
               style={iframeSafe ? {
-                backgroundColor: '#ef4444',
-                color: 'white',
+                backgroundColor: 'hsl(var(--destructive))',
+                color: 'hsl(var(--destructive-foreground))',
                 fontSize: '12px'
               } : {}}
             >
@@ -294,15 +294,15 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           className={`
             absolute bottom-16 w-80 h-96 rounded-lg shadow-2xl flex flex-col
             ${iframeSafe 
-              ? 'bg-white border border-gray-200' 
-              : 'bg-background border'
+            ? 'bg-background border border-border' 
+            : 'bg-background border border-border'
             }
           `}
-          style={{
-            ...(iframeSafe ? {
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb'
-            } : {}),
+           style={{
+             ...(iframeSafe ? {
+               backgroundColor: 'hsl(var(--background))',
+               border: '1px solid hsl(var(--border))'
+             } : {}),
             right: widgetPosition.includes('right') ? '0' : 'auto',
             left: widgetPosition.includes('left') ? '0' : 'auto',
             bottom: widgetPosition.includes('bottom') ? '16px' : 'auto',
@@ -314,29 +314,29 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             className={`
               flex items-center justify-between p-4 rounded-t-lg
               ${iframeSafe 
-                ? 'bg-gray-50 border-b border-gray-200' 
+                ? 'bg-muted border-b border-border' 
                 : 'bg-muted border-b'
               }
             `}
             style={iframeSafe ? {
-              backgroundColor: '#f9fafb',
-              borderBottom: '1px solid #e5e7eb'
+              backgroundColor: 'hsl(var(--muted))',
+              borderBottom: '1px solid hsl(var(--border))'
             } : {}}
           >
             <h3 
-              className={`font-semibold ${iframeSafe ? 'text-gray-900' : ''}`}
-              style={iframeSafe ? { color: '#111827', fontSize: '16px', margin: 0 } : {}}
+              className={`font-semibold ${iframeSafe ? 'text-foreground' : ''}`}
+              style={iframeSafe ? { color: 'hsl(var(--foreground))', fontSize: '16px', margin: 0 } : {}}
             >
               Chat Support
             </h3>
             <button
               onClick={() => setIsOpen(false)}
               className={`
-                p-1 rounded hover:bg-gray-200 transition-colors
-                ${iframeSafe ? 'text-gray-500' : 'text-muted-foreground'}
+                p-1 rounded hover:bg-muted-foreground/20 transition-colors
+                ${iframeSafe ? 'text-muted-foreground' : 'text-muted-foreground'}
               `}
               style={iframeSafe ? {
-                color: '#6b7280',
+                color: 'hsl(var(--muted-foreground))',
                 backgroundColor: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
@@ -352,8 +352,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && (
               <div 
-                className={`text-center ${iframeSafe ? 'text-gray-500' : 'text-muted-foreground'}`}
-                style={iframeSafe ? { color: '#6b7280', fontSize: '14px' } : {}}
+                className={`text-center ${iframeSafe ? 'text-muted-foreground' : 'text-muted-foreground'}`}
+                style={iframeSafe ? { color: 'hsl(var(--muted-foreground))', fontSize: '14px' } : {}}
               >
                 Start a conversation...
               </div>
@@ -369,16 +369,16 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                     max-w-[80%] rounded-lg p-3 text-sm
                     ${message.role === 'user'
                       ? iframeSafe 
-                        ? 'bg-blue-600 text-white' 
+                        ? 'bg-primary text-primary-foreground' 
                         : 'bg-primary text-primary-foreground'
                       : iframeSafe
-                        ? 'bg-gray-100 text-gray-900'
+                        ? 'bg-muted text-foreground'
                         : 'bg-muted text-foreground'
                     }
                   `}
                   style={iframeSafe ? {
-                    backgroundColor: message.role === 'user' ? '#2563eb' : '#f3f4f6',
-                    color: message.role === 'user' ? 'white' : '#111827',
+                    backgroundColor: message.role === 'user' ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                    color: message.role === 'user' ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))',
                     fontSize: '14px',
                     lineHeight: '1.4'
                   } : {}}
@@ -397,27 +397,27 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             {isTyping && (
               <div className="flex justify-start">
                 <div 
-                  className={`rounded-lg p-3 ${iframeSafe ? 'bg-gray-100' : 'bg-muted'}`}
-                  style={iframeSafe ? { backgroundColor: '#f3f4f6' } : {}}
+                  className={`rounded-lg p-3 ${iframeSafe ? 'bg-muted' : 'bg-muted'}`}
+                  style={iframeSafe ? { backgroundColor: 'hsl(var(--muted))' } : {}}
                 >
                   <div className="flex gap-1">
                     <div 
-                      className={`w-2 h-2 rounded-full animate-bounce ${iframeSafe ? 'bg-gray-400' : 'bg-muted-foreground'}`}
-                      style={iframeSafe ? { backgroundColor: '#9ca3af', width: '8px', height: '8px' } : {}}
+                      className={`w-2 h-2 rounded-full animate-bounce ${iframeSafe ? 'bg-muted-foreground' : 'bg-muted-foreground'}`}
+                      style={iframeSafe ? { backgroundColor: 'hsl(var(--muted-foreground))', width: '8px', height: '8px' } : {}}
                     />
                     <div 
-                      className={`w-2 h-2 rounded-full animate-bounce ${iframeSafe ? 'bg-gray-400' : 'bg-muted-foreground'}`}
+                      className={`w-2 h-2 rounded-full animate-bounce ${iframeSafe ? 'bg-muted-foreground' : 'bg-muted-foreground'}`}
                       style={iframeSafe ? { 
-                        backgroundColor: '#9ca3af', 
+                        backgroundColor: 'hsl(var(--muted-foreground))', 
                         width: '8px', 
                         height: '8px',
                         animationDelay: '0.1s'
                       } : { animationDelay: '0.1s' }}
                     />
                     <div 
-                      className={`w-2 h-2 rounded-full animate-bounce ${iframeSafe ? 'bg-gray-400' : 'bg-muted-foreground'}`}
+                      className={`w-2 h-2 rounded-full animate-bounce ${iframeSafe ? 'bg-muted-foreground' : 'bg-muted-foreground'}`}
                       style={iframeSafe ? { 
-                        backgroundColor: '#9ca3af', 
+                        backgroundColor: 'hsl(var(--muted-foreground))', 
                         width: '8px', 
                         height: '8px',
                         animationDelay: '0.2s'
@@ -433,8 +433,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
           {/* Input */}
           <div 
-            className={`p-4 border-t ${iframeSafe ? 'border-gray-200' : ''}`}
-            style={iframeSafe ? { borderTop: '1px solid #e5e7eb' } : {}}
+            className={`p-4 border-t ${iframeSafe ? 'border-border' : ''}`}
+            style={iframeSafe ? { borderTop: '1px solid hsl(var(--border))' } : {}}
           >
             <div className="flex gap-2">
               <textarea
@@ -446,17 +446,19 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 className={`
                   flex-1 resize-none rounded border p-2 text-sm
                   ${iframeSafe 
-                    ? 'border-gray-300 focus:border-blue-500 focus:outline-none' 
+                    ? 'border-border focus:border-primary focus:outline-none' 
                     : 'border-input bg-background focus:border-primary focus:outline-none'
                   }
                 `}
                 style={iframeSafe ? {
-                  border: '1px solid #d1d5db',
+                  border: '1px solid hsl(var(--border))',
                   borderRadius: '6px',
                   padding: '8px',
                   fontSize: '14px',
                   fontFamily: 'inherit',
-                  resize: 'none'
+                  resize: 'none',
+                  backgroundColor: 'hsl(var(--background))',
+                  color: 'hsl(var(--foreground))'
                 } : {}}
               />
               <button
@@ -470,8 +472,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                   }
                 `}
                 style={iframeSafe ? {
-                  backgroundColor: inputValue.trim() && !isTyping ? '#2563eb' : '#d1d5db',
-                  color: 'white',
+                  backgroundColor: inputValue.trim() && !isTyping ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                  color: inputValue.trim() && !isTyping ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
                   border: 'none',
                   cursor: inputValue.trim() && !isTyping ? 'pointer' : 'not-allowed',
                   fontSize: '14px',

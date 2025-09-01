@@ -1146,16 +1146,16 @@ export function EnhancedWidgetPreview({ widget, previewConfig }: EnhancedWidgetP
                             {message.taskStatus && (
                               <div className="flex-shrink-0 ml-2">
                                 {message.taskStatus.type === 'task_succeeded' ? (
-                                  <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center" title="Task completed successfully">
-                                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                                  </div>
-                                ) : message.taskStatus.type === 'task_failed' ? (
-                                  <div className="w-3 h-3 bg-red-500 rounded-full flex items-center justify-center" title="Task failed">
-                                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                                  </div>
-                                ) : message.taskStatus.type === 'task_started' ? (
-                                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" title="Task running">
-                                    <div className="w-1.5 h-1.5 bg-white rounded-full m-0.75"></div>
+                                   <div className="w-3 h-3 bg-success rounded-full flex items-center justify-center" title="Task completed successfully">
+                                     <div className="w-1.5 h-1.5 bg-background rounded-full"></div>
+                                   </div>
+                                 ) : message.taskStatus.type === 'task_failed' ? (
+                                   <div className="w-3 h-3 bg-destructive rounded-full flex items-center justify-center" title="Task failed">
+                                     <div className="w-1.5 h-1.5 bg-background rounded-full"></div>
+                                   </div>
+                                 ) : message.taskStatus.type === 'task_started' ? (
+                                   <div className="w-3 h-3 bg-primary rounded-full animate-pulse" title="Task running">
+                                     <div className="w-1.5 h-1.5 bg-background rounded-full m-0.75"></div>
                                   </div>
                                 ) : (
                   <div className="w-3 h-3 bg-muted-foreground rounded-full" title="Task status unknown">
