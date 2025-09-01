@@ -1693,48 +1693,52 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                       </div>
                       )}
                       
-                      {/* Router Decision Action Buttons */}
-                      {message.decision && message.role === 'assistant' && (
-                        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-muted/50">
-                          {/* Confirmed batch actions */}
-                          {message.decision.status === 'confirmed' && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handlePreflightCheck(message.decision)}
-                                disabled={isTyping}
-                                className="text-xs"
-                              >
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Preflight
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => handleExecution(message.decision, true)}
-                                disabled={isTyping}
-                                className="text-xs"
-                              >
-                                <Play className="w-3 h-3 mr-1" />
-                                Execute
-                              </Button>
-                            </>
-                          )}
-                          
-                          {/* Custom shell or proposed batch actions */}
-                          {(message.decision.task === 'custom_shell' || message.decision.task === 'proposed_batch') && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleExecution(message.decision, true)}
-                              disabled={isTyping}
-                              className="text-xs"
-                            >
-                              <Play className="w-3 h-3 mr-1" />
-                              Execute & Confirm
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                       {/* Router Decision Action Buttons */}
+                       {message.decision && message.role === 'assistant' && (
+                         message.decision.status === 'confirmed' || 
+                         message.decision.task === 'custom_shell' || 
+                         message.decision.task === 'proposed_batch'
+                       ) && (
+                         <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-muted/50">
+                           {/* Confirmed batch actions */}
+                           {message.decision.status === 'confirmed' && (
+                             <>
+                               <Button
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={() => handlePreflightCheck(message.decision)}
+                                 disabled={isTyping}
+                                 className="text-xs"
+                               >
+                                 <CheckCircle className="w-3 h-3 mr-1" />
+                                 Preflight
+                               </Button>
+                               <Button
+                                 size="sm"
+                                 onClick={() => handleExecution(message.decision, true)}
+                                 disabled={isTyping}
+                                 className="text-xs"
+                               >
+                                 <Play className="w-3 h-3 mr-1" />
+                                 Execute
+                               </Button>
+                             </>
+                           )}
+                           
+                           {/* Custom shell or proposed batch actions */}
+                           {(message.decision.task === 'custom_shell' || message.decision.task === 'proposed_batch') && (
+                             <Button
+                               size="sm"
+                               onClick={() => handleExecution(message.decision, true)}
+                               disabled={isTyping}
+                               className="text-xs"
+                             >
+                               <Play className="w-3 h-3 mr-1" />
+                               Execute & Confirm
+                             </Button>
+                           )}
+                         </div>
+                       )}
 
                       {/* Preflight Results Display */}
                       {message.preflightResult && (
