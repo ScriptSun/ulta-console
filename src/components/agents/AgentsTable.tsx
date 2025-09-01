@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useThemeVariants } from '@/hooks/useDarkThemeVariant';
 
 interface Agent {
   id: string;
@@ -55,34 +56,75 @@ interface AgentsTableProps {
   canManage: boolean;
 }
 
-const getStatusBadge = (status: string) => {
-  const statusConfig = {
-    active: { 
-      variant: 'default' as const,
-      className: 'bg-success/10 text-success border-success/20 hover:bg-success/20',
-      dot: 'bg-success' 
-    },
-    suspended: { 
-      variant: 'secondary' as const,
-      className: 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20',
-      dot: 'bg-warning' 
-    },
-    terminated: { 
-      variant: 'destructive' as const,
-      className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20',
-      dot: 'bg-destructive' 
-    },
+export function AgentsTable({
+  agents,
+  onAgentClick,
+  onStart,
+  onPause,
+  onStop,
+  onRemove,
+  onLogs,
+  onDetails,
+  onRecentTasks,
+  canManage
+}: AgentsTableProps) {
+  const { isDarkMode, getCurrentDarkTheme, getCurrentLightTheme } = useThemeVariants();
+  
+  const getStatusBadge = (status: string) => {
+    // Get the current theme to access the primary color
+    const currentTheme = isDarkMode ? getCurrentDarkTheme() : getCurrentLightTheme();
+    const primaryColor = currentTheme.primaryColor;
+    
+    const statusConfig = {
+      active: { 
+        variant: 'default' as const,
+        className: `text-white border-0`,
+        dot: 'bg-white',
+        style: { backgroundColor: primaryColor }
+      },
+      suspended: { 
+        variant: 'secondary' as const,
+        className: 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20',
+        dot: 'bg-warning',
+        style: {}
+      },
+      terminated: { 
+        variant: 'outline' as const,
+        className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20',
+        dot: 'bg-destructive',
+        style: {}
+      },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.terminated;
+
+    return (
+      <Badge 
+        variant={config.variant} 
+        className={`${config.className} gap-1.5 font-medium`}
+        style={config.style}
+      >
+        <div className={`w-2 h-2 rounded-full ${config.dot}`} />
+        <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+      </Badge>
+    );
   };
 
-  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.terminated;
-
-  return (
-    <Badge variant={config.variant} className={`${config.className} gap-1.5 font-medium`}>
-      <div className={`w-2 h-2 rounded-full ${config.dot}`} />
-      <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
-    </Badge>
-  );
-};
+  const getPlanBadge = (planKey?: string) => {
+    // Get the current theme to access the primary color  
+    const currentTheme = isDarkMode ? getCurrentDarkTheme() : getCurrentLightTheme();
+    const primaryColor = currentTheme.primaryColor;
+    
+    return (
+      <Badge 
+        variant="outline" 
+        className="text-xs text-white border-0"
+        style={{ backgroundColor: primaryColor }}
+      >
+        {planKey ? getPlanDisplayName(planKey) : 'Free Plan'}
+      </Badge>
+    );
+  };
 
 const formatUptime = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
@@ -113,18 +155,6 @@ const getPlanDisplayName = (planKey: string) => {
   return planNames[planKey] || planKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
-export function AgentsTable({
-  agents,
-  onAgentClick,
-  onStart,
-  onPause,
-  onStop,
-  onRemove,
-  onLogs,
-  onDetails,
-  onRecentTasks,
-  canManage
-}: AgentsTableProps) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -174,9 +204,7 @@ export function AgentsTable({
                 )}
               </TableCell>
               <TableCell>
-                <Badge variant="outline" className="text-xs">
-                  {agent.plan_key ? getPlanDisplayName(agent.plan_key) : 'Free Plan'}
-                </Badge>
+                {getPlanBadge(agent.plan_key)}
               </TableCell>
               <TableCell>{agent.ip_address || 'N/A'}</TableCell>
               <TableCell>{getStatusBadge(agent.status)}</TableCell>
