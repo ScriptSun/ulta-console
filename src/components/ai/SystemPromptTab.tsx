@@ -15,8 +15,6 @@ import {
   Eye, 
   RotateCcw, 
   Upload,
-  Search,
-  Replace,
   Calculator,
   Play
 } from 'lucide-react';
@@ -144,8 +142,6 @@ export function SystemPromptTab() {
   const [previewAgent, setPreviewAgent] = useState<string>('');
   const [previewModel, setPreviewModel] = useState<string>('gpt-4o-mini');
   const [agents, setAgents] = useState<any[]>([]);
-  const [searchText, setSearchText] = useState('');
-  const [replaceText, setReplaceText] = useState('');
   const [dryRunDialog, setDryRunDialog] = useState(false);
   const [renderedPrompt, setRenderedPrompt] = useState('');
   const [tokenEstimate, setTokenEstimate] = useState(0);
@@ -327,19 +323,6 @@ export function SystemPromptTab() {
     });
   };
 
-  const handleFindReplace = () => {
-    if (!searchText) return;
-    
-    const newContent = draftContent.replace(new RegExp(searchText, 'g'), replaceText);
-    setDraftContent(newContent);
-    setSearchText('');
-    setReplaceText('');
-    
-    toast({
-      title: 'Text Replaced',
-      description: 'Find and replace operation completed.',
-    });
-  };
 
   const runDryRun = async () => {
     if (!previewAgent) return;
@@ -459,37 +442,6 @@ This is exactly what gets sent to OpenAI:
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Find and Replace */}
-          <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-            <div>
-              <Label htmlFor="search">Find</Label>
-              <Input
-                id="search"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Search text..."
-              />
-            </div>
-            <div>
-              <Label htmlFor="replace">Replace</Label>
-              <Input
-                id="replace"
-                value={replaceText}
-                onChange={(e) => setReplaceText(e.target.value)}
-                placeholder="Replacement text..."
-              />
-            </div>
-            <div className="flex items-end">
-              <Button 
-                onClick={handleFindReplace}
-                disabled={!searchText}
-                className="gap-2"
-              >
-                <Replace className="h-4 w-4" />
-                Replace All
-              </Button>
-            </div>
-          </div>
 
           {/* Prompt Editor */}
           <div>
