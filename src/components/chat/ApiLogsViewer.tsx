@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 interface ApiLog {
   id: string;
   timestamp: string;
-  type: 'request' | 'response' | 'error';
+  type: 'request' | 'response' | 'error' | 'router_request' | 'router_response' | 'router_token';
   data: any;
   userMessage?: string;
 }
@@ -40,6 +40,12 @@ export const ApiLogsViewer: React.FC<ApiLogsViewerProps> = ({
         return <Send className="h-4 w-4" />;
       case 'response':
         return <ArrowDown className="h-4 w-4" />;
+      case 'router_request':
+        return <Send className="h-4 w-4 text-blue-500" />;
+      case 'router_response':
+        return <ArrowDown className="h-4 w-4 text-blue-500" />;
+      case 'router_token':
+        return <span className="text-blue-500">🔄</span>;
       case 'error':
         return <span className="text-destructive">❌</span>;
       default:
@@ -53,6 +59,12 @@ export const ApiLogsViewer: React.FC<ApiLogsViewerProps> = ({
         return 'outline' as const;
       case 'response':
         return 'default' as const;
+      case 'router_request':
+        return 'outline' as const;
+      case 'router_response':
+        return 'default' as const;
+      case 'router_token':
+        return 'secondary' as const;
       case 'error':
         return 'destructive' as const;
       default:
@@ -66,7 +78,7 @@ export const ApiLogsViewer: React.FC<ApiLogsViewerProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            OpenAI API Logs ({logs.length})
+            Router API Logs ({logs.length})
           </DialogTitle>
         </DialogHeader>
         
