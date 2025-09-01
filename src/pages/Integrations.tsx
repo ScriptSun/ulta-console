@@ -240,7 +240,7 @@ export default function Integrations() {
               </a>
             </Button>
             <Button variant="secondary" size="sm" asChild>
-              <a href="/plans">
+              <a href="/subscription-plans">
                 View Plans
               </a>
             </Button>

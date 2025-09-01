@@ -50,7 +50,7 @@ const securityItems = [
 ]
 
 const toolsItems = [
-  { title: 'Subscription Plans', url: '/plans', icon: CreditCard, pageKey: 'plans' },
+  { title: 'Subscription Plans', url: '/subscription-plans', icon: CreditCard, pageKey: 'plans' },
   { title: 'Chat Widgets', url: '/widget-management', icon: Globe, pageKey: 'widgets' },
   { title: 'Integrations', url: '/integrations', icon: Puzzle, pageKey: 'integrations' },
   { title: 'Access Control', url: '/access-control', icon: Users, pageKey: 'teams' },

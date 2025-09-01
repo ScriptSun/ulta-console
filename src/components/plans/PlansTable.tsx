@@ -22,19 +22,21 @@ import {
   Power, 
   PowerOff
 } from 'lucide-react';
-import { Plan } from '@/types/planTypes';
+import { SubscriptionPlan, PlanUsageStats } from '@/hooks/useSubscriptionPlans';
 import { cn } from '@/lib/utils';
 
 interface PlansTableProps {
-  plans: Plan[];
-  onEdit: (plan: Plan) => void;
-  onDuplicate: (plan: Plan) => void;
-  onToggleStatus: (plan: Plan) => void;
-  onDelete: (plan: Plan) => void;
+  plans: SubscriptionPlan[];
+  planUsageStats: PlanUsageStats[];
+  onEdit: (plan: SubscriptionPlan) => void;
+  onDuplicate: (plan: SubscriptionPlan) => void;
+  onToggleStatus: (plan: SubscriptionPlan) => void;
+  onDelete: (plan: SubscriptionPlan) => void;
 }
 
 export function PlansTable({ 
   plans, 
+  planUsageStats,
   onEdit, 
   onDuplicate, 
   onToggleStatus, 
@@ -49,6 +51,11 @@ export function PlansTable({
     );
   }
 
+  const getAgentCount = (planKey: string) => {
+    const stats = planUsageStats.find(stat => stat.plan_key === planKey);
+    return stats?.agent_count || 0;
+  };
+
   return (
     <div className="space-y-4">
       <div className="border rounded-lg bg-card">
@@ -57,9 +64,10 @@ export function PlansTable({
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Plan Keys</TableHead>
-              <TableHead>Total Subscribers</TableHead>
+              <TableHead>Active Agents</TableHead>
               <TableHead>AI Limit</TableHead>
               <TableHead>Server Limit</TableHead>
+              <TableHead>Monthly Price</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[50px]">Actions</TableHead>
             </TableRow>
@@ -88,40 +96,36 @@ export function PlansTable({
                 <TableCell>
                   <div className="text-center">
                     <div className="text-lg font-bold text-foreground">
-                      {(() => {
-                        // Mock data: subscribers count by plan key
-                        const subscribersByPlan: Record<string, number> = {
-                          'free_plan': 150,
-                          'basic_plan': 75,
-                          'pro_plan': 40,
-                          'premium_plan': 25
-                        };
-                        return (subscribersByPlan[plan.key] || 0).toLocaleString();
-                      })()}
+                      {getAgentCount(plan.key).toLocaleString()}
                     </div>
                     <div className="text-xs text-muted-foreground">agents</div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm font-medium">
-                    {plan.limits.ai_requests.toLocaleString()}
+                    {plan.monthly_ai_requests.toLocaleString()}
                   </span>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm font-medium">
-                    {plan.limits.server_events.toLocaleString()}
+                    {plan.monthly_server_events.toLocaleString()}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm font-medium">
+                    ${plan.price_monthly.toFixed(2)}
                   </span>
                 </TableCell>
                 <TableCell>
                   <Badge 
-                    variant={plan.enabled ? 'default' : 'secondary'}
+                    variant={plan.active ? 'default' : 'secondary'}
                     className={cn(
-                      plan.enabled 
+                      plan.active 
                         ? 'bg-success/10 text-success border-success/20' 
                         : 'bg-muted text-muted-foreground'
                     )}
                   >
-                    {plan.enabled ? 'Active' : 'Disabled'}
+                    {plan.active ? 'Active' : 'Disabled'}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -141,7 +145,7 @@ export function PlansTable({
                         Duplicate
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onToggleStatus(plan)}>
-                        {plan.enabled ? (
+                        {plan.active ? (
                           <>
                             <PowerOff className="h-4 w-4 mr-2" />
                             Disable

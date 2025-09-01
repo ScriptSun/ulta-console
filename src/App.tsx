@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import RootLayout from "./components/layouts/RootLayout";
@@ -13,7 +13,7 @@ import AgentDetail from "./pages/AgentDetail";
 import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
 import ApiKeys from "./pages/ApiKeys";
-import Plans from "./pages/Plans";
+import SubscriptionPlans from "./pages/SubscriptionPlans";
 import Security from "./pages/Security";
 import Audit from "./pages/Audit";
 import Integrations from "./pages/Integrations";
@@ -119,10 +119,14 @@ const App = () => (
                 </RootLayout>
               </ProtectedRoute>
             } />
+            {/* Legacy redirect */}
             <Route path="/plans" element={
+              <Navigate to="/subscription-plans" replace />
+            } />
+            <Route path="/subscription-plans" element={
               <ProtectedRoute>
                 <RootLayout>
-                  <Plans />
+                  <SubscriptionPlans />
                 </RootLayout>
               </ProtectedRoute>
             } />
