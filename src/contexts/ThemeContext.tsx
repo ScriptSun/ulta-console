@@ -96,7 +96,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Apply theme mode to document
   useEffect(() => {
     applyThemeMode(mode);
-  }, []);
+  }, [mode]);
 
   // Apply theme colors to CSS custom properties
   useEffect(() => {
@@ -139,6 +139,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
     localStorage.setItem('theme-mode', newMode);
+    applyThemeMode(newMode);
   };
 
   const applyThemeMode = (themeMode: ThemeMode) => {
@@ -150,6 +151,36 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       root.classList.add(systemTheme);
     } else {
       root.classList.add(themeMode);
+    }
+    
+    // Apply theme variant class if available
+    applyThemeVariant();
+  };
+
+  const applyThemeVariant = () => {
+    const root = window.document.documentElement;
+    
+    // Remove existing theme variant classes
+    const existingClasses = root.className.split(' ').filter(cls => 
+      !cls.startsWith('theme-')
+    );
+    root.className = existingClasses.join(' ');
+    
+    // Apply theme variant class based on current theme name
+    const themeVariantMap: Record<string, string> = {
+      'Soft White': 'theme-soft-white',
+      'Cool Gray': 'theme-cool-gray', 
+      'Warm Cream': 'theme-warm-cream',
+      'Minimal Light': 'theme-minimal-light',
+      'Warm Dark': 'theme-warm-dark',
+      'Cool Dark': 'theme-cool-dark',
+      'Soft Dark': 'theme-soft-dark',
+      'Ocean Dark': 'theme-ocean-dark'
+    };
+    
+    const variantClass = themeVariantMap[currentTheme.name];
+    if (variantClass) {
+      root.classList.add(variantClass);
     }
   };
 
@@ -169,6 +200,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       );
 
       setCurrentTheme(theme);
+      
+      // Apply theme colors immediately
+      applyThemeColors(theme.colors);
+      
+      // Apply theme variant class
+      setTimeout(() => {
+        applyThemeVariant();
+      }, 0);
       
       // Save preference locally
       localStorage.setItem('active-theme', JSON.stringify(theme));
