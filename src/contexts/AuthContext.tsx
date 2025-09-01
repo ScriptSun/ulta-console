@@ -40,38 +40,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   } = useSecurityEnforcement(user);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-        
-        // Handle additional logic after auth state changes
-        if (session?.user && event === 'SIGNED_IN') {
-          setTimeout(async () => {
-            // Auto-assign admin role to admin@admin.com
-            if (session.user.email === 'admin@admin.com') {
-              assignAdminRole(session.user.id);
-            }
-            
-            // Track user session using session-management edge function
-            try {
-              await supabase.functions.invoke('session-management', {
-                body: {
-                  action: 'create'
-                }
-              });
-            } catch (error) {
-              console.error('Failed to track session:', error);
-            }
-          }, 0);
-        }
-      }
-    );
+    let mounted = true;
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check for existing session FIRST
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!mounted) return;
+      
+      if (error) {
+        console.error('Session check error:', error);
+      }
+      
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -86,7 +65,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+        
+        console.log('Auth state change:', event, session?.user?.email);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Only set loading to false after initial session check
+        if (event !== 'INITIAL_SESSION') {
+          setLoading(false);
+        }
+        
+        // Handle additional logic after auth state changes
+        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          // Auto-assign admin role to admin@admin.com
+          if (session.user.email === 'admin@admin.com') {
+            assignAdminRole(session.user.id);
+          }
+          
+          // Track user session using session-management edge function
+          try {
+            await supabase.functions.invoke('session-management', {
+              body: { action: 'create' }
+            });
+          } catch (error) {
+            console.error('Failed to track session:', error);
+          }
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Set up session heartbeat for authenticated users
