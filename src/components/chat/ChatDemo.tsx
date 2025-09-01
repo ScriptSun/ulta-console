@@ -778,7 +778,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         };
         
         message.renderConfig = decision.batch_details.render_config || { type: 'text' };
-        message.content = decision.message || decision.summary || '';
+        // Don't overwrite content - it was already set correctly in router.selected
         return;
       }
       
@@ -797,7 +797,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         };
         
         message.renderConfig = (batchData.render_config as unknown as RenderConfig) || { type: 'text' };
-        message.content = decision.message || decision.summary || '';
+        // Don't overwrite content - it was already set correctly in router.selected
       }
     } catch (error) {
       console.error('Error setting up batch inputs:', error);
