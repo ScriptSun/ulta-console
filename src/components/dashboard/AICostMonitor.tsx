@@ -179,7 +179,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pb-1">
         {/* Summary Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {/* Total Cost */}
@@ -255,7 +255,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
         {enrichedCostData.length > 0 ? (
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-muted-foreground mb-3">Cost by Model</h4>
-            <div className="max-h-[240px] overflow-y-auto space-y-3 pr-2">
+            <div className="max-h-[240px] overflow-y-auto space-y-3 pr-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {enrichedCostData.map((item, index) => (
                 <div
                   key={item.model}

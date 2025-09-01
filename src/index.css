@@ -6,6 +6,17 @@
 All colors MUST be HSL. Modern gradients, shadows, and transitions.
 */
 
+/* Custom scrollbar hiding utility */
+@layer utilities {
+  .scrollbar-hide {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer base {
   :root {
     /* Animation Variables */
