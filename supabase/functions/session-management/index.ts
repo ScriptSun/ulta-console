@@ -35,18 +35,6 @@ function parseUserAgent(userAgent: string) {
   }
 }
 
-function generateDeviceFingerprint(userAgent: string, ip: string): string {
-  const { browser, os } = parseUserAgent(userAgent)
-  const deviceType = getDeviceType(userAgent)
-  
-  // Create a unique fingerprint based on device characteristics
-  // Using a hash of browser + os + device type + IP subnet
-  const ipSubnet = ip.split('.').slice(0, 3).join('.') // Use /24 subnet for some IP privacy
-  const fingerprint = `${browser}_${os}_${deviceType}_${ipSubnet}`
-  
-  return fingerprint.replace(/[^a-zA-Z0-9_]/g, '_') // Sanitize for consistency
-}
-
 function getDeviceType(userAgent: string): string {
   if (/Mobile|Android|iPhone|iPad/i.test(userAgent)) {
     if (/iPad/i.test(userAgent)) return 'Tablet'
@@ -291,9 +279,8 @@ serve(async (req) => {
         
         const { browser, os } = parseUserAgent(userAgent)
         const deviceType = getDeviceType(userAgent)
-        const deviceFingerprint = generateDeviceFingerprint(userAgent, clientIP)
         
-        console.log('Processing session for user:', user.id, 'fingerprint:', deviceFingerprint)
+        console.log('Processing session for user:', user.id)
         
         // Check if an active session exists for this device (using user_agent + ip as identifier)
         const { data: existingSession, error: findError } = await supabase
@@ -303,9 +290,9 @@ serve(async (req) => {
           .eq('user_agent', userAgent)
           .eq('ip_address', clientIP)
           .eq('is_active', true)
-          .single()
+          .maybeSingle()
         
-        if (findError && findError.code !== 'PGRST116') { // PGRST116 = no rows found
+        if (findError) {
           console.error('Error finding existing session:', findError)
           return new Response(
             JSON.stringify({ error: 'Failed to check existing sessions' }),
@@ -323,8 +310,6 @@ serve(async (req) => {
             .from('user_sessions')
             .update({
               updated_at: new Date().toISOString(),
-              ip_address: clientIP, // Update IP in case it changed
-              user_agent: userAgent, // Update user agent in case browser was updated
               location: await getLocationFromIP(clientIP)
             })
             .eq('id', existingSession.id)
@@ -342,7 +327,7 @@ serve(async (req) => {
           sessionData = updatedSession
         } else {
           // Create new session for this device
-          console.log('Creating new session for device fingerprint:', deviceFingerprint)
+          console.log('Creating new session for device')
           
           const location = await getLocationFromIP(clientIP)
 
@@ -377,7 +362,7 @@ serve(async (req) => {
           os,
           device_type: deviceType,
           location: sessionData.location,
-          last_seen: sessionData.updated_at || sessionData.created_at
+          last_seen: sessionData.updated_at
         }
 
         return new Response(
