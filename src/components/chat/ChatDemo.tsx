@@ -454,6 +454,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           const accumulated = data.accumulated || data.delta || '';
           const isJsonResponse = accumulated.trim().startsWith('{') && accumulated.includes('"mode"');
           
+          // For JSON responses, don't show content during streaming - wait for final decision
+          // For text responses, show the streaming content
+          const shouldShowContent = !isJsonResponse;
+          
           // Create or update streaming message
           setMessages(prev => {
             const updated = [...prev];
@@ -463,8 +467,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
               if (updated[i].pending && updated[i].role === 'assistant') {
                 updated[i] = {
                   ...updated[i],
-                  // Store raw response for debugging but don't show JSON in chat
-                  content: isJsonResponse ? '' : accumulated
+                  content: shouldShowContent ? accumulated : ''
                 };
                 foundPending = true;
                 break;
@@ -476,7 +479,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
               const streamingMessage: Message = {
                 id: `streaming-${Date.now()}`,
                 role: 'assistant',
-                content: isJsonResponse ? '' : accumulated,
+                content: shouldShowContent ? accumulated : '',
                 timestamp: new Date(),
                 pending: true
               };
@@ -524,10 +527,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                   
                   // Handle different decision modes
                   if (data.mode === 'chat') {
+                    // For chat mode, show the full message or the streamed content
                     updated[i].content = data.message || data.text || streamingResponse || 'Response received';
                   } else if (data.mode === 'action') {
-                    // For action mode, show a more user-friendly message
-                    updated[i].content = data.summary || `I'll help you ${data.task || 'execute this task'}.`;
+                    // For action mode, show a more user-friendly summary
+                    updated[i].content = data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
                     
                     // Set up needs inputs if missing params
                     if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
