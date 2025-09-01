@@ -40,6 +40,7 @@ interface Message {
   timestamp: Date;
   pending?: boolean;
   collapsed?: boolean;
+  showInputsDelayed?: boolean; // Flag to control input form visibility timing
   taskStatus?: {
     type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done' | 'input_error';
     intent: string;
@@ -536,6 +537,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                     // Set up needs inputs if missing params
                     if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
                       handleMissingParams(updated[i], data);
+                      
+                      // Delay showing input form to allow summary to be visible first
+                      setTimeout(() => {
+                        setMessages(prev => {
+                          const msgUpdated = [...prev];
+                          const msgIndex = msgUpdated.findIndex(m => m.id === updated[i].id);
+                          if (msgIndex !== -1) {
+                            msgUpdated[msgIndex].showInputsDelayed = true;
+                          }
+                          return msgUpdated;
+                        });
+                      }, 1000); // 1 second delay
                     } else if (data.status === 'confirmed' && data.batch_id) {
                       // Ready for preflight
                       updated[i].preflightStatus = {
@@ -1801,18 +1814,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                      </div>
                    </div>
                    
-                     {/* Input Form */}
-                    {message.needsInputs && (
-                      <div className="mt-2">
-                        <InputForm
-                          schema={message.needsInputs.schema}
-                          defaults={message.needsInputs.defaults}
-                          errors={message.inputErrors}
-                          onSubmit={handleInputFormSubmit}
-                          loading={isTyping}
-                        />
-                      </div>
-                    )}
+                      {/* Input Form - Show only after delay */}
+                     {message.needsInputs && message.showInputsDelayed && (
+                       <div className="mt-2">
+                         <InputForm
+                           schema={message.needsInputs.schema}
+                           defaults={message.needsInputs.defaults}
+                           errors={message.inputErrors}
+                           onSubmit={handleInputFormSubmit}
+                           loading={isTyping}
+                         />
+                       </div>
+                     )}
 
                     {/* Remove the large TaskStatusCard since we now show small icons */}
                   
@@ -1882,23 +1895,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                      </div>
                    )}
                    
-                     {/* Input Form */}
-                    {message.needsInputs && (
-                      <div className="mt-2">
-                        <InputForm
-                          schema={message.needsInputs.schema}
-                          defaults={message.needsInputs.defaults}
-                          errors={message.inputErrors}
-                          onSubmit={handleInputFormSubmit}
-                          loading={isTyping}
-                        />
-                      </div>
-                    )}
-
-                    {/* Custom Shell Command Card */}
-                    {message.decision?.task === 'custom_shell' && selectedAgentDetails && (
-                      <div className="mt-2">
-                        <CustomShellCard
+                     {/* Custom Shell Command Card */}
+                     {message.decision?.task === 'custom_shell' && selectedAgentDetails && (
+                       <div className="mt-2">
+                         <CustomShellCard
                           data={message.decision as any}
                           agentId={selectedAgent}
                           tenantId={selectedAgentDetails.customer_id}
