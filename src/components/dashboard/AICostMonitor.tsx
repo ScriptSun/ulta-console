@@ -251,7 +251,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
         {enrichedCostData.length > 0 ? (
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-muted-foreground mb-3">Cost by Model</h4>
-            <div className="max-h-[240px] overflow-y-auto space-y-3 pr-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div className="max-h-[240px] overflow-y-auto space-y-1 pr-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {enrichedCostData.map((item, index) => (
                 <div
                   key={item.model}
