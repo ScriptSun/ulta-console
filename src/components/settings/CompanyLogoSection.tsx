@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Upload, X, Sun, Moon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,17 @@ export function CompanyLogoSection() {
   } = useCompanyLogo();
 
   const [dimensions, setDimensions] = useState({
-    width: logoSettings.logo_width,
-    height: logoSettings.logo_height
+    width: logoSettings.logo_width || 120,
+    height: logoSettings.logo_height || 40
   });
+
+  // Update dimensions when logoSettings changes (e.g., when loaded from database)
+  useEffect(() => {
+    setDimensions({
+      width: logoSettings.logo_width || 120,
+      height: logoSettings.logo_height || 40
+    });
+  }, [logoSettings.logo_width, logoSettings.logo_height]);
 
   const lightFileRef = useRef<HTMLInputElement>(null);
   const darkFileRef = useRef<HTMLInputElement>(null);
@@ -47,10 +55,15 @@ export function CompanyLogoSection() {
   };
 
   const handleDimensionsSave = async () => {
-    await saveLogoSettings({
+    console.log('Saving dimensions:', dimensions);
+    const success = await saveLogoSettings({
       logo_width: dimensions.width,
       logo_height: dimensions.height
     });
+    console.log('Save result:', success);
+    if (success) {
+      console.log('Updated logoSettings:', logoSettings);
+    }
   };
 
   const handleRemoveLogo = async (theme: 'light' | 'dark') => {
