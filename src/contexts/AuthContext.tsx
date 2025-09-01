@@ -162,7 +162,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('SignIn called for:', email);
     
     try {
-      // Use direct Supabase auth only for reliability
+      // Test connection first
+      const connectionTest = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/rest/v1/', {
+        method: 'HEAD',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk'
+        },
+        signal: AbortSignal.timeout(5000)
+      }).catch(() => null);
+      
+      if (!connectionTest) {
+        return { error: { message: 'Unable to connect to authentication servers. Please check your internet connection.' } };
+      }
+      
+      // Use direct Supabase auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -170,6 +183,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error('Login error:', error.message);
+        
+        // Provide user-friendly error messages
+        if (error.message.includes('fetch')) {
+          return { error: { message: 'Connection failed. Please check your internet connection and try again.' } };
+        }
+        if (error.message.includes('Invalid login credentials')) {
+          return { error: { message: 'Invalid email or password. Please check your credentials.' } };
+        }
+        if (error.message.includes('Email not confirmed')) {
+          return { error: { message: 'Please check your email and confirm your account before signing in.' } };
+        }
+        
         return { error: { message: error.message } };
       }
       
@@ -177,8 +202,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: null };
       
     } catch (error: any) {
-      console.error('Login failed:', error.message);
-      return { error: { message: error.message || 'Login failed. Please try again.' } };
+      console.error('Login failed:', error);
+      
+      if (error.name === 'AbortError' || error.message.includes('timeout')) {
+        return { error: { message: 'Connection timeout. Please check your internet connection and try again.' } };
+      }
+      
+      return { error: { message: 'Unable to connect to authentication servers. Please try again later.' } };
     }
   };
 
