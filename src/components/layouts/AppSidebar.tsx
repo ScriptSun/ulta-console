@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils'
 import { usePagePermissions } from '@/hooks/usePagePermissions'
 import { useCompanyLogo } from '@/hooks/useCompanyLogo'
 import { useTheme } from 'next-themes'
+import { useAuth } from '@/contexts/AuthContext'
 
 const mainItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, pageKey: 'dashboard' },
@@ -68,6 +69,7 @@ export function AppSidebar() {
   const { canView } = usePagePermissions()
   const { logoSettings } = useCompanyLogo()
   const { theme } = useTheme()
+  const { user } = useAuth()
 
   const isActive = (path: string) => {
     if (path === '/dashboard' && currentPath === '/') return true
@@ -75,8 +77,41 @@ export function AppSidebar() {
   }
 
   const NavItem = ({ item }: { item: typeof mainItems[0] }) => {
-    // Safe fallback: if pageKey is missing or permission check fails, 
-    // default to showing the item to prevent blank sidebar
+    // Admin user gets full access - bypass permission checks entirely
+    if (user?.email === 'elin@ultahost.com') {
+      console.log('Admin user - showing menu item:', item.title);
+      const active = isActive(item.url);
+      
+      return (
+        <SidebarMenuItem>
+          <SidebarMenuButton asChild>
+            <Link 
+              to={item.url}
+              className={cn(
+                'flex items-center gap-3 px-6 py-5 rounded-lg transition-all duration-300 group',
+                'hover:bg-sidebar-accent/50 hover:backdrop-blur-sm',
+                active && 'bg-sidebar-accent shadow-lg backdrop-blur-sm'
+              )}
+            >
+              <item.icon className={cn(
+                "h-5 w-5 flex-shrink-0 transition-all duration-300",
+                active ? 'text-sidebar-primary' : 'text-sidebar-foreground/70 group-hover:text-sidebar-foreground'
+              )} />
+              {!collapsed && (
+                <span className={cn(
+                  "truncate font-medium transition-all duration-300",
+                  active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-sidebar-foreground'
+                )}>
+                  {item.title}
+                </span>
+              )}
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      )
+    }
+
+    // For other users, check permissions
     let hasPermission = true;
     
     try {
