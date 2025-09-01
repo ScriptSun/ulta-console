@@ -78,45 +78,15 @@ const Auth = () => {
       });
       setIsSubmitting(false);
     } else {
-      console.log('Login successful! Waiting for session update...');
+      console.log('Login successful! Session should be established automatically.');
       
-      // Show success message
+      // Show success message - the useEffect will handle redirect
       toast({
         title: 'Welcome back!',
-        description: 'Redirecting to dashboard...',
+        description: 'Login successful',
       });
       
-      // Wait for session to be properly set before redirect
-      const checkSessionAndRedirect = async () => {
-        let attempts = 0;
-        const maxAttempts = 10;
-        
-        const waitForSession = async (): Promise<void> => {
-          console.log(`Checking session attempt ${attempts + 1}...`);
-          
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (session?.user) {
-            console.log('Session confirmed! Redirecting to dashboard...');
-            // Force a hard redirect to ensure we get to dashboard
-            window.location.href = '/dashboard';
-            return;
-          }
-          
-          attempts++;
-          if (attempts < maxAttempts) {
-            console.log('Session not ready, retrying in 200ms...');
-            setTimeout(waitForSession, 200);
-          } else {
-            console.log('Max attempts reached, forcing redirect anyway...');
-            window.location.href = '/dashboard';
-          }
-        };
-        
-        waitForSession();
-      };
-      
-      checkSessionAndRedirect();
+      // Don't set isSubmitting to false - let the redirect happen
     }
   };
 

@@ -127,10 +127,28 @@ export function useSecurityEnforcement(user: User | null): UseSecurityEnforcemen
         };
       }
 
-      return { 
-        user: data.user, 
-        session: data.session 
-      };
+      // CRITICAL: Edge function succeeded, now set the session on the client
+      if (data.success && data.user && data.session) {
+        console.log('Edge function login successful, setting client session...');
+        
+        // Use Supabase's setSession to properly authenticate the client
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+        
+        if (sessionError) {
+          console.error('Failed to set client session:', sessionError);
+          return { error: 'Failed to establish session' };
+        }
+        
+        return { 
+          user: data.user, 
+          session: data.session 
+        };
+      }
+
+      return { error: 'Invalid response from authentication service' };
     } catch (error) {
       console.error('Secure login failed:', error);
       return { error: 'Login failed. Please try again.' };

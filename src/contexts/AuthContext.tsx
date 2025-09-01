@@ -162,6 +162,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
+    console.log('SignIn called for:', email);
+    
     // Try secure login first
     const result = await performSecureLogin(email, password);
     
@@ -179,10 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { error: { message: error.message } };
         }
         
-        console.log('Direct Supabase auth succeeded');
-        // Update session state immediately
-        setSession(data.session);
-        setUser(data.user);
+        console.log('Direct Supabase auth succeeded, session should be set automatically');
         return { error: null };
       } catch (directError: any) {
         console.error('Direct auth also failed:', directError);
@@ -190,6 +189,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     
+    // Secure login succeeded - session should now be set on client
+    console.log('Secure login succeeded, session established');
     return { error: null };
   };
 
