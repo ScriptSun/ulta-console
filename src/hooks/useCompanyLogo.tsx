@@ -26,13 +26,18 @@ export function useCompanyLogo() {
 
   const loadLogoSettings = async () => {
     try {
+      console.log('Loading logo settings...');
+      
       // Load public company logos - get the first active theme (for public display on login)
       const { data, error } = await supabase
         .from('company_themes')
         .select('*')
         .eq('is_active', true)
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      console.log('Logo query result:', { data, error });
 
       if (error && error.code !== 'PGRST116') {
         throw error;
@@ -41,6 +46,7 @@ export function useCompanyLogo() {
       if (data) {
         // Use type assertion since we know the migration will add these columns
         const themeData = data as any;
+        console.log('Setting logo data:', themeData);
         setLogoSettings({
           id: themeData.id,
           logo_light_url: themeData.logo_light_url || '',
@@ -49,6 +55,8 @@ export function useCompanyLogo() {
           logo_height: themeData.logo_height || 40,
           created_by: themeData.created_by
         });
+      } else {
+        console.log('No active company theme found');
       }
     } catch (err: any) {
       console.error('Error loading logo settings:', err);

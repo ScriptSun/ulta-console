@@ -67,6 +67,8 @@ const Auth = () => {
   };
 
   const logoUrl = theme === 'dark' ? logoSettings.logo_dark_url : logoSettings.logo_light_url;
+  
+  console.log('Theme:', theme, 'Logo settings:', logoSettings, 'Logo URL:', logoUrl);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
