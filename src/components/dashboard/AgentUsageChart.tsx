@@ -212,58 +212,69 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
                 dataKey="name" 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                angle={-45}
-                textAnchor="end"
-                height={80}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip
-                content={({ active, payload, label }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                       <div className="rounded-lg border border-border bg-card/95 p-3 shadow-xl">
-                        <div className="grid gap-2">
-                          <div className="flex flex-col">
-                             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              {groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}
-                            </span>
-                             <span className="font-bold text-foreground">
-                              {label}
-                            </span>
-                          </div>
-                          {payload.map((entry: any, index: number) => (
-                            <div key={index} className="flex flex-col">
-                               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                {entry.dataKey === 'active' ? 'Active' : 
-                                 entry.dataKey === 'suspended' ? 'Suspended' : 
-                                 entry.dataKey === 'terminated' ? 'Terminated' :
-                                 'Total'} Agents
-                              </span>
-                               <span className="font-bold text-foreground">
-                                {entry.value}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
+                tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tickLine={{ stroke: 'hsl(var(--border))' }}
+                tickFormatter={(value) => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 }}
               />
-              {visibleSeries.active && <Line type="monotone" dataKey="active" stroke={STATUS_COLORS.active} strokeWidth={3} dot={{ fill: STATUS_COLORS.active, r: 4 }} />}
-              {visibleSeries.suspended && <Line type="monotone" dataKey="suspended" stroke={STATUS_COLORS.suspended} strokeWidth={3} dot={{ fill: STATUS_COLORS.suspended, r: 4 }} />}
-              {visibleSeries.terminated && <Line type="monotone" dataKey="terminated" stroke={STATUS_COLORS.terminated} strokeWidth={3} dot={{ fill: STATUS_COLORS.terminated, r: 4 }} />}
-              {visibleSeries.total && <Line type="monotone" dataKey="total" stroke={STATUS_COLORS.total} strokeWidth={4} dot={{ fill: STATUS_COLORS.total, r: 5 }} />}
+              <YAxis 
+                tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tickLine={{ stroke: 'hsl(var(--border))' }}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  color: 'hsl(var(--foreground))'
+                }}
+                formatter={(value, name) => [
+                  `${value}`, 
+                  name === 'active' ? 'Active Agents' : 
+                  name === 'suspended' ? 'Suspended Agents' : 
+                  name === 'terminated' ? 'Terminated Agents' : 'Total Agents'
+                ]}
+                labelFormatter={(value) => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                }}
+              />
+              {visibleSeries.active && <Line 
+                type="monotone" 
+                dataKey="active" 
+                stroke={STATUS_COLORS.active} 
+                strokeWidth={3} 
+                dot={{ fill: STATUS_COLORS.active, strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: STATUS_COLORS.active, strokeWidth: 2, fill: 'hsl(var(--card))' }}
+              />}
+              {visibleSeries.suspended && <Line 
+                type="monotone" 
+                dataKey="suspended" 
+                stroke={STATUS_COLORS.suspended} 
+                strokeWidth={3} 
+                dot={{ fill: STATUS_COLORS.suspended, strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: STATUS_COLORS.suspended, strokeWidth: 2, fill: 'hsl(var(--card))' }}
+              />}
+              {visibleSeries.terminated && <Line 
+                type="monotone" 
+                dataKey="terminated" 
+                stroke={STATUS_COLORS.terminated} 
+                strokeWidth={3} 
+                dot={{ fill: STATUS_COLORS.terminated, strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: STATUS_COLORS.terminated, strokeWidth: 2, fill: 'hsl(var(--card))' }}
+              />}
+              {visibleSeries.total && <Line 
+                type="monotone" 
+                dataKey="total" 
+                stroke={STATUS_COLORS.total} 
+                strokeWidth={3} 
+                dot={{ fill: STATUS_COLORS.total, strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: STATUS_COLORS.total, strokeWidth: 2, fill: 'hsl(var(--card))' }}
+              />}
             </LineChart>
           </ResponsiveContainer>
         );
@@ -338,94 +349,95 @@ export function AgentUsageChart({ data, dateRange, groupBy }: AgentUsageChartPro
 
   if (!data || data.length === 0) {
     return (
-      <Card className="bg-gradient-card border-card-border shadow-card">
-        <CardHeader>
-          <CardTitle>Agent Status Over Time</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center h-[300px]">
+      <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-lg font-semibold text-foreground">Agents Status</h4>
+        </div>
+        <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">No agent data found in the selected date range</p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="bg-gradient-card border-card-border shadow-card">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
+    <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" />
           Agents Status
-          <Badge variant="outline" className="ml-auto">
+        </h4>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">
             {dateRange.label}
           </Badge>
-        </CardTitle>
-        <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {CHART_TYPES.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                <div className="flex items-center gap-2">
-                  <type.icon className="h-4 w-4" />
-                  {type.label}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm justify-items-center">
-            <div 
-              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-                !visibleSeries.active ? 'opacity-50' : ''
-              }`}
-              onClick={() => toggleSeries('active')}
-            >
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.active }}></div>
-              <span className="text-muted-foreground">Active: <span className="font-semibold text-foreground">{totals.active}</span></span>
-            </div>
-            <div 
-              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-                !visibleSeries.suspended ? 'opacity-50' : ''
-              }`}
-              onClick={() => toggleSeries('suspended')}
-            >
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.suspended }}></div>
-              <span className="text-muted-foreground">Suspended: <span className="font-semibold text-foreground">{totals.suspended}</span></span>
-            </div>
-            <div 
-              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-                !visibleSeries.terminated ? 'opacity-50' : ''
-              }`}
-              onClick={() => toggleSeries('terminated')}
-            >
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
-              <span className="text-muted-foreground">Terminated: <span className="font-semibold text-foreground">{totals.terminated}</span></span>
-            </div>
-            <div 
-              className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
-                !visibleSeries.total ? 'opacity-50' : ''
-              }`}
-              onClick={() => toggleSeries('total')}
-            >
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.total }}></div>
-              <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{totals.total}</span></span>
-            </div>
-          </div>
+          <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CHART_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  <div className="flex items-center gap-2">
+                    <type.icon className="h-4 w-4" />
+                    {type.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      </div>
 
-        {/* Chart Area with Dark Gradient Design */}
-        <div className="p-4 rounded-lg bg-card border border-card-border relative overflow-hidden shadow-glow">
-          <div className="w-full h-80">
-            {renderChart()}
+      <div className="mb-4 p-3 bg-muted/30 rounded-lg">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm justify-items-center">
+          <div 
+            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+              !visibleSeries.active ? 'opacity-50' : ''
+            }`}
+            onClick={() => toggleSeries('active')}
+          >
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.active }}></div>
+            <span className="text-muted-foreground">Active: <span className="font-semibold text-foreground">{totals.active}</span></span>
           </div>
-          {/* Chart gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none"></div>
+          <div 
+            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+              !visibleSeries.suspended ? 'opacity-50' : ''
+            }`}
+            onClick={() => toggleSeries('suspended')}
+          >
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.suspended }}></div>
+            <span className="text-muted-foreground">Suspended: <span className="font-semibold text-foreground">{totals.suspended}</span></span>
+          </div>
+          <div 
+            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+              !visibleSeries.terminated ? 'opacity-50' : ''
+            }`}
+            onClick={() => toggleSeries('terminated')}
+          >
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.terminated }}></div>
+            <span className="text-muted-foreground">Terminated: <span className="font-semibold text-foreground">{totals.terminated}</span></span>
+          </div>
+          <div 
+            className={`flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 ${
+              !visibleSeries.total ? 'opacity-50' : ''
+            }`}
+            onClick={() => toggleSeries('total')}
+          >
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS.total }}></div>
+            <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{totals.total}</span></span>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Chart Area */}
+      <div className="h-64">
+        {renderChart()}
+      </div>
+
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-card/50 to-transparent pointer-events-none"></div>
+    </div>
   );
 }
