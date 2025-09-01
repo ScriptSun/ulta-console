@@ -2085,13 +2085,24 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                   className="min-h-[40px] resize-none"
                   rows={1}
                 />
-                <Button
-                  onClick={() => sendMessage(inputValue)}
-                  disabled={!inputValue.trim() || isTyping}
-                  size="sm"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant={conversationOnly ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setConversationOnly(!conversationOnly)}
+                    title={conversationOnly ? "Chat mode active - no server actions" : "Click to enable chat-only mode"}
+                    className="px-2"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    onClick={() => sendMessage(inputValue)}
+                    disabled={!inputValue.trim() || isTyping}
+                    size="sm"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
               
               <div className="flex items-center gap-2">
