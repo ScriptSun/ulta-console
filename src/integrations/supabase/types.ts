@@ -1303,6 +1303,47 @@ export type Database = {
           },
         ]
       }
+      console_member_report_perms: {
+        Row: {
+          can_configure: boolean | null
+          can_export: boolean | null
+          can_view: boolean | null
+          created_at: string | null
+          id: string
+          member_id: string
+          report_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          can_configure?: boolean | null
+          can_export?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          id?: string
+          member_id: string
+          report_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          can_configure?: boolean | null
+          can_export?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          report_key?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "console_member_report_perms_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "console_team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       console_member_widget_scopes: {
         Row: {
           created_at: string | null
@@ -1360,6 +1401,69 @@ export type Database = {
           id?: string
           key?: string
           label?: string
+        }
+        Relationships: []
+      }
+      console_reports: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          label: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          label: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          label?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      console_role_report_templates: {
+        Row: {
+          can_configure: boolean | null
+          can_export: boolean | null
+          can_view: boolean | null
+          created_at: string | null
+          id: string
+          report_key: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          can_configure?: boolean | null
+          can_export?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          id?: string
+          report_key: string
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          can_configure?: boolean | null
+          can_export?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          id?: string
+          report_key?: string
+          role?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

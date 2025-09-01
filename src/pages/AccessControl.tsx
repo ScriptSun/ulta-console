@@ -14,10 +14,13 @@ import {
   Edit, 
   Trash2,
   Plus,
-  Search
+  Search,
+  BarChart3,
+  FileText
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { PagePermissionsDialog } from '@/components/teams/PagePermissionsDialog';
+import { ReportPermissionsDialog } from '@/components/teams/ReportPermissionsDialog';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface TeamMember {
@@ -47,6 +50,7 @@ export default function AccessControl() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [reportPermissionsDialogOpen, setReportPermissionsDialogOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
 
   // Fetch team members
@@ -109,6 +113,34 @@ export default function AccessControl() {
     }
   });
 
+  // Fetch report role templates
+  const { data: reportRoleTemplates } = useQuery({
+    queryKey: ['console-role-report-templates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('console_role_report_templates')
+        .select('*')
+        .order('role', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Fetch available reports
+  const { data: reports } = useQuery({
+    queryKey: ['console-reports'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('console_reports')
+        .select('*')
+        .order('category', { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
   const canManageAccess = ['Owner', 'Admin'].includes(currentUserRole);
   const filteredMembers = teamMembers?.filter(member => 
     member.admin_profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,9 +148,14 @@ export default function AccessControl() {
     member.role?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleEditPermissions = (member: TeamMember) => {
+  const handleEditPagePermissions = (member: TeamMember) => {
     setSelectedMember(member);
     setPermissionsDialogOpen(true);
+  };
+
+  const handleEditReportPermissions = (member: TeamMember) => {
+    setSelectedMember(member);
+    setReportPermissionsDialogOpen(true);
   };
 
   const getRoleColor = (role: string) => {
@@ -176,14 +213,18 @@ export default function AccessControl() {
       </div>
 
       <Tabs defaultValue="members" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="members" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Team Members
           </TabsTrigger>
           <TabsTrigger value="pages" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            Page Permissions
+            Page & Tab Access
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Report Access
           </TabsTrigger>
           <TabsTrigger value="roles" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
@@ -239,15 +280,26 @@ export default function AccessControl() {
                       </Badge>
                       
                       {canManageAccess && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditPermissions(member)}
-                          className="gap-1"
-                        >
-                          <Edit className="h-3 w-3" />
-                          Edit Permissions
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditPagePermissions(member)}
+                            className="gap-1"
+                          >
+                            <Shield className="h-3 w-3" />
+                            Page Access
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditReportPermissions(member)}
+                            className="gap-1"
+                          >
+                            <BarChart3 className="h-3 w-3" />
+                            Report Access
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -262,10 +314,10 @@ export default function AccessControl() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Page Permissions Overview
+                Page & Tab Access Overview
               </CardTitle>
               <CardDescription>
-                Overview of all available pages and their permission structure.
+                Overview of all available pages and tabs with their permission structure.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -308,6 +360,66 @@ export default function AccessControl() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="reports">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Report Access Overview
+              </CardTitle>
+              <CardDescription>
+                Overview of all available reports and their permission structure.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {reports && (
+                <div className="space-y-6">
+                  {Object.entries(
+                    reports.reduce((acc, report) => {
+                      const category = report.category || 'other';
+                      if (!acc[category]) acc[category] = [];
+                      acc[category].push(report);
+                      return acc;
+                    }, {} as Record<string, any[]>)
+                  ).map(([category, categoryReports]) => (
+                    <div key={category} className="space-y-3">
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {category.charAt(0).toUpperCase() + category.slice(1)} Reports
+                      </h3>
+                      <div className="grid gap-3">
+                        {categoryReports.map((report) => (
+                          <div key={report.id} className="flex items-center justify-between p-3 border rounded-lg bg-card/20">
+                            <div>
+                              <h4 className="font-medium">{report.label}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {report.description || `Key: ${report.key}`}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="gap-1">
+                                <Eye className="h-3 w-3" />
+                                View
+                              </Badge>
+                              <Badge variant="outline" className="gap-1">
+                                <FileText className="h-3 w-3" />
+                                Export
+                              </Badge>
+                              <Badge variant="outline" className="gap-1">
+                                <Settings className="h-3 w-3" />
+                                Configure
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="roles">
           <Card>
             <CardHeader>
@@ -323,29 +435,65 @@ export default function AccessControl() {
               <div className="grid gap-4">
                 {['Owner', 'Admin', 'Editor', 'Viewer'].map((role) => {
                   const rolePerms = roleTemplates?.filter(rt => rt.role === role);
+                  const reportPerms = reportRoleTemplates?.filter(rt => rt.role === role);
+                  
                   const viewCount = rolePerms?.filter(p => p.can_view).length || 0;
                   const editCount = rolePerms?.filter(p => p.can_edit).length || 0;
                   const deleteCount = rolePerms?.filter(p => p.can_delete).length || 0;
                   
+                  const reportViewCount = reportPerms?.filter(p => p.can_view).length || 0;
+                  const reportExportCount = reportPerms?.filter(p => p.can_export).length || 0;
+                  const reportConfigureCount = reportPerms?.filter(p => p.can_configure).length || 0;
+                  
                   return (
                     <div key={role} className="p-4 border rounded-lg bg-card/30">
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center justify-between mb-4">
                         <Badge className={getRoleColor(role)}>
                           {role}
                         </Badge>
                       </div>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div className="text-center">
-                          <div className="font-medium text-2xl text-green-600">{viewCount}</div>
-                          <div className="text-muted-foreground">View Permissions</div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-medium mb-2 flex items-center gap-2">
+                            <Shield className="h-4 w-4" />
+                            Page & Tab Permissions
+                          </h4>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div className="text-center">
+                              <div className="font-medium text-xl text-green-600">{viewCount}</div>
+                              <div className="text-muted-foreground">View</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-medium text-xl text-blue-600">{editCount}</div>
+                              <div className="text-muted-foreground">Edit</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-medium text-xl text-red-600">{deleteCount}</div>
+                              <div className="text-muted-foreground">Delete</div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-center">
-                          <div className="font-medium text-2xl text-blue-600">{editCount}</div>
-                          <div className="text-muted-foreground">Edit Permissions</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-medium text-2xl text-red-600">{deleteCount}</div>
-                          <div className="text-muted-foreground">Delete Permissions</div>
+                        
+                        <div>
+                          <h4 className="font-medium mb-2 flex items-center gap-2">
+                            <BarChart3 className="h-4 w-4" />
+                            Report Access Permissions
+                          </h4>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div className="text-center">
+                              <div className="font-medium text-xl text-green-600">{reportViewCount}</div>
+                              <div className="text-muted-foreground">View</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-medium text-xl text-blue-600">{reportExportCount}</div>
+                              <div className="text-muted-foreground">Export</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-medium text-xl text-purple-600">{reportConfigureCount}</div>
+                              <div className="text-muted-foreground">Configure</div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -360,6 +508,13 @@ export default function AccessControl() {
       <PagePermissionsDialog
         open={permissionsDialogOpen}
         onOpenChange={setPermissionsDialogOpen}
+        member={selectedMember}
+        currentUserRole={currentUserRole}
+      />
+      
+      <ReportPermissionsDialog
+        open={reportPermissionsDialogOpen}
+        onOpenChange={setReportPermissionsDialogOpen}
         member={selectedMember}
         currentUserRole={currentUserRole}
       />
