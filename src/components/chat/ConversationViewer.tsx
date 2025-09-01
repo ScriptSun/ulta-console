@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useEventBus } from "@/hooks/useEventBus";
 import {
   Sheet,
   SheetContent,
@@ -102,6 +103,27 @@ export function ConversationViewer({
   const [newTags, setNewTags] = useState("");
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { on } = useEventBus();
+
+  // Listen to router events for real-time updates
+  useEffect(() => {
+    if (!open) return;
+    
+    const unsubscribers = [
+      on('router.selected', (data) => {
+        // Update conversation with new decision if relevant
+        console.log('Router decision received in conversation viewer:', data);
+      }),
+      on('router.done', () => {
+        // Refresh conversation data when router completes
+        fetchConversationData();
+      })
+    ];
+
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [open, on]);
 
   useEffect(() => {
     if (open && conversation) {

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText } from 'lucide-react';
+import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText, Brain, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
@@ -19,6 +19,8 @@ import { ProposedBatchScriptCard } from './ProposedBatchScriptCard';
 import { QuickInputChips } from './QuickInputChips';
 import { RenderedResultCard } from './RenderedResultCard';
 import { RenderConfig } from '@/types/renderTypes';
+import { useEventBus } from '@/hooks/useEventBus';
+import { useWebSocketRouter } from '@/hooks/useWebSocketRouter';
 
 interface Agent {
   id: string;
@@ -129,9 +131,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const [apiLogs, setApiLogs] = useState<any[]>([]);
   const [logViewerOpen, setLogViewerOpen] = useState(false);
   
+  // Router streaming state
+  const [routerPhase, setRouterPhase] = useState<string>('');
+  const [streamingResponse, setStreamingResponse] = useState<string>('');
+  const [candidateCount, setCandidateCount] = useState<number>(0);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sessionStartTime = useRef(Date.now());
+  
+  // WebSocket router and event bus
+  const { connect, disconnect, sendRequest, isConnected } = useWebSocketRouter();
+  const { emit, on } = useEventBus();
 
   // Check if current route should show chat demo
   const shouldShowDemo = (forceEnabled || isDemoEnabled) && !currentRoute.includes('/admin') && !currentRoute.includes('/settings');
@@ -344,6 +355,144 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       supabase.removeChannel(eventsChannel);
     };
   }, [selectedAgent, conversationId]);
+
+  // Set up WebSocket router event listeners
+  useEffect(() => {
+    const unsubscribers = [
+      on('router.start', (data) => {
+        console.log('Router started:', data);
+        setRouterPhase('Thinking');
+        setStreamingResponse('');
+        
+        // Add typing message
+        const thinkingMessage: Message = {
+          id: `thinking-${Date.now()}`,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+          pending: true
+        };
+        setMessages(prev => [...prev, thinkingMessage]);
+      }),
+      
+      on('router.retrieved', (data) => {
+        console.log('Router retrieved candidates:', data);
+        setRouterPhase('Analyzing server');
+        setCandidateCount(data.candidate_count);
+      }),
+      
+      on('router.token', (data) => {
+        console.log('Router token:', data);
+        setStreamingResponse(data.accumulated);
+        
+        // Update the last pending message with streaming content
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastMessage = updated[updated.length - 1];
+          if (lastMessage && lastMessage.pending) {
+            lastMessage.content = data.accumulated;
+          }
+          return updated;
+        });
+      }),
+      
+      on('router.selected', (data) => {
+        console.log('Router selected decision:', data);
+        setRouterPhase('');
+        setStreamingResponse('');
+        
+        // Update the last pending message with final decision
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastMessage = updated[updated.length - 1];
+          if (lastMessage && lastMessage.pending) {
+            lastMessage.pending = false;
+            lastMessage.decision = data;
+            
+            // Handle different decision modes
+            if (data.mode === 'chat') {
+              lastMessage.content = data.message || data.text || 'Response received';
+            } else {
+              lastMessage.content = JSON.stringify(data, null, 2);
+              
+              // Set up needs inputs if missing params
+              if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
+                handleMissingParams(lastMessage, data);
+              }
+            }
+          }
+          return updated;
+        });
+      }),
+      
+      on('router.done', (data) => {
+        console.log('Router completed:', data);
+        setIsTyping(false);
+        setRouterPhase('');
+      }),
+      
+      on('router.error', (data) => {
+        console.error('Router error:', data);
+        setIsTyping(false);
+        setRouterPhase('');
+        
+        // Add error message
+        const errorMessage: Message = {
+          id: `error-${Date.now()}`,
+          role: 'assistant',
+          content: `Error: ${data.error}`,
+          timestamp: new Date(),
+          pending: false
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        
+        toast({
+          title: "Router Error",
+          description: data.error,
+          variant: "destructive",
+        });
+      })
+    ];
+    
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [on, toast]);
+
+  // Connect WebSocket when component mounts and agent is selected
+  useEffect(() => {
+    if (selectedAgent && shouldShowDemo) {
+      connect();
+    }
+    
+    return () => {
+      disconnect();
+    };
+  }, [selectedAgent, shouldShowDemo, connect, disconnect]);
+
+  // Handle missing parameters for batch execution
+  const handleMissingParams = async (message: Message, decision: any) => {
+    try {
+      const { data: batchData, error: batchError } = await supabase
+        .from('script_batches')
+        .select('inputs_schema, inputs_defaults, render_config')
+        .eq('id', decision.batch_id)
+        .single();
+
+      if (!batchError && batchData) {
+        message.needsInputs = {
+          schema: batchData.inputs_schema,
+          defaults: (batchData.inputs_defaults as Record<string, any>) || {},
+          missingParams: decision.missing_params
+        };
+        
+        message.renderConfig = (batchData.render_config as unknown as RenderConfig) || { type: 'text' };
+        message.content = '';
+      }
+    } catch (error) {
+      console.error('Error fetching batch schema:', error);
+    }
+  };
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -613,170 +762,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         return;
       }
 
-      // Normal chat flow - call router/decide
-      const { data, error: decisionError } = await supabase.functions.invoke('ultaai-router-decide', {
-        body: {
-          agent_id: selectedAgent,
-          user_request: content.trim()
-        }
+      // Normal chat flow - use WebSocket router for streaming
+      if (!isConnected) {
+        throw new Error('WebSocket router not connected');
+      }
+      
+      // Send request via WebSocket
+      sendRequest({
+        agent_id: selectedAgent,
+        user_request: content.trim()
       });
-
-      if (decisionError) throw decisionError;
-
-      console.log('Router response:', data);
-
-      // Handle dual-mode response
-      if (data.mode === 'chat') {
-        // Chat mode: add plain text response
-        const chatMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: data.text || 'Hello, how can I help you?',
-          timestamp: new Date(),
-          pending: false
-        };
-        setMessages(prev => [...prev, chatMessage]);
-        
-        // Show unread badge if window is closed
-        if (!isOpen && enableBadge) {
-          setUnreadBadge(true);
-          if (playSound) {
-            const audio = new Audio('/notification.mp3');
-            audio.play().catch(() => {});
-          }
-        }
-        return;
-      }
-
-      // Action mode: process the action JSON
-      const decision = data;
-
-      // Extract debug logs if available
-      if (decision._debug?.openai_logs) {
-        const newLogs = [];
-        
-        // Add request log
-        if (decision._debug.openai_logs.request) {
-          newLogs.push({
-            id: `${Date.now()}-request`,
-            timestamp: decision._debug.openai_logs.request.timestamp || new Date().toISOString(),
-            type: 'request',
-            data: decision._debug.openai_logs.request,
-            userMessage: content.trim()
-          });
-        }
-        
-        // Add response log
-        if (decision._debug.openai_logs.response) {
-          newLogs.push({
-            id: `${Date.now()}-response`,
-            timestamp: decision._debug.openai_logs.response.timestamp || new Date().toISOString(),
-            type: 'response',
-            data: decision._debug.openai_logs.response,
-            userMessage: content.trim()
-          });
-        }
-        
-        // Add error log if exists
-        if (decision._debug.openai_logs.error) {
-          newLogs.push({
-            id: `${Date.now()}-error`,
-            timestamp: decision._debug.openai_logs.error.timestamp || new Date().toISOString(),
-            type: 'error',
-            data: decision._debug.openai_logs.error,
-            userMessage: content.trim()
-          });
-        }
-        
-        // Store logs in state
-        setApiLogs(prev => [...prev, ...newLogs]);
-        
-        console.log('📊 OpenAI API Logs captured:', newLogs);
-      }
-
-      // Store logs and clean decision for message
-      const cleanDecision = { ...decision };
-      delete cleanDecision._debug;
-
-      // Show human message if available, then the action JSON
-      if (data.human) {
-        const humanMessage: Message = {
-          id: (Date.now() + 0.5).toString(),
-          role: 'assistant',
-          content: data.human,
-          timestamp: new Date(),
-          pending: false
-        };
-        setMessages(prev => [...prev, humanMessage]);
-      }
-
-      // Add assistant message with decision (show raw JSON for debugging)
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: typeof cleanDecision === 'string' ? cleanDecision : JSON.stringify(cleanDecision, null, 2),
-        timestamp: new Date(),
-        pending: false,
-        decision: cleanDecision
-      };
-
-      // If decision has missing_params, set up needsInputs for form rendering
-      if (cleanDecision.status === 'unconfirmed' && cleanDecision.missing_params && cleanDecision.batch_id) {
-        try {
-          // Fetch batch schema and render config to set up the input form
-          const { data: batchData, error: batchError } = await supabase
-            .from('script_batches')
-            .select('inputs_schema, inputs_defaults, render_config')
-            .eq('id', cleanDecision.batch_id)
-            .single();
-
-          if (!batchError && batchData) {
-            assistantMessage.needsInputs = {
-              schema: batchData.inputs_schema,
-              defaults: (batchData.inputs_defaults as Record<string, any>) || {},
-              missingParams: cleanDecision.missing_params
-            };
-            
-            // Store render config for execution results
-            assistantMessage.renderConfig = (batchData.render_config as unknown as RenderConfig) || { type: 'text' };
-
-            // Don't show additional message since the form handles its own messaging
-            assistantMessage.content = '';
-          }
-        } catch (error) {
-          console.error('Error fetching batch schema:', error);
-        }
-      }
-
-      // Handle not_supported case - get advice
-      if (cleanDecision.task === 'not_supported') {
-        try {
-          const { data: adviceData, error: adviceError } = await supabase.functions.invoke('ultaai-advice', {
-            body: {
-              reason: cleanDecision.reason || 'Request not supported',
-              heartbeat_small: {} // Could get real heartbeat here
-            }
-          });
-
-          if (!adviceError && adviceData) {
-            assistantMessage.adviceResult = adviceData;
-            assistantMessage.content = `${assistantMessage.content}\n\n💡 AI Suggestion: ${adviceData.message}`;
-          }
-        } catch (error) {
-          console.error('Error getting advice:', error);
-        }
-      }
-
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Show unread badge if window is closed
-      if (!isOpen && enableBadge) {
-        setUnreadBadge(true);
-        if (playSound) {
-          const audio = new Audio('/notification.mp3');
-          audio.play().catch(() => {});
-        }
-      }
+      
+      // The response will be handled by the event listeners
 
     } catch (error) {
       console.error('Error sending message:', error);
@@ -1500,14 +1497,30 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
               {isTyping && (
                 <div className="flex justify-start">
                   <div className="bg-muted rounded-lg p-3">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                    </div>
-                  </div>
-                </div>
-              )}
+                    <div className="flex gap-2 items-center">
+                      {routerPhase && (
+                        <div className="flex items-center gap-2">
+                          {routerPhase === 'Thinking' && <Brain className="w-4 h-4 text-blue-500 animate-pulse" />}
+                          {routerPhase === 'Analyzing server' && <Search className="w-4 h-4 text-orange-500 animate-pulse" />}
+                          <span className="text-sm text-muted-foreground">{routerPhase}</span>
+                          {candidateCount > 0 && routerPhase === 'Analyzing server' && (
+                            <Badge variant="outline" className="text-xs">
+                              {candidateCount} matches
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                       {!routerPhase && (
+                         <div className="flex gap-1">
+                           <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                           <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                           <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                 </div>
+               )}
               
               <div ref={messagesEndRef} />
             </div>

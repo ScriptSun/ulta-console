@@ -2,8 +2,9 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, CheckCircle, XCircle, Clock, Play, BarChart3, AlertCircle } from 'lucide-react';
+import { ExternalLink, CheckCircle, XCircle, Clock, Play, BarChart3, AlertCircle, Brain, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEventBus } from '@/hooks/useEventBus';
 
 interface TaskStatusCardProps {
   type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done' | 'input_error';

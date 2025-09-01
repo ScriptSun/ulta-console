@@ -1,0 +1,262 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0';
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// OpenAI API key
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+
+interface RouterMessage {
+  type: string;
+  rid: string;
+  ts: number;
+  data: any;
+}
+
+interface RouterRequest {
+  agent_id: string;
+  user_request: string;
+}
+
+serve(async (req) => {
+  const { headers } = req;
+  const upgradeHeader = headers.get("upgrade") || "";
+
+  if (upgradeHeader.toLowerCase() !== "websocket") {
+    return new Response("Expected WebSocket connection", { 
+      status: 400,
+      headers: corsHeaders 
+    });
+  }
+
+  const { socket, response } = Deno.upgradeWebSocket(req);
+  let rid = crypto.randomUUID();
+
+  const sendMessage = (type: string, data: any = {}) => {
+    const message: RouterMessage = {
+      type,
+      rid,
+      ts: Date.now(),
+      data
+    };
+    
+    try {
+      socket.send(JSON.stringify(message));
+    } catch (error) {
+      console.error('Failed to send WebSocket message:', error);
+    }
+  };
+
+  socket.onopen = () => {
+    console.log('WebSocket connection opened');
+  };
+
+  socket.onmessage = async (event) => {
+    try {
+      const request: RouterRequest = JSON.parse(event.data);
+      rid = crypto.randomUUID(); // Generate new rid for this request
+      
+      console.log('Router request received:', request);
+      
+      // Send router.start immediately
+      sendMessage('router.start', { 
+        agent_id: request.agent_id,
+        user_request: request.user_request 
+      });
+
+      // Step 1: Get routing data from ultaai-router-payload
+      let candidateCount = 0;
+      try {
+        const payloadResponse = await supabase.functions.invoke('ultaai-router-payload', {
+          body: {
+            agent_id: request.agent_id,
+            user_request: request.user_request
+          }
+        });
+
+        if (payloadResponse.error) {
+          throw new Error(`Payload error: ${payloadResponse.error.message}`);
+        }
+
+        const payloadData = payloadResponse.data;
+        candidateCount = payloadData?.batch_candidates?.length || 0;
+
+        // Send router.retrieved after getting candidates
+        sendMessage('router.retrieved', { 
+          candidate_count: candidateCount,
+          candidates: payloadData?.batch_candidates || []
+        });
+
+      } catch (error) {
+        console.error('Error getting router payload:', error);
+        sendMessage('router.error', { 
+          error: 'Failed to retrieve routing data',
+          details: error.message 
+        });
+        socket.close();
+        return;
+      }
+
+      // Step 2: Stream OpenAI decision making
+      try {
+        if (!openAIApiKey) {
+          throw new Error('OpenAI API key not configured');
+        }
+
+        // Get system prompt and prepare OpenAI request
+        const { data: systemPromptData } = await supabase
+          .from('system_prompts')
+          .select('content')
+          .eq('name', 'router_system_prompt')
+          .eq('published', true)
+          .order('version', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const systemPrompt = systemPromptData?.content || 
+          "You are UltaAI, a conversational hosting assistant. Analyze the user request and routing data to make decisions.";
+
+        // Get routing data again for OpenAI
+        const payloadResponse = await supabase.functions.invoke('ultaai-router-payload', {
+          body: {
+            agent_id: request.agent_id,
+            user_request: request.user_request
+          }
+        });
+
+        const routingData = payloadResponse.data;
+
+        const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4.1-2025-04-14',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { 
+                role: 'user', 
+                content: `User request: ${request.user_request}\n\nRouting data: ${JSON.stringify(routingData, null, 2)}` 
+              }
+            ],
+            stream: true,
+            max_completion_tokens: 1000
+          }),
+        });
+
+        if (!openAIResponse.ok) {
+          throw new Error(`OpenAI API error: ${openAIResponse.status} ${openAIResponse.statusText}`);
+        }
+
+        const reader = openAIResponse.body?.getReader();
+        if (!reader) {
+          throw new Error('Failed to get response reader');
+        }
+
+        let fullResponse = '';
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+
+              try {
+                const parsed = JSON.parse(data);
+                const delta = parsed.choices?.[0]?.delta?.content;
+                
+                if (delta) {
+                  fullResponse += delta;
+                  // Send each token as router.token
+                  sendMessage('router.token', { 
+                    delta,
+                    accumulated: fullResponse 
+                  });
+                }
+              } catch (parseError) {
+                // Skip malformed JSON
+                continue;
+              }
+            }
+          }
+        }
+
+        // Parse the final response to extract decision
+        let decision;
+        try {
+          // Try to extract JSON from the response
+          const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            decision = JSON.parse(jsonMatch[0]);
+          } else {
+            // Fallback: treat as chat response
+            decision = {
+              mode: 'chat',
+              message: fullResponse.trim()
+            };
+          }
+        } catch (parseError) {
+          console.error('Failed to parse OpenAI response as JSON:', parseError);
+          decision = {
+            mode: 'chat',
+            message: fullResponse.trim()
+          };
+        }
+
+        // Send router.selected with final decision
+        sendMessage('router.selected', decision);
+
+        // Send router.done to mark completion
+        sendMessage('router.done', { 
+          success: true,
+          total_tokens: fullResponse.length 
+        });
+
+      } catch (error) {
+        console.error('Error in OpenAI streaming:', error);
+        sendMessage('router.error', { 
+          error: 'Failed to process request with AI',
+          details: error.message 
+        });
+        socket.close();
+        return;
+      }
+
+    } catch (error) {
+      console.error('Error processing WebSocket message:', error);
+      sendMessage('router.error', { 
+        error: 'Failed to process request',
+        details: error.message 
+      });
+      socket.close();
+    }
+  };
+
+  socket.onclose = () => {
+    console.log('WebSocket connection closed');
+  };
+
+  socket.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
+
+  return response;
+});
