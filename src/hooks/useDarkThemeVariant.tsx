@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export type DarkThemeVariant = 'default' | 'warm-dark' | 'cool-dark' | 'soft-dark' | 'ocean-dark';
+export type LightThemeVariant = 'default' | 'soft-white' | 'cool-gray' | 'warm-cream' | 'minimal-light';
 
 export interface DarkTheme {
   id: DarkThemeVariant;
@@ -15,6 +16,70 @@ export interface DarkTheme {
   buttonClass: string;
   cardClass: string;
 }
+
+export interface LightTheme {
+  id: LightThemeVariant;
+  name: string;
+  description: string;
+  backgroundColor: string;
+  primaryColor: string;
+  accentColor: string;
+  buttonClass: string;
+  cardClass: string;
+}
+
+export const LIGHT_THEMES: LightTheme[] = [
+  {
+    id: 'default',
+    name: 'Default Light',
+    description: 'Clean, bright interface with standard colors',
+    backgroundColor: 'hsl(0, 0%, 100%)',
+    primaryColor: 'hsl(250, 70%, 60%)',
+    accentColor: 'hsl(240, 5%, 96%)',
+    buttonClass: 'btn-theme-default-light',
+    cardClass: 'bg-card',
+  },
+  {
+    id: 'soft-white',
+    name: 'Soft White',
+    description: 'Gentle off-white background with warm accents',
+    backgroundColor: 'hsl(60, 9%, 98%)',
+    primaryColor: 'hsl(250, 60%, 58%)',
+    accentColor: 'hsl(50, 20%, 94%)',
+    buttonClass: 'btn-theme-soft-white',
+    cardClass: 'card-theme-soft-white',
+  },
+  {
+    id: 'cool-gray',
+    name: 'Cool Gray',
+    description: 'Professional gray tones with blue accents',
+    backgroundColor: 'hsl(210, 20%, 98%)',
+    primaryColor: 'hsl(210, 100%, 50%)',
+    accentColor: 'hsl(210, 16%, 93%)',
+    buttonClass: 'btn-theme-cool-gray',
+    cardClass: 'card-theme-cool-gray',
+  },
+  {
+    id: 'warm-cream',
+    name: 'Warm Cream',
+    description: 'Comfortable cream background with golden accents',
+    backgroundColor: 'hsl(48, 15%, 97%)',
+    primaryColor: 'hsl(35, 85%, 55%)',
+    accentColor: 'hsl(48, 25%, 92%)',
+    buttonClass: 'btn-theme-warm-cream',
+    cardClass: 'card-theme-warm-cream',
+  },
+  {
+    id: 'minimal-light',
+    name: 'Minimal Light',
+    description: 'Ultra-clean minimal interface with subtle borders',
+    backgroundColor: 'hsl(0, 0%, 99%)',
+    primaryColor: 'hsl(0, 0%, 20%)',
+    accentColor: 'hsl(0, 0%, 97%)',
+    buttonClass: 'btn-theme-minimal',
+    cardClass: 'card-theme-minimal',
+  },
+];
 
 export const DARK_THEMES: DarkTheme[] = [
   {
@@ -69,27 +134,34 @@ export const DARK_THEMES: DarkTheme[] = [
   },
 ];
 
-const STORAGE_KEY = 'ultaai-dark-theme-variant';
+const STORAGE_KEY_DARK = 'ultaai-dark-theme-variant';
+const STORAGE_KEY_LIGHT = 'ultaai-light-theme-variant';
 
-export const useDarkThemeVariant = () => {
+export const useThemeVariants = () => {
   const { mode } = useTheme();
   const { user } = useAuth();
-  const [darkThemeVariant, setDarkThemeVariant] = useState<DarkThemeVariant>('default');
+  const [darkThemeVariant, setDarkThemeVariantState] = useState<DarkThemeVariant>('default');
+  const [lightThemeVariant, setLightThemeVariantState] = useState<LightThemeVariant>('default');
 
-  // Load saved theme variant on mount from database
+  // Load saved theme variants on mount from database
   useEffect(() => {
     if (user) {
-      loadThemeVariantFromDatabase();
+      loadThemeVariantsFromDatabase();
     } else {
       // Fallback to localStorage for unauthenticated users
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && DARK_THEMES.find(t => t.id === saved)) {
-        setDarkThemeVariant(saved as DarkThemeVariant);
+      const savedDark = localStorage.getItem(STORAGE_KEY_DARK);
+      const savedLight = localStorage.getItem(STORAGE_KEY_LIGHT);
+      
+      if (savedDark && DARK_THEMES.find(t => t.id === savedDark)) {
+        setDarkThemeVariantState(savedDark as DarkThemeVariant);
+      }
+      if (savedLight && LIGHT_THEMES.find(t => t.id === savedLight)) {
+        setLightThemeVariantState(savedLight as LightThemeVariant);
       }
     }
   }, [user]);
 
-  const loadThemeVariantFromDatabase = async () => {
+  const loadThemeVariantsFromDatabase = async () => {
     if (!user) return;
 
     try {
@@ -100,41 +172,52 @@ export const useDarkThemeVariant = () => {
         .maybeSingle();
 
       if (error) {
-        console.error('Error loading theme variant:', error);
+        console.error('Error loading theme variants:', error);
         return;
       }
 
-      if (data && (data as any).dark_theme_variant && DARK_THEMES.find(t => t.id === (data as any).dark_theme_variant)) {
-        setDarkThemeVariant((data as any).dark_theme_variant as DarkThemeVariant);
+      if (data) {
+        const darkVariant = (data as any).dark_theme_variant;
+        const lightVariant = (data as any).light_theme_variant;
+        
+        if (darkVariant && DARK_THEMES.find(t => t.id === darkVariant)) {
+          setDarkThemeVariantState(darkVariant as DarkThemeVariant);
+        }
+        if (lightVariant && LIGHT_THEMES.find(t => t.id === lightVariant)) {
+          setLightThemeVariantState(lightVariant as LightThemeVariant);
+        }
       }
     } catch (error) {
-      console.error('Error loading theme variant:', error);
+      console.error('Error loading theme variants:', error);
     }
   };
 
   // Apply theme class to document
   useEffect(() => {
-    if (mode === 'dark') {
-      // Remove all existing theme classes
-      document.documentElement.classList.remove(
-        'theme-warm-dark',
-        'theme-cool-dark', 
-        'theme-soft-dark',
-        'theme-ocean-dark'
-      );
-      
-      // Add the selected theme class (if not default)
-      if (darkThemeVariant !== 'default') {
-        document.documentElement.classList.add(`theme-${darkThemeVariant}`);
-      }
+    // Remove all existing theme classes
+    document.documentElement.classList.remove(
+      'theme-warm-dark',
+      'theme-cool-dark', 
+      'theme-soft-dark',
+      'theme-ocean-dark',
+      'theme-soft-white',
+      'theme-cool-gray',
+      'theme-warm-cream',
+      'theme-minimal-light'
+    );
+    
+    // Add the selected theme class based on current mode
+    if (mode === 'dark' && darkThemeVariant !== 'default') {
+      document.documentElement.classList.add(`theme-${darkThemeVariant}`);
+    } else if (mode === 'light' && lightThemeVariant !== 'default') {
+      document.documentElement.classList.add(`theme-${lightThemeVariant}`);
     }
-  }, [mode, darkThemeVariant]);
+  }, [mode, darkThemeVariant, lightThemeVariant]);
 
-  const setThemeVariant = async (variant: DarkThemeVariant) => {
-    setDarkThemeVariant(variant);
+  const setDarkThemeVariant = async (variant: DarkThemeVariant) => {
+    setDarkThemeVariantState(variant);
     
     if (user) {
-      // Save to database for authenticated users
       try {
         const { error } = await supabase
           .from('user_preferences')
@@ -150,30 +233,72 @@ export const useDarkThemeVariant = () => {
           );
 
         if (error) {
-          console.error('Error saving theme variant:', error);
-          // Fallback to localStorage if database save fails
-          localStorage.setItem(STORAGE_KEY, variant);
+          console.error('Error saving dark theme variant:', error);
+          localStorage.setItem(STORAGE_KEY_DARK, variant);
         }
       } catch (error) {
-        console.error('Error saving theme variant:', error);
-        // Fallback to localStorage if database save fails
-        localStorage.setItem(STORAGE_KEY, variant);
+        console.error('Error saving dark theme variant:', error);
+        localStorage.setItem(STORAGE_KEY_DARK, variant);
       }
     } else {
-      // Fallback to localStorage for unauthenticated users
-      localStorage.setItem(STORAGE_KEY, variant);
+      localStorage.setItem(STORAGE_KEY_DARK, variant);
     }
   };
 
-  const getCurrentTheme = () => {
+  const setLightThemeVariant = async (variant: LightThemeVariant) => {
+    setLightThemeVariantState(variant);
+    
+    if (user) {
+      try {
+        const { error } = await supabase
+          .from('user_preferences')
+          .upsert(
+            {
+              user_id: user.id,
+              light_theme_variant: variant,
+              updated_at: new Date().toISOString(),
+            },
+            {
+              onConflict: 'user_id',
+            }
+          );
+
+        if (error) {
+          console.error('Error saving light theme variant:', error);
+          localStorage.setItem(STORAGE_KEY_LIGHT, variant);
+        }
+      } catch (error) {
+        console.error('Error saving light theme variant:', error);
+        localStorage.setItem(STORAGE_KEY_LIGHT, variant);
+      }
+    } else {
+      localStorage.setItem(STORAGE_KEY_LIGHT, variant);
+    }
+  };
+
+  const getCurrentDarkTheme = () => {
     return DARK_THEMES.find(t => t.id === darkThemeVariant) || DARK_THEMES[0];
   };
 
+  const getCurrentLightTheme = () => {
+    return LIGHT_THEMES.find(t => t.id === lightThemeVariant) || LIGHT_THEMES[0];
+  };
+
   return {
+    // Dark theme
     darkThemeVariant,
-    setThemeVariant,
-    getCurrentTheme,
+    setDarkThemeVariant,
+    getCurrentDarkTheme,
     darkThemes: DARK_THEMES,
+    
+    // Light theme
+    lightThemeVariant,
+    setLightThemeVariant,
+    getCurrentLightTheme,
+    lightThemes: LIGHT_THEMES,
+    
+    // General
     isDarkMode: mode === 'dark',
+    isLightMode: mode === 'light',
   };
 };

@@ -2193,6 +2193,7 @@ export type Database = {
           dark_theme_variant: string | null
           email_alerts: boolean
           id: string
+          light_theme_variant: string | null
           security_alerts: boolean
           system_updates: boolean
           theme_preference: string
@@ -2205,6 +2206,7 @@ export type Database = {
           dark_theme_variant?: string | null
           email_alerts?: boolean
           id?: string
+          light_theme_variant?: string | null
           security_alerts?: boolean
           system_updates?: boolean
           theme_preference?: string
@@ -2217,6 +2219,7 @@ export type Database = {
           dark_theme_variant?: string | null
           email_alerts?: boolean
           id?: string
+          light_theme_variant?: string | null
           security_alerts?: boolean
           system_updates?: boolean
           theme_preference?: string
