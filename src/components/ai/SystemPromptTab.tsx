@@ -506,7 +506,18 @@ This is exactly what gets sent to OpenAI:
                   ✅ This prompt is actively used by: Chat Router, AI Decision Engine, and all OpenAI API calls
                 </p>
               </div>
-              <Badge variant="default" className="bg-green-600">Published</Badge>
+              <div className="flex gap-2">
+                <Badge variant="default" className="bg-green-600">Published</Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { loadVersions(); loadAgents(); }}
+                  className="gap-1"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Refresh
+                </Button>
+              </div>
             </div>
           </div>
           )}
