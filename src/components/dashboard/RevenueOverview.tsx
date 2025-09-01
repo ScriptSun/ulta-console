@@ -191,7 +191,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           </div>
 
           {/* Churn Rate */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
+          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden shadow-sm shadow-destructive/20">
              <div className="flex items-center justify-between mb-3">
                <div className="text-sm font-medium text-muted-foreground">Churn Rate</div>
                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-destructive/20 text-destructive text-xs font-medium">
@@ -205,9 +205,10 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
              <div className="text-sm text-muted-foreground">
                Current churn rate
              </div>
-            {/* Red gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-destructive/20 via-destructive/10 to-transparent pointer-events-none"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-destructive/30 to-transparent pointer-events-none"></div>
+            {/* Enhanced red gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-destructive/15 via-destructive/5 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-destructive/25 via-destructive/10 to-transparent pointer-events-none"></div>
+            <div className="absolute -top-4 -right-4 w-16 h-16 bg-destructive/30 rounded-full blur-xl pointer-events-none"></div>
           </div>
         </div>
 
