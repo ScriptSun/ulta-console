@@ -115,6 +115,13 @@ export default function ProfileSettings() {
   
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [show2FASetup, setShow2FASetup] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [manualKey, setManualKey] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [setupStep, setSetupStep] = useState<'qr' | 'verify' | 'backup'>('qr');
+  const [mfaLoading, setMfaLoading] = useState(false);
 
   // Email change requests hook
   const {
@@ -134,6 +141,7 @@ export default function ProfileSettings() {
       loadPreferences();
       loadUserSessions();
       checkUserRole();
+      check2FAStatus();
     }
   }, [user]);
 
@@ -514,12 +522,165 @@ export default function ProfileSettings() {
     }
   };
 
-  const handle2FASetup = () => {
-    // In a real implementation, this would integrate with Supabase Auth's MFA
-    toast({
-      title: 'Feature Coming Soon',
-      description: 'Two-factor authentication setup will be available soon.',
-    });
+  const check2FAStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error) throw error;
+      
+      const activeFactor = data?.all?.find(factor => factor.status === 'verified');
+      setIs2FAEnabled(!!activeFactor);
+    } catch (error) {
+      console.error('Error checking 2FA status:', error);
+    }
+  };
+
+  const handle2FASetup = async () => {
+    if (is2FAEnabled) {
+      // Disable 2FA
+      await disable2FA();
+    } else {
+      // Enable 2FA
+      await setup2FA();
+    }
+  };
+
+  const setup2FA = async () => {
+    setMfaLoading(true);
+    try {
+      // Enroll a new factor
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+        friendlyName: 'Authenticator App'
+      });
+
+      if (error) throw error;
+
+      // Generate QR code
+      const QRCode = (await import('qrcode')).default;
+      const qrCodeDataUrl = await QRCode.toDataURL(data.totp.uri);
+      
+      setQrCodeUrl(qrCodeDataUrl);
+      setManualKey(data.totp.secret);
+      setShow2FASetup(true);
+      setSetupStep('qr');
+    } catch (error: any) {
+      console.error('Error setting up 2FA:', error);
+      toast({
+        title: '2FA Setup Failed',
+        description: error.message || 'Failed to set up 2FA. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const verify2FASetup = async () => {
+    if (!verificationCode.trim()) {
+      toast({
+        title: 'Verification Required',
+        description: 'Please enter the 6-digit code from your authenticator app.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setMfaLoading(true);
+    try {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const factor = factors?.all?.find(f => f.status === 'unverified');
+      
+      if (!factor) throw new Error('No unverified factor found');
+
+      const { error } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: factor.id,
+        code: verificationCode
+      });
+
+      if (error) throw error;
+
+      // Generate backup codes
+      const codes = Array.from({ length: 8 }, () => 
+        Math.random().toString(36).substr(2, 8).toUpperCase()
+      );
+      setBackupCodes(codes);
+      setSetupStep('backup');
+      setIs2FAEnabled(true);
+
+      toast({
+        title: '2FA Enabled',
+        description: 'Two-factor authentication has been successfully enabled.',
+      });
+    } catch (error: any) {
+      console.error('Error verifying 2FA:', error);
+      toast({
+        title: 'Verification Failed',
+        description: error.message || 'Invalid verification code. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const disable2FA = async () => {
+    setMfaLoading(true);
+    try {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const factor = factors?.all?.find(f => f.status === 'verified');
+      
+      if (!factor) throw new Error('No verified factor found');
+
+      const { error } = await supabase.auth.mfa.unenroll({
+        factorId: factor.id
+      });
+
+      if (error) throw error;
+
+      setIs2FAEnabled(false);
+      toast({
+        title: '2FA Disabled',
+        description: 'Two-factor authentication has been disabled.',
+      });
+    } catch (error: any) {
+      console.error('Error disabling 2FA:', error);
+      toast({
+        title: '2FA Disable Failed',
+        description: error.message || 'Failed to disable 2FA. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const downloadBackupCodes = () => {
+    const codesText = backupCodes.map((code, index) => `${index + 1}. ${code}`).join('\n');
+    const blob = new Blob([
+      'UltaAI Two-Factor Authentication Backup Codes\n\n',
+      'Keep these codes safe and secure. Each code can only be used once.\n',
+      'Use these codes if you lose access to your authenticator app.\n\n',
+      codesText,
+      '\n\nGenerated on: ' + new Date().toLocaleString()
+    ], { type: 'text/plain' });
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ultaai-backup-codes.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const complete2FASetup = () => {
+    setShow2FASetup(false);
+    setVerificationCode('');
+    setBackupCodes([]);
+    setSetupStep('qr');
   };
 
   const handleSessionRevoke = async (sessionId: string) => {
@@ -1279,9 +1440,14 @@ export default function ProfileSettings() {
                 <Button 
                   onClick={handle2FASetup}
                   variant={is2FAEnabled ? 'destructive' : 'default'}
+                  disabled={mfaLoading}
                 >
-                  <Smartphone className="mr-2 h-4 w-4" />
-                  {is2FAEnabled ? 'Disable 2FA' : 'Setup 2FA'}
+                  {mfaLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Smartphone className="mr-2 h-4 w-4" />
+                  )}
+                  {mfaLoading ? 'Processing...' : is2FAEnabled ? 'Disable 2FA' : 'Setup 2FA'}
                 </Button>
               </CardContent>
             </Card>
@@ -1375,6 +1541,131 @@ export default function ProfileSettings() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* 2FA Setup Dialog */}
+            <Dialog open={show2FASetup} onOpenChange={setShow2FASetup}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Setup Two-Factor Authentication</DialogTitle>
+                  <DialogDescription>
+                    {setupStep === 'qr' && 'Scan the QR code with your authenticator app'}
+                    {setupStep === 'verify' && 'Enter the verification code from your app'}
+                    {setupStep === 'backup' && 'Save your backup codes securely'}
+                  </DialogDescription>
+                </DialogHeader>
+
+                {setupStep === 'qr' && (
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Scan this QR code with Google Authenticator, Authy, or any compatible TOTP app:
+                      </p>
+                      {qrCodeUrl && (
+                        <div className="flex justify-center mb-4">
+                          <img src={qrCodeUrl} alt="2FA QR Code" className="border rounded-lg" />
+                        </div>
+                      )}
+                      
+                      <div className="border rounded-lg p-4 bg-muted">
+                        <p className="text-xs text-muted-foreground mb-2">Manual Entry Key:</p>
+                        <code className="text-sm font-mono break-all">{manualKey}</code>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShow2FASetup(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button onClick={() => setSetupStep('verify')}>
+                        Continue
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {setupStep === 'verify' && (
+                  <div className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="verification-code">Verification Code</Label>
+                      <Input
+                        id="verification-code"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                        placeholder="Enter 6-digit code"
+                        maxLength={6}
+                        className="text-center text-lg font-mono"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter the 6-digit code from your authenticator app
+                      </p>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <Button
+                        variant="outline"
+                        onClick={() => setSetupStep('qr')}
+                      >
+                        Back
+                      </Button>
+                      <Button 
+                        onClick={verify2FASetup}
+                        disabled={mfaLoading || verificationCode.length !== 6}
+                      >
+                        {mfaLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          'Verify & Enable'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {setupStep === 'backup' && (
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                        <div>
+                          <h4 className="font-medium text-yellow-800 dark:text-yellow-200">Save Your Backup Codes</h4>
+                          <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                            Store these codes in a safe place. Each code can only be used once if you lose access to your authenticator app.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 p-3 border rounded-lg bg-muted font-mono text-sm">
+                      {backupCodes.map((code, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 rounded bg-background">
+                          <span>{index + 1}.</span>
+                          <span className="font-medium">{code}</span>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <Button
+                        variant="outline"
+                        onClick={downloadBackupCodes}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Download Codes
+                      </Button>
+                      <Button onClick={complete2FASetup}>
+                        Complete Setup
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </div>
         </TabsContent>
       </Tabs>
