@@ -1464,6 +1464,51 @@ export type Database = {
         }
         Relationships: []
       }
+      email_change_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          current_email: string
+          id: string
+          new_email: string
+          reason: string | null
+          rejected_reason: string | null
+          requested_by: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          current_email: string
+          id?: string
+          new_email: string
+          reason?: string | null
+          rejected_reason?: string | null
+          requested_by: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          current_email?: string
+          id?: string
+          new_email?: string
+          reason?: string | null
+          rejected_reason?: string | null
+          requested_by?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       intent_mappings: {
         Row: {
           active: boolean

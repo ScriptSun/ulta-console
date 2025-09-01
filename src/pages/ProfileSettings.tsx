@@ -28,7 +28,11 @@ import {
   Clock,
   MapPin,
   Trash2,
-  Download
+  Download,
+  Mail,
+  ExternalLink,
+  X,
+  Check
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeSelector } from '@/components/theme/ThemeSelector';
@@ -36,6 +40,9 @@ import { ThemeCustomizer } from '@/components/theme/ThemeCustomizer';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useEmailChangeRequests } from '@/hooks/useEmailChangeRequests';
 
 interface UserPreferences {
   email_alerts: boolean;
@@ -71,6 +78,10 @@ export default function ProfileSettings() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showEmailChangeDialog, setShowEmailChangeDialog] = useState(false);
+  const [newEmailRequest, setNewEmailRequest] = useState('');
+  const [emailChangeReason, setEmailChangeReason] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
   
   const [profile, setProfile] = useState({
     full_name: user?.user_metadata?.full_name || '',
@@ -94,6 +105,17 @@ export default function ProfileSettings() {
   
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+
+  // Email change requests hook
+  const {
+    requests: emailChangeRequests,
+    pendingRequests,
+    loading: emailRequestsLoading,
+    createEmailChangeRequest,
+    approveEmailChangeRequest,
+    rejectEmailChangeRequest,
+    cancelEmailChangeRequest,
+  } = useEmailChangeRequests();
 
   // Load user profile data and preferences
   useEffect(() => {
@@ -429,6 +451,60 @@ export default function ProfileSettings() {
     return new Date(timestamp).toLocaleString();
   };
 
+  const handleEmailChangeRequest = async () => {
+    if (!user || !newEmailRequest.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newEmailRequest === profile.email) {
+      toast({
+        title: 'No Change',
+        description: 'The new email is the same as your current email.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    await createEmailChangeRequest(
+      user.id,
+      profile.email,
+      newEmailRequest,
+      emailChangeReason
+    );
+
+    setShowEmailChangeDialog(false);
+    setNewEmailRequest('');
+    setEmailChangeReason('');
+  };
+
+  const handleApproveRequest = async (requestId: string) => {
+    await approveEmailChangeRequest(requestId);
+  };
+
+  const handleRejectRequest = async (requestId: string, reason: string) => {
+    await rejectEmailChangeRequest(requestId, reason);
+    setRejectionReason('');
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    await cancelEmailChangeRequest(requestId);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <div className="container mx-auto max-w-4xl space-y-6">
       <div className="space-y-2">
@@ -521,14 +597,68 @@ export default function ProfileSettings() {
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Dialog open={showEmailChangeDialog} onOpenChange={setShowEmailChangeDialog}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Mail className="h-4 w-4 mr-2" />
+                          Request Change
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Request Email Change</DialogTitle>
+                          <DialogDescription>
+                            Email changes require approval from administrators for security purposes.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="grid gap-2">
+                            <Label>Current Email</Label>
+                            <Input value={profile.email} disabled />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="new-email">New Email Address</Label>
+                            <Input
+                              id="new-email"
+                              type="email"
+                              value={newEmailRequest}
+                              onChange={(e) => setNewEmailRequest(e.target.value)}
+                              placeholder="Enter new email address"
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="reason">Reason for Change (Optional)</Label>
+                            <Textarea
+                              id="reason"
+                              value={emailChangeReason}
+                              onChange={(e) => setEmailChangeReason(e.target.value)}
+                              placeholder="Provide a reason for this email change..."
+                              rows={3}
+                            />
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowEmailChangeDialog(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button onClick={handleEmailChangeRequest}>
+                              Submit Request
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   <Input
                     id="email"
                     type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="Enter your email"
                     disabled
+                    className="bg-muted"
                   />
                   <p className="text-xs text-muted-foreground">
                     Email changes require admin approval for security reasons.
@@ -565,6 +695,169 @@ export default function ProfileSettings() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Pending Email Change Requests for Approval */}
+          {pendingRequests.length > 0 && (
+            <Card className="bg-gradient-card border-card-border shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                  Pending Email Change Requests
+                </CardTitle>
+                <CardDescription>
+                  Review and approve email change requests from team members.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {pendingRequests.map((request) => (
+                  <div key={request.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium">Email Change Request</p>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p><strong>From:</strong> {request.current_email}</p>
+                          <p><strong>To:</strong> {request.new_email}</p>
+                          <p><strong>Requested:</strong> {formatDate(request.created_at)}</p>
+                          {request.reason && <p><strong>Reason:</strong> {request.reason}</p>}
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Pending
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="default">
+                            <Check className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Approve Email Change?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will approve the email change from {request.current_email} to {request.new_email}.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleApproveRequest(request.id)}>
+                              Approve Change
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <X className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Reject Email Change</DialogTitle>
+                            <DialogDescription>
+                              Provide a reason for rejecting this email change request.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="rejection-reason">Rejection Reason</Label>
+                              <Textarea
+                                id="rejection-reason"
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                placeholder="Explain why this request is being rejected..."
+                                rows={3}
+                              />
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                              <Button variant="outline" onClick={() => setRejectionReason('')}>
+                                Cancel
+                              </Button>
+                              <Button 
+                                variant="destructive"
+                                onClick={() => handleRejectRequest(request.id, rejectionReason)}
+                                disabled={!rejectionReason.trim()}
+                              >
+                                Reject Request
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* User's Email Change Requests */}
+          {emailChangeRequests.length > 0 && (
+            <Card className="bg-gradient-card border-card-border shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Your Email Change Requests
+                </CardTitle>
+                <CardDescription>
+                  Track the status of your email change requests.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {emailChangeRequests.map((request) => (
+                  <div key={request.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p><strong>From:</strong> {request.current_email}</p>
+                          <p><strong>To:</strong> {request.new_email}</p>
+                          <p><strong>Requested:</strong> {formatDate(request.created_at)}</p>
+                          {request.reason && <p><strong>Reason:</strong> {request.reason}</p>}
+                          {request.status === 'approved' && request.approved_at && (
+                            <p><strong>Approved:</strong> {formatDate(request.approved_at)}</p>
+                          )}
+                          {request.status === 'rejected' && request.rejected_reason && (
+                            <p><strong>Rejection Reason:</strong> {request.rejected_reason}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={
+                            request.status === 'approved' ? 'default' : 
+                            request.status === 'rejected' ? 'destructive' : 
+                            request.status === 'cancelled' ? 'secondary' : 'secondary'
+                          }
+                          className="flex items-center gap-1"
+                        >
+                          {request.status === 'pending' && <Clock className="h-3 w-3" />}
+                          {request.status === 'approved' && <Check className="h-3 w-3" />}
+                          {request.status === 'rejected' && <X className="h-3 w-3" />}
+                          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                        </Badge>
+                        {request.status === 'pending' && request.requested_by === user?.id && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleCancelRequest(request.id)}
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="appearance">
