@@ -1,4 +1,52 @@
-export const ROUTER_SYSTEM_PROMPT = `You are UltaAI, a conversational hosting assistant.
+import { supabase } from '@/integrations/supabase/client';
+
+// Define types for the system prompt version structure
+interface SystemPromptVersion {
+  id: string;
+  content: string;
+  version: number;
+  published: boolean;
+  created_at: string;
+  author: string;
+  notes?: string;
+  targets: string[];
+}
+
+// Get the published system prompt from database
+export const getPublishedSystemPrompt = async (): Promise<string> => {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'ai.systemPrompt')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching system prompt:', error);
+      // Fallback to hard coded prompt if database fails
+      return ROUTER_SYSTEM_PROMPT_FALLBACK;
+    }
+
+    if (data?.setting_value) {
+      const prompts = Array.isArray(data.setting_value) ? 
+        data.setting_value as unknown as SystemPromptVersion[] : [data.setting_value as unknown as SystemPromptVersion];
+      
+      const publishedPrompt = prompts.find((p: SystemPromptVersion) => p.published);
+      if (publishedPrompt) {
+        return publishedPrompt.content;
+      }
+    }
+
+    // Fallback if no published prompt found
+    return ROUTER_SYSTEM_PROMPT_FALLBACK;
+  } catch (error) {
+    console.error('Error loading system prompt:', error);
+    return ROUTER_SYSTEM_PROMPT_FALLBACK;
+  }
+};
+
+// Fallback prompt (original hard coded version)
+export const ROUTER_SYSTEM_PROMPT_FALLBACK = `You are UltaAI, a conversational hosting assistant.
 
 Input payload:
 {
@@ -79,6 +127,9 @@ Rules:
 - Prefer idempotent steps. Example: install packages with the native package manager, enable services with systemctl, reload rather than restart when possible.
 - Add a very short "human" sentence to help the UI.
 - For chat, text only. For actions, JSON only.`;
+
+// Legacy export for backward compatibility
+export const ROUTER_SYSTEM_PROMPT = ROUTER_SYSTEM_PROMPT_FALLBACK;
 
 export const ROUTER_RESPONSE_SCHEMA = {
   "type": "object",
