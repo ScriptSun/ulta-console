@@ -148,36 +148,67 @@ export function ReportPermissionsDialog({
     mutationFn: async (newPermissions: Record<string, ReportPermission>) => {
       if (!member) throw new Error('No member selected');
 
+      console.log('Saving permissions for member:', member.id, newPermissions);
+
       // Delete existing permissions for this member
-      await supabase
+      const { error: deleteError } = await supabase
         .from('console_member_report_perms')
         .delete()
         .eq('member_id', member.id);
 
+      if (deleteError) {
+        console.error('Error deleting existing permissions:', deleteError);
+        throw deleteError;
+      }
+
       // Insert new permissions (only if different from role template)
       const permissionsToInsert = Object.values(newPermissions).filter(perm => {
         const roleTemplate = roleTemplatePermissions?.find(rt => rt.report_key === perm.report_key);
-        return (
+        const isDifferent = (
           perm.can_view !== (roleTemplate?.can_view ?? false) ||
           perm.can_export !== (roleTemplate?.can_export ?? false) ||
           perm.can_configure !== (roleTemplate?.can_configure ?? false)
         );
+        
+        console.log(`Permission for ${perm.report_key}:`, {
+          current: perm,
+          template: roleTemplate,
+          isDifferent
+        });
+        
+        return isDifferent;
       });
 
+      console.log('Permissions to insert:', permissionsToInsert);
+
       if (permissionsToInsert.length > 0) {
-        const { error } = await supabase
+        const { data: insertData, error: insertError } = await supabase
           .from('console_member_report_perms')
           .insert(
             permissionsToInsert.map(perm => ({
               member_id: member.id,
-              ...perm
+              report_key: perm.report_key,
+              can_view: perm.can_view,
+              can_export: perm.can_export,
+              can_configure: perm.can_configure
             }))
-          );
+          )
+          .select();
 
-        if (error) throw error;
+        if (insertError) {
+          console.error('Error inserting new permissions:', insertError);
+          throw insertError;
+        }
+
+        console.log('Successfully inserted permissions:', insertData);
+      } else {
+        console.log('No permissions to insert - all match role template');
       }
+
+      return { success: true };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log('Save successful:', result);
       toast({
         title: 'Success',
         description: 'Report permissions updated successfully.',
@@ -186,12 +217,12 @@ export function ReportPermissionsDialog({
       onOpenChange(false);
     },
     onError: (error) => {
+      console.error('Save error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update report permissions.',
+        description: `Failed to update report permissions: ${error.message}`,
         variant: 'destructive',
       });
-      console.error('Error updating report permissions:', error);
     },
   });
 
