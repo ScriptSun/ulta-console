@@ -2269,7 +2269,7 @@ Please proceed with creating and executing this batch script.`;
 
                       {/* Preflight Results Display */}
                       {message.preflightResult && (
-                        <div className="mt-3 p-3 rounded-lg border border-success/20 bg-success/10 text-success-foreground">
+                        <div className="mt-3 p-3 rounded-lg border border-success/20 bg-success/10 text-success dark:text-success-foreground">
                           <div className="text-sm font-medium mb-2">
                             Preflight Result: {message.preflightResult.preflight_ok ? '✅ Passed' : '❌ Failed'}
                           </div>
