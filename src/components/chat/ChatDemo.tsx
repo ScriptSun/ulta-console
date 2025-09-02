@@ -186,6 +186,58 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const sessionStartTime = useRef(Date.now());
   const routerTimeoutRef = useRef<NodeJS.Timeout>();
   
+  // Helper function to detect if user request is likely an action vs casual chat
+  const detectActionRequest = (content: string): boolean => {
+    const lowerContent = content.toLowerCase();
+    
+    // Action keywords that indicate server management intent
+    const actionKeywords = [
+      'install', 'setup', 'configure', 'deploy', 'create', 'build', 'run',
+      'start', 'stop', 'restart', 'enable', 'disable', 'update', 'upgrade',
+      'check', 'status', 'monitor', 'backup', 'restore', 'fix', 'repair',
+      'remove', 'delete', 'uninstall', 'clean', 'clear', 'reset', 'reboot',
+      'chmod', 'chown', 'mkdir', 'mv', 'cp', 'wget', 'curl', 'systemctl',
+      'service', 'nginx', 'apache', 'mysql', 'docker', 'ssl', 'certificate',
+      'firewall', 'port', 'domain', 'database', 'server', 'disk', 'memory'
+    ];
+    
+    // Chat keywords that indicate casual conversation
+    const chatKeywords = [
+      'hello', 'hi', 'hey', 'thanks', 'thank you', 'how are you',
+      'good morning', 'good afternoon', 'good evening', 'what is',
+      'explain', 'tell me', 'joke', 'story', 'weather', 'time',
+      'help me understand', 'can you explain', 'what does'
+    ];
+    
+    // Check for action keywords
+    const hasActionKeywords = actionKeywords.some(keyword => 
+      lowerContent.includes(keyword)
+    );
+    
+    // Check for chat keywords
+    const hasChatKeywords = chatKeywords.some(keyword => 
+      lowerContent.includes(keyword)
+    );
+    
+    // If it has chat keywords and no action keywords, likely chat
+    if (hasChatKeywords && !hasActionKeywords) {
+      return false;
+    }
+    
+    // If it has action keywords, likely action
+    if (hasActionKeywords) {
+      return true;
+    }
+    
+    // For very short messages like "hi", "hey", etc. assume chat
+    if (content.trim().length <= 10) {
+      return false;
+    }
+    
+    // Default to action for ambiguous cases (better to show phases than not)
+    return true;
+  };
+  
   // WebSocket router and event bus - only connect when needed
   const { connect, disconnect, sendRequest, isConnected } = useWebSocketRouter();
   const { routerLogData } = useRouterLogs();
@@ -461,7 +513,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           
         case 'router.retrieved':
           console.log('Router retrieved candidates:', data);
-          setRouterPhase(RouterPhases.ANALYZING);
+          // Only show analyzing phase if we have candidates (indicating potential action)
+          if (data.candidate_count && data.candidate_count > 0) {
+            setRouterPhase(RouterPhases.ANALYZING);
+          }
           setCandidateCount(data.candidate_count || 0);
           break;
           
@@ -568,10 +623,13 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                   decision: data
                 };
                   
-                   // Handle different decision modes
-                   if (data.mode === 'chat') {
-                     // For chat mode, show the full message or the streamed content
-                     updated[i].content = data.message || data.text || streamingResponse || 'Response received';
+                    // Handle different decision modes
+                    if (data.mode === 'chat') {
+                      // Simple chat response - clear phases immediately for chat
+                      setRouterPhase('');
+                      
+                      // For chat mode, show the full message or the streamed content
+                      updated[i].content = data.message || data.text || streamingResponse || 'Response received';
                      
                      // Check if this is an "I'm sorry" or "not supported" response and generate AI suggestions
                      const messageContent = data.message || data.text || streamingResponse || '';
@@ -647,6 +705,14 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                           });
                         }
                       } else {
+                        // Show selecting phase briefly before clearing for actions
+                        setRouterPhase(RouterPhases.SELECTING);
+                        
+                        // Clear the selecting phase after a brief moment
+                        setTimeout(() => {
+                          setRouterPhase('');
+                        }, 800);
+                        
                         // For action mode, show the user-friendly human message
                         updated[i].content = data.human_message || data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
                         
@@ -1385,7 +1451,10 @@ Please try again or contact support if this persists.`;
       
       // Start router request immediately  
       setIsTyping(true);
-      setRouterPhase(RouterPhases.CHECKING);
+      
+      // Detect if this is likely an action request vs casual chat
+      const isActionRequest = detectActionRequest(content.trim());
+      setRouterPhase(isActionRequest ? RouterPhases.CHECKING : RouterPhases.THINKING);
       
       console.log('🚀 Sending router request for:', content.trim());
       console.log('🔌 WebSocket connected:', isConnected);
