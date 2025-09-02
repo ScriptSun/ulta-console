@@ -111,7 +111,11 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                 <Terminal className="h-4 w-4" />
                 <span className="font-medium text-sm">Commands to run:</span>
               </div>
-               <Badge className={`${getRiskColor(decision.risk || 'medium')} font-medium`} variant="outline">
+               <Badge 
+                 className={`${getRiskColor(decision.risk || 'medium')} font-medium flex items-center gap-1.5 px-2.5 py-1`} 
+                 variant="outline"
+               >
+                 <CheckCircle className="h-3 w-3" />
                  {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
                </Badge>
             </div>
@@ -158,7 +162,11 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                 <FileText className="h-4 w-4" />
                 <span className="font-medium text-sm">{i18n.draft.batch.title}</span>
               </div>
-              <Badge className={`${getRiskColor(decision.risk || 'medium')} font-medium`} variant="outline">
+              <Badge 
+                className={`${getRiskColor(decision.risk || 'medium')} font-medium flex items-center gap-1.5 px-2.5 py-1`} 
+                variant="outline"
+              >
+                <CheckCircle className="h-3 w-3" />
                 {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
               </Badge>
             </div>
