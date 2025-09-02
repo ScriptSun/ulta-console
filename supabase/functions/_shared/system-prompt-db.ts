@@ -53,7 +53,7 @@ class PromptCache {
     
     const { data, error } = await this.supabase
       .from('system_prompts')
-      .select('content')
+      .select('content_base64')
       .eq('prompt_key', promptKey)
       .single();
 
@@ -61,12 +61,12 @@ class PromptCache {
       throw new Error(`Failed to load ${promptKey} prompt from database: ${error.message}`);
     }
 
-    if (!data?.content) {
+    if (!data?.content_base64) {
       throw new Error(`No content found for ${promptKey} prompt`);
     }
 
     // Decode base64 content
-    const content = atob(data.content);
+    const content = atob(data.content_base64);
     
     console.log(`✅ Loaded ${promptKey} prompt from database (${content.length} chars)`);
     return content;
