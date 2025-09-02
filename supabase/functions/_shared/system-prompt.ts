@@ -9,15 +9,6 @@ interface PromptCache {
 const promptCache: PromptCache = {};
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Fallback prompts (in case file loading fails)
-const FALLBACK_PROMPTS = {
-  router: `You are UltaAI, a conversational hosting assistant. Respond in JSON format for actions or plain text for chat.`,
-  chat: `You are UltaAI, a friendly server management assistant. Keep responses concise and helpful.`,
-  tools: `You are UltaAI, a server management assistant focused on tool execution and system operations.`,
-  advice: `Analyze server metrics and provide JSON recommendations.`,
-  'input-filler': `You fill inputs for a batch. Output JSON only: {"inputs":{...}}.`,
-  'command-suggestion': `Analyze command requests and provide JSON suggestions with safety considerations.`
-};
 
 /**
  * Load system prompt from file with caching
@@ -48,23 +39,15 @@ async function loadPromptFromFile(promptType: string): Promise<string> {
     return content.trim();
     
   } catch (error) {
-    console.warn(`⚠️ Failed to load ${promptType} prompt from file:`, error);
-    
-    // Return fallback prompt
-    const fallback = FALLBACK_PROMPTS[promptType as keyof typeof FALLBACK_PROMPTS];
-    if (fallback) {
-      console.log(`🔄 Using fallback prompt for ${promptType}`);
-      return fallback;
-    }
-    
-    // Ultimate fallback
-    console.error(`❌ No fallback available for ${promptType}`);
-    return FALLBACK_PROMPTS.router;
+    const promptPath = `./prompts/${promptType}-system-prompt.md`;
+    const errorMessage = `Failed to load ${promptType} prompt from file: ${promptPath}`;
+    console.error(`❌ ${errorMessage}`, error);
+    throw new Error(`${errorMessage} - ${error.message}`);
   }
 }
 
 /**
- * Get system prompt from file with fallback
+ * Get system prompt from file
  * @param target - Which target to get prompt for ('router', 'chat', 'tools', etc.)
  * @returns Promise<string> - The system prompt content
  */
