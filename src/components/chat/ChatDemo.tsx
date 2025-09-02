@@ -2544,18 +2544,10 @@ Please proceed with creating and executing this batch script.`;
                        )}
                        
                       
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs opacity-70">
-                          {message.timestamp.toLocaleTimeString()}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0"
-                          onClick={() => copyMessage(typeof message.content === 'string' ? message.content : JSON.stringify(message.content))}
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
+                       <div className="flex items-center justify-between mt-2">
+                         <span className="text-xs opacity-70">
+                           {message.timestamp.toLocaleTimeString()}
+                         </span>
                        </div>
                      </div>
                    </div>
