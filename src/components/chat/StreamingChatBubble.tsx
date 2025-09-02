@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Copy, Brain, Search, CheckCircle, Code } from 'lucide-react';
 
 interface StreamingChatBubbleProps {
@@ -63,12 +64,14 @@ export const StreamingChatBubble: React.FC<StreamingChatBubbleProps> = ({
 
         {/* Content */}
         {content && (
-          <div className="text-sm">
-            {content}
-            {pending && (
-              <span className="inline-block w-2 h-4 bg-foreground/50 ml-1 animate-pulse" />
-            )}
-          </div>
+          <ScrollArea className="w-full max-h-32">
+            <div className="text-sm whitespace-pre-wrap font-mono">
+              {content}
+              {pending && (
+                <span className="inline-block w-2 h-4 bg-foreground/50 ml-1 animate-pulse" />
+              )}
+            </div>
+          </ScrollArea>
         )}
 
         {/* Fallback typing animation when no content yet */}
