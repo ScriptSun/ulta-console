@@ -91,11 +91,12 @@ serve(async (req) => {
     ];
 
     // Build the query to match user_request against key, name, description using ILIKE
-    // Also include all required keys
+    // Also include all required keys, limited to max 12 candidates
     const { data: candidates, error: candidatesError } = await supabase
       .from('script_batches')
       .select('id, key, name, description, inputs_schema, inputs_defaults, preflight, os_targets, risk, max_timeout_sec')
-      .or(`key.ilike.%${user_request}%,name.ilike.%${user_request}%,description.ilike.%${user_request}%,key.in.(${requiredKeys.join(',')})`);
+      .or(`key.ilike.%${user_request}%,name.ilike.%${user_request}%,description.ilike.%${user_request}%,key.in.(${requiredKeys.join(',')})`)
+      .limit(12);
 
     if (candidatesError) {
       console.error('Error loading candidates:', candidatesError);

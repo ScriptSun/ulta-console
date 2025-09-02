@@ -211,7 +211,7 @@ serve(async (req) => {
         throw new Error("No content received from OpenAI");
       }
 
-      // Parse response - handle both chat and action modes
+      // Parse response - handle chat, action, and ai_draft_action modes
       const obj = tryParseJSON(raw);
       
       if (obj && obj.mode === "action") {
@@ -230,6 +230,25 @@ serve(async (req) => {
         console.log(`✅ Action decision completed for agent ${agent_id}`);
         
         // Return the action JSON as is
+        return new Response(JSON.stringify(obj), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else if (obj && obj.mode === "ai_draft_action") {
+        console.log('🚀 AI Draft Action mode response:', obj);
+        
+        // Store ai_draft_action decision in agents table
+        const { error: updateError } = await supabase
+          .from('agents')
+          .update({ last_decision_json: obj })
+          .eq('id', agent_id);
+
+        if (updateError) {
+          console.error('⚠️ Error updating agent with ai_draft_action decision:', updateError);
+        }
+
+        console.log(`✅ AI Draft Action decision completed for agent ${agent_id}`);
+        
+        // Return the ai_draft_action JSON as is
         return new Response(JSON.stringify(obj), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
