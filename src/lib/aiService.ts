@@ -23,23 +23,11 @@ export interface AIModel {
 }
 
 export const AI_MODELS: Record<string, AIModel> = {
-  'gpt-4o-mini': {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
+  'gpt-5-nano-2025-08-07': {
+    id: 'gpt-5-nano-2025-08-07',
+    name: 'GPT-5 Nano',
     provider: 'openai',
-    pricing: { prompt: 0.000150, completion: 0.0006 }
-  },
-  'gpt-4o': {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    provider: 'openai',
-    pricing: { prompt: 0.0025, completion: 0.01 }
-  },
-  'gpt-5-2025-08-07': {
-    id: 'gpt-5-2025-08-07',
-    name: 'GPT-5',
-    provider: 'openai',
-    pricing: { prompt: 0.005, completion: 0.015 }
+    pricing: { prompt: 0.0005, completion: 0.002 }
   },
   'gpt-5-mini-2025-08-07': {
     id: 'gpt-5-mini-2025-08-07',
@@ -47,17 +35,23 @@ export const AI_MODELS: Record<string, AIModel> = {
     provider: 'openai',
     pricing: { prompt: 0.001, completion: 0.004 }
   },
-  'claude-3-5-sonnet': {
-    id: 'claude-3-5-sonnet-20241022',
-    name: 'Claude 3.5 Sonnet',
+  'gpt-5-2025-08-07': {
+    id: 'gpt-5-2025-08-07',
+    name: 'GPT-5',
+    provider: 'openai',
+    pricing: { prompt: 0.005, completion: 0.015 }
+  },
+  'claude-3-5-haiku-20241022': {
+    id: 'claude-3-5-haiku-20241022',
+    name: 'Claude 3.5 Haiku',
+    provider: 'anthropic',
+    pricing: { prompt: 0.0008, completion: 0.004 }
+  },
+  'claude-sonnet-4-20250514': {
+    id: 'claude-sonnet-4-20250514',
+    name: 'Claude 4 Sonnet',
     provider: 'anthropic',
     pricing: { prompt: 0.003, completion: 0.015 }
-  },
-  'claude-3-opus': {
-    id: 'claude-3-opus-20240229',
-    name: 'Claude 3 Opus',
-    provider: 'anthropic',
-    pricing: { prompt: 0.015, completion: 0.075 }
   },
   'claude-opus-4-20250514': {
     id: 'claude-opus-4-20250514',
@@ -69,7 +63,7 @@ export const AI_MODELS: Record<string, AIModel> = {
 
 class AIService {
   private static instance: AIService;
-  private failoverModels: string[] = ['gpt-4o-mini', 'gpt-4o', 'claude-3-5-sonnet'];
+  private failoverModels: string[] = ['gpt-5-nano-2025-08-07', 'gpt-5-mini-2025-08-07', 'claude-3-5-haiku-20241022'];
   private lastSettingsCheck = 0;
   private settingsCacheTime = 5 * 60 * 1000; // 5 minutes cache
 

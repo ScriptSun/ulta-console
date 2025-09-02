@@ -1460,7 +1460,7 @@ Please try again or contact support if this persists.`;
         try {
           connect();
           // Wait a moment for connection to establish
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Remove artificial delay - process immediately
         } catch (connectError) {
           console.error('Failed to connect to WebSocket:', connectError);
           throw new Error('WebSocket connection failed');
@@ -1839,7 +1839,7 @@ Please proceed with creating and executing this batch script.`;
       if (!isExecConnected) {
         await connectExec();
         // Wait for connection to establish
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Process immediately without delay
       }
       
       sendExecRequest({
@@ -2371,7 +2371,7 @@ Please proceed with creating and executing this batch script.`;
                                        if (!isExecConnected) {
                                          await connectExec();
                                          // Wait for connection to establish
-                                         await new Promise(resolve => setTimeout(resolve, 1000));
+                                         // Process immediately without delay
                                        }
                                        
                                        sendExecRequest({
