@@ -71,14 +71,6 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
 
   return (
     <Card className="border-l-4 border-l-primary/20 bg-primary/5">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Terminal className="h-5 w-5 text-primary" />
-          </div>
-        </div>
-      </CardHeader>
-
       <CardContent className="space-y-4">
         {/* Command Section */}
         {decision.suggested.kind === "command" && (
