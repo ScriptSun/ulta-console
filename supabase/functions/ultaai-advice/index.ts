@@ -39,6 +39,8 @@ async function getSystemTemperature(): Promise<number> {
   }
 }
 
+import { getAdviceSystemPrompt } from '../_shared/system-prompt.ts';
+
 interface RequestBody {
   reason: string;
   heartbeat_small: Record<string, unknown>;
@@ -171,9 +173,12 @@ serve(async (req) => {
       heartbeat_small
     };
 
+    // Get system prompt from file
+    const systemPrompt = await getAdviceSystemPrompt();
+    
     // Call GPT to generate advice
     const advice = await callGPT({
-      system: ADVICE_SYSTEM_PROMPT,
+      system: systemPrompt,
       user: inputData,
       schema: responseSchema
     });

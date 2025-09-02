@@ -2,6 +2,8 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0';
 
+import { getCommandSuggestionSystemPrompt } from '../_shared/system-prompt.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -102,12 +104,15 @@ Respond with JSON only in this exact format:
 Consider the OS: {agent_os}
 User request: {user_message}`;
 
-async function callOpenAI(prompt: string, userMessage: string, agentOs: string = 'linux') {
+async function callOpenAI(userMessage: string, agentOs: string = 'linux', customSystemPrompt?: string) {
   if (!openAIApiKey) {
     throw new Error('OpenAI API key not configured');
   }
 
-  const systemPrompt = prompt
+  // Use provided system prompt or get from file
+  const systemPrompt = customSystemPrompt || await getCommandSuggestionSystemPrompt();
+  
+  const finalSystemPrompt = systemPrompt
     .replace('{agent_os}', agentOs)
     .replace('{user_message}', userMessage);
 
@@ -120,7 +125,7 @@ async function callOpenAI(prompt: string, userMessage: string, agentOs: string =
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: finalSystemPrompt },
         { role: 'user', content: userMessage }
       ],
       temperature: 0.3,
@@ -299,9 +304,8 @@ serve(async (req) => {
 
     console.log('Generating command suggestion for:', user_message);
 
-    // Generate AI suggestion
+    // Generate AI suggestion using file-based prompt
     const suggestion = await callOpenAI(
-      COMMAND_SUGGESTION_PROMPT,
       user_message,
       agent_os
     );

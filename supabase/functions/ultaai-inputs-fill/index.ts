@@ -39,14 +39,7 @@ async function getSystemTemperature(): Promise<number> {
   }
 }
 
-interface RequestBody {
-  inputs_schema: Record<string, unknown>;
-  inputs_defaults: Record<string, unknown>;
-  params: Record<string, unknown>;
-}
-
-// Import from routerSpec
-const INPUT_FILLER_SYSTEM_PROMPT = `You fill inputs for a batch. Input has inputs_schema, inputs_defaults, and params. Output JSON only: {"inputs":{...}}. Start with defaults, overwrite with params, drop keys not in schema, ensure all required are present.`;
+import { getInputFillerSystemPrompt } from '../_shared/system-prompt.ts';
 
 // GPT call function
 async function callGPT({
@@ -167,9 +160,12 @@ serve(async (req) => {
       }
     };
 
+    // Get system prompt from file
+    const systemPrompt = await getInputFillerSystemPrompt();
+    
     // Call GPT to fill inputs
     const result = await callGPT({
-      system: INPUT_FILLER_SYSTEM_PROMPT,
+      system: systemPrompt,
       user: inputData,
       schema: responseSchema
     });
