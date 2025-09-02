@@ -1,4 +1,12 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+import { 
+  getRouterSystemPrompt,
+  getChatSystemPrompt,
+  getToolsSystemPrompt,
+  getAdviceSystemPrompt,
+  getInputFillerSystemPrompt,
+  getCommandSuggestionSystemPrompt
+} from '../_shared/system-prompt.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,11 +48,37 @@ serve(async (req) => {
       );
     }
 
-    const filePath = `../_shared/prompts/${target}-system-prompt.md`;
+    // Map target to the appropriate function
+    const promptFunctions = {
+      'router': getRouterSystemPrompt,
+      'chat': getChatSystemPrompt,
+      'tools': getToolsSystemPrompt,
+      'advice': getAdviceSystemPrompt,
+      'input-filler': getInputFillerSystemPrompt,
+      'command-suggestion': getCommandSuggestionSystemPrompt
+    };
+
+    const promptFunction = promptFunctions[target as keyof typeof promptFunctions];
+    
+    if (!promptFunction) {
+      return new Response(
+        JSON.stringify({ 
+          error: `Invalid target: ${target}`,
+          validTargets: Object.keys(promptFunctions)
+        }),
+        { 
+          status: 400, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
     
     try {
-      console.log(`📖 Reading prompt file: ${filePath}`);
-      const promptContent = await Deno.readTextFile(filePath);
+      console.log(`📖 Loading ${target} prompt using system-prompt utility`);
+      const promptContent = await promptFunction();
       
       console.log(`✅ Successfully loaded ${target} prompt (${promptContent.length} chars)`);
       
@@ -53,7 +87,7 @@ serve(async (req) => {
           success: true,
           target,
           prompt: promptContent.trim(),
-          filePath
+          filePath: `./prompts/${target}-system-prompt.md`
         }),
         { 
           headers: { 
@@ -63,14 +97,13 @@ serve(async (req) => {
         }
       );
       
-    } catch (fileError) {
-      console.error(`❌ Failed to load ${target} prompt:`, fileError);
+    } catch (loadError) {
+      console.error(`❌ Failed to load ${target} prompt:`, loadError);
       
       return new Response(
         JSON.stringify({
           error: `Failed to load ${target} prompt`,
-          details: fileError.message,
-          filePath
+          details: loadError.message
         }),
         { 
           status: 500, 
