@@ -208,11 +208,11 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
 
         {/* Notes Section */}
         {decision.notes && decision.notes.length > 0 && (
-          <div className="bg-primary/5 border border-primary/20 rounded-md p-3">
-            <h4 className="font-medium text-sm text-primary mb-2">Important notes:</h4>
+          <div className="bg-muted/20 border border-muted-foreground/20 rounded-md p-3">
+            <h4 className="font-medium text-sm text-foreground mb-2">Important notes:</h4>
             <ul className="space-y-1">
                   {decision.notes.map((note, index) => (
-                    <li key={index} className="text-sm text-primary/80">
+                    <li key={index} className="text-sm text-muted-foreground">
                       • {sanitizeText(note)}
                     </li>
                   ))}
