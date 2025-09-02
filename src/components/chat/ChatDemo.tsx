@@ -1561,111 +1561,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center gap-3">
                 <h3 className="font-semibold">Chat Demo</h3>
-                {selectedAgentData && (
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      selectedAgentData.status === 'online' ? 'bg-success' : 'bg-muted-foreground'
-                    }`} />
-                    <Select value={selectedAgent} onValueChange={handleAgentChange}>
-                      <SelectTrigger className="w-52 h-7 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {agents.map(agent => (
-                          <SelectItem key={agent.id} value={agent.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{agent.hostname || `${agent.agent_type} Agent`}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {agent.os}
-                              </Badge>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </div>
               
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setLogViewerOpen(true)}
-                  title="View OpenAI API Logs"
-                >
-                  <FileText className="w-4 h-4" />
-                  {apiLogs.length > 0 && (
-                    <Badge variant="secondary" className="ml-1 h-4 text-xs">
-                      {apiLogs.length}
-                    </Badge>
-                  )}
-                </Button>
-                
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <Settings className="w-4 h-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64">
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Demo Settings</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm">Enable Chat Demo</label>
-                          <Switch
-                            checked={isDemoEnabled}
-                            onCheckedChange={setIsDemoEnabled}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm">Real-time Updates</label>
-                          <Switch
-                            checked={enableRealTime}
-                            onCheckedChange={setEnableRealTime}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm">Auto Clear</label>
-                          <Switch
-                            checked={autoClear}
-                            onCheckedChange={setAutoClear}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm">Show Unread Badge</label>
-                          <Switch
-                            checked={showUnreadBadge}
-                            onCheckedChange={setShowUnreadBadge}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm">Play sound</label>
-                          <Switch
-                            checked={playSound}
-                            onCheckedChange={setPlaySound}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm">Compact density</label>
-                          <Switch
-                            checked={compactDensity}
-                            onCheckedChange={setCompactDensity}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm">Chat without making edits</label>
-                          <Switch
-                            checked={conversationOnly}
-                            onCheckedChange={setConversationOnly}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                
                 {!forceEnabled && (
                   <Button 
                     variant="ghost" 
@@ -1675,6 +1573,121 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                     <X className="w-4 h-4" />
                   </Button>
                 )}
+              </div>
+            </div>
+
+            {/* Chat Controls */}
+            <div className="p-4 border-b bg-muted/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {/* Agent Selector */}
+                  {selectedAgentData && (
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        selectedAgentData.status === 'online' ? 'bg-success' : 'bg-muted-foreground'
+                      }`} />
+                      <Select value={selectedAgent} onValueChange={handleAgentChange}>
+                        <SelectTrigger className="w-52 h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="z-50">
+                          {agents.map(agent => (
+                            <SelectItem key={agent.id} value={agent.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{agent.hostname || `${agent.agent_type} Agent`}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {agent.os}
+                                </Badge>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {/* API Logs Button */}
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setLogViewerOpen(true)}
+                    title="View OpenAI API Logs"
+                  >
+                    <FileText className="w-4 h-4" />
+                    {apiLogs.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-4 text-xs">
+                        {apiLogs.length}
+                      </Badge>
+                    )}
+                  </Button>
+                  
+                  {/* Settings Popover */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 z-50">
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Demo Settings</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm">Enable Chat Demo</label>
+                            <Switch
+                              checked={isDemoEnabled}
+                              onCheckedChange={setIsDemoEnabled}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm">Real-time Updates</label>
+                            <Switch
+                              checked={enableRealTime}
+                              onCheckedChange={setEnableRealTime}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm">Auto Clear</label>
+                            <Switch
+                              checked={autoClear}
+                              onCheckedChange={setAutoClear}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm">Show Unread Badge</label>
+                            <Switch
+                              checked={showUnreadBadge}
+                              onCheckedChange={setShowUnreadBadge}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm">Play sound</label>
+                            <Switch
+                              checked={playSound}
+                              onCheckedChange={setPlaySound}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm">Compact density</label>
+                            <Switch
+                              checked={compactDensity}
+                              onCheckedChange={setCompactDensity}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm">Chat without making edits</label>
+                            <Switch
+                              checked={conversationOnly}
+                              onCheckedChange={setConversationOnly}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
 
