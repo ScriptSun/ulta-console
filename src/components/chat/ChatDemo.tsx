@@ -28,7 +28,7 @@ import { useWebSocketRouter } from '@/hooks/useWebSocketRouter';
 import { useRouterLogs, RouterLogData } from '@/hooks/useRouterLogs';
 import { useWebSocketExec } from '@/hooks/useWebSocketExec';
 import { ChatDocumentation } from './ChatDocumentation';
-import { i18n, RouterPhases } from '@/lib/i18n';
+import { i18n, RouterPhases, getRouterPhaseText } from '@/lib/i18n';
 
 interface Agent {
   id: string;
@@ -529,11 +529,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             setRouterPhase(RouterPhases.ANALYZING);
             setCandidateCount(data.candidate_count);
             
-            // Transition to SELECTING after analyzing for a moment
-            setTimeout(() => {
-              console.log('✅ Transitioning to SELECTING phase');
-              setRouterPhase(RouterPhases.SELECTING);
-            }, 800); // Reduced from 1200ms to 800ms
+            // Immediate transition to SELECTING
+            console.log('✅ Transitioning to SELECTING phase');
+            setRouterPhase(RouterPhases.SELECTING);
           } else if (routerPhase === RouterPhases.THINKING) {
             console.log('💭 Keeping THINKING phase (chat request)');
             // Keep thinking phase for chat requests, no candidate display
@@ -748,19 +746,17 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                            setRouterPhase(RouterPhases.REQUESTING_DATA);
                            console.log('📋 Setting phase to REQUESTING_DATA (preparing input form)');
                            
-                           // Delay showing input form to allow summary to be visible first
-                           setTimeout(() => {
-                             setRouterPhase(''); // Clear phase when input form shows
-                             setMessages(prev => {
-                               const msgUpdated = [...prev];
-                               const msgIndex = msgUpdated.findIndex(m => m.id === updated[i].id);
-                               if (msgIndex !== -1) {
-                                 msgUpdated[msgIndex].showInputsDelayed = true;
-                               }
-                               return msgUpdated;
+                            // Show input form immediately
+                            setRouterPhase(''); // Clear phase when input form shows
+                            setMessages(prev => {
+                              const msgUpdated = [...prev];
+                              const msgIndex = msgUpdated.findIndex(m => m.id === updated[i].id);
+                              if (msgIndex !== -1) {
+                                msgUpdated[msgIndex].showInputsDelayed = true;
+                              }
+                              return msgUpdated;
                              });
-                           }, 800); // Reduced from 1000ms to 800ms
-                        } else if (data.status === 'confirmed' && data.batch_id) {
+                         } else if (data.status === 'confirmed' && data.batch_id) {
                           // Ready for preflight
                           updated[i].preflightStatus = {
                             agent_id: selectedAgent!,
@@ -1098,17 +1094,15 @@ Please try again or contact support if this persists.`;
             (jsonData.status === 'confirmed' && hasInputSchema))) {
           handleMissingParams(updated[msgIndex], jsonData);
           
-          // Show input form after a brief delay
-          setTimeout(() => {
-            setMessages(prevMsgs => {
-              const msgsUpdated = [...prevMsgs];
-              const msgIdx = msgsUpdated.findIndex(m => m.id === messageId);
-              if (msgIdx !== -1) {
-                msgsUpdated[msgIdx].showInputsDelayed = true;
-              }
-              return msgsUpdated;
-            });
-          }, 300); // 300ms delay for input fields
+          // Show input form immediately  
+          setMessages(prevMsgs => {
+            const msgsUpdated = [...prevMsgs];
+            const msgIdx = msgsUpdated.findIndex(m => m.id === messageId);
+            if (msgIdx !== -1) {
+              msgsUpdated[msgIdx].showInputsDelayed = true;
+            }
+            return msgsUpdated;
+          });
         }
       }
       return updated;
@@ -1458,19 +1452,17 @@ Please try again or contact support if this persists.`;
         console.log('💬 Handling as direct chat response');
         setIsTyping(true);
         
-        // Simulate a brief "thinking" moment for chat
-        setTimeout(() => {
-          const conversationResponse: Message = {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content: conversationOnly ? generateConversationResponse(content.trim()) : generateChatResponse(content.trim()),
-            timestamp: new Date(),
-            pending: false
-          };
-          
-          setMessages(prev => [...prev, conversationResponse]);
-          setIsTyping(false);
-        }, 500); // Brief delay for natural feel
+        // Immediate chat response  
+        const conversationResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: conversationOnly ? generateConversationResponse(content.trim()) : generateChatResponse(content.trim()),
+          timestamp: new Date(),
+          pending: false
+        };
+        
+        setMessages(prev => [...prev, conversationResponse]);
+        setIsTyping(false);
         return;
       }
       
@@ -2874,10 +2866,10 @@ Please proceed with creating and executing this batch script.`;
                              {routerPhase === RouterPhases.REQUESTING_DATA && (
                                <Clock className="w-4 h-4 text-blue-600 animate-pulse" aria-hidden="true" />
                              )}
-                            <span className="text-sm text-muted-foreground font-medium">
-                               {routerPhase}
-                               {(routerPhase === RouterPhases.SELECTING || routerPhase === RouterPhases.REQUESTING_DATA) && '...'}
-                             </span>
+                             <span className="text-sm text-muted-foreground font-medium">
+                                {getRouterPhaseText(routerPhase)}
+                                {(routerPhase === RouterPhases.SELECTING || routerPhase === RouterPhases.REQUESTING_DATA) && '...'}
+                              </span>
                            {candidateCount > 0 && routerPhase === RouterPhases.ANALYZING && (
                             <Badge variant="outline" className="text-xs" aria-label={`${candidateCount} matches found`}>
                               {candidateCount} matches

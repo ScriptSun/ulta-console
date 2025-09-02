@@ -1,13 +1,39 @@
 // Internationalization constants for user-facing text
 
 // Router phase messages that appear during AI processing
+const planningMessages = [
+  "Planning",
+  "Reviewing system capabilities", 
+  "Assessing requirements",
+  "Initializing analysis"
+];
+
+const getRandomPlanningMessage = () => planningMessages[Math.floor(Math.random() * planningMessages.length)];
+
 export const RouterPhases = {
-  CHECKING: "Checking my ability",
+  CHECKING: "CHECKING", // Used as key, display text handled separately
   THINKING: "Thinking", 
-  ANALYZING: "Analyzing server",
-  SELECTING: "Selecting installer",
-  REQUESTING_DATA: "Requesting More Data"
+  ANALYZING: "Evaluating system requirements",
+  SELECTING: "Configuring execution plan",
+  REQUESTING_DATA: "Finalizing execution details"
 } as const;
+
+export const getRouterPhaseText = (phase: string): string => {
+  switch (phase) {
+    case RouterPhases.CHECKING:
+      return getRandomPlanningMessage();
+    case RouterPhases.THINKING:
+      return RouterPhases.THINKING;
+    case RouterPhases.ANALYZING:
+      return RouterPhases.ANALYZING;
+    case RouterPhases.SELECTING:
+      return RouterPhases.SELECTING;
+    case RouterPhases.REQUESTING_DATA:
+      return RouterPhases.REQUESTING_DATA;
+    default:
+      return phase;
+  }
+};
 
 export type RouterPhase = typeof RouterPhases[keyof typeof RouterPhases];
 
