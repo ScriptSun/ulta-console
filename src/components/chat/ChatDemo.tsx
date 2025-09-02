@@ -245,7 +245,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     return true;
   };
   
-  // WebSocket router and event bus - only connect when needed
+  // WebSocket router and event bus - connect proactively
   const { connect, disconnect, sendRequest, isConnected } = useWebSocketRouter();
   const { routerLogData } = useRouterLogs();
   const { 
@@ -1020,9 +1020,14 @@ Please try again or contact support if this persists.`;
     };
   }, [on, toast, setActionPhase]);
 
-  // Connect WebSocket only when sending messages (removed automatic connection)
-  // WebSocket connections will be established on-demand when needed
-  
+  // Connect WebSocket proactively when agent is selected
+  useEffect(() => {
+    if (selectedAgent && !isConnected) {
+      console.log('🔌 Connecting to WebSocket router for agent:', selectedAgent);
+      connect();
+    }
+  }, [selectedAgent, isConnected, connect]);
+
   // Cleanup WebSocket connections on unmount
   useEffect(() => {
     return () => {
@@ -1447,16 +1452,21 @@ Please try again or contact support if this persists.`;
       console.log('📤 Sending message to router API for processing');
       setIsTyping(true);
       
-      // Connect WebSocket if not already connected
+      // Check WebSocket connection before sending
       if (!isConnected) {
-        console.log('🔌 Connecting to WebSocket router...');
-        try {
-          connect();
-          // Wait a moment for connection to establish
-        } catch (connectError) {
-          console.error('Failed to connect to WebSocket:', connectError);
-          throw new Error('WebSocket connection failed');
+        console.log('❌ WebSocket not connected, attempting to connect...');
+        connect();
+        // Wait for connection with timeout
+        const maxWaitTime = 3000; // 3 seconds
+        const startTime = Date.now();
+        while (!isConnected && (Date.now() - startTime) < maxWaitTime) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
+        
+        if (!isConnected) {
+          throw new Error('WebSocket connection failed - please try again');
+        }
+        console.log('✅ WebSocket connected successfully');
       }
       
       // Handle different request types with appropriate phases
