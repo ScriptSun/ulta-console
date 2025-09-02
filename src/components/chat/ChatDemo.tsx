@@ -603,8 +603,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           }
           break;
           
-        case 'router.selected':
-          console.log('Router selected decision:', data);
+         case 'router.selected':
+          console.log('🎯 Router selected decision:', data);
           
           // Add router response to logs with enhanced OpenAI data
           const latestRouterData = routerLogData.get('latest');
@@ -628,6 +628,21 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           }
             
           // Create a new assistant message with the final decision
+          console.log('🔴 Creating new assistant message for router decision');
+          
+          // Prevent duplicate messages within 1 second
+          const now = Date.now();
+          const recentMessage = messages.find(m => 
+            m.role === 'assistant' && 
+            m.decision?.mode === data.mode &&
+            Math.abs(m.timestamp.getTime() - now) < 1000
+          );
+          
+          if (recentMessage) {
+            console.log('🚫 Prevented duplicate message creation within 1 second');
+            return;
+          }
+          
           setMessages(prev => {
             const newMessage: Message = {
               id: `router-result-${Date.now()}`,
@@ -637,6 +652,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
               pending: false,
               decision: data
             };
+            
+            console.log('🔴 New message ID:', newMessage.id, 'Mode:', data.mode);
             
             // Handle different decision modes
             if (data.mode === 'chat') {
@@ -773,7 +790,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             newMessage.content = JSON.stringify(data, null, 2);
           }
           
-          return [...prev, newMessage];
+            console.log('🔴 Final message array length before return:', [...prev, newMessage].length);
+            return [...prev, newMessage];
         });
             
             // Store the conversation in React Query cache if needed
@@ -1381,6 +1399,8 @@ Please try again or contact support if this persists.`;
   const sendMessage = async (content: string, isAction = false) => {
     if (!content.trim() || !selectedAgent) return;
 
+    console.log('🚀 sendMessage called with:', content.trim(), 'isAction:', isAction);
+
     // Clear action phase when starting new message  
     setActionPhase(null);
 
@@ -1409,6 +1429,7 @@ Please try again or contact support if this persists.`;
       pending: false
     };
 
+    console.log('🔵 Adding user message to state:', userMessage.id);
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
 
