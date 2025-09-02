@@ -418,10 +418,25 @@ export default function ScriptsBatches() {
             Batch script templates and versioned releases
           </p>
         </div>
-        <Button onClick={handleNewBatch} disabled={!canEdit}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Batch
-        </Button>
+        <div className="flex items-center gap-4">
+          {/* Statistics Card */}
+          <Card className="bg-gradient-primary border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-primary-foreground/60" />
+                <div>
+                  <p className="text-sm font-medium text-primary-foreground/80">Total Batches</p>
+                  <p className="text-2xl font-bold text-primary-foreground">{batches.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Button onClick={handleNewBatch} disabled={!canEdit}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Batch
+          </Button>
+        </div>
       </div>
 
       {/* Connection Status - Simplified */}
