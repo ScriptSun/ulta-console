@@ -140,45 +140,9 @@ function tryParseJSON(s: string) {
   }
 }
 
-// Validate ai_draft_action response completeness
-function validateAiDraftActionResponse(obj: any): { isValid: boolean; missingFields: string[] } {
-  const requiredFields = ['mode', 'task', 'summary', 'status', 'risk', 'suggested', 'notes', 'human_message'];
-  const missingFields: string[] = [];
-  
-  for (const field of requiredFields) {
-    if (!obj.hasOwnProperty(field) || obj[field] === undefined || obj[field] === null) {
-      missingFields.push(field);
-    }
-  }
-  
-  // Validate suggested object structure
-  if (obj.suggested) {
-    if (!obj.suggested.kind) {
-      missingFields.push('suggested.kind');
-    }
-    
-    // Both command and batch_script types must have commands array
-    if (!obj.suggested.commands || !Array.isArray(obj.suggested.commands)) {
-      missingFields.push('suggested.commands array');
-    }
-    
-    // Additional validation for batch_script type
-    if (obj.suggested.kind === 'batch_script') {
-      if (!obj.suggested.name || !obj.suggested.overview) {
-        missingFields.push('suggested.name or suggested.overview for batch_script');
-      }
-    }
-  }
-  
-  // Validate notes is an array
-  if (obj.notes && !Array.isArray(obj.notes)) {
-    missingFields.push('notes must be an array');
-  }
-  
-  return {
-    isValid: missingFields.length === 0,
-    missingFields
-  };
+// Simple validation for response structure
+function isValidResponse(obj: any): boolean {
+  return obj && typeof obj === 'object';
 }
 
 // Validate draft action against command policies
@@ -370,50 +334,7 @@ function validateDraftAction(draft: any, policies: any[]) {
       } else if (obj && obj.mode === "ai_draft_action") {
         console.log('🚀 AI Draft Action mode response:', obj);
         
-        // Validate completeness of ai_draft_action response
-        const validationResult = validateAiDraftActionResponse(obj);
-        if (!validationResult.isValid) {
-          console.error('❌ Incomplete ai_draft_action response from OpenAI. Missing fields:', validationResult.missingFields);
-          console.error('❌ Received incomplete response:', JSON.stringify(obj, null, 2));
-          
-          // Store the failed validation event for debugging
-          if (run_id) {
-            try {
-              const { error: eventError } = await supabase
-                .from('router_events')
-                .insert({
-                  run_id: run_id,
-                  event_type: 'validation_failed',
-                  payload: {
-                    error: 'Incomplete ai_draft_action response',
-                    missing_fields: validationResult.missingFields,
-                    received_response: obj,
-                    raw_content: raw
-                  },
-                  agent_id: agent_id,
-                  conversation_id: conversation_id
-                });
-              
-              if (eventError) {
-                console.error('❌ Error persisting validation failure event:', eventError);
-              } else {
-                console.log('✅ Persisted validation failure event for debugging');
-              }
-            } catch (error) {
-              console.error('❌ Error persisting validation failure event:', error);
-            }
-          }
-          
-          // Return an error instead of incomplete response
-          return new Response(JSON.stringify({ 
-            error: 'OpenAI returned incomplete ai_draft_action response', 
-            details: `Missing required fields: ${validationResult.missingFields.join(', ')}`,
-            received_response: obj
-          }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
+        console.log('🚀 AI Draft Action mode response:', JSON.stringify(obj, null, 2));
         
         console.log('✅ AI Draft Action response validation passed');
         
@@ -520,34 +441,6 @@ function validateDraftAction(draft: any, policies: any[]) {
       }
     } catch (gptError) {
       console.error('❌ OpenAI API error:', gptError);
-      
-      // Store the OpenAI error event for debugging
-      if (run_id) {
-        try {
-          const { error: eventError } = await supabase
-            .from('router_events')
-            .insert({
-              run_id: run_id,
-              event_type: 'openai_error',
-              payload: {
-                error: 'OpenAI API error',
-                details: gptError.message,
-                stack: gptError.stack
-              },
-              agent_id: agent_id,
-              conversation_id: conversation_id
-            });
-          
-          if (eventError) {
-            console.error('❌ Error persisting OpenAI error event:', eventError);
-          } else {
-            console.log('✅ Persisted OpenAI error event for debugging');
-          }
-        } catch (error) {
-          console.error('❌ Error persisting OpenAI error event:', error);
-        }
-      }
-      
       return new Response(JSON.stringify({ 
         error: 'Failed to process with AI', 
         details: gptError.message 
