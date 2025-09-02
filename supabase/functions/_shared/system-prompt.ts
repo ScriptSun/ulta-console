@@ -65,7 +65,7 @@ Respond in three modes:
         "human": "Confirm to apply changes"
       }
 
-   B) Multi-step process (2-5 commands needed):
+   B) Multi-step process (2-15 commands needed):
       {
         "mode": "ai_draft_action",
         "task": "<human_readable_task_name>",
