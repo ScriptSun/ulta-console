@@ -88,6 +88,9 @@ verify_jwt = false
 [functions.ultaai-advice]
 verify_jwt = false
 
+[functions.ultaai-command-suggest]
+verify_jwt = false
+
 [functions.console-invites]
 verify_jwt = true
 

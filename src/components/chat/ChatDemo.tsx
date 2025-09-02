@@ -82,11 +82,18 @@ interface Message {
         type: string;
         description: string;
         required: boolean;
+        default?: string;
       }>;
+      prerequisites?: string[];
+      safety_checks?: string[];
     };
     explanation: string;
     suggestions_mode: 'off' | 'show' | 'execute';
     original_request: string;
+    requires_confirmation: boolean;
+    policy_status?: 'allowed' | 'confirmation' | 'forbidden';
+    policy_issues?: string[];
+    policy_notes?: string;
   };
   // New router decision fields
   decision?: {
@@ -1282,6 +1289,47 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     return "I'm currently in conversation-only mode, which means I can chat and provide information, but I won't make any changes to your systems or run any commands. I'm here to discuss, explain, and guide you through technical topics. What would you like to talk about?";
   };
 
+  // Helper function to execute AI suggestion
+  const executeAISuggestion = async (suggestion: any) => {
+    try {
+      if (suggestion.type === 'command') {
+        const commandText = suggestion.commands?.join(' && ') || '';
+        sendMessage(`Please execute these commands: ${commandText}`);
+      } else if (suggestion.type === 'batch_script') {
+        const script = suggestion.batch_script;
+        if (script) {
+          // Create a message that requests creation and execution of the batch script
+          const requestText = `Please create and execute a batch script named "${script.name}" with the following specifications:
+
+Description: ${script.description}
+Risk Level: ${script.risk_level}
+
+Commands:
+${script.commands.join('\n')}
+
+${script.inputs && script.inputs.length > 0 ? 
+  `Required Inputs:\n${script.inputs.map(input => 
+    `- ${input.name} (${input.type}): ${input.description}${input.required ? ' [Required]' : ' [Optional]'}`
+  ).join('\n')}` : ''}
+
+${script.prerequisites && script.prerequisites.length > 0 ? 
+  `Prerequisites:\n${script.prerequisites.map(p => `- ${p}`).join('\n')}` : ''}
+
+Please proceed with creating and executing this batch script.`;
+          
+          sendMessage(requestText);
+        }
+      }
+    } catch (error) {
+      console.error('Error executing AI suggestion:', error);
+      toast({
+        title: "Error",
+        description: "Failed to execute AI suggestion",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Helper function to generate AI suggestions
   const generateAISuggestion = async (userMessage: string, decision: any) => {
     try {
@@ -2129,56 +2177,119 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                                        <strong>Why this helps:</strong> {message.aiSuggestion.explanation}
                                      </div>
 
-                                     {/* Action Buttons based on AI Suggestions mode */}
+                                     {/* Policy Warnings */}
+                                     {message.aiSuggestion.policy_status && message.aiSuggestion.policy_status !== 'allowed' && (
+                                       <div className={`mt-3 p-3 rounded-lg border ${
+                                         message.aiSuggestion.policy_status === 'forbidden' 
+                                           ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
+                                           : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+                                       }`}>
+                                         <div className="flex items-start gap-2">
+                                           <AlertCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                                             message.aiSuggestion.policy_status === 'forbidden' 
+                                               ? 'text-red-600 dark:text-red-400' 
+                                               : 'text-yellow-600 dark:text-yellow-400'
+                                           }`} />
+                                           <div>
+                                             <p className={`text-sm font-medium ${
+                                               message.aiSuggestion.policy_status === 'forbidden' 
+                                                 ? 'text-red-800 dark:text-red-200' 
+                                                 : 'text-yellow-800 dark:text-yellow-200'
+                                             }`}>
+                                               {message.aiSuggestion.policy_status === 'forbidden' 
+                                                 ? '🚫 Policy Violation' 
+                                                 : '⚠️ Requires Confirmation'}
+                                             </p>
+                                             {message.aiSuggestion.policy_issues && message.aiSuggestion.policy_issues.length > 0 && (
+                                               <ul className={`mt-1 text-xs ${
+                                                 message.aiSuggestion.policy_status === 'forbidden' 
+                                                   ? 'text-red-700 dark:text-red-300' 
+                                                   : 'text-yellow-700 dark:text-yellow-300'
+                                               }`}>
+                                                 {message.aiSuggestion.policy_issues.map((issue, index) => (
+                                                   <li key={index} className="flex items-start gap-1">
+                                                     <span className="text-xs">•</span>
+                                                     <span>{issue}</span>
+                                                   </li>
+                                                 ))}
+                                               </ul>
+                                             )}
+                                           </div>
+                                         </div>
+                                       </div>
+                                     )}
+
+                                     {/* Action Buttons based on AI Suggestions mode and policy */}
                                      {message.aiSuggestion.suggestions_mode !== 'off' && (
                                        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border/50">
-                                         {message.aiSuggestion.suggestions_mode === 'show' && (
+                                         {/* Show mode or forbidden commands */}
+                                         {(message.aiSuggestion.suggestions_mode === 'show' || message.aiSuggestion.policy_status === 'forbidden') && (
                                            <div className="text-xs text-muted-foreground italic">
-                                             AI suggestions are in "Show" mode - execution disabled
+                                             {message.aiSuggestion.policy_status === 'forbidden' 
+                                               ? '🚫 Commands blocked by security policy - review only' 
+                                               : '📖 AI suggestions are in "Show" mode - execution disabled'}
                                            </div>
                                          )}
-                                         {message.aiSuggestion.suggestions_mode === 'execute' && (
+                                         
+                                         {/* Execute mode - show confirmation flow */}
+                                         {message.aiSuggestion.suggestions_mode === 'execute' && message.aiSuggestion.policy_status !== 'forbidden' && (
                                            <>
-                                             {message.aiSuggestion.type === 'command' && (
-                                               <Button
-                                                 size="sm"
-                                                 onClick={() => {
-                                                   const commandText = message.aiSuggestion!.commands?.join(' && ') || '';
-                                                   sendMessage(`Execute these commands: ${commandText}`);
-                                                 }}
-                                                 disabled={isTyping}
-                                                 className="text-xs"
-                                               >
-                                                 <Play className="w-3 h-3 mr-1" />
-                                                 Execute Commands
-                                               </Button>
+                                             {message.aiSuggestion.requires_confirmation ? (
+                                               // Show confirmation buttons
+                                               <div className="w-full">
+                                                 <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded text-xs text-amber-800 dark:text-amber-200">
+                                                   <strong>⚠️ Confirmation Required:</strong> This suggestion contains commands that require your explicit approval before execution.
+                                                 </div>
+                                                 <div className="flex gap-2">
+                                                   <Button
+                                                     size="sm"
+                                                     onClick={() => executeAISuggestion(message.aiSuggestion!)}
+                                                     disabled={isTyping}
+                                                     className="text-xs bg-green-600 hover:bg-green-700 text-white"
+                                                   >
+                                                     <CheckCircle className="w-3 h-3 mr-1" />
+                                                     Confirm & Execute
+                                                   </Button>
+                                                   <Button
+                                                     size="sm"
+                                                     variant="outline"
+                                                     onClick={() => {
+                                                       sendMessage("No, I don't want to execute this suggestion");
+                                                     }}
+                                                     disabled={isTyping}
+                                                     className="text-xs"
+                                                   >
+                                                     <X className="w-3 h-3 mr-1" />
+                                                     Cancel
+                                                   </Button>
+                                                 </div>
+                                               </div>
+                                             ) : (
+                                               // Direct execution buttons
+                                               <>
+                                                 <Button
+                                                   size="sm"
+                                                   onClick={() => executeAISuggestion(message.aiSuggestion!)}
+                                                   disabled={isTyping}
+                                                   className="text-xs"
+                                                 >
+                                                   <Play className="w-3 h-3 mr-1" />
+                                                   {message.aiSuggestion.type === 'command' ? 'Execute Commands' : 'Create & Execute Script'}
+                                                 </Button>
+                                                 <Button
+                                                   size="sm"
+                                                   variant="outline"
+                                                   onClick={() => {
+                                                     sendMessage("No, I don't want to use this suggestion");
+                                                   }}
+                                                   disabled={isTyping}
+                                                   className="text-xs"
+                                                 >
+                                                   <X className="w-3 h-3 mr-1" />
+                                                   Decline
+                                                 </Button>
+                                               </>
                                              )}
-                                             {message.aiSuggestion.type === 'batch_script' && (
-                                               <Button
-                                                 size="sm"
-                                                 onClick={() => {
-                                                   const scriptName = message.aiSuggestion!.batch_script?.name || 'suggested script';
-                                                   sendMessage(`Create and execute batch script: ${scriptName}`);
-                                                 }}
-                                                 disabled={isTyping}
-                                                 className="text-xs"
-                                               >
-                                                 <Play className="w-3 h-3 mr-1" />
-                                                 Create & Execute Script
-                                               </Button>
-                                             )}
-                                             <Button
-                                               size="sm"
-                                               variant="outline"
-                                               onClick={() => {
-                                                 sendMessage("No, I don't want to use this suggestion");
-                                               }}
-                                               disabled={isTyping}
-                                               className="text-xs"
-                                             >
-                                               <X className="w-3 h-3 mr-1" />
-                                               Decline
-                                             </Button>
                                            </>
                                          )}
                                        </div>
