@@ -199,9 +199,6 @@ export default function Integrations() {
               <Key className="h-4 w-4 mr-2" />
               Configure API Keys
             </Button>
-            <Button variant="outline" size="sm">
-              Generate New Key
-            </Button>
           </div>
         </CardContent>
       </Card>
