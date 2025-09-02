@@ -247,9 +247,9 @@ function validateDraftAction(draft: any, policies: any[]) {
       const fullSystemContent = systemPrompt + "\n\nIMPORTANT: For ai_draft_action mode, you MUST include ALL required fields: mode, task, summary, status, risk, suggested, notes array, and human message. The 'suggested' object MUST have 'kind' field and 'commands' array (never singular 'command'). For both 'command' and 'batch_script' kinds, always use 'commands' as an array of strings. Always respond in valid JSON format.";
       
       const requestBody: any = {
-        model: "gpt-5-mini-2025-08-07", // Use newer, faster model
-        max_completion_tokens: 8000, // Increased token limit for complex responses
-        // Note: temperature not supported by GPT-5 models
+        model: "gpt-4o-mini",
+        max_tokens: 4000,
+        temperature: systemTemperature,
         response_format: { type: "json_object" }, // Always use JSON mode for dual-mode responses
         messages: [
           { 
@@ -306,7 +306,7 @@ function validateDraftAction(draft: any, policies: any[]) {
         await costTracker.logUsage(
           tenant_id,
           agent_id,
-          'gpt-5-mini-2025-08-07',
+          'gpt-4o-mini',
           completion.usage.prompt_tokens || 0,
           completion.usage.completion_tokens || 0,
           'router_decision',

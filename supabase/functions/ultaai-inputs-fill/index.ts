@@ -80,7 +80,8 @@ async function callGPT({
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: "gpt-5-thinking",
+      model: "gpt-4o-mini",
+      max_tokens: 4000,
       temperature: finalTemperature,
       response_format,
       messages: [
@@ -175,7 +176,7 @@ serve(async (req) => {
       await costTracker.logUsage(
         tenant_id,
         agent_id || null,
-        'gpt-5-thinking',
+        'gpt-4o-mini',
         result._usage.prompt_tokens || 0,
         result._usage.completion_tokens || 0,
         'input_filling',

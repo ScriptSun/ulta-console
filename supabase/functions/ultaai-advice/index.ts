@@ -89,7 +89,7 @@ async function callGPT({
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       max_tokens: 4000,
       temperature: finalTemperature,
       response_format,
@@ -188,7 +188,7 @@ serve(async (req) => {
       await costTracker.logUsage(
         tenant_id,
         agent_id || null,
-        'gpt-4o',
+        'gpt-4o-mini',
         advice._usage.prompt_tokens || 0,
         advice._usage.completion_tokens || 0,
         'advice_generation',
