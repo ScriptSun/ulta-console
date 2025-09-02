@@ -76,22 +76,27 @@ class PromptCache {
     // Check cache first
     const cached = this.cache.get(promptKey);
     if (cached && !this.isExpired(cached)) {
-      console.log(`💾 Using cached ${promptKey} prompt`);
+      console.log(`💾 Using cached ${promptKey} prompt (age: ${Date.now() - cached.timestamp}ms)`);
       return cached.content;
     }
 
+    if (cached && this.isExpired(cached)) {
+      console.log(`⏰ Cache expired for ${promptKey} prompt (age: ${Date.now() - cached.timestamp}ms, TTL: ${this.TTL}ms)`);
+    }
+
     try {
-      // Load from database
-      const content = await this.loadFromDatabase(promptKey);
-      
-      // Update cache
-      this.cache.set(promptKey, {
-        content,
-        timestamp: Date.now(),
-        promptKey
-      });
-      
-      return content;
+    // Load from database
+    const content = await this.loadFromDatabase(promptKey);
+    
+    // Update cache
+    this.cache.set(promptKey, {
+      content,
+      timestamp: Date.now(),
+      promptKey
+    });
+    
+    console.log(`🔄 Cached new ${promptKey} prompt (${content.slice(0, 100)}...)`);
+    return content;
     } catch (error) {
       // If database fails and we have an expired cache entry, use it as fallback
       if (cached) {
