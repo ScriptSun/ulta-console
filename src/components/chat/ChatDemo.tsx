@@ -523,19 +523,23 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           console.log('🔢 Candidate count:', data.candidate_count);
           console.log('🎯 Current router phase before decision:', routerPhase);
           
-          // Only show analyzing phase if:
-          // 1. We have candidates AND
-          // 2. We started with CHECKING phase (meaning it was detected as action request)
+          // Smooth phase progression: CHECKING -> ANALYZING (for actions only)  
           if (data.candidate_count && data.candidate_count > 0 && routerPhase === RouterPhases.CHECKING) {
-            console.log('📊 Setting phase to ANALYZING (candidates found and was action request)');
+            console.log('📊 Transitioning to ANALYZING phase (candidates found)');
             setRouterPhase(RouterPhases.ANALYZING);
+            setCandidateCount(data.candidate_count);
+            
+            // Transition to SELECTING after analyzing for a moment
+            setTimeout(() => {
+              console.log('✅ Transitioning to SELECTING phase');
+              setRouterPhase(RouterPhases.SELECTING);
+            }, 1200);
           } else if (routerPhase === RouterPhases.THINKING) {
-            console.log('💭 Keeping THINKING phase (was detected as chat)');
-            // Keep thinking phase for chat requests
+            console.log('💭 Keeping THINKING phase (chat request)');
+            // Keep thinking phase for chat requests, no candidate display
           } else {
             console.log('❓ No phase change (unexpected state)');
           }
-          setCandidateCount(data.candidate_count || 0);
           break;
           
         case 'router.token':
@@ -693,49 +697,44 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                      } else {
                        console.log('ℹ️ Chat response does not trigger AI suggestions');
                      }
-                   } else if (data.mode === 'action') {
-                      // Check if this is a not_supported task and generate AI suggestions
-                      if (data.task === 'not_supported') {
-                        updated[i].content = getDecisionMessage(data);
-                        
-                        console.log('Detected not_supported task, generating AI suggestions...');
-                        
-                        // Generate AI suggestions asynchronously
-                        const lastUserMessage = messages.filter(m => m.role === 'user').pop();
-                        if (lastUserMessage) {
-                          generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
-                            if (aiSuggestion) {
-                              console.log('AI suggestion generated:', aiSuggestion);
-                              setMessages(prevMessages => {
-                                const updatedMessages = [...prevMessages];
-                                const messageIndex = updatedMessages.findIndex(m => m.id === updated[i].id);
-                                if (messageIndex !== -1) {
-                                  updatedMessages[messageIndex] = {
-                                    ...updatedMessages[messageIndex],
-                                    aiSuggestion: aiSuggestion
-                                  };
-                                }
-                                return updatedMessages;
-                              });
-                            }
-                          }).catch(error => {
-                            console.error('Failed to generate AI suggestion:', error);
-                          });
-                        }
-                      } else {
-                        // Show selecting phase briefly before clearing for actions
-                        setRouterPhase(RouterPhases.SELECTING);
-                        
-                        // Clear the selecting phase after a brief moment
-                        setTimeout(() => {
-                          setRouterPhase('');
-                        }, 800);
-                        
-                        // For action mode, show the user-friendly human message
-                        updated[i].content = data.human_message || data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
-                        
-                        // Set action phase to planning for actions and drafts
-                        setActionPhase('planning');
+                    } else if (data.mode === 'action') {
+                       // Check if this is a not_supported task and generate AI suggestions
+                       if (data.task === 'not_supported') {
+                         updated[i].content = getDecisionMessage(data);
+                         
+                         console.log('Detected not_supported task, generating AI suggestions...');
+                         
+                         // Generate AI suggestions asynchronously
+                         const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+                         if (lastUserMessage) {
+                           generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
+                             if (aiSuggestion) {
+                               console.log('AI suggestion generated:', aiSuggestion);
+                               setMessages(prevMessages => {
+                                 const updatedMessages = [...prevMessages];
+                                 const messageIndex = updatedMessages.findIndex(m => m.id === updated[i].id);
+                                 if (messageIndex !== -1) {
+                                   updatedMessages[messageIndex] = {
+                                     ...updatedMessages[messageIndex],
+                                     aiSuggestion: aiSuggestion
+                                   };
+                                 }
+                                 return updatedMessages;
+                               });
+                             }
+                           }).catch(error => {
+                             console.error('Failed to generate AI suggestion:', error);
+                           });
+                         }
+                       } else {
+                         // Clear phases completely for successful actions
+                         setRouterPhase('');
+                         
+                         // For action mode, show the user-friendly human message
+                         updated[i].content = data.human_message || data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
+                         
+                         // Set action phase to planning for actions and drafts
+                         setActionPhase('planning');
                         
                         // Set up needs inputs if missing params OR if action has configurable inputs
                         const hasInputSchema = data.batch_details?.inputs_schema?.properties && 
@@ -1445,21 +1444,33 @@ Please try again or contact support if this persists.`;
         return;
       }
 
-      // Normal chat flow - use WebSocket router for streaming or conversation-only mode
-      if (conversationOnly) {
-        // Conversation-only mode - provide chat response without server actions
-        const conversationResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: generateConversationResponse(content.trim()),
-          timestamp: new Date(),
-          pending: false
-        };
+      // Detect if this is likely an action request vs casual chat BEFORE any router logic
+      const isActionRequest = detectActionRequest(content.trim());
+      console.log('🎯 Message type decision - isActionRequest:', isActionRequest);
+      
+      // For conversation-only mode OR casual chat messages, provide direct response
+      if (conversationOnly || !isActionRequest) {
+        console.log('💬 Handling as direct chat response');
+        setIsTyping(true);
         
-        setMessages(prev => [...prev, conversationResponse]);
-        setIsTyping(false);
+        // Simulate a brief "thinking" moment for chat
+        setTimeout(() => {
+          const conversationResponse: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: conversationOnly ? generateConversationResponse(content.trim()) : generateChatResponse(content.trim()),
+            timestamp: new Date(),
+            pending: false
+          };
+          
+          setMessages(prev => [...prev, conversationResponse]);
+          setIsTyping(false);
+        }, 500); // Brief delay for natural feel
         return;
       }
+      
+      // Only use WebSocket router for actual action requests
+      console.log('⚡ Handling as action request through router');
       
       // Connect WebSocket if not already connected
       if (!isConnected) {
@@ -1467,32 +1478,20 @@ Please try again or contact support if this persists.`;
         try {
           connect();
           // Wait a moment for connection to establish
-          // Remove artificial delay - process immediately
         } catch (connectError) {
           console.error('Failed to connect to WebSocket:', connectError);
           throw new Error('WebSocket connection failed');
         }
       }
       
-      // Start router request immediately  
+      // Start router request for actions
       setIsTyping(true);
+      setRouterPhase(RouterPhases.CHECKING);
+      console.log('⚡ Set initial phase to CHECKING (action request)');
       
-      // Detect if this is likely an action request vs casual chat
-      const isActionRequest = detectActionRequest(content.trim());
-      console.log('🎯 Initial phase decision - isActionRequest:', isActionRequest);
+      console.log('🚀 Sending router request for action:', content.trim());
       
-      if (isActionRequest) {
-        setRouterPhase(RouterPhases.CHECKING);
-        console.log('⚡ Set initial phase to CHECKING (action detected)');
-      } else {
-        setRouterPhase(RouterPhases.THINKING);  
-        console.log('💭 Set initial phase to THINKING (chat detected)');
-      }
-      
-      console.log('🚀 Sending router request for:', content.trim());
-      console.log('🔌 WebSocket connected:', isConnected);
-      
-      // Send the request immediately - no artificial delays
+      // Send the request through router for actions only
       sendRequest({
         agent_id: selectedAgent,
         user_request: content.trim()
@@ -1500,8 +1499,6 @@ Please try again or contact support if this persists.`;
       
       console.log('📤 Router request sent successfully');
       
-      // The response will be handled by the event listeners
-
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -1520,6 +1517,7 @@ Please try again or contact support if this persists.`;
       };
       setMessages(prev => [...prev, errorMessage]);
       setIsTyping(false);
+      setRouterPhase('');
     }
   };
 
@@ -1549,6 +1547,34 @@ Please try again or contact support if this persists.`;
     
     // Default response
     return "I'm currently in conversation-only mode, which means I can chat and provide information, but I won't make any changes to your systems or run any commands. I'm here to discuss, explain, and guide you through technical topics. What would you like to talk about?";
+  };
+
+  // Generate chat responses for casual messages
+  const generateChatResponse = (userInput: string): string => {
+    const input = userInput.toLowerCase().trim();
+    
+    // Greetings
+    if (['hi', 'hey', 'hello', 'good morning', 'good afternoon', 'good evening'].some(greeting => input.includes(greeting))) {
+      return "Hello! I'm your AI assistant. I can help you manage your servers and execute tasks. Try asking me to install software, check system status, or manage services. What can I help you with today?";
+    }
+    
+    // Thanks
+    if (input.includes('thank') || input.includes('thanks')) {
+      return "You're welcome! I'm here to help with any server management tasks or technical questions you might have. Feel free to ask me anything!";
+    }
+    
+    // General questions
+    if (input.startsWith('what') || input.startsWith('how') || input.startsWith('why')) {
+      return "I'm here to help answer your questions! I specialize in server management, system administration, and technical assistance. Could you be more specific about what you'd like to know?";
+    }
+    
+    // Help requests
+    if (input.includes('help')) {
+      return "I'd be happy to help! I can assist with:\n\n• Installing and configuring software\n• Checking system resources and status\n• Managing services (nginx, apache, etc.)\n• Running system maintenance tasks\n• Troubleshooting issues\n\nWhat specific task would you like help with?";
+    }
+    
+    // Default friendly response
+    return "I'm here to help! I can assist with server management, system administration, and various technical tasks. Try asking me to install software, check system status, or help with specific server tasks. What would you like to do?";
   };
 
   // Helper function to execute AI suggestion
