@@ -321,7 +321,7 @@ function validateDraftAction(draft: any, policies: any[]) {
             task: "not_supported", 
             status: "rejected",
             reason: validationResult.reason || "Blocked by policy",
-            human: "Please try a different approach."
+            summary: "Please try a different approach."
           };
           
           console.log('❌ Draft action rejected by policy, converting to not_supported');
