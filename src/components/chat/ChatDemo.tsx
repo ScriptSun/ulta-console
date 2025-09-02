@@ -533,7 +533,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             setTimeout(() => {
               console.log('✅ Transitioning to SELECTING phase');
               setRouterPhase(RouterPhases.SELECTING);
-            }, 1200);
+            }, 800); // Reduced from 1200ms to 800ms
           } else if (routerPhase === RouterPhases.THINKING) {
             console.log('💭 Keeping THINKING phase (chat request)');
             // Keep thinking phase for chat requests, no candidate display
@@ -740,21 +740,26 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                         const hasInputSchema = data.batch_details?.inputs_schema?.properties && 
                                              Object.keys(data.batch_details.inputs_schema.properties).length > 0;
                         
-                        if (data.batch_id && ((data.status === 'unconfirmed' && data.missing_params?.length > 0) || 
-                            (data.status === 'confirmed' && hasInputSchema))) {
-                          handleMissingParams(updated[i], data);
-                          
-                          // Delay showing input form to allow summary to be visible first
-                          setTimeout(() => {
-                            setMessages(prev => {
-                              const msgUpdated = [...prev];
-                              const msgIndex = msgUpdated.findIndex(m => m.id === updated[i].id);
-                              if (msgIndex !== -1) {
-                                msgUpdated[msgIndex].showInputsDelayed = true;
-                              }
-                              return msgUpdated;
-                            });
-                          }, 1000); // 1 second delay
+                         if (data.batch_id && ((data.status === 'unconfirmed' && data.missing_params?.length > 0) || 
+                             (data.status === 'confirmed' && hasInputSchema))) {
+                           handleMissingParams(updated[i], data);
+                           
+                           // Show "Requesting More Data" phase during input form delay
+                           setRouterPhase(RouterPhases.REQUESTING_DATA);
+                           console.log('📋 Setting phase to REQUESTING_DATA (preparing input form)');
+                           
+                           // Delay showing input form to allow summary to be visible first
+                           setTimeout(() => {
+                             setRouterPhase(''); // Clear phase when input form shows
+                             setMessages(prev => {
+                               const msgUpdated = [...prev];
+                               const msgIndex = msgUpdated.findIndex(m => m.id === updated[i].id);
+                               if (msgIndex !== -1) {
+                                 msgUpdated[msgIndex].showInputsDelayed = true;
+                               }
+                               return msgUpdated;
+                             });
+                           }, 800); // Reduced from 1000ms to 800ms
                         } else if (data.status === 'confirmed' && data.batch_id) {
                           // Ready for preflight
                           updated[i].preflightStatus = {
@@ -2863,13 +2868,16 @@ Please proceed with creating and executing this batch script.`;
                             {routerPhase === RouterPhases.ANALYZING && (
                               <Search className="w-4 h-4 text-orange-500 animate-pulse" aria-hidden="true" />
                             )}
-                            {routerPhase === RouterPhases.SELECTING && (
-                              <CheckCircle className="w-4 h-4 text-green-500 animate-pulse" aria-hidden="true" />
-                            )}
-                           <span className="text-sm text-muted-foreground font-medium">
-                              {routerPhase}
-                              {routerPhase === RouterPhases.SELECTING && '...'}
-                            </span>
+                             {routerPhase === RouterPhases.SELECTING && (
+                               <CheckCircle className="w-4 h-4 text-green-500 animate-pulse" aria-hidden="true" />
+                             )}
+                             {routerPhase === RouterPhases.REQUESTING_DATA && (
+                               <Clock className="w-4 h-4 text-blue-600 animate-pulse" aria-hidden="true" />
+                             )}
+                            <span className="text-sm text-muted-foreground font-medium">
+                               {routerPhase}
+                               {(routerPhase === RouterPhases.SELECTING || routerPhase === RouterPhases.REQUESTING_DATA) && '...'}
+                             </span>
                            {candidateCount > 0 && routerPhase === RouterPhases.ANALYZING && (
                             <Badge variant="outline" className="text-xs" aria-label={`${candidateCount} matches found`}>
                               {candidateCount} matches

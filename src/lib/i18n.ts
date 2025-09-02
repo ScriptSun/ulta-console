@@ -5,7 +5,8 @@ export const RouterPhases = {
   CHECKING: "Checking my ability",
   THINKING: "Thinking", 
   ANALYZING: "Analyzing server",
-  SELECTING: "Selecting installer"
+  SELECTING: "Selecting installer",
+  REQUESTING_DATA: "Requesting More Data"
 } as const;
 
 export type RouterPhase = typeof RouterPhases[keyof typeof RouterPhases];
