@@ -19,6 +19,8 @@ import { ProposedBatchScriptCard } from './ProposedBatchScriptCard';
 import { QuickInputChips } from './QuickInputChips';
 import { RenderedResultCard } from './RenderedResultCard';
 import { ExecutionStatusCard } from './ExecutionStatusCard';
+import { AiDraftActionCard } from './AiDraftActionCard';
+import { ActionChips } from './ActionChips';
 import { RenderConfig } from '@/types/renderTypes';
 import { RouterDecision } from '@/types/routerTypes';
 import { useEventBus } from '@/hooks/useEventBus';
@@ -170,6 +172,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const [routerPhase, setRouterPhase] = useState<string>('');
   const [streamingResponse, setStreamingResponse] = useState<string>('');
   const [candidateCount, setCandidateCount] = useState<number>(0);
+  const [actionPhase, setActionPhase] = useState<'planning' | 'analyzing' | 'ready' | 'working' | 'completed' | 'failed' | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -595,63 +598,72 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                        console.log('ℹ️ Chat response does not trigger AI suggestions');
                      }
                    } else if (data.mode === 'action') {
-                     // Check if this is a not_supported task and generate AI suggestions
-                     if (data.task === 'not_supported') {
-                       updated[i].content = getDecisionMessage(data);
-                       
-                       console.log('Detected not_supported task, generating AI suggestions...');
-                       
-                       // Generate AI suggestions asynchronously
-                       const lastUserMessage = messages.filter(m => m.role === 'user').pop();
-                       if (lastUserMessage) {
-                         generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
-                           if (aiSuggestion) {
-                             console.log('AI suggestion generated:', aiSuggestion);
-                             setMessages(prevMessages => {
-                               const updatedMessages = [...prevMessages];
-                               const messageIndex = updatedMessages.findIndex(m => m.id === updated[i].id);
-                               if (messageIndex !== -1) {
-                                 updatedMessages[messageIndex] = {
-                                   ...updatedMessages[messageIndex],
-                                   aiSuggestion: aiSuggestion
-                                 };
-                               }
-                               return updatedMessages;
-                             });
-                           }
-                         }).catch(error => {
-                           console.error('Failed to generate AI suggestion:', error);
-                         });
-                       }
-                     } else {
-                       // For action mode, show a more user-friendly summary
-                       updated[i].content = data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
-                       
-                       // Set up needs inputs if missing params
-                       if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
-                         handleMissingParams(updated[i], data);
-                         
-                         // Delay showing input form to allow summary to be visible first
-                         setTimeout(() => {
-                           setMessages(prev => {
-                             const msgUpdated = [...prev];
-                             const msgIndex = msgUpdated.findIndex(m => m.id === updated[i].id);
-                             if (msgIndex !== -1) {
-                               msgUpdated[msgIndex].showInputsDelayed = true;
-                             }
-                             return msgUpdated;
-                           });
-                         }, 1000); // 1 second delay
-                       } else if (data.status === 'confirmed' && data.batch_id) {
-                         // Ready for preflight
-                         updated[i].preflightStatus = {
-                           agent_id: selectedAgent!,
-                           decision: data,
-                           streaming: true
-                         };
-                       }
-                     }
-                  } else {
+                      // Check if this is a not_supported task and generate AI suggestions
+                      if (data.task === 'not_supported') {
+                        updated[i].content = getDecisionMessage(data);
+                        
+                        console.log('Detected not_supported task, generating AI suggestions...');
+                        
+                        // Generate AI suggestions asynchronously
+                        const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+                        if (lastUserMessage) {
+                          generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
+                            if (aiSuggestion) {
+                              console.log('AI suggestion generated:', aiSuggestion);
+                              setMessages(prevMessages => {
+                                const updatedMessages = [...prevMessages];
+                                const messageIndex = updatedMessages.findIndex(m => m.id === updated[i].id);
+                                if (messageIndex !== -1) {
+                                  updatedMessages[messageIndex] = {
+                                    ...updatedMessages[messageIndex],
+                                    aiSuggestion: aiSuggestion
+                                  };
+                                }
+                                return updatedMessages;
+                              });
+                            }
+                          }).catch(error => {
+                            console.error('Failed to generate AI suggestion:', error);
+                          });
+                        }
+                      } else {
+                        // For action mode, show a more user-friendly summary
+                        updated[i].content = data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
+                        
+                        // Set action phase to planning for actions and drafts
+                        setActionPhase('planning');
+                        
+                        // Set up needs inputs if missing params
+                        if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
+                          handleMissingParams(updated[i], data);
+                          
+                          // Delay showing input form to allow summary to be visible first
+                          setTimeout(() => {
+                            setMessages(prev => {
+                              const msgUpdated = [...prev];
+                              const msgIndex = msgUpdated.findIndex(m => m.id === updated[i].id);
+                              if (msgIndex !== -1) {
+                                msgUpdated[msgIndex].showInputsDelayed = true;
+                              }
+                              return msgUpdated;
+                            });
+                          }, 1000); // 1 second delay
+                        } else if (data.status === 'confirmed' && data.batch_id) {
+                          // Ready for preflight
+                          updated[i].preflightStatus = {
+                            agent_id: selectedAgent!,
+                            decision: data,
+                            streaming: true
+                          };
+                        }
+                      }
+                   } else if (data.mode === 'ai_draft_action') {
+                      // For AI draft action mode, show summary and set up draft card
+                      updated[i].content = data.summary || `I've created a plan to ${data.task || 'help you'}.`;
+                      
+                      // Set action phase to planning for drafts
+                      setActionPhase('planning');
+                   } else {
                     // Fallback - show the raw decision
                     updated[i].content = JSON.stringify(data, null, 2);
                   }
@@ -758,25 +770,27 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         });
       }),
       
-      on('exec.started', (data) => {
-        console.log('Execution started:', data);
-        setMessages(prev => {
-          const updated = [...prev];
-          for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].executionStatus?.run_id === data.run_id) {
-              updated[i] = {
-                ...updated[i],
-                executionStatus: {
-                  ...updated[i].executionStatus!,
-                  status: 'running'
-                }
-              };
-              break;
-            }
-          }
-          return updated;
-        });
-      }),
+       on('exec.started', (data) => {
+         console.log('Execution started:', data);
+         setActionPhase('working'); // Working on server when execution starts
+         
+         setMessages(prev => {
+           const updated = [...prev];
+           for (let i = updated.length - 1; i >= 0; i--) {
+             if (updated[i].executionStatus?.run_id === data.run_id) {
+               updated[i] = {
+                 ...updated[i],
+                 executionStatus: {
+                   ...updated[i].executionStatus!,
+                   status: 'running'
+                 }
+               };
+               break;
+             }
+           }
+           return updated;
+         });
+       }),
       
       on('exec.progress', (data) => {
         console.log('Execution progress:', data);
@@ -788,45 +802,57 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         // Stdout updates are handled by ExecutionStatusCard
       }),
       
-      on('exec.finished', (data) => {
-        console.log('Execution finished:', data);
-        setMessages(prev => {
-          const updated = [...prev];
-          for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].executionStatus?.run_id === data.run_id) {
-              updated[i] = {
-                ...updated[i],
-                executionStatus: {
-                  ...updated[i].executionStatus!,
-                  status: data.success ? 'completed' : 'failed'
-                }
-              };
-              break;
-            }
-          }
-          return updated;
-        });
-      }),
+       on('exec.finished', (data) => {
+         console.log('Execution finished:', data);
+         // Set phase based on execution result
+         if (data.success) {
+           setActionPhase('completed'); // Changes applied on success
+         } else {
+           setActionPhase('failed'); // Could not complete changes on failure
+         }
+         
+         setMessages(prev => {
+           const updated = [...prev];
+           for (let i = updated.length - 1; i >= 0; i--) {
+             if (updated[i].executionStatus?.run_id === data.run_id) {
+               updated[i] = {
+                 ...updated[i],
+                 executionStatus: {
+                   ...updated[i].executionStatus!,
+                   status: data.success ? 'completed' : 'failed'
+                 }
+               };
+               break;
+             }
+           }
+           return updated;
+         });
+       }),
       
       on('exec.error', (data) => {
         console.error('Execution error:', data);
         // Log only, no UI notification
       }),
       
-      // Preflight event listeners
-      on('preflight.start', (data) => {
-        console.log('Preflight started:', data);
-      }),
-      
-      on('preflight.item', (data) => {
-        console.log('Preflight check:', data);
-        // Individual preflight checks are handled by PreflightBlockCard
-      }),
-      
-      on('preflight.done', (data) => {
-        console.log('Preflight completed:', data);
-        // Preflight completion is handled by PreflightBlockCard
-      }),
+       on('preflight.start', (data) => {
+         console.log('Preflight started:', data);
+         setActionPhase('analyzing'); // Analyzing server when preflight starts
+       }),
+       
+       on('preflight.item', (data) => {
+         console.log('Preflight check:', data);
+         // Individual preflight checks are handled by PreflightBlockCard
+       }),
+       
+       on('preflight.done', (data) => {
+         console.log('Preflight completed:', data);
+         // Set phase based on preflight result
+         if (data.preflight_ok) {
+           setActionPhase('ready'); // Ready to apply changes if preflight passed
+         } else {
+           setActionPhase('failed'); // Failed if preflight blocked
+         }
+       }),
       
       on('preflight.error', (data) => {
         console.error('Preflight error:', data);
@@ -1171,6 +1197,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   // Send message using new router functionality
   const sendMessage = async (content: string, isAction = false) => {
     if (!content.trim() || !selectedAgent) return;
+
+    // Clear action phase when starting new message  
+    setActionPhase(null);
 
     const currentConversationId = await bootstrapChat();
     if (!currentConversationId) return;
@@ -2049,9 +2078,56 @@ Please proceed with creating and executing this batch script.`;
                           </Button>
                         )}
                       </div>
-                      )}
-                      
-                       {/* Router Decision Action Buttons */}
+                       )}
+                       
+                       {/* Action Chips - Show only for actions and drafts, not chat */}
+                       {actionPhase && message.decision && message.role === 'assistant' && 
+                        (message.decision.mode === 'action' || message.decision.mode === 'ai_draft_action') && (
+                         <div className="mt-2">
+                           <ActionChips phase={actionPhase} />
+                         </div>
+                       )}
+                        
+                        {/* AI Draft Action Card */}
+                        {message.decision && message.role === 'assistant' && message.decision.mode === 'ai_draft_action' && (
+                          <div className="mt-3">
+                            <AiDraftActionCard
+                              decision={message.decision}
+                              onConfirm={() => {
+                                // Handle draft confirmation
+                                if (message.decision && message.decision.mode === 'ai_draft_action') {
+                                  // Convert draft to executable action
+                                  const executableAction = {
+                                    mode: 'action' as const,
+                                    task: message.decision.suggested.kind === 'command' ? 'custom_shell' : 'proposed_batch_script',
+                                    status: 'unconfirmed' as const,
+                                    risk: message.decision.risk,
+                                    params: message.decision.suggested.kind === 'command' ? {
+                                      description: message.decision.summary,
+                                      shell: message.decision.suggested.command
+                                    } : undefined,
+                                    script: message.decision.suggested.kind === 'batch_script' ? {
+                                      name: message.decision.suggested.name,
+                                      overview: message.decision.suggested.overview,
+                                      commands: message.decision.suggested.commands,
+                                      post_checks: message.decision.suggested.post_checks || []
+                                    } : undefined,
+                                    human: "Confirm & Execute to apply changes"
+                                  };
+                                  
+                                  handleExecution(executableAction, true);
+                                }
+                              }}
+                              onCancel={() => {
+                                // Clear the action phase when cancelled
+                                setActionPhase(null);
+                              }}
+                              disabled={isTyping}
+                            />
+                          </div>
+                        )}
+                        
+                        {/* Router Decision Action Buttons */}
                        {message.decision && message.role === 'assistant' && message.decision.mode === 'action' && (
                          message.decision.status === 'confirmed' || 
                          message.decision.task === 'custom_shell' || 
