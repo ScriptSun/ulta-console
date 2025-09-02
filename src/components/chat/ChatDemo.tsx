@@ -1020,13 +1020,21 @@ Please try again or contact support if this persists.`;
     };
   }, [on, toast, setActionPhase]);
 
-  // Connect WebSocket proactively when agent is selected
+  // Connect WebSocket immediately when component mounts or agent changes
   useEffect(() => {
-    if (selectedAgent && !isConnected) {
+    if (selectedAgent) {
       console.log('🔌 Connecting to WebSocket router for agent:', selectedAgent);
       connect();
     }
-  }, [selectedAgent, isConnected, connect]);
+  }, [selectedAgent, connect]);
+
+  // Also connect on component mount if no agent selected yet
+  useEffect(() => {
+    if (!selectedAgent && !isConnected) {
+      console.log('🔌 Pre-connecting WebSocket router...');
+      connect();
+    }
+  }, [connect, isConnected, selectedAgent]);
 
   // Cleanup WebSocket connections on unmount
   useEffect(() => {
@@ -1452,19 +1460,25 @@ Please try again or contact support if this persists.`;
       console.log('📤 Sending message to router API for processing');
       setIsTyping(true);
       
-      // Check WebSocket connection before sending
+      // Ensure WebSocket is connected before sending
       if (!isConnected) {
-        console.log('❌ WebSocket not connected, attempting to connect...');
-        connect();
+        console.log('❌ WebSocket not connected, waiting for connection...');
+        
         // Wait for connection with timeout
-        const maxWaitTime = 3000; // 3 seconds
+        const maxWaitTime = 5000; // 5 seconds
         const startTime = Date.now();
+        
+        // Try to connect if not already connecting
+        connect();
+        
+        // Wait for connection to establish
         while (!isConnected && (Date.now() - startTime) < maxWaitTime) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
         
         if (!isConnected) {
-          throw new Error('WebSocket connection failed - please try again');
+          setIsTyping(false);
+          throw new Error('Failed to connect to chat service. Please refresh the page and try again.');
         }
         console.log('✅ WebSocket connected successfully');
       }
