@@ -1163,9 +1163,16 @@ Please try again or contact support if this persists.`;
     }
   };
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom within messages container
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      const messagesContainer = messagesEndRef.current.closest('.overflow-y-auto');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      } else {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }
   }, [messages]);
 
   // Fetch agent details and heartbeat when agent is selected
@@ -2045,7 +2052,7 @@ Please proceed with creating and executing this batch script.`;
             </div>
           )}
           
-          <Card className={`flex flex-col bg-background border ${forceEnabled ? "w-full flex-1" : "w-full max-w-3xl h-[80vh] shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"}`}>
+          <Card className={`flex flex-col bg-background border ${forceEnabled ? "w-full h-full min-h-0" : "w-full max-w-3xl h-[80vh] shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"}`}>
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center gap-3">
