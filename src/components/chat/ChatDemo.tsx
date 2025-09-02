@@ -497,15 +497,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           // Start router timeout since API has begun
           startRouterTimeout();
           
-          // Create a pending assistant message to be updated later
-          const pendingMessage: Message = {
-            id: `router-pending-${Date.now()}`,
-            role: 'assistant',
-            content: '',
-            timestamp: new Date(),
-            pending: true
-          };
-          setMessages(prev => [...prev, pendingMessage]);
+          // Don't create empty pending message - only show the typing indicator
           
           // Add router request to logs
           const lastUserMessage = messages.filter(m => m.role === 'user').pop();
@@ -631,155 +623,154 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             clearTimeout(routerTimeoutRef.current);
           }
             
-          // Update the last pending message with final decision
+          // Create a new assistant message with the final decision
           setMessages(prev => {
-            const updated = [...prev];
-            // Find the most recent pending message
-            for (let i = updated.length - 1; i >= 0; i--) {
-              if (updated[i].pending && updated[i].role === 'assistant') {
-                updated[i] = {
-                  ...updated[i],
-                  pending: false,
-                  decision: data
-                };
-                  
-                    // Handle different decision modes
-                    if (data.mode === 'chat') {
-                      // Simple chat response - clear phases immediately for chat
-                      setRouterPhase('');
-                      
-                      // For chat mode, show the full message or the streamed content
-                      updated[i].content = data.message || data.text || streamingResponse || 'Response received';
-                     
-                     // Check if this is an "I'm sorry" or "not supported" response and generate AI suggestions
-                     const messageContent = data.message || data.text || streamingResponse || '';
-                     console.log('🔍 Checking chat response for AI suggestions:', messageContent);
-                     
-                     if (messageContent.toLowerCase().includes("i'm sorry") || 
-                         messageContent.toLowerCase().includes("couldn't find") ||
-                         messageContent.toLowerCase().includes("not supported") ||
-                         messageContent.toLowerCase().includes("not available") ||
-                         messageContent.toLowerCase().includes("don't have") ||
-                         messageContent.toLowerCase().includes("unable to")) {
-                       
-                       console.log('🎯 Detected unsupported request in chat mode, generating AI suggestions...');
-                       
-                       // Generate AI suggestions asynchronously
-                       const lastUserMessage = messages.filter(m => m.role === 'user').pop();
-                       if (lastUserMessage) {
-                         console.log('📝 Last user message:', lastUserMessage.content);
-                         generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
-                           if (aiSuggestion) {
-                             console.log('✨ AI suggestion generated successfully:', aiSuggestion);
-                             setMessages(prevMessages => {
-                               const updatedMessages = [...prevMessages];
-                               const messageIndex = updatedMessages.findIndex(m => m.id === updated[i].id);
-                               if (messageIndex !== -1) {
-                                 updatedMessages[messageIndex] = {
-                                   ...updatedMessages[messageIndex],
-                                   aiSuggestion: aiSuggestion
-                                 };
-                                 console.log('💾 Updated message with AI suggestion');
-                               }
-                               return updatedMessages;
-                             });
-                           } else {
-                             console.log('❌ No AI suggestion generated');
-                           }
-                         }).catch(error => {
-                           console.error('💥 Failed to generate AI suggestion:', error);
-                         });
-                       } else {
-                         console.log('❌ No user message found for AI suggestion');
+            const newMessage: Message = {
+              id: `router-result-${Date.now()}`,
+              role: 'assistant',
+              content: '',
+              timestamp: new Date(),
+              pending: false,
+              decision: data
+            };
+            
+            // Handle different decision modes
+            if (data.mode === 'chat') {
+              // Simple chat response - clear phases immediately for chat
+              setRouterPhase('');
+              
+              // For chat mode, show the full message or the streamed content
+              newMessage.content = data.message || data.text || streamingResponse || 'Response received';
+             
+             // Check if this is an "I'm sorry" or "not supported" response and generate AI suggestions
+             const messageContent = data.message || data.text || streamingResponse || '';
+             console.log('🔍 Checking chat response for AI suggestions:', messageContent);
+             
+             if (messageContent.toLowerCase().includes("i'm sorry") || 
+                 messageContent.toLowerCase().includes("couldn't find") ||
+                 messageContent.toLowerCase().includes("not supported") ||
+                 messageContent.toLowerCase().includes("not available") ||
+                 messageContent.toLowerCase().includes("don't have") ||
+                 messageContent.toLowerCase().includes("unable to")) {
+               
+               console.log('🎯 Detected unsupported request in chat mode, generating AI suggestions...');
+               
+               // Generate AI suggestions asynchronously
+               const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+               if (lastUserMessage) {
+                 console.log('📝 Last user message:', lastUserMessage.content);
+                 generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
+                   if (aiSuggestion) {
+                     console.log('✨ AI suggestion generated successfully:', aiSuggestion);
+                     setMessages(prevMessages => {
+                       const updatedMessages = [...prevMessages];
+                       const messageIndex = updatedMessages.findIndex(m => m.id === newMessage.id);
+                       if (messageIndex !== -1) {
+                         updatedMessages[messageIndex] = {
+                           ...updatedMessages[messageIndex],
+                           aiSuggestion: aiSuggestion
+                         };
+                         console.log('💾 Updated message with AI suggestion');
                        }
-                     } else {
-                       console.log('ℹ️ Chat response does not trigger AI suggestions');
-                     }
-                    } else if (data.mode === 'action') {
-                       // Check if this is a not_supported task and generate AI suggestions
-                       if (data.task === 'not_supported') {
-                         updated[i].content = getDecisionMessage(data);
-                         
-                         console.log('Detected not_supported task, generating AI suggestions...');
-                         
-                         // Generate AI suggestions asynchronously
-                         const lastUserMessage = messages.filter(m => m.role === 'user').pop();
-                         if (lastUserMessage) {
-                           generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
-                             if (aiSuggestion) {
-                               console.log('AI suggestion generated:', aiSuggestion);
-                               setMessages(prevMessages => {
-                                 const updatedMessages = [...prevMessages];
-                                 const messageIndex = updatedMessages.findIndex(m => m.id === updated[i].id);
-                                 if (messageIndex !== -1) {
-                                   updatedMessages[messageIndex] = {
-                                     ...updatedMessages[messageIndex],
-                                     aiSuggestion: aiSuggestion
-                                   };
-                                 }
-                                 return updatedMessages;
-                               });
-                             }
-                           }).catch(error => {
-                             console.error('Failed to generate AI suggestion:', error);
-                           });
-                         }
-                       } else {
-                         // Clear phases completely for successful actions
-                         setRouterPhase('');
-                         
-                         // For action mode, show the user-friendly human message
-                         updated[i].content = data.human_message || data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
-                         
-                         // Set action phase to planning for actions and drafts
-                         setActionPhase('planning');
-                        
-                        // Set up needs inputs if missing params OR if action has configurable inputs
-                        const hasInputSchema = data.batch_details?.inputs_schema?.properties && 
-                                             Object.keys(data.batch_details.inputs_schema.properties).length > 0;
-                        
-                         if (data.batch_id && ((data.status === 'unconfirmed' && data.missing_params?.length > 0) || 
-                             (data.status === 'confirmed' && hasInputSchema))) {
-                           handleMissingParams(updated[i], data);
-                           
-                           // Show "Requesting More Data" phase during input form delay
-                           setRouterPhase(RouterPhases.REQUESTING_DATA);
-                           console.log('📋 Setting phase to REQUESTING_DATA (preparing input form)');
-                           
-                            // Show input form immediately
-                            setRouterPhase(''); // Clear phase when input form shows
-                            setMessages(prev => {
-                              const msgUpdated = [...prev];
-                              const msgIndex = msgUpdated.findIndex(m => m.id === updated[i].id);
-                              if (msgIndex !== -1) {
-                                msgUpdated[msgIndex].showInputsDelayed = true;
-                              }
-                              return msgUpdated;
-                             });
-                         } else if (data.status === 'confirmed' && data.batch_id) {
-                          // Ready for preflight
-                          updated[i].preflightStatus = {
-                            agent_id: selectedAgent!,
-                            decision: data,
-                            streaming: true
-                          };
-                        }
-                      }
-                   } else if (data.mode === 'ai_draft_action') {
-                      // For AI draft action mode, show human message and set up draft card
-                      updated[i].content = data.human_message || data.summary || `I've created a plan to ${data.task || 'help you'}.`;
-                      
-                      // Set action phase to planning for drafts
-                      setActionPhase('planning');
+                       return updatedMessages;
+                     });
                    } else {
-                    // Fallback - show the raw decision
-                    updated[i].content = JSON.stringify(data, null, 2);
-                  }
-                  break;
+                     console.log('❌ No AI suggestion generated');
+                   }
+                 }).catch(error => {
+                   console.error('💥 Failed to generate AI suggestion:', error);
+                 });
+               } else {
+                 console.log('❌ No user message found for AI suggestion');
+               }
+             } else {
+               console.log('ℹ️ Chat response does not trigger AI suggestions');
+             }
+            } else if (data.mode === 'action') {
+               // Check if this is a not_supported task and generate AI suggestions
+               if (data.task === 'not_supported') {
+                 newMessage.content = getDecisionMessage(data);
+                 
+                 console.log('Detected not_supported task, generating AI suggestions...');
+                 
+                 // Generate AI suggestions asynchronously
+                 const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+                 if (lastUserMessage) {
+                   generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
+                     if (aiSuggestion) {
+                       console.log('AI suggestion generated:', aiSuggestion);
+                       setMessages(prevMessages => {
+                         const updatedMessages = [...prevMessages];
+                         const messageIndex = updatedMessages.findIndex(m => m.id === newMessage.id);
+                         if (messageIndex !== -1) {
+                           updatedMessages[messageIndex] = {
+                             ...updatedMessages[messageIndex],
+                             aiSuggestion: aiSuggestion
+                           };
+                         }
+                         return updatedMessages;
+                       });
+                     }
+                   }).catch(error => {
+                     console.error('Failed to generate AI suggestion:', error);
+                   });
+                 }
+               } else {
+                 // Clear phases completely for successful actions
+                 setRouterPhase('');
+                 
+                 // For action mode, show the user-friendly human message
+                 newMessage.content = data.human_message || data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
+                 
+                 // Set action phase to planning for actions and drafts
+                 setActionPhase('planning');
+                
+                // Set up needs inputs if missing params OR if action has configurable inputs
+                const hasInputSchema = data.batch_details?.inputs_schema?.properties && 
+                                      Object.keys(data.batch_details.inputs_schema.properties).length > 0;
+                
+                 if (data.batch_id && ((data.status === 'unconfirmed' && data.missing_params?.length > 0) || 
+                     (data.status === 'confirmed' && hasInputSchema))) {
+                   handleMissingParams(newMessage, data);
+                   
+                   // Show "Requesting More Data" phase during input form delay
+                   setRouterPhase(RouterPhases.REQUESTING_DATA);
+                   console.log('📋 Setting phase to REQUESTING_DATA (preparing input form)');
+                   
+                    // Show input form immediately
+                    setRouterPhase(''); // Clear phase when input form shows
+                    setTimeout(() => {
+                      setMessages(prev => {
+                        const msgUpdated = [...prev];
+                        const msgIndex = msgUpdated.findIndex(m => m.id === newMessage.id);
+                        if (msgIndex !== -1) {
+                          msgUpdated[msgIndex].showInputsDelayed = true;
+                        }
+                        return msgUpdated;
+                       });
+                    }, 0);
+                 } else if (data.status === 'confirmed' && data.batch_id) {
+                  // Ready for preflight
+                  newMessage.preflightStatus = {
+                    agent_id: selectedAgent!,
+                    decision: data,
+                    streaming: true
+                  };
                 }
               }
-              return updated;
-            });
+           } else if (data.mode === 'ai_draft_action') {
+              // For AI draft action mode, show human message and set up draft card
+              newMessage.content = data.human_message || data.summary || `I've created a plan to ${data.task || 'help you'}.`;
+              
+              // Set action phase to planning for drafts
+              setActionPhase('planning');
+           } else {
+            // Fallback - show the raw decision
+            newMessage.content = JSON.stringify(data, null, 2);
+          }
+          
+          return [...prev, newMessage];
+        });
             
             // Store the conversation in React Query cache if needed
             if (conversationId) {
@@ -2868,11 +2859,8 @@ Please proceed with creating and executing this batch script.`;
                           </Badge>
                         )}
                         <div className="relative ml-2" aria-label="Processing...">
-                          <div className="w-10 h-5 relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary-glow/20 rounded-full animate-pulse"></div>
-                            <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-gradient-to-br from-primary to-primary-glow rounded-full animate-[morph_2s_ease-in-out_infinite] shadow-sm shadow-primary/30"></div>
-                            <div className="absolute top-1 right-1 w-3 h-3 bg-gradient-to-br from-primary-glow to-primary rounded-full animate-[morph_2s_ease-in-out_infinite_0.7s] opacity-80"></div>
-                            <div className="absolute top-1.5 left-3 w-2 h-2 bg-primary/60 rounded-full animate-[morph_2s_ease-in-out_infinite_1.2s]"></div>
+                          <div className="w-8 h-4 relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary-glow to-primary rounded-full animate-[morph_2s_ease-in-out_infinite] shadow-lg shadow-primary/40"></div>
                           </div>
                         </div>
                       </div>
