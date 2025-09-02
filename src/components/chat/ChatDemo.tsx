@@ -557,16 +557,64 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                    if (data.mode === 'chat') {
                      // For chat mode, show the full message or the streamed content
                      updated[i].content = data.message || data.text || streamingResponse || 'Response received';
+                     
+                     // Check if this is an "I'm sorry" or "not supported" response and generate AI suggestions
+                     const messageContent = data.message || data.text || streamingResponse || '';
+                     console.log('🔍 Checking chat response for AI suggestions:', messageContent);
+                     
+                     if (messageContent.toLowerCase().includes("i'm sorry") || 
+                         messageContent.toLowerCase().includes("couldn't find") ||
+                         messageContent.toLowerCase().includes("not supported") ||
+                         messageContent.toLowerCase().includes("not available") ||
+                         messageContent.toLowerCase().includes("don't have") ||
+                         messageContent.toLowerCase().includes("unable to")) {
+                       
+                       console.log('🎯 Detected unsupported request in chat mode, generating AI suggestions...');
+                       
+                       // Generate AI suggestions asynchronously
+                       const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+                       if (lastUserMessage) {
+                         console.log('📝 Last user message:', lastUserMessage.content);
+                         generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
+                           if (aiSuggestion) {
+                             console.log('✨ AI suggestion generated successfully:', aiSuggestion);
+                             setMessages(prevMessages => {
+                               const updatedMessages = [...prevMessages];
+                               const messageIndex = updatedMessages.findIndex(m => m.id === updated[i].id);
+                               if (messageIndex !== -1) {
+                                 updatedMessages[messageIndex] = {
+                                   ...updatedMessages[messageIndex],
+                                   aiSuggestion: aiSuggestion
+                                 };
+                                 console.log('💾 Updated message with AI suggestion');
+                               }
+                               return updatedMessages;
+                             });
+                           } else {
+                             console.log('❌ No AI suggestion generated');
+                           }
+                         }).catch(error => {
+                           console.error('💥 Failed to generate AI suggestion:', error);
+                         });
+                       } else {
+                         console.log('❌ No user message found for AI suggestion');
+                       }
+                     } else {
+                       console.log('ℹ️ Chat response does not trigger AI suggestions');
+                     }
                    } else if (data.mode === 'action') {
                      // Check if this is a not_supported task and generate AI suggestions
                      if (data.task === 'not_supported') {
                        updated[i].content = getDecisionMessage(data);
+                       
+                       console.log('Detected not_supported task, generating AI suggestions...');
                        
                        // Generate AI suggestions asynchronously
                        const lastUserMessage = messages.filter(m => m.role === 'user').pop();
                        if (lastUserMessage) {
                          generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
                            if (aiSuggestion) {
+                             console.log('AI suggestion generated:', aiSuggestion);
                              setMessages(prevMessages => {
                                const updatedMessages = [...prevMessages];
                                const messageIndex = updatedMessages.findIndex(m => m.id === updated[i].id);
@@ -1331,28 +1379,34 @@ Please proceed with creating and executing this batch script.`;
   };
 
   // Helper function to generate AI suggestions
+  // Helper function to generate AI suggestions
   const generateAISuggestion = async (userMessage: string, decision: any) => {
     try {
+      console.log('🔍 Generating AI suggestion for message:', userMessage);
+      console.log('📊 Decision context:', decision);
+      
       const { data, error } = await supabase.functions.invoke('ultaai-command-suggest', {
         body: {
           user_message: userMessage,
-          agent_os: selectedAgent ? 'linux' : 'linux', // You could get this from agent details
-          tenant_id: selectedAgent || null,
-          agent_id: selectedAgent || null
+          agent_os: 'linux', // Default OS
+          tenant_id: selectedAgent || 'demo-tenant',
+          agent_id: selectedAgent || 'demo-agent'
         }
       });
 
       if (error) {
-        console.error('Error generating AI suggestion:', error);
+        console.error('❌ Error generating AI suggestion:', error);
         return null;
       }
+
+      console.log('✅ AI suggestion response received:', data);
 
       return {
         ...data,
         original_request: userMessage
       };
     } catch (error) {
-      console.error('Error calling AI suggestion function:', error);
+      console.error('💥 Exception calling AI suggestion function:', error);
       return null;
     }
   };
