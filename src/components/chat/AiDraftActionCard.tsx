@@ -45,6 +45,42 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
     }
   };
 
+  // Handle incomplete AI draft action responses
+  if (!decision.suggested || !decision.suggested.kind) {
+    return (
+      <Card className="border-l-4 border-l-primary/20 bg-primary/5">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Terminal className="h-4 w-4 text-primary" />
+            <span className="font-medium">AI Suggestion</span>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            {sanitizeText(decision.summary) || "AI is analyzing your request..."}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCancel}
+              disabled={disabled}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={onConfirm}
+              disabled={disabled}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Continue
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!isExpanded) {
     return (
       <Card className="border-l-4 border-l-primary/20 bg-primary/5">
@@ -80,9 +116,9 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                 <Terminal className="h-4 w-4" />
                 <span className="font-medium text-sm">{i18n.draft.command.title}</span>
               </div>
-              <Badge className={`${getRiskColor(decision.risk)} font-medium`} variant="outline">
-                {decision.risk.charAt(0).toUpperCase() + decision.risk.slice(1)} Risk
-              </Badge>
+               <Badge className={`${getRiskColor(decision.risk || 'medium')} font-medium`} variant="outline">
+                 {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
+               </Badge>
             </div>
             <div className="group relative">
               <pre className="bg-muted/20 p-3 rounded-md text-sm font-mono whitespace-pre-wrap overflow-x-auto">
@@ -112,8 +148,8 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                 <FileText className="h-4 w-4" />
                 <span className="font-medium text-sm">{i18n.draft.batch.title}</span>
               </div>
-              <Badge className={`${getRiskColor(decision.risk)} font-medium`} variant="outline">
-                {decision.risk.charAt(0).toUpperCase() + decision.risk.slice(1)} Risk
+              <Badge className={`${getRiskColor(decision.risk || 'medium')} font-medium`} variant="outline">
+                {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
               </Badge>
             </div>
             <div className="bg-muted/20 p-3 rounded-md">
