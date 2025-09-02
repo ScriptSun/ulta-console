@@ -123,9 +123,47 @@ export const ApiLogsViewer: React.FC<ApiLogsViewerProps> = ({
                   )}
                   
                   <div className="bg-muted/50 p-3 rounded overflow-hidden">
-                    <pre className="text-xs whitespace-pre-wrap break-all">
+                    <pre className="text-xs whitespace-pre-wrap break-all font-mono">
                       {JSON.stringify(log.data, null, 2)}
                     </pre>
+                    
+                    {/* Highlight key missing fields for ai_draft_action */}
+                    {log.data.mode === 'ai_draft_action' && (
+                      <div className="mt-3 pt-3 border-t border-muted-foreground/20">
+                        <div className="text-xs font-medium text-muted-foreground mb-2">AI Draft Action Analysis:</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className={`p-1 rounded ${log.data.task ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            Task: {log.data.task ? '✓' : '✗ Missing'}
+                          </div>
+                          <div className={`p-1 rounded ${log.data.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            Status: {log.data.status ? '✓' : '✗ Missing'}
+                          </div>
+                          <div className={`p-1 rounded ${log.data.risk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            Risk: {log.data.risk ? '✓' : '✗ Missing'}
+                          </div>
+                          <div className={`p-1 rounded ${log.data.suggested ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            Suggested: {log.data.suggested ? '✓' : '✗ Missing'}
+                          </div>
+                          <div className={`p-1 rounded ${log.data.notes ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            Notes: {log.data.notes ? '✓' : '○ Optional'}
+                          </div>
+                          <div className={`p-1 rounded ${log.data.human ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            Human: {log.data.human ? '✓' : '○ Optional'}
+                          </div>
+                        </div>
+                        {log.data.suggested && (
+                          <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                            <strong>Suggested Type:</strong> {log.data.suggested.kind || 'Not specified'}
+                            {log.data.suggested.kind === 'command' && log.data.suggested.command && (
+                              <div><strong>Command:</strong> {log.data.suggested.command}</div>
+                            )}
+                            {log.data.suggested.kind === 'batch_script' && log.data.suggested.commands && (
+                              <div><strong>Commands:</strong> {log.data.suggested.commands.length} steps</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
