@@ -2291,9 +2291,7 @@ Please proceed with creating and executing this batch script.`;
                       <div>
                         <div className="flex items-start gap-2">
                           <div className="flex-1 whitespace-pre-wrap">
-                            {message.pending && !message.content ? (
-                              <div className="text-sm text-muted-foreground">Processing...</div>
-                            ) : (
+                            {message.pending && !message.content ? null : (
                               typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
                             )}
                           </div>
@@ -2869,10 +2867,12 @@ Please proceed with creating and executing this batch script.`;
                             {candidateCount} matches
                           </Badge>
                         )}
-                        <div className="flex gap-1 ml-2" aria-label="Processing...">
-                          <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" />
-                          <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                          <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                        <div className="relative ml-2" aria-label="Processing...">
+                          <div className="w-8 h-4 relative">
+                            <div className="absolute inset-0 bg-muted-foreground/30 rounded-full animate-pulse"></div>
+                            <div className="absolute top-0 left-0 w-3 h-3 bg-muted-foreground rounded-full animate-[morph_2s_ease-in-out_infinite]"></div>
+                            <div className="absolute top-0 right-0 w-2 h-2 bg-muted-foreground/60 rounded-full animate-[morph_2s_ease-in-out_infinite_0.5s]"></div>
+                          </div>
                         </div>
                       </div>
                     </div>

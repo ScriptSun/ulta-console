@@ -121,12 +121,35 @@ export default {
 					'50%': {
 						boxShadow: '0 0 40px hsl(var(--primary) / 0.6)'
 					}
+				},
+				'morph': {
+					'0%': {
+						borderRadius: '50%',
+						transform: 'scale(1) translateX(0)'
+					},
+					'25%': {
+						borderRadius: '60% 40% 60% 40%',
+						transform: 'scale(1.1) translateX(2px)'
+					},
+					'50%': {
+						borderRadius: '40% 60% 40% 60%',
+						transform: 'scale(0.9) translateX(4px)'
+					},
+					'75%': {
+						borderRadius: '60% 40% 30% 70%',
+						transform: 'scale(1.2) translateX(2px)'
+					},
+					'100%': {
+						borderRadius: '50%',
+						transform: 'scale(1) translateX(0)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'pulse-glow': 'pulse-glow 2s ease-in-out infinite'
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+				'morph': 'morph 2s ease-in-out infinite'
 			}
 		}
 	},
