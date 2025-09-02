@@ -142,21 +142,28 @@ export const ApiLogsViewer: React.FC<ApiLogsViewerProps> = ({
                     </div>
                   )}
 
-                  {/* System Prompt */}
+                   {/* System Prompt */}
                   {log.systemPrompt && (
                     <div className="text-sm bg-amber-50 dark:bg-amber-900/20 p-3 rounded border">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-amber-800 dark:text-amber-200">📋 System Prompt ({log.systemPrompt.length} chars)</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(log.systemPrompt)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                        <span className="font-medium text-amber-800 dark:text-amber-200">
+                          📋 System Prompt ({log.systemPrompt.length} chars) - LIVE FROM DATABASE
+                        </span>
+                        <div className="flex gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            Updated: {new Date().toLocaleTimeString()}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(log.systemPrompt)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                      <pre className="text-xs whitespace-pre-wrap break-words bg-amber-100 dark:bg-amber-800/30 p-2 rounded font-mono max-h-32 overflow-y-auto">
+                      <pre className="text-xs whitespace-pre-wrap break-words bg-amber-100 dark:bg-amber-800/30 p-2 rounded font-mono max-h-40 overflow-y-auto">
                         {log.systemPrompt}
                       </pre>
                     </div>
