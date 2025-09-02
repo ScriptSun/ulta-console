@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText, Brain, Search, Clock, AlertCircle, Terminal } from 'lucide-react';
+import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText, Brain, Search, Clock, AlertCircle, Terminal, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
@@ -27,6 +27,7 @@ import { useEventBus } from '@/hooks/useEventBus';
 import { useWebSocketRouter } from '@/hooks/useWebSocketRouter';
 import { useRouterLogs, RouterLogData } from '@/hooks/useRouterLogs';
 import { useWebSocketExec } from '@/hooks/useWebSocketExec';
+import { ChatDocumentation } from './ChatDocumentation';
 
 interface Agent {
   id: string;
@@ -1855,6 +1856,18 @@ Please proceed with creating and executing this batch script.`;
                     )}
                   </Button>
                   
+                  {/* Documentation Button */}
+                  <ChatDocumentation>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      title="View System Documentation"
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-950"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                    </Button>
+                  </ChatDocumentation>
+                  
                   {/* Settings Popover */}
                   <Popover>
                     <PopoverTrigger asChild>
@@ -1971,6 +1984,18 @@ Please proceed with creating and executing this batch script.`;
                         </Badge>
                       )}
                     </Button>
+                    
+                    {/* Documentation Button */}
+                    <ChatDocumentation>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        title="View System Documentation"
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-950"
+                      >
+                        <BookOpen className="w-4 h-4" />
+                      </Button>
+                    </ChatDocumentation>
                     
                     <Popover>
                       <PopoverTrigger asChild>
