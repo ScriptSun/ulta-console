@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, Clock, Send, ArrowDown, Terminal, BookOpen, Activity, AlertTriangle } from 'lucide-react';
+import { Copy, Clock, Send, ArrowDown, Terminal, BookOpen, Activity, AlertTriangle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ApiLog {
@@ -29,6 +29,25 @@ export const ApiLogsViewer: React.FC<ApiLogsViewerProps> = ({
   onOpenChange,
   logs
 }) => {
+  const downloadAsText = () => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const content = logs.map(log => {
+      const time = new Date(log.timestamp).toLocaleString();
+      return `[${time}] ${log.type.toUpperCase()}\n${JSON.stringify(log.data, null, 2)}\n${'='.repeat(80)}`;
+    }).join('\n');
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `api-logs-${timestamp}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Downloaded API logs as text file');
+  };
+
   const copyToClipboard = (data: any) => {
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
     toast.success('Copied to clipboard');
@@ -80,9 +99,21 @@ export const ApiLogsViewer: React.FC<ApiLogsViewerProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Terminal className="h-5 w-5" />
-            API Debug Logs & Phase Analysis ({logs.length} total logs)
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Terminal className="h-5 w-5" />
+              API Debug Logs & Phase Analysis ({logs.length} total logs)
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadAsText}
+              className="flex items-center gap-2"
+              disabled={logs.length === 0}
+            >
+              <Download className="h-4 w-4" />
+              Download as TXT
+            </Button>
           </DialogTitle>
         </DialogHeader>
         
