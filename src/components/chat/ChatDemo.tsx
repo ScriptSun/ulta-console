@@ -394,21 +394,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           setRouterPhase('');
           setStreamingResponse('');
           
-          // Add error message to chat
-          const errorMessage: Message = {
-            id: `error-${Date.now()}`,
-            role: 'assistant',
-            content: '⚠️ Took too long, please retry.',
-            timestamp: new Date(),
-            pending: false
-          };
-          setMessages(prev => [...prev, errorMessage]);
-          
-          toast({
-            title: "Router Timeout",
-            description: "⚠️ Took too long, please retry.",
-            variant: "destructive"
-          });
+          // Log timeout (no UI notification)
+          console.warn('Router timeout reached after 25 seconds');
         }
       }, 25000); // 25 seconds
     };
@@ -638,21 +625,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             clearTimeout(routerTimeoutRef.current);
           }
           
-          // Add system message about disconnection
-          const disconnectMessage: Message = {
-            id: `disconnect-${Date.now()}`,
-            role: 'assistant',
-            content: '⚠️ Connection lost. Please try again.',
-            timestamp: new Date(),
-            pending: false
-          };
-          setMessages(prev => [...prev, disconnectMessage]);
-          
-          toast({
-            title: "Connection Lost",
-            description: "WebSocket connection was lost. Please try again.",
-            variant: "destructive"
-          });
+          // Log disconnection (no UI notification)
+          console.warn('Router connection disconnected');
           break;
       }
     });
@@ -741,11 +715,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       
       on('exec.error', (data) => {
         console.error('Execution error:', data);
-        toast({
-          title: "Execution Error",
-          description: data.error,
-          variant: "destructive",
-        });
+        // Log only, no UI notification
       }),
       
       // Preflight event listeners
