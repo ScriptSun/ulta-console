@@ -714,15 +714,23 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             clearTimeout(routerTimeoutRef.current);
           }
           
-          // Update any pending message to show error
+          // Update any pending message to show error with full JSON response
           setMessages(prev => {
             const updated = [...prev];
             for (let i = updated.length - 1; i >= 0; i--) {
               if (updated[i].pending && updated[i].role === 'assistant') {
+                const errorContent = `**API Error Response:**
+
+\`\`\`json
+${JSON.stringify(data, null, 2)}
+\`\`\`
+
+Please try again or contact support if this persists.`;
+                
                 updated[i] = {
                   ...updated[i],
                   pending: false,
-                  content: `I encountered an error: ${data.error}. Please try again.`
+                  content: errorContent
                 };
                 break;
               }
@@ -731,8 +739,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           });
           
           toast({
-            title: "Assistant Error",
-            description: data.error,
+            title: "API Error",
+            description: `${data.error}${data.details ? ` - ${data.details}` : ''}`,
             variant: "destructive"
           });
           break;
