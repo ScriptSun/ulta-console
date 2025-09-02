@@ -38,10 +38,10 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
-      case 'low': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800';
-      case 'high': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
+      case 'low': return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800';
+      case 'medium': return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800';
+      case 'high': return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700';
     }
   };
 
@@ -79,7 +79,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
           </div>
           <div className="flex items-center gap-2">
             <Badge className={`${getRiskColor(decision.risk)} ml-4 font-medium`} variant="outline">
-              {decision.risk} risk
+              {decision.risk.charAt(0).toUpperCase() + decision.risk.slice(1)} Risk
             </Badge>
           </div>
         </div>
