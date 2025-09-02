@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Eye, Edit, Power, History, Info, Activity, Bot, CheckSquare, Shield, Search } from 'lucide-react';
+import { Plus, Eye, Edit, Power, History, Info, Activity, Bot, CheckSquare, Shield, Search, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -15,6 +15,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import { PolicyDrawer } from '@/components/policies/PolicyDrawer';
 import { format } from 'date-fns';
@@ -561,13 +562,46 @@ export default function CommandPolicies() {
           <div className="text-muted-foreground">Loading policies...</div>
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={getFilteredPolicies()}
-          searchKeys={['policy_name', 'match_value']}
-          searchPlaceholder="Search policies or commands..."
-          defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
-        />
+        <div className="w-full">
+          <div className="flex items-center py-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="ml-auto">
+                  Columns <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
+                {[
+                  { id: 'policy_name', label: 'Policy Name' },
+                  { id: 'match_type', label: 'Match Type' },
+                  { id: 'match_value', label: 'Match Value' },
+                  { id: 'os_whitelist', label: 'OS Whitelist' },
+                  { id: 'risk', label: 'Risk' },
+                  { id: 'timeout_sec', label: 'Timeout' },
+                  { id: 'param_schema', label: 'Param Schema' },
+                  { id: 'confirm_message', label: 'Message' },
+                  { id: 'updated_at', label: 'Updated' },
+                ].map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={true}
+                    onCheckedChange={() => {}}
+                  >
+                    {column.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <DataTable
+            columns={columns}
+            data={getFilteredPolicies()}
+            searchKeys={['policy_name', 'match_value']}
+            searchPlaceholder="Search policies or commands..."
+            defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
+          />
+        </div>
       )}
 
       <PolicyDrawer
