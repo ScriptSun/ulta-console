@@ -77,7 +77,8 @@ Respond in three modes:
      "params": { ...auto_filled },
      "missing_params": [ ... ],
      "risk": "<low|medium|high>",
-     "summary": "<short description of what this will do>"
+     "summary": "<short description of what this will do>",
+     "notes": ["<plain-language explanation of what will happen>", "..."]
    }
 
 3) AI Draft Action mode (JSON only):
@@ -95,33 +96,33 @@ Respond in three modes:
           "description": "<short label>",
           "command": "<one safe Linux command>"
         },
-        "notes": ["<short hint for UI>"]
-      }
+         "notes": ["<explanation in plain language>", "..."]
+       }
 
-   B) Multi-step process (2-5 commands needed):
-      {
-        "mode": "ai_draft_action",
-        "task": "<human_readable_task_name>",
-        "summary": "<one line summary of what this will do>",
-        "status": "unconfirmed",
-        "risk": "<low|medium|high>",
-        "suggested": {
-          "kind": "batch_script",
-          "name": "<short title>",
-          "overview": "<one sentence>",
-          "commands": [
-            "<step 1 single command>",
-            "<step 2 single command>",
-            "<step 3 single command>",
-            "<step 4 single command>",
-            "<step 5 single command>"
-          ],
-          "post_checks": [
-            "<curl or systemctl check>"
-          ]
-        },
-        "notes": ["<short hint for UI>"]
-      }
+    B) Multi-step process (2-5 commands needed):
+       {
+         "mode": "ai_draft_action",
+         "task": "<human_readable_task_name>",
+         "summary": "<one line summary of what this will do>",
+         "status": "unconfirmed",
+         "risk": "<low|medium|high>",
+         "suggested": {
+           "kind": "batch_script",
+           "name": "<short title>",
+           "overview": "<one sentence>",
+           "commands": [
+             "<step 1 single command>",
+             "<step 2 single command>",
+             "<step 3 single command>",
+             "<step 4 single command>",
+             "<step 5 single command>"
+           ],
+           "post_checks": [
+             "<curl or systemctl check>"
+           ]
+         },
+         "notes": ["<explanation in plain language>", "..."]
+       }
 
    C) If the request is unsafe or forbidden, return:
       {
@@ -151,10 +152,57 @@ Safety Rules:
 - Respect command_policies: if a command would match a forbid pattern, do not output it. Use not_supported with a reason
 - Prefer idempotent steps: use package managers, systemctl enable/start, reload rather than restart when possible
 - Always set status to "unconfirmed" for ai_draft_action - they require confirmation
-- Add helpful "notes" array and human-friendly message for the UI
-- For chat, text only. For actions, JSON only.`;
 
-// Legacy export for backward compatibility
+Notes Array Rules:
+The notes array exists to:
+- Explain, in plain non-technical language, what each command or step will do
+- Highlight expected time (fast, ~1-3 min, long)  
+- Mention any impact (e.g. installs packages, restarts a service, touches configuration files)
+- Optionally summarize step count and verification if relevant
+
+Notes Guidelines:
+- Return 2-6 notes typically, minimum 1 when meaningful
+- No disclaimers like "ensure you have permissions" or "check documentation"
+- Do not tell the user what they should do — only describe what the system will do
+- Each note is one short, factual sentence
+- Notes must be flexible in number: some tasks may need 2, others 5
+
+When to include notes:
+- Step count → include only if there are 2 or more commands
+- Step descriptions → include for important steps (e.g. "Updates package list", "Installs Python 3")
+- Estimated time → include if it's not instant (≥30s)
+- Impact → include when system state changes (e.g. package installation, service restart, disk/network usage)
+- Verification / Post-check → include if a clear check is run (e.g. "Will verify version after install")
+
+Examples:
+
+Single command (check ports):
+"notes": [
+  "Lists all listening sockets with numeric IP addresses.",
+  "Estimated time: under 5 seconds."
+]
+
+Two-step install (Python):
+"notes": [
+  "This plan runs 2 steps in total.",
+  "Step 1 updates the system package list.", 
+  "Step 2 installs Python 3 from the official repository.",
+  "Estimated time: about 1–3 minutes depending on network speed.",
+  "Adds the python3 binary for immediate use."
+]
+
+Multi-step with restart (Enable HTTPS in nginx):
+"notes": [
+  "This plan runs 3 steps in total.",
+  "Obtains a Let's Encrypt TLS certificate and saves it under /etc/letsencrypt.",
+  "Updates nginx configuration to enable HTTPS.",
+  "Reloads nginx to apply changes, with only brief interruption.",
+  "Estimated time: about 2–4 minutes including certificate request."
+]
+
+Every action and ai_draft_action must include a notes array that describes what will happen on the server in plain language. Notes length adapts to task complexity: 1–2 for simple, 3–6 for multi-step. No user disclaimers or instructions appear.
+
+For chat, text only. For actions, JSON only.`;
 export const ROUTER_SYSTEM_PROMPT = ROUTER_SYSTEM_PROMPT_FALLBACK;
 
 export const ROUTER_RESPONSE_SCHEMA = {
@@ -168,22 +216,23 @@ export const ROUTER_RESPONSE_SCHEMA = {
      {
        "type": "object",
        "oneOf": [
-         // Confirmed/unconfirmed batch
-         { 
-           "type": "object",
-           "required": ["mode", "task", "batch_id", "status", "params", "risk", "summary"],
-           "properties": {
-             "mode": { "type": "string", "enum": ["action"] },
-             "task": { "type": "string" },
-             "batch_id": { "type": "string" },
-             "status": { "type": "string", "enum": ["confirmed", "unconfirmed"] },
-             "params": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } },
-             "missing_params": { "type": "array", "items": { "type": "string" } },
-             "risk": { "type": "string", "enum": ["low", "medium", "high"] },
-             "summary": { "type": "string" }
-           },
-           "additionalProperties": false
-         },
+          // Confirmed/unconfirmed batch
+          { 
+            "type": "object",
+            "required": ["mode", "task", "batch_id", "status", "params", "risk", "summary", "notes"],
+            "properties": {
+              "mode": { "type": "string", "enum": ["action"] },
+              "task": { "type": "string" },
+              "batch_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["confirmed", "unconfirmed"] },
+              "params": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } },
+              "missing_params": { "type": "array", "items": { "type": "string" } },
+              "risk": { "type": "string", "enum": ["low", "medium", "high"] },
+              "summary": { "type": "string" },
+              "notes": { "type": "array", "items": { "type": "string" } }
+            },
+            "additionalProperties": false
+          },
         // Custom shell command
         { 
           "type": "object",
