@@ -471,7 +471,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             try {
               const jsonData = JSON.parse(accumulated);
               
-              if (jsonData.mode === 'action' && jsonData.summary) {
+              if (jsonData.mode === 'action') {
                 // Start the action sequence
                 startActionSequence(jsonData);
                 return; // Exit early, sequence will handle everything
