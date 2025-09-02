@@ -142,7 +142,7 @@ function tryParseJSON(s: string) {
 
 // Validate ai_draft_action response completeness
 function validateAiDraftActionResponse(obj: any): { isValid: boolean; missingFields: string[] } {
-  const requiredFields = ['mode', 'task', 'summary', 'status', 'risk', 'suggested', 'notes', 'human'];
+  const requiredFields = ['mode', 'task', 'summary', 'status', 'risk', 'suggested', 'notes', 'human_message'];
   const missingFields: string[] = [];
   
   for (const field of requiredFields) {
@@ -376,6 +376,34 @@ function validateDraftAction(draft: any, policies: any[]) {
           console.error('❌ Incomplete ai_draft_action response from OpenAI. Missing fields:', validationResult.missingFields);
           console.error('❌ Received incomplete response:', JSON.stringify(obj, null, 2));
           
+          // Store the failed validation event for debugging
+          if (run_id) {
+            try {
+              const { error: eventError } = await supabase
+                .from('router_events')
+                .insert({
+                  run_id: run_id,
+                  event_type: 'validation_failed',
+                  payload: {
+                    error: 'Incomplete ai_draft_action response',
+                    missing_fields: validationResult.missingFields,
+                    received_response: obj,
+                    raw_content: raw
+                  },
+                  agent_id: agent_id,
+                  conversation_id: conversation_id
+                });
+              
+              if (eventError) {
+                console.error('❌ Error persisting validation failure event:', eventError);
+              } else {
+                console.log('✅ Persisted validation failure event for debugging');
+              }
+            } catch (error) {
+              console.error('❌ Error persisting validation failure event:', error);
+            }
+          }
+          
           // Return an error instead of incomplete response
           return new Response(JSON.stringify({ 
             error: 'OpenAI returned incomplete ai_draft_action response', 
@@ -492,6 +520,34 @@ function validateDraftAction(draft: any, policies: any[]) {
       }
     } catch (gptError) {
       console.error('❌ OpenAI API error:', gptError);
+      
+      // Store the OpenAI error event for debugging
+      if (run_id) {
+        try {
+          const { error: eventError } = await supabase
+            .from('router_events')
+            .insert({
+              run_id: run_id,
+              event_type: 'openai_error',
+              payload: {
+                error: 'OpenAI API error',
+                details: gptError.message,
+                stack: gptError.stack
+              },
+              agent_id: agent_id,
+              conversation_id: conversation_id
+            });
+          
+          if (eventError) {
+            console.error('❌ Error persisting OpenAI error event:', eventError);
+          } else {
+            console.log('✅ Persisted OpenAI error event for debugging');
+          }
+        } catch (error) {
+          console.error('❌ Error persisting OpenAI error event:', error);
+        }
+      }
+      
       return new Response(JSON.stringify({ 
         error: 'Failed to process with AI', 
         details: gptError.message 

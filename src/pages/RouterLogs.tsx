@@ -49,7 +49,11 @@ const RouterLogs = () => {
     }
   }, [autoRefresh]);
 
-  const getStatusIcon = (payload: any) => {
+  const getStatusIcon = (eventType: string, payload: any) => {
+    if (eventType === 'validation_failed' || eventType === 'openai_error') {
+      return <AlertCircle className="h-4 w-4 text-destructive" />;
+    }
+    
     if (!payload) return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
     
     if (payload.mode === 'action' && payload.status === 'rejected') {
@@ -65,7 +69,14 @@ const RouterLogs = () => {
     return <Clock className="h-4 w-4 text-muted-foreground" />;
   };
 
-  const getStatusBadge = (payload: any) => {
+  const getStatusBadge = (eventType: string, payload: any) => {
+    if (eventType === 'validation_failed') {
+      return <Badge variant="destructive">Validation Failed</Badge>;
+    }
+    if (eventType === 'openai_error') {
+      return <Badge variant="destructive">OpenAI Error</Badge>;
+    }
+    
     if (!payload) return <Badge variant="secondary">Unknown</Badge>;
     
     if (payload.mode === 'action' && payload.status === 'rejected') {
@@ -81,7 +92,7 @@ const RouterLogs = () => {
       return <Badge variant="secondary">Chat</Badge>;
     }
     
-    return <Badge variant="outline">{payload.mode || 'Unknown'}</Badge>;
+    return <Badge variant="outline">{payload.mode || eventType}</Badge>;
   };
 
   const toggleExpanded = (eventId: string) => {
@@ -138,13 +149,13 @@ const RouterLogs = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      {getStatusIcon(event.payload)}
+                      {getStatusIcon(event.event_type, event.payload)}
                       <div>
                         <CardTitle className="text-sm font-medium">
                           Run ID: {event.run_id}
                         </CardTitle>
                         <div className="flex items-center gap-2 mt-1">
-                          {getStatusBadge(event.payload)}
+                          {getStatusBadge(event.event_type, event.payload)}
                           <Badge variant="outline" className="text-xs">
                             {event.event_type}
                           </Badge>
@@ -173,31 +184,94 @@ const RouterLogs = () => {
                 <CardContent className="pt-0">
                   {event.payload && (
                     <div className="space-y-3">
-                      {/* Summary Info */}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Agent ID:</span>
-                          <div className="font-mono text-xs">{event.agent_id}</div>
+                      {/* Error Information for failed events */}
+                      {(event.event_type === 'validation_failed' || event.event_type === 'openai_error') && (
+                        <div className="space-y-2">
+                          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded">
+                            <div className="font-medium text-destructive mb-1">
+                              {event.event_type === 'validation_failed' ? 'Validation Error' : 'OpenAI API Error'}
+                            </div>
+                            <div className="text-sm text-destructive">
+                              {event.payload.error}: {event.payload.details}
+                            </div>
+                            {event.payload.missing_fields && (
+                              <div className="text-xs text-destructive mt-1">
+                                Missing fields: {event.payload.missing_fields.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Show received response for validation failures */}
+                          {event.event_type === 'validation_failed' && event.payload.received_response && (
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Received Response:
+                              </span>
+                              <div className="mt-1 p-2 bg-muted rounded text-xs font-mono">
+                                {JSON.stringify(event.payload.received_response, null, 2)}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        {event.payload.task && (
-                          <div>
-                            <span className="text-muted-foreground">Task:</span>
-                            <div className="font-medium">{event.payload.task}</div>
+                      )}
+                      
+                      {/* Regular Summary Info for successful events */}
+                      {event.event_type === 'selected' && event.payload && (
+                        <>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Agent ID:</span>
+                              <div className="font-mono text-xs">{event.agent_id}</div>
+                            </div>
+                            {event.payload.task && (
+                              <div>
+                                <span className="text-muted-foreground">Task:</span>
+                                <div className="font-medium">{event.payload.task}</div>
+                              </div>
+                            )}
+                            {event.payload.summary && (
+                              <div className="col-span-2">
+                                <span className="text-muted-foreground">Summary:</span>
+                                <div>{event.payload.summary}</div>
+                              </div>
+                            )}
+                            {event.payload.text && (
+                              <div className="col-span-2">
+                                <span className="text-muted-foreground">Chat Text:</span>
+                                <div>{event.payload.text}</div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {event.payload.summary && (
-                          <div className="col-span-2">
-                            <span className="text-muted-foreground">Summary:</span>
-                            <div>{event.payload.summary}</div>
-                          </div>
-                        )}
-                        {event.payload.text && (
-                          <div className="col-span-2">
-                            <span className="text-muted-foreground">Chat Text:</span>
-                            <div>{event.payload.text}</div>
-                          </div>
-                        )}
-                      </div>
+
+                          {/* Commands for ai_draft_action */}
+                          {event.payload.suggested && event.payload.suggested.commands && (
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">Commands:</span>
+                              <div className="mt-1 space-y-1">
+                                {event.payload.suggested.commands.map((command: string, idx: number) => (
+                                  <div key={idx} className="font-mono text-xs bg-muted p-2 rounded">
+                                    {command}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Notes */}
+                          {event.payload.notes && event.payload.notes.length > 0 && (
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">Notes:</span>
+                              <div className="mt-1 space-y-1">
+                                {event.payload.notes.map((note: string, idx: number) => (
+                                  <div key={idx} className="text-xs text-amber-600 dark:text-amber-400">
+                                    • {note}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
 
                       {/* Expanded JSON View */}
                       {expandedEvent === event.id && (
@@ -214,34 +288,6 @@ const RouterLogs = () => {
                             </ScrollArea>
                           </div>
                         </>
-                      )}
-
-                      {/* Commands for ai_draft_action */}
-                      {event.payload.suggested && event.payload.suggested.commands && (
-                        <div>
-                          <span className="text-sm font-medium text-muted-foreground">Commands:</span>
-                          <div className="mt-1 space-y-1">
-                            {event.payload.suggested.commands.map((command: string, idx: number) => (
-                              <div key={idx} className="font-mono text-xs bg-muted p-2 rounded">
-                                {command}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Notes */}
-                      {event.payload.notes && event.payload.notes.length > 0 && (
-                        <div>
-                          <span className="text-sm font-medium text-muted-foreground">Notes:</span>
-                          <div className="mt-1 space-y-1">
-                            {event.payload.notes.map((note: string, idx: number) => (
-                              <div key={idx} className="text-xs text-amber-600 dark:text-amber-400">
-                                • {note}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
                       )}
                     </div>
                   )}
