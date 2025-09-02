@@ -232,6 +232,14 @@ function validateDraftAction(draft: any, policies: any[]) {
       const systemTemperature = await getSystemTemperature();
       console.log(`🌡️ Using system temperature: ${systemTemperature}`);
 
+      // Log the full system prompt for debugging
+      console.log('🔍 FULL SYSTEM PROMPT:');
+      console.log('=' .repeat(80));
+      console.log(systemPrompt);
+      console.log('=' .repeat(80));
+
+      const fullSystemContent = systemPrompt + "\n\nIMPORTANT: For ai_draft_action mode, you MUST include ALL required fields: mode, task, summary, status, risk, suggested, notes array, and human message. The 'suggested' object MUST have 'kind' field and 'commands' array (never singular 'command'). For both 'command' and 'batch_script' kinds, always use 'commands' as an array of strings. Always respond in valid JSON format.";
+      
       const requestBody: any = {
         model: "gpt-5-mini-2025-08-07", // Use newer, faster model
         max_completion_tokens: 8000, // Increased token limit for complex responses
@@ -240,7 +248,7 @@ function validateDraftAction(draft: any, policies: any[]) {
         messages: [
           { 
             role: "system", 
-            content: systemPrompt + "\n\nIMPORTANT: For ai_draft_action mode, you MUST include ALL required fields: mode, task, summary, status, risk, suggested, notes array, and human message. The 'suggested' object MUST have 'kind' field and 'commands' array (never singular 'command'). For both 'command' and 'batch_script' kinds, always use 'commands' as an array of strings. Always respond in valid JSON format." 
+            content: fullSystemContent
           },
           { role: "user", content: JSON.stringify(transformedPayload) }
         ]
@@ -251,6 +259,16 @@ function validateDraftAction(draft: any, policies: any[]) {
         max_completion_tokens: requestBody.max_completion_tokens,
         hasResponseFormat: !!requestBody.response_format
       });
+
+      // Log the complete request being sent to OpenAI
+      console.log('📤 COMPLETE OPENAI REQUEST:');
+      console.log('=' .repeat(80));
+      console.log('SYSTEM MESSAGE:');
+      console.log(fullSystemContent.substring(0, 1000) + (fullSystemContent.length > 1000 ? '\n... [truncated, total length: ' + fullSystemContent.length + ' chars]' : ''));
+      console.log('-' .repeat(40));
+      console.log('USER MESSAGE (Transformed Payload):');
+      console.log(JSON.stringify(transformedPayload, null, 2));
+      console.log('=' .repeat(80));
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -291,14 +309,19 @@ function validateDraftAction(draft: any, policies: any[]) {
       }
 
       const raw = completion.choices[0]?.message?.content ?? "";
-      console.log('📝 OpenAI Content (length: ' + raw.length + '):', raw.substring(0, 500) + (raw.length > 500 ? '...' : ''));
-      console.log('🔍 Full OpenAI Response for debugging:', JSON.stringify({
-        model: completion.model,
-        usage: completion.usage,
-        finish_reason: completion.choices[0]?.finish_reason,
-        content_length: raw.length,
-        full_content: raw
-      }, null, 2));
+      
+      // Enhanced response logging
+      console.log('📥 COMPLETE OPENAI RESPONSE:');
+      console.log('=' .repeat(80));
+      console.log('RESPONSE METADATA:');
+      console.log('- Model:', completion.model);
+      console.log('- Usage:', JSON.stringify(completion.usage, null, 2));
+      console.log('- Finish Reason:', completion.choices[0]?.finish_reason);
+      console.log('- Content Length:', raw.length, 'characters');
+      console.log('-' .repeat(40));
+      console.log('RAW CONTENT:');
+      console.log(raw);
+      console.log('=' .repeat(80));
       
       if (!raw) {
         console.error('❌ Empty response details:', {
@@ -311,6 +334,14 @@ function validateDraftAction(draft: any, policies: any[]) {
 
       // Parse response - handle chat, action, and ai_draft_action modes
       const obj = tryParseJSON(raw);
+      
+      console.log('🔍 PARSED RESPONSE ANALYSIS:');
+      console.log('- Parse Success:', obj !== null);
+      console.log('- Response Type:', typeof obj);
+      console.log('- Detected Mode:', obj?.mode || 'unknown');
+      if (obj) {
+        console.log('- Parsed Object:', JSON.stringify(obj, null, 2));
+      }
       
       if (obj && obj.mode === "action") {
         console.log('🎯 Action mode response:', obj);
