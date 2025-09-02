@@ -9,7 +9,7 @@ interface PromptCacheEntry {
 
 class PromptCache {
   private cache: Map<string, PromptCacheEntry> = new Map();
-  private readonly TTL = 30 * 1000; // 30 seconds cache TTL for faster development
+  private readonly TTL = 0; // No cache - always reload from database for debugging
   private supabase: ReturnType<typeof createClient>;
   private isInitialized = false;
 
@@ -53,15 +53,17 @@ class PromptCache {
     
     const { data, error } = await this.supabase
       .from('system_prompts')
-      .select('content_base64')
+      .select('content_base64, updated_at, id')
       .eq('prompt_key', promptKey)
       .single();
 
     if (error) {
+      console.error(`❌ Database error loading ${promptKey}:`, error);
       throw new Error(`Failed to load ${promptKey} prompt from database: ${error.message}`);
     }
 
     if (!data?.content_base64) {
+      console.error(`❌ No content found for ${promptKey} prompt`);
       throw new Error(`No content found for ${promptKey} prompt`);
     }
 
@@ -69,6 +71,8 @@ class PromptCache {
     const content = atob(data.content_base64);
     
     console.log(`✅ Loaded ${promptKey} prompt from database (${content.length} chars)`);
+    console.log(`📋 Prompt ID: ${data.id}, Updated: ${data.updated_at}`);
+    console.log(`🔍 Content preview: ${content.substring(0, 150)}...`);
     return content;
   }
 
