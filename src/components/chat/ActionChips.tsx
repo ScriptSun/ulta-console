@@ -23,43 +23,43 @@ export function ActionChips({ phase, className = "" }: ActionChipsProps) {
         return {
           icon: Brain,
           text: i18n.phases.planning,
-          className: 'bg-blue-100 text-blue-800 border-blue-200 animate-pulse'
+          className: 'bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700 border-indigo-200/50 animate-pulse shadow-sm'
         };
       case 'analyzing':
         return {
           icon: Search,
           text: i18n.phases.analyzing,
-          className: 'bg-yellow-100 text-yellow-800 border-yellow-200 animate-pulse'
+          className: 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border-amber-200/50 animate-pulse shadow-sm'
         };
       case 'ready':
         return {
           icon: CheckCircle,
           text: i18n.phases.ready,
-          className: 'bg-green-100 text-green-800 border-green-200'
+          className: 'bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border-emerald-200/50 shadow-sm'
         };
       case 'working':
         return {
           icon: Cog,
           text: i18n.phases.working,
-          className: 'bg-purple-100 text-purple-800 border-purple-200 animate-pulse'
+          className: 'bg-gradient-to-r from-violet-50 to-purple-50 text-violet-700 border-violet-200/50 animate-pulse shadow-sm'
         };
       case 'completed':
         return {
           icon: CheckCircle2,
           text: i18n.phases.done,
-          className: 'bg-green-100 text-green-800 border-green-200'
+          className: 'bg-gradient-to-r from-teal-50 to-cyan-50 text-teal-700 border-teal-200/50 shadow-sm'
         };
       case 'failed':
         return {
           icon: AlertCircle,
           text: i18n.phases.failed,
-          className: 'bg-red-100 text-red-800 border-red-200'
+          className: 'bg-gradient-to-r from-rose-50 to-red-50 text-rose-700 border-rose-200/50 shadow-sm'
         };
       default:
         return {
           icon: Brain,
           text: 'Processing',
-          className: 'bg-gray-100 text-gray-800 border-gray-200'
+          className: 'bg-gradient-to-r from-slate-50 to-gray-50 text-slate-700 border-slate-200/50 shadow-sm'
         };
     }
   };
