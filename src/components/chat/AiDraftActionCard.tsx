@@ -133,22 +133,22 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                     commands = decision.suggested.commands;
                   }
                   return commands.map((command: string, index: number) => (
-                    <div key={index} className="group relative">
-                      <div className="flex gap-2">
-                        <pre className="flex-1 bg-background/50 p-2 rounded border">
-                          <code className="text-sm font-mono">{command}</code>
-                        </pre>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                          onClick={() => copyToClipboard(command)}
-                          aria-label={`Copy command to clipboard`}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                      <div className="group relative">
+                        <div className="flex gap-2">
+                          <pre className="flex-1 bg-background/50 p-2 rounded border overflow-x-auto scrollbar-hide">
+                            <code className="text-sm font-mono whitespace-nowrap">{command}</code>
+                          </pre>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex-shrink-0"
+                            onClick={() => copyToClipboard(command)}
+                            aria-label={`Copy command to clipboard`}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
                   ));
                 })()}
               </div>
@@ -180,25 +180,25 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
               
               <div className="space-y-2">
                 {decision.suggested.commands.map((command, index) => (
-                  <div key={index} className="group relative">
-                    <div className="flex gap-2">
-                      <span className="text-xs text-muted-foreground font-mono w-4 flex-shrink-0 mt-0.5">
-                        {index + 1}.
-                      </span>
-                      <pre className="flex-1">
-                        <code className="text-sm font-mono">{command}</code>
-                      </pre>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                        onClick={() => copyToClipboard(command)}
-                        aria-label={`Copy command ${index + 1} to clipboard`}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
+                    <div key={index} className="group relative">
+                      <div className="flex gap-2">
+                        <span className="text-xs text-muted-foreground font-mono w-4 flex-shrink-0 mt-0.5">
+                          {index + 1}.
+                        </span>
+                        <pre className="flex-1 overflow-x-auto scrollbar-hide">
+                          <code className="text-sm font-mono whitespace-nowrap">{command}</code>
+                        </pre>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex-shrink-0"
+                          onClick={() => copyToClipboard(command)}
+                          aria-label={`Copy command ${index + 1} to clipboard`}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
                 ))}
               </div>
 
