@@ -21,9 +21,11 @@ import {
   Search,
   CheckCircle,
   AlertTriangle,
-  Copy
+  Copy,
+  Download
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 interface ChatDocumentationProps {
   children: React.ReactNode;
@@ -36,6 +38,113 @@ export const ChatDocumentation: React.FC<ChatDocumentationProps> = ({ children }
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copied to clipboard", description: "Code snippet copied successfully" });
+  };
+
+  const exportToPDF = () => {
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      const maxWidth = pageWidth - 2 * margin;
+      let y = margin;
+
+      // Title
+      pdf.setFontSize(20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Chat System Documentation', margin, y);
+      y += 15;
+
+      // Content sections
+      const sections = [
+        {
+          title: 'System Architecture Overview',
+          content: 'The chat system is a sophisticated AI-powered interface that enables users to interact with remote agents to execute commands, manage scripts, and perform system operations through natural language.'
+        },
+        {
+          title: 'Complete Chat Flow Process',
+          content: '1. User Input Processing: User types a message → Validated and sent via WebSocket to router → Agent selection verified\n\n2. Batch Candidate Retrieval: System queries script_batches table → Filters by OS and keywords → Returns matching commands\n\n3. AI Decision Making: OpenAI analyzes request + available batches → Returns decision (chat/action/ai_draft_action)\n\n4. Action Execution Pipeline: If action mode → Preflight checks → Input collection → Command execution → Result streaming'
+        },
+        {
+          title: 'WebSocket Communication Architecture',
+          content: 'The system uses two main WebSocket connections:\n\n• useWebSocketRouter: Manages connection to ws-router edge function for routing decisions\n• useWebSocketExec: Handles connection to ws-exec edge function for command execution monitoring\n• Event Bus System: Centralized event management for component communication'
+        },
+        {
+          title: 'Router System & AI Decision Engine',
+          content: 'Batch Candidate Retrieval: The system intelligently finds relevant script batches based on user requests and agent capabilities.\n\nCommand Policy Filtering: Security policies are evaluated to ensure safe command execution.\n\nAI Decision Types: chat (conversational), action (execute batch), ai_draft_action (AI-generated commands)'
+        },
+        {
+          title: 'Supabase Edge Functions Architecture',
+          content: 'Key Functions:\n\n• ws-router: WebSocket Router & Coordinator\n• batches-retrieve: Script Batch Finder\n• ultaai-router-decide: AI Decision Engine\n• ws-exec: Execution Monitor\n\nDatabase Tables: script_batches, agents, command_policies, batch_runs, agent_logs'
+        },
+        {
+          title: 'Input Processing & Security',
+          content: 'Dynamic Form Generation: Forms are generated dynamically from JSON schemas defined in script batch configurations.\n\nPreflight Safety Checks: Agent connectivity, disk space, command policy compliance, input parameter validation, risk assessment.'
+        },
+        {
+          title: 'State Management & Real-time Updates',
+          content: 'Message State Structure includes router decisions, input collection state, execution tracking, and preflight results.\n\nReal-time Subscription Pattern uses Supabase channels to listen for database changes and stream updates.'
+        },
+        {
+          title: 'Developer Implementation Notes',
+          content: 'Best Practices:\n• Validate WebSocket connections before sending requests\n• Implement proper error handling\n• Use TypeScript interfaces\n• Subscribe to real-time events\n• Clean up connections on unmount\n\nCommon Pitfalls:\n• Handle WebSocket reconnection logic\n• Avoid blocking UI during operations\n• Validate on server-side\n• Handle preflight check failures'
+        }
+      ];
+
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+
+      sections.forEach((section, index) => {
+        // Check if we need a new page
+        if (y > pageHeight - 40) {
+          pdf.addPage();
+          y = margin;
+        }
+
+        // Section title
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(14);
+        pdf.text(section.title, margin, y);
+        y += 10;
+
+        // Section content
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10);
+        const lines = pdf.splitTextToSize(section.content, maxWidth);
+        
+        lines.forEach((line: string) => {
+          if (y > pageHeight - 20) {
+            pdf.addPage();
+            y = margin;
+          }
+          pdf.text(line, margin, y);
+          y += 5;
+        });
+
+        y += 10; // Space between sections
+      });
+
+      // Footer on last page
+      const finalY = pageHeight - 15;
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'italic');
+      pdf.text('Generated from Chat System Documentation - ' + new Date().toLocaleDateString(), margin, finalY);
+
+      // Save the PDF
+      pdf.save('chat-system-documentation.pdf');
+      
+      toast({ 
+        title: "PDF Export Successful", 
+        description: "Documentation has been downloaded as PDF" 
+      });
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({ 
+        title: "Export Failed", 
+        description: "Unable to generate PDF. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const CodeBlock: React.FC<{ code: string; title?: string }> = ({ code, title }) => (
@@ -62,10 +171,21 @@ export const ChatDocumentation: React.FC<ChatDocumentationProps> = ({ children }
       </DialogTrigger>
       <DialogContent className="max-w-6xl h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-green-500" />
-            Chat System Documentation
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-green-500" />
+              Chat System Documentation
+            </DialogTitle>
+            <Button 
+              onClick={exportToPDF}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export PDF
+            </Button>
+          </div>
         </DialogHeader>
         
         <ScrollArea className="h-full">
