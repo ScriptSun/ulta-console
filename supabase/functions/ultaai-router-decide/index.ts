@@ -269,7 +269,7 @@ function validateDraftAction(draft: any, policies: any[]) {
         messages: [
           { 
             role: "system", 
-            content: systemPrompt + "\n\nIMPORTANT: For ai_draft_action mode, you MUST include ALL required fields: mode, task, summary, status, risk, suggested (with kind, and either command OR name/overview/commands/post_checks), notes array, and human message. Do not return incomplete responses." 
+            content: systemPrompt + "\n\nIMPORTANT: For ai_draft_action mode, you MUST include ALL required fields: mode, task, summary, status, risk, suggested (with kind, and either command OR name/overview/commands/post_checks), notes array, and human message. Do not return incomplete responses. Always respond in valid JSON format." 
           },
           { role: "user", content: JSON.stringify(transformedPayload) }
         ]
