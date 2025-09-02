@@ -12,6 +12,7 @@ import { Search, Mail, Calendar, Eye, Edit, Trash2, Filter, CalendarDays, Users 
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { UserEditDrawer } from '@/components/users/UserEditDrawer';
 
 interface User {
   id: string;
@@ -27,6 +28,8 @@ export default function Users() {
   const [searchEmail, setSearchEmail] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [agentCountFilter, setAgentCountFilter] = useState('all');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const { toast } = useToast();
 
   // Query for user statistics
@@ -156,11 +159,12 @@ export default function Users() {
   };
 
   const handleEditUser = (user: User) => {
-    // TODO: Implement edit functionality
-    toast({
-      title: 'Edit User',
-      description: 'Edit functionality will be implemented',
-    });
+    setSelectedUser(user);
+    setEditDrawerOpen(true);
+  };
+
+  const handleUserUpdated = () => {
+    refetch();
   };
 
   const handleDeleteUser = async (user: User) => {
@@ -403,6 +407,14 @@ export default function Users() {
           )}
         </CardContent>
       </Card>
+
+      {/* User Edit Drawer */}
+      <UserEditDrawer
+        user={selectedUser}
+        open={editDrawerOpen}
+        onOpenChange={setEditDrawerOpen}
+        onUserUpdated={handleUserUpdated}
+      />
     </div>
   );
 }
