@@ -121,7 +121,8 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                 {(() => {
                   let commands: string[] = [];
                   if (decision.suggested.kind === "command") {
-                    commands = [decision.suggested.command];
+                    // Handle both command string and commands array for backward compatibility
+                    commands = (decision.suggested as any).commands || [decision.suggested.command];
                   } else if (decision.suggested.kind === "commands") {
                     commands = decision.suggested.commands;
                   }
