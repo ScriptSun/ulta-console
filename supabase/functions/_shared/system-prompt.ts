@@ -39,6 +39,7 @@ Respond in three modes:
      "mode": "action",
      "task": "<batch_key>",
      "batch_id": "<uuid>",
+     "summary": "<one line summary of what this will do>",
      "status": "<confirmed|unconfirmed>",
      "params": { ...auto_filled },
      "missing_params": [ ... ],
@@ -97,7 +98,7 @@ Respond in three modes:
         "task": "not_supported",
         "status": "rejected",
         "reason": "<short reason>",
-        "summary": "<short hint>"
+        "human": "<short hint>"
       }
 
 Draft Generation Rules:
