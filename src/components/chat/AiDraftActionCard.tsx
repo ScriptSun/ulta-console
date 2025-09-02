@@ -124,11 +124,6 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                    {(decision as any).estimated_time}
                  </Badge>
                )}
-               {(decision as any).impact && (
-                 <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-800">
-                   {(decision as any).impact}
-                 </Badge>
-               )}
               </div>
             </div>
             <div className="bg-muted/20 p-3 rounded-md">
@@ -182,16 +177,11 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                   <CheckCircle className="h-3 w-3" />
                   {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
                 </Badge>
-                {(decision as any).estimated_time && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800">
-                    {(decision as any).estimated_time}
-                  </Badge>
-                )}
-                {(decision as any).impact && (
-                  <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-800">
-                    {(decision as any).impact}
-                  </Badge>
-                )}
+                 {(decision as any).estimated_time && (
+                   <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800">
+                     {(decision as any).estimated_time}
+                   </Badge>
+                 )}
               </div>
             </div>
             <div className="bg-muted/20 p-3 rounded-md">
@@ -255,7 +245,17 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
         <Separator />
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {(decision as any).impact && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Impact:</span>
+                <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-800">
+                  {(decision as any).impact}
+                </Badge>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
