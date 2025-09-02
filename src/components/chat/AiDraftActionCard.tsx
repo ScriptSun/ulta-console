@@ -45,36 +45,35 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
     }
   };
 
-  // Handle incomplete AI draft action responses - parse summary to extract commands
+  // Handle incomplete AI draft action responses - should not happen with proper backend
   if (!decision.suggested || !decision.suggested.kind) {
-    // Try to extract commands from summary text
-    const summary = decision.summary || "";
-    const commandMatches = summary.match(/`([^`]+)`/g);
-    const commands = commandMatches ? commandMatches.map(cmd => cmd.replace(/`/g, '')) : [];
-    
-    // Create a structured response from the summary
-    const structuredDecision: AiDraftAction = {
-      ...decision,
-      task: decision.task || "install_software",
-      status: "unconfirmed" as const,
-      risk: decision.risk || "medium" as const,
-      suggested: commands.length > 1 ? {
-        kind: "batch_script" as const,
-        name: "Software Installation",
-        overview: summary.split('.')[0] + '.',
-        commands: commands,
-        post_checks: commands.filter(cmd => cmd.includes('--version'))
-      } : {
-        kind: "command" as const,
-        description: "Install software",
-        command: commands[0] || "sudo apt update"
-      },
-      notes: ["Review the commands before executing"],
-      human: decision.human || "Confirm to apply changes"
-    };
-    
-    // Use the structured decision instead
-    return <AiDraftActionCard decision={structuredDecision} onConfirm={onConfirm} onCancel={onCancel} disabled={disabled} />;
+    return (
+      <Card className="border-l-4 border-l-primary/20 bg-primary/5">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Terminal className="h-4 w-4 text-primary" />
+            <span className="font-medium">AI Response Error</span>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Backend returned incomplete ai_draft_action response. Expected complete structure with task, status, risk, suggested commands, notes, and human fields.
+          </p>
+          <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-4">
+            <pre className="text-xs">{JSON.stringify(decision, null, 2)}</pre>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCancel}
+              disabled={disabled}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (!isExpanded) {

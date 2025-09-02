@@ -140,6 +140,43 @@ function tryParseJSON(s: string) {
   }
 }
 
+// Validate ai_draft_action response completeness
+function validateAiDraftActionResponse(obj: any): { isValid: boolean; missingFields: string[] } {
+  const requiredFields = ['mode', 'task', 'summary', 'status', 'risk', 'suggested', 'notes', 'human'];
+  const missingFields: string[] = [];
+  
+  for (const field of requiredFields) {
+    if (!obj.hasOwnProperty(field) || obj[field] === undefined || obj[field] === null) {
+      missingFields.push(field);
+    }
+  }
+  
+  // Validate suggested object structure
+  if (obj.suggested) {
+    if (!obj.suggested.kind) {
+      missingFields.push('suggested.kind');
+    } else if (obj.suggested.kind === 'command') {
+      if (!obj.suggested.command || !obj.suggested.description) {
+        missingFields.push('suggested.command or suggested.description');
+      }
+    } else if (obj.suggested.kind === 'batch_script') {
+      if (!obj.suggested.name || !obj.suggested.overview || !obj.suggested.commands || !Array.isArray(obj.suggested.commands)) {
+        missingFields.push('suggested.name, suggested.overview, or suggested.commands array');
+      }
+    }
+  }
+  
+  // Validate notes is an array
+  if (obj.notes && !Array.isArray(obj.notes)) {
+    missingFields.push('notes must be an array');
+  }
+  
+  return {
+    isValid: missingFields.length === 0,
+    missingFields
+  };
+}
+
 // Validate draft action against command policies
 function validateDraftAction(draft: any, policies: any[]) {
   console.log('🔍 Validating draft action against policies:', { 
@@ -230,7 +267,10 @@ function validateDraftAction(draft: any, policies: any[]) {
         temperature: systemTemperature,
         response_format: { type: "json_object" }, // Always use JSON mode for dual-mode responses
         messages: [
-          { role: "system", content: systemPrompt + "\n\nPlease respond with valid JSON format." },
+          { 
+            role: "system", 
+            content: systemPrompt + "\n\nIMPORTANT: For ai_draft_action mode, you MUST include ALL required fields: mode, task, summary, status, risk, suggested (with kind, and either command OR name/overview/commands/post_checks), notes array, and human message. Do not return incomplete responses." 
+          },
           { role: "user", content: JSON.stringify(transformedPayload) }
         ]
       };
@@ -310,17 +350,36 @@ function validateDraftAction(draft: any, policies: any[]) {
       } else if (obj && obj.mode === "ai_draft_action") {
         console.log('🚀 AI Draft Action mode response:', obj);
         
-        // Validate draft action against policies
-        const validationResult = validateDraftAction(obj, transformedPayload.command_policies || []);
-        console.log('🛡️ Policy validation result:', validationResult);
+        // Validate completeness of ai_draft_action response
+        const validationResult = validateAiDraftActionResponse(obj);
+        if (!validationResult.isValid) {
+          console.error('❌ Incomplete ai_draft_action response from OpenAI. Missing fields:', validationResult.missingFields);
+          console.error('❌ Received incomplete response:', JSON.stringify(obj, null, 2));
+          
+          // Return an error instead of incomplete response
+          return new Response(JSON.stringify({ 
+            error: 'OpenAI returned incomplete ai_draft_action response', 
+            details: `Missing required fields: ${validationResult.missingFields.join(', ')}`,
+            received_response: obj
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         
-        if (!validationResult.ok) {
+        console.log('✅ AI Draft Action response validation passed');
+        
+        // Validate draft action against policies
+        const policyValidationResult = validateDraftAction(obj, transformedPayload.command_policies || []);
+        console.log('🛡️ Policy validation result:', policyValidationResult);
+        
+        if (!policyValidationResult.ok) {
           // Convert to not_supported action if policy rejected
           const rejectedAction = {
             mode: "action",
             task: "not_supported", 
             status: "rejected",
-            reason: validationResult.reason || "Blocked by policy",
+            reason: policyValidationResult.reason || "Blocked by policy",
             summary: "Please try a different approach."
           };
           
