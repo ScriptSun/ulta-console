@@ -270,7 +270,7 @@ function validateDraftAction(draft: any, policies: any[]) {
 
       const requestBody: any = {
         model: "gpt-5-mini-2025-08-07", // Use newer, faster model
-        max_completion_tokens: 2000, // Use max_completion_tokens for GPT-5
+        max_completion_tokens: 8000, // Increased token limit for complex responses
         // Note: temperature not supported by GPT-5 models
         response_format: { type: "json_object" }, // Always use JSON mode for dual-mode responses
         messages: [
@@ -327,10 +327,22 @@ function validateDraftAction(draft: any, policies: any[]) {
       }
 
       const raw = completion.choices[0]?.message?.content ?? "";
-      console.log('📝 OpenAI Content:', raw);
+      console.log('📝 OpenAI Content (length: ' + raw.length + '):', raw.substring(0, 500) + (raw.length > 500 ? '...' : ''));
+      console.log('🔍 Full OpenAI Response for debugging:', JSON.stringify({
+        model: completion.model,
+        usage: completion.usage,
+        finish_reason: completion.choices[0]?.finish_reason,
+        content_length: raw.length,
+        full_content: raw
+      }, null, 2));
       
       if (!raw) {
-        throw new Error("No content received from OpenAI");
+        console.error('❌ Empty response details:', {
+          finish_reason: completion.choices[0]?.finish_reason,
+          usage: completion.usage,
+          choices_length: completion.choices?.length
+        });
+        throw new Error("No content received from OpenAI - finish_reason: " + completion.choices[0]?.finish_reason);
       }
 
       // Parse response - handle chat, action, and ai_draft_action modes

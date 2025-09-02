@@ -42,6 +42,7 @@ import SystemSettings from "./pages/SystemSettings";
 import AiSettings from "./pages/AiSettings";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
+import RouterLogs from "./pages/RouterLogs";
 
 const queryClient = new QueryClient();
 
@@ -282,6 +283,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <AiSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/router-logs" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <RouterLogs />
                 </RootLayout>
               </ProtectedRoute>
             } />
