@@ -43,7 +43,7 @@ Respond in three modes:
      "params": { ...auto_filled },
      "missing_params": [ ... ],
      "risk": "<low|medium|high>",
-     "human": "<short tip for the UI>"
+     "summary": "<short tip for the UI>"
    }
 
 3) AI Draft Action mode (JSON only):
@@ -61,8 +61,7 @@ Respond in three modes:
           "description": "<short label>",
           "command": "<one safe Linux command>"
         },
-        "notes": ["<short hint for UI>"],
-        "human": "Confirm to apply changes"
+        "notes": ["<short hint for UI>"]
       }
 
    B) Multi-step process (2-15 commands needed):
@@ -87,23 +86,22 @@ Respond in three modes:
             "<curl or systemctl check>"
           ]
         },
-        "notes": ["<short hint for UI>"],
-        "human": "Confirm to apply changes"
+        "notes": ["<short hint for UI>"]
       }
 
    C) If the request is unsafe or forbidden, return:
-      {
-        "mode": "action",
-        "task": "not_supported",
-        "status": "rejected",
-        "reason": "<short reason>",
-        "human": "<short hint>"
-      }
+       {
+         "mode": "action",
+         "task": "not_supported",
+         "status": "rejected",
+         "reason": "<short reason>",
+         "summary": "<short hint>"
+       }
 
 Draft Generation Rules:
 - Only use ai_draft_action when no existing batch matches after retrieval of top 12 candidates
 - Require either a single safe command OR a list of 2-5 single-line commands with no pipes or &&
-- Always include human tone fields: "summary" and human: "Confirm to apply changes"
+- Always include summary field with descriptive message
 - Never output forbidden patterns or destructive commands
 
 Package Manager Rules:
