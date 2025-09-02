@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { MessageSquare, Save, Loader2, FileText, Brain, Wrench, MessageCircle, Lightbulb, Command, RefreshCw } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import { useTheme } from 'next-themes';
+import { loadAllPromptsFromDB, savePromptToDB } from '@/lib/systemPromptsService';
 
 interface PromptType {
   key: string;
@@ -18,7 +18,7 @@ interface PromptType {
   content: string;
 }
 
-const PROMPT_TYPES: PromptType[] = [
+const DEFAULT_PROMPT_TYPES: PromptType[] = [
   {
     key: 'router',
     name: 'Router System Prompt',
@@ -73,7 +73,7 @@ export function SystemPromptTab() {
   const { toast } = useToast();
   const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
-  const [prompts, setPrompts] = useState<PromptType[]>(PROMPT_TYPES);
+  const [prompts, setPrompts] = useState<PromptType[]>(DEFAULT_PROMPT_TYPES);
   const [activeTab, setActiveTab] = useState('router');
   const [savingPrompt, setSavingPrompt] = useState('');
 
@@ -84,42 +84,35 @@ export function SystemPromptTab() {
   const loadPrompts = async () => {
     setLoading(true);
     try {
-      // Load all prompt files
-      const loadPromises = PROMPT_TYPES.map(async (promptType) => {
-        try {
-          const { data, error } = await supabase.functions.invoke('get-system-prompt', {
-            body: { target: promptType.key }
-          });
-          
-          if (error) throw error;
-          
-          return {
-            ...promptType,
-            content: data.prompt || `# ${promptType.name}\n\nPrompt content not yet defined.`
-          };
-        } catch (error) {
-          console.error(`Error loading ${promptType.key} prompt:`, error);
-          return {
-            ...promptType,
-            content: `# ${promptType.name}\n\nError loading prompt: ${error.message || 'Unknown error'}`
-          };
-        }
+      console.log('🔄 Loading system prompts from database...');
+      
+      const dbPrompts = await loadAllPromptsFromDB();
+      
+      // Merge with default prompt types to ensure we have all metadata
+      const mergedPrompts = DEFAULT_PROMPT_TYPES.map(defaultPrompt => {
+        const dbPrompt = dbPrompts.find(p => p.prompt_key === defaultPrompt.key);
+        return {
+          ...defaultPrompt,
+          content: dbPrompt?.content || `# ${defaultPrompt.name}\n\nPrompt content not yet defined.`
+        };
       });
 
-      const loadedPrompts = await Promise.all(loadPromises);
-      setPrompts(loadedPrompts);
+      setPrompts(mergedPrompts);
+      console.log('✅ All prompts loaded successfully from database');
       
       toast({
         title: 'Prompts Loaded',
-        description: 'System prompts loaded from files.',
+        description: 'System prompts loaded from database.',
       });
-    } catch (error) {
-      console.error('Error loading prompts:', error);
+    } catch (error: any) {
+      console.error('❌ Failed to load prompts:', error);
       toast({
         title: 'Loading Failed',
-        description: 'Failed to load system prompts.',
+        description: `Failed to load system prompts: ${error.message}`,
         variant: 'destructive',
       });
+      // Fall back to default prompts
+      setPrompts(DEFAULT_PROMPT_TYPES);
     } finally {
       setLoading(false);
     }
@@ -128,30 +121,25 @@ export function SystemPromptTab() {
   const savePrompt = async (promptKey: string, content: string) => {
     setSavingPrompt(promptKey);
     try {
-      // Create edge function to save prompt file
-      const { error } = await supabase.functions.invoke('save-system-prompt', {
-        body: { 
-          target: promptKey,
-          content: content
-        }
-      });
+      console.log(`💾 Saving ${promptKey} prompt to database...`);
       
-      if (error) throw error;
+      await savePromptToDB(promptKey, content.trim());
       
       // Update local state
       setPrompts(prev => prev.map(p => 
         p.key === promptKey ? { ...p, content } : p
       ));
       
+      console.log(`✅ Successfully saved ${promptKey} prompt to database`);
       toast({
         title: 'Prompt Saved',
-        description: `${prompts.find(p => p.key === promptKey)?.name} has been saved to file.`,
+        description: `${prompts.find(p => p.key === promptKey)?.name} has been saved to database.`,
       });
-    } catch (error) {
-      console.error('Error saving prompt:', error);
+    } catch (error: any) {
+      console.error(`❌ Error saving ${promptKey} prompt:`, error);
       toast({
         title: 'Save Failed',
-        description: 'Failed to save prompt file.',
+        description: `Failed to save prompt: ${error.message}`,
         variant: 'destructive',
       });
     } finally {
@@ -175,10 +163,10 @@ export function SystemPromptTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            File-Based System Prompts
+            Database-Stored System Prompts
           </CardTitle>
           <CardDescription>
-            Manage system prompts stored as markdown files. Each prompt serves a specific purpose in the AI pipeline.
+            Manage system prompts stored in database with Base64 encoding. Each prompt serves a specific purpose in the AI pipeline.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -268,7 +256,7 @@ export function SystemPromptTab() {
                       ) : (
                         <Save className="h-4 w-4" />
                       )}
-                      Save to File
+                      Save to Database
                     </Button>
                   </div>
                 </div>
@@ -285,11 +273,12 @@ export function SystemPromptTab() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="text-sm space-y-2">
-            <p>• <strong>File-based storage:</strong> Prompts are stored as .md files in <code>supabase/functions/_shared/prompts/</code></p>
-            <p>• <strong>No versioning:</strong> Use Git for version control and history</p>
-            <p>• <strong>Immediate effect:</strong> Changes take effect immediately in edge functions</p>
+            <p>• <strong>Database storage:</strong> Prompts are stored in the `system_prompts` table with Base64 encoding</p>
+            <p>• <strong>No encoding issues:</strong> Base64 encoding handles HTML entities and Unicode characters</p>
+            <p>• <strong>Immediate effect:</strong> Changes take effect immediately across all services</p>
             <p>• <strong>Specialized prompts:</strong> Each prompt is optimized for its specific use case</p>
-            <p>• <strong>Cache-enabled:</strong> Prompts are cached for 5 minutes for better performance</p>
+            <p>• <strong>Version tracking:</strong> Database tracks creation and update timestamps</p>
+            <p>• <strong>Reliable:</strong> No file system dependencies or edge function issues</p>
           </div>
         </CardContent>
       </Card>

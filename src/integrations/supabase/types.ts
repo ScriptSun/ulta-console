@@ -2198,6 +2198,39 @@ export type Database = {
         }
         Relationships: []
       }
+      system_prompts: {
+        Row: {
+          content_base64: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          prompt_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content_base64: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          prompt_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content_base64?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          prompt_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           created_at: string | null
