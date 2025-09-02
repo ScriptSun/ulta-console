@@ -125,7 +125,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const { toast } = useToast();
   const { theme } = useTheme();
   
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(forceEnabled);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [selectedAgentDetails, setSelectedAgentDetails] = useState<Agent | null>(null);
@@ -187,7 +187,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     }
 
     const openState = sessionStorage.getItem(`chatDemo_${currentRoute}`);
-    if (openState === 'true') {
+    if (openState === 'true' || forceEnabled) {
       setIsOpen(true);
     }
   }, [currentRoute]);
@@ -1527,34 +1527,36 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
 
   return (
     <>
-      {/* Backdrop Overlay */}
-      {isOpen && (
+      {/* Backdrop Overlay - only show if not forced enabled */}
+      {isOpen && !forceEnabled && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={() => setIsOpen(false)} />
       )}
 
-      {/* Floating Launcher */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          onClick={() => {
-            setIsOpen(true);
-            setUnreadBadge(false);
-          }}
-          className="relative h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-200 hover:scale-105"
-        >
-          <MessageCircle className="w-4 h-4 mr-2" />
-          Chat Demo
-          {unreadBadge && (
-            <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 bg-destructive text-destructive-foreground">
-              !
-            </Badge>
-          )}
-        </Button>
-      </div>
+      {/* Floating Launcher - only show if not forced enabled */}
+      {!forceEnabled && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            onClick={() => {
+              setIsOpen(true);
+              setUnreadBadge(false);
+            }}
+            className="relative h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-200 hover:scale-105"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            Chat Demo
+            {unreadBadge && (
+              <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 bg-destructive text-destructive-foreground">
+                !
+              </Badge>
+            )}
+          </Button>
+        </div>
+      )}
 
-      {/* Center Chat Popup */}
+      {/* Chat Interface */}
       {isOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-3xl h-[80vh] flex flex-col bg-background border shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+        <div className={forceEnabled ? "w-full h-full" : "fixed inset-0 flex items-center justify-center z-50 p-4"}>
+          <Card className={`flex flex-col bg-background border ${forceEnabled ? "w-full h-full" : "w-full max-w-3xl h-[80vh] shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"}`}>
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center gap-3">
@@ -1664,13 +1666,15 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                   </PopoverContent>
                 </Popover>
                 
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                {!forceEnabled && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </div>
 
