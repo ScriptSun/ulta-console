@@ -125,23 +125,33 @@ export default {
 				'morph': {
 					'0%': {
 						borderRadius: '50%',
-						transform: 'scale(1) translateX(0)'
+						transform: 'scale(1) translateX(0) rotate(0deg)',
+						filter: 'blur(0px)'
 					},
-					'25%': {
-						borderRadius: '60% 40% 60% 40%',
-						transform: 'scale(1.1) translateX(2px)'
+					'20%': {
+						borderRadius: '60% 40% 70% 30%',
+						transform: 'scale(1.1) translateX(3px) rotate(72deg)',
+						filter: 'blur(0.5px)'
 					},
-					'50%': {
-						borderRadius: '40% 60% 40% 60%',
-						transform: 'scale(0.9) translateX(4px)'
+					'40%': {
+						borderRadius: '40% 60% 30% 70%',
+						transform: 'scale(0.9) translateX(6px) rotate(144deg)',
+						filter: 'blur(0px)'
 					},
-					'75%': {
-						borderRadius: '60% 40% 30% 70%',
-						transform: 'scale(1.2) translateX(2px)'
+					'60%': {
+						borderRadius: '70% 30% 60% 40%',
+						transform: 'scale(1.2) translateX(4px) rotate(216deg)',
+						filter: 'blur(0.3px)'
+					},
+					'80%': {
+						borderRadius: '30% 70% 40% 60%',
+						transform: 'scale(0.95) translateX(1px) rotate(288deg)',
+						filter: 'blur(0px)'
 					},
 					'100%': {
 						borderRadius: '50%',
-						transform: 'scale(1) translateX(0)'
+						transform: 'scale(1) translateX(0) rotate(360deg)',
+						filter: 'blur(0px)'
 					}
 				}
 			},

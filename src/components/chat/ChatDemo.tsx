@@ -2868,10 +2868,11 @@ Please proceed with creating and executing this batch script.`;
                           </Badge>
                         )}
                         <div className="relative ml-2" aria-label="Processing...">
-                          <div className="w-8 h-4 relative">
-                            <div className="absolute inset-0 bg-muted-foreground/30 rounded-full animate-pulse"></div>
-                            <div className="absolute top-0 left-0 w-3 h-3 bg-muted-foreground rounded-full animate-[morph_2s_ease-in-out_infinite]"></div>
-                            <div className="absolute top-0 right-0 w-2 h-2 bg-muted-foreground/60 rounded-full animate-[morph_2s_ease-in-out_infinite_0.5s]"></div>
+                          <div className="w-10 h-5 relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary-glow/20 rounded-full animate-pulse"></div>
+                            <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-gradient-to-br from-primary to-primary-glow rounded-full animate-[morph_2s_ease-in-out_infinite] shadow-sm shadow-primary/30"></div>
+                            <div className="absolute top-1 right-1 w-3 h-3 bg-gradient-to-br from-primary-glow to-primary rounded-full animate-[morph_2s_ease-in-out_infinite_0.7s] opacity-80"></div>
+                            <div className="absolute top-1.5 left-3 w-2 h-2 bg-primary/60 rounded-full animate-[morph_2s_ease-in-out_infinite_1.2s]"></div>
                           </div>
                         </div>
                       </div>
