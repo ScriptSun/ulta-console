@@ -434,6 +434,16 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           // Start router timeout since API has begun
           startRouterTimeout();
           
+          // Create a pending assistant message to be updated later
+          const pendingMessage: Message = {
+            id: `router-pending-${Date.now()}`,
+            role: 'assistant',
+            content: '',
+            timestamp: new Date(),
+            pending: true
+          };
+          setMessages(prev => [...prev, pendingMessage]);
+          
           // Add router request to logs
           const lastUserMessage = messages.filter(m => m.role === 'user').pop();
           setApiLogs(prev => [...prev, {
@@ -634,9 +644,12 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                         // Set action phase to planning for actions and drafts
                         setActionPhase('planning');
                         
-                        // Set up needs inputs if missing params OR if action has input schema (for confirmed actions)
-                        if (data.batch_id && ((data.status === 'unconfirmed' && data.missing_params) || 
-                            (data.status === 'confirmed' && data.batch_details?.inputs_schema))) {
+                        // Set up needs inputs if missing params OR if action has configurable inputs
+                        const hasInputSchema = data.batch_details?.inputs_schema?.properties && 
+                                             Object.keys(data.batch_details.inputs_schema.properties).length > 0;
+                        
+                        if (data.batch_id && ((data.status === 'unconfirmed' && data.missing_params?.length > 0) || 
+                            (data.status === 'confirmed' && hasInputSchema))) {
                           handleMissingParams(updated[i], data);
                           
                           // Delay showing input form to allow summary to be visible first
@@ -974,9 +987,12 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           decision: jsonData
         };
         
-        // Set up input requirements for both unconfirmed and confirmed actions with schemas
-        if (jsonData.batch_id && ((jsonData.status === 'unconfirmed' && jsonData.missing_params) || 
-            (jsonData.status === 'confirmed' && jsonData.batch_details?.inputs_schema))) {
+        // Set up input requirements for actions with configurable inputs
+        const hasInputSchema = jsonData.batch_details?.inputs_schema?.properties && 
+                               Object.keys(jsonData.batch_details.inputs_schema.properties).length > 0;
+        
+        if (jsonData.batch_id && ((jsonData.status === 'unconfirmed' && jsonData.missing_params?.length > 0) || 
+            (jsonData.status === 'confirmed' && hasInputSchema))) {
           handleMissingParams(updated[msgIndex], jsonData);
           
           // Show input form after a brief delay
@@ -1006,7 +1022,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         message.needsInputs = {
           schema: decision.batch_details.inputs_schema,
           defaults: decision.batch_details.inputs_defaults || {},
-          missingParams: decision.missing_params
+          missingParams: decision.missing_params || []
         };
         
         message.renderConfig = decision.batch_details.render_config || { type: 'text' };
@@ -1025,7 +1041,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         message.needsInputs = {
           schema: batchData.inputs_schema,
           defaults: (batchData.inputs_defaults as Record<string, any>) || {},
-          missingParams: decision.missing_params
+          missingParams: decision.missing_params || []
         };
         
         message.renderConfig = (batchData.render_config as unknown as RenderConfig) || { type: 'text' };
