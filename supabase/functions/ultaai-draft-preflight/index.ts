@@ -20,6 +20,7 @@ interface RequestBody {
       commands: string[];
     };
   };
+  run_id?: string;
 }
 
 interface PreflightCheck {
@@ -147,7 +148,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { agent_id, decision }: RequestBody = await req.json();
+    const { agent_id, decision, run_id }: RequestBody = await req.json();
 
     if (!agent_id || !decision) {
       return new Response(JSON.stringify({ error: 'Missing agent_id or decision' }), {

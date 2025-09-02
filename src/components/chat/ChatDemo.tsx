@@ -2137,61 +2137,64 @@ Please proceed with creating and executing this batch script.`;
                           <div className="mt-3">
                             <AiDraftActionCard
                               decision={message.decision}
-                              onConfirm={() => {
-                                // Handle draft confirmation
-                                if (message.decision && message.decision.mode === 'ai_draft_action') {
-                                  // Convert draft to executable action
-                  // Convert AI draft to executable format
-                  const executableAction = {
-                    mode: 'action' as const,
-                    task: message.decision.suggested.kind === 'command' ? 'custom_shell' : 'proposed_batch_script',
-                    status: 'unconfirmed' as const,
-                    risk: message.decision.risk,
-                    params: message.decision.suggested.kind === 'command' ? {
-                      description: message.decision.summary,
-                      shell: message.decision.suggested.command
-                    } : undefined,
-                    script: message.decision.suggested.kind === 'batch_script' ? {
-                      name: message.decision.suggested.name,
-                      overview: message.decision.suggested.overview,
-                      commands: message.decision.suggested.commands,
-                      post_checks: message.decision.suggested.post_checks || []
-                    } : undefined,
-                    human: "Confirm & Execute to apply changes",
-                    // Add draft action data for WebSocket
-                    suggested: message.decision.suggested,
-                    summary: message.decision.summary
-                  };
-                  
-                  // Set up execution status tracking for draft actions
-                  setMessages(prev => {
-                    const updated = [...prev];
-                    const msgIndex = updated.findIndex(m => m.id === message.id);
-                    if (msgIndex !== -1) {
-                      updated[msgIndex] = {
-                        ...updated[msgIndex],
-                        executionStatus: {
-                          run_id: '', // Will be set by WebSocket
-                          status: 'preparing'
-                        }
-                      };
-                    }
-                    return updated;
-                  });
-                  
-                  // Connect to exec WebSocket and start preflight
-                  connectExec();
-                  
-                  // Wait a moment for connection, then send preflight request
-                  setTimeout(() => {
-                    sendExecRequest({
-                      mode: 'preflight',
-                      agent_id: selectedAgent!,
-                      decision: executableAction
-                    });
-                  }, 100);
-                }
-              }}
+                               onConfirm={() => {
+                                 // Handle draft confirmation
+                                 if (message.decision && message.decision.mode === 'ai_draft_action') {
+                                   // Generate a run_id for tracking across router -> preflight -> exec
+                                   const runId = crypto.randomUUID();
+                                   
+                                   // Convert draft to executable action
+                                   const executableAction = {
+                                     mode: 'action' as const,
+                                     task: message.decision.suggested.kind === 'command' ? 'custom_shell' : 'proposed_batch_script',
+                                     status: 'unconfirmed' as const,
+                                     risk: message.decision.risk,
+                                     params: message.decision.suggested.kind === 'command' ? {
+                                       description: message.decision.summary,
+                                       shell: message.decision.suggested.command
+                                     } : undefined,
+                                     script: message.decision.suggested.kind === 'batch_script' ? {
+                                       name: message.decision.suggested.name,
+                                       overview: message.decision.suggested.overview,
+                                       commands: message.decision.suggested.commands,
+                                       post_checks: message.decision.suggested.post_checks || []
+                                     } : undefined,
+                                     human: "Confirm & Execute to apply changes",
+                                     // Add draft action data for WebSocket
+                                     suggested: message.decision.suggested,
+                                     summary: message.decision.summary
+                                   };
+                                   
+                                   // Set up execution status tracking for draft actions
+                                   setMessages(prev => {
+                                     const updated = [...prev];
+                                     const msgIndex = updated.findIndex(m => m.id === message.id);
+                                     if (msgIndex !== -1) {
+                                       updated[msgIndex] = {
+                                         ...updated[msgIndex],
+                                         executionStatus: {
+                                           run_id: runId,
+                                           status: 'preparing'
+                                         }
+                                       };
+                                     }
+                                     return updated;
+                                   });
+                                   
+                                   // Connect to exec WebSocket and start preflight
+                                   connectExec();
+                                   
+                                   // Wait a moment for connection, then send preflight request
+                                   setTimeout(() => {
+                                     sendExecRequest({
+                                       mode: 'preflight',
+                                       agent_id: selectedAgent!,
+                                       decision: executableAction,
+                                       run_id: runId
+                                     });
+                                   }, 100);
+                                 }
+                               }}
               onCancel={() => {
                 // Clear the action phase when cancelled
                 setActionPhase(null);

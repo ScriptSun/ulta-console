@@ -25,6 +25,7 @@ interface RouterMessage {
 interface RouterRequest {
   agent_id: string;
   user_request: string;
+  run_id?: string;
 }
 
 serve(async (req) => {
@@ -127,7 +128,8 @@ serve(async (req) => {
         const routerResponse = await supabase.functions.invoke('ultaai-router-decide', {
           body: {
             agent_id: request.agent_id,
-            user_request: request.user_request
+            user_request: request.user_request,
+            run_id: request.run_id
           }
         });
 

@@ -716,9 +716,11 @@ export type Database = {
           duration_sec: number | null
           finished_at: string | null
           id: string
+          metadata: Json | null
           parser_warning: boolean | null
           raw_stderr: string | null
           raw_stdout: string | null
+          source: string | null
           started_at: string | null
           status: string
           tenant_id: string
@@ -734,9 +736,11 @@ export type Database = {
           duration_sec?: number | null
           finished_at?: string | null
           id?: string
+          metadata?: Json | null
           parser_warning?: boolean | null
           raw_stderr?: string | null
           raw_stdout?: string | null
+          source?: string | null
           started_at?: string | null
           status?: string
           tenant_id: string
@@ -752,9 +756,11 @@ export type Database = {
           duration_sec?: number | null
           finished_at?: string | null
           id?: string
+          metadata?: Json | null
           parser_warning?: boolean | null
           raw_stderr?: string | null
           raw_stdout?: string | null
+          source?: string | null
           started_at?: string | null
           status?: string
           tenant_id?: string
@@ -1661,6 +1667,42 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_events: {
+        Row: {
+          agent_id: string | null
+          batch_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          run_id: string
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          batch_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          run_id: string
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          batch_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          run_id?: string
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       intent_mappings: {
         Row: {
           active: boolean
@@ -1801,6 +1843,39 @@ export type Database = {
           id?: string
           updated_at?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      router_events: {
+        Row: {
+          agent_id: string | null
+          conversation_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          run_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          run_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          run_id?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -46,6 +46,7 @@ interface RequestBody {
     };
   };
   confirm?: boolean;
+  run_id?: string;  // For tracking the run across router -> preflight -> exec
 }
 
 interface ExecutionResult {
@@ -142,7 +143,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { agent_id, decision, confirm }: RequestBody = await req.json();
+    const { agent_id, decision, confirm, run_id }: RequestBody = await req.json();
 
     if (!agent_id || !decision) {
       return new Response(JSON.stringify({ error: 'Missing agent_id or decision' }), {
@@ -220,19 +221,31 @@ serve(async (req) => {
       }
 
       // Create batch_runs entry for tracking
+      const insertData: any = {
+        agent_id: agent_id,
+        tenant_id: tenant_id,
+        status: 'running',
+        started_at: new Date().toISOString(),
+        source: source,
+        metadata: { 
+          source: source, 
+          summary: decision.summary,
+          kind: decision.suggested?.kind || 'batch_script'
+        },
+        raw_stdout: '',
+        raw_stderr: '',
+        contract: null,
+        parser_warning: false
+      };
+
+      // Use the existing run_id if provided, otherwise create a new one
+      if (run_id) {
+        insertData.id = run_id;
+      }
+
       const { data: runData, error: runError } = await supabase
         .from('batch_runs')
-        .insert({
-          batch_id: null, // No specific batch for draft actions
-          agent_id: agent_id,
-          tenant_id: tenant_id,
-          status: 'running',
-          started_at: new Date().toISOString(),
-          raw_stdout: '',
-          raw_stderr: '',
-          contract: null,
-          parser_warning: false
-        })
+        .insert(insertData)
         .select('id')
         .single();
 
@@ -247,6 +260,27 @@ serve(async (req) => {
         });
       }
 
+      const finalRunId = runData.id;
+
+      // Log exec event for draft action
+      try {
+        await supabase.from('exec_events').insert({
+          run_id: finalRunId,
+          event_type: 'started',
+          payload: {
+            commands: commands,
+            summary: decision.summary,
+            kind: decision.suggested?.kind || 'batch_script'
+          },
+          source: source,
+          agent_id: agent_id,
+          batch_id: null
+        });
+        console.log('✅ Logged exec_event for draft action');
+      } catch (eventError) {
+        console.error('⚠️ Failed to log exec event:', eventError);
+      }
+
       // Add source metadata to the run
       await supabase.from('batch_runs')
         .update({
@@ -256,9 +290,9 @@ serve(async (req) => {
 
       // Simulate execution (in real implementation, this would be handled by ws-exec)
       const execution = await simulateCommandExecution(commands);
-      
+
       // Update the run with results
-      await supabase.from('batch_runs')
+      const updateResult = await supabase.from('batch_runs')
         .update({
           status: execution.exit_code === 0 ? 'completed' : 'failed',
           finished_at: new Date().toISOString(),
@@ -266,11 +300,30 @@ serve(async (req) => {
           raw_stderr: execution.stderr_tail,
           duration_sec: Math.floor(Math.random() * 30) + 5 // Simulate 5-35 second duration
         })
-        .eq('id', runData.id);
+        .eq('id', finalRunId);
+
+      // Log completion exec event
+      try {
+        await supabase.from('exec_events').insert({
+          run_id: finalRunId,
+          event_type: execution.exit_code === 0 ? 'completed' : 'failed',
+          payload: {
+            exit_code: execution.exit_code,
+            stdout_tail: execution.stdout_tail,
+            stderr_tail: execution.stderr_tail
+          },
+          source: source,
+          agent_id: agent_id,
+          batch_id: null
+        });
+        console.log('✅ Logged completion exec_event for draft action');
+      } catch (eventError) {
+        console.error('⚠️ Failed to log completion exec event:', eventError);
+      }
 
       return new Response(JSON.stringify({
         status: 'started',
-        run_id: runData.id,
+        run_id: finalRunId,
         message: 'Draft action execution started',
         ...execution
       }), {

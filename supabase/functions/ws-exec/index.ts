@@ -132,7 +132,8 @@ serve(async (req) => {
         preflightResponse = await supabase.functions.invoke('ultaai-draft-preflight', {
           body: {
             agent_id: request.agent_id,
-            decision: request.decision
+            decision: request.decision,
+            run_id: request.run_id
           }
         });
       } else {
@@ -182,7 +183,8 @@ serve(async (req) => {
           body: {
             agent_id: request.agent_id,
             decision: request.decision,
-            confirm: true
+            confirm: true,
+            run_id: request.run_id
           }
         });
 

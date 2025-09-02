@@ -45,6 +45,8 @@ interface RequestBody {
   agent_id: string;
   user_request: string;
   tenant_id?: string;
+  run_id?: string;
+  conversation_id?: string;
 }
 
 serve(async (req) => {
@@ -77,7 +79,7 @@ serve(async (req) => {
       hasOpenAIKey: !!Deno.env.get('OPENAI_API_KEY')
     });
 
-    const { agent_id, user_request, tenant_id }: RequestBody = await req.json();
+    const { agent_id, user_request, tenant_id, run_id, conversation_id }: RequestBody = await req.json();
 
     if (!agent_id || !user_request) {
       console.error('❌ Missing required parameters:', { agent_id: !!agent_id, user_request: !!user_request });
@@ -350,6 +352,39 @@ function validateDraftAction(draft: any, policies: any[]) {
         }
 
         console.log(`✅ AI Draft Action decision completed for agent ${agent_id}`);
+        
+        // Persist router event for ai_draft_action decisions
+        if (run_id) {
+          try {
+            // Create a sanitized payload (exclude any secret fields)
+            const sanitizedPayload = {
+              ...obj,
+              // Remove any potentially sensitive data if needed
+              // For now, we'll keep the full payload as it shouldn't contain secrets
+            };
+            
+            const { error: eventError } = await supabase
+              .from('router_events')
+              .insert({
+                run_id: run_id,
+                event_type: 'selected',
+                payload: sanitizedPayload,
+                agent_id: agent_id,
+                conversation_id: conversation_id
+              });
+            
+            if (eventError) {
+              console.error('❌ Error persisting router event:', eventError);
+              // Don't fail the request, just log the error
+            } else {
+              console.log('✅ Persisted router event for ai_draft_action with run_id:', run_id);
+            }
+          } catch (error) {
+            console.error('❌ Error persisting router event:', error);
+          }
+        } else {
+          console.log('⚠️ No run_id provided, skipping router event persistence');
+        }
         
         // Return the ai_draft_action JSON as is
         return new Response(JSON.stringify(obj), {
