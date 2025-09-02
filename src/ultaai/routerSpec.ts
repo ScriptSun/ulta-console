@@ -77,7 +77,7 @@ Respond in three modes:
      "params": { ...auto_filled },
      "missing_params": [ ... ],
      "risk": "<low|medium|high>",
-     "human": "<short tip for the UI>"
+     "summary": "<short description of what this will do>"
    }
 
 3) AI Draft Action mode (JSON only):
@@ -131,7 +131,7 @@ Respond in three modes:
         "task": "not_supported",
         "status": "rejected",
         "reason": "<short reason>",
-        "human": "<short hint>"
+        "summary": "<short hint>"
       }
 
 Draft Generation Rules:
@@ -170,26 +170,26 @@ export const ROUTER_RESPONSE_SCHEMA = {
      {
        "type": "object",
        "oneOf": [
-        // Confirmed/unconfirmed batch
-        { 
-          "type": "object",
-          "required": ["mode", "task", "batch_id", "status", "params", "risk", "human"],
-          "properties": {
-            "mode": { "type": "string", "enum": ["action"] },
-            "task": { "type": "string" },
-            "batch_id": { "type": "string" },
-            "status": { "type": "string", "enum": ["confirmed", "unconfirmed"] },
-            "params": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } },
-            "missing_params": { "type": "array", "items": { "type": "string" } },
-            "risk": { "type": "string", "enum": ["low", "medium", "high"] },
-            "human": { "type": "string" }
-          },
-          "additionalProperties": false
-        },
+         // Confirmed/unconfirmed batch
+         { 
+           "type": "object",
+           "required": ["mode", "task", "batch_id", "status", "params", "risk", "summary"],
+           "properties": {
+             "mode": { "type": "string", "enum": ["action"] },
+             "task": { "type": "string" },
+             "batch_id": { "type": "string" },
+             "status": { "type": "string", "enum": ["confirmed", "unconfirmed"] },
+             "params": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } },
+             "missing_params": { "type": "array", "items": { "type": "string" } },
+             "risk": { "type": "string", "enum": ["low", "medium", "high"] },
+             "summary": { "type": "string" }
+           },
+           "additionalProperties": false
+         },
         // Custom shell command
         { 
           "type": "object",
-          "required": ["mode", "task", "status", "risk", "params", "human"],
+          "required": ["mode", "task", "status", "risk", "params", "summary"],
           "properties": {
             "mode": { "type": "string", "enum": ["action"] },
             "task": { "type": "string", "enum": ["custom_shell"] },
@@ -204,14 +204,14 @@ export const ROUTER_RESPONSE_SCHEMA = {
               },
               "additionalProperties": false
             },
-            "human": { "type": "string" }
+            "summary": { "type": "string" }
           },
           "additionalProperties": false
         },
         // Proposed batch script
         { 
           "type": "object",
-          "required": ["mode", "task", "status", "risk", "script", "human"],
+          "required": ["mode", "task", "status", "risk", "script", "summary"],
           "properties": {
             "mode": { "type": "string", "enum": ["action"] },
             "task": { "type": "string", "enum": ["proposed_batch_script"] },
@@ -228,7 +228,7 @@ export const ROUTER_RESPONSE_SCHEMA = {
               },
               "additionalProperties": false
             },
-            "human": { "type": "string" }
+            "summary": { "type": "string" }
           },
           "additionalProperties": false
          },
@@ -274,19 +274,19 @@ export const ROUTER_RESPONSE_SCHEMA = {
            },
            "additionalProperties": false
          },
-         // Not supported
-         { 
-           "type": "object",
-           "required": ["mode", "task", "status", "reason", "human"],
-           "properties": {
-             "mode": { "type": "string", "enum": ["action"] },
-             "task": { "type": "string", "enum": ["not_supported"] },
-             "status": { "type": "string", "enum": ["rejected"] },
-             "reason": { "type": "string" },
-             "human": { "type": "string" }
-           },
-           "additionalProperties": false
-         }
+          // Not supported
+          { 
+            "type": "object",
+            "required": ["mode", "task", "status", "reason", "summary"],
+            "properties": {
+              "mode": { "type": "string", "enum": ["action"] },
+              "task": { "type": "string", "enum": ["not_supported"] },
+              "status": { "type": "string", "enum": ["rejected"] },
+              "reason": { "type": "string" },
+              "summary": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
       ]
     }
   ]
