@@ -1,5 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
+import { i18n } from '@/lib/i18n';
 import { Brain, Search, CheckCircle, Cog, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 type ChipPhase = 
@@ -21,37 +22,37 @@ export function ActionChips({ phase, className = "" }: ActionChipsProps) {
       case 'planning':
         return {
           icon: Brain,
-          text: 'Planning changes',
+          text: i18n.phases.planning,
           className: 'bg-blue-100 text-blue-800 border-blue-200 animate-pulse'
         };
       case 'analyzing':
         return {
           icon: Search,
-          text: 'Analyzing server',
+          text: i18n.phases.analyzing,
           className: 'bg-yellow-100 text-yellow-800 border-yellow-200 animate-pulse'
         };
       case 'ready':
         return {
           icon: CheckCircle,
-          text: 'Ready to apply changes',
+          text: i18n.phases.ready,
           className: 'bg-green-100 text-green-800 border-green-200'
         };
       case 'working':
         return {
           icon: Cog,
-          text: 'Working on server',
+          text: i18n.phases.working,
           className: 'bg-purple-100 text-purple-800 border-purple-200 animate-pulse'
         };
       case 'completed':
         return {
           icon: CheckCircle2,
-          text: 'Changes applied',
+          text: i18n.phases.done,
           className: 'bg-green-100 text-green-800 border-green-200'
         };
       case 'failed':
         return {
           icon: AlertCircle,
-          text: 'Could not complete changes',
+          text: i18n.phases.failed,
           className: 'bg-red-100 text-red-800 border-red-200'
         };
       default:

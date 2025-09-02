@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { Copy, Terminal, FileText, X, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AiDraftAction } from '@/types/routerTypes';
+import { i18n, sanitizeText } from '@/lib/i18n';
 
 interface AiDraftActionCardProps {
   decision: AiDraftAction;
@@ -51,7 +52,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Terminal className="h-4 w-4 text-primary" />
-              <span className="font-medium text-sm">{decision.summary}</span>
+              <span className="font-medium text-sm">{sanitizeText(decision.summary) || i18n.draft.cardTitle.fallback}</span>
             </div>
             <Button 
               variant="ghost" 
@@ -73,7 +74,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <Terminal className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">{decision.summary}</CardTitle>
+            <CardTitle className="text-base">{sanitizeText(decision.summary) || i18n.draft.cardTitle.fallback}</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             <Badge className={getRiskColor(decision.risk)} variant="outline">
@@ -89,7 +90,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Terminal className="h-4 w-4" />
-              <span className="font-medium text-sm">Command</span>
+              <span className="font-medium text-sm">{i18n.draft.command.title}</span>
             </div>
             <div className="relative">
               <pre className="bg-muted p-3 rounded-md text-sm font-mono whitespace-pre-wrap overflow-x-auto">
@@ -105,7 +106,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
-              {decision.suggested.kind === "command" ? decision.suggested.description : ""}
+              {decision.suggested.kind === "command" ? sanitizeText(decision.suggested.description) : ""}
             </p>
           </div>
         )}
@@ -115,11 +116,11 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
           <div>
             <div className="flex items-center gap-2 mb-2">
               <FileText className="h-4 w-4" />
-              <span className="font-medium text-sm">Batch script</span>
+              <span className="font-medium text-sm">{i18n.draft.batch.title}</span>
             </div>
             <div className="bg-muted p-3 rounded-md">
-              <h4 className="font-medium text-sm mb-1">{decision.suggested.name}</h4>
-              <p className="text-sm text-muted-foreground mb-3">{decision.suggested.overview}</p>
+              <h4 className="font-medium text-sm mb-1">{sanitizeText(decision.suggested.name)}</h4>
+              <p className="text-sm text-muted-foreground mb-3">{sanitizeText(decision.suggested.overview)}</p>
               
               <div className="space-y-2">
                 {decision.suggested.commands.map((command, index) => (
@@ -165,11 +166,11 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
             <h4 className="font-medium text-sm text-blue-800 mb-2">Important notes:</h4>
             <ul className="space-y-1">
-              {decision.notes.map((note, index) => (
-                <li key={index} className="text-sm text-blue-700">
-                  • {note}
-                </li>
-              ))}
+                  {decision.notes.map((note, index) => (
+                    <li key={index} className="text-sm text-blue-700">
+                      • {sanitizeText(note)}
+                    </li>
+                  ))}
             </ul>
           </div>
         )}
@@ -180,7 +181,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {decision.human && (
-              <span>{decision.human}</span>
+              <span>{sanitizeText(decision.human)}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -191,7 +192,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
               disabled={disabled}
             >
               <X className="h-4 w-4 mr-1" />
-              Cancel
+              {i18n.draft.buttons.cancel}
             </Button>
             <Button
               size="sm"
@@ -199,7 +200,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
               disabled={disabled}
             >
               <CheckCircle className="h-4 w-4 mr-1" />
-              Confirm & Execute
+              {i18n.draft.buttons.confirm}
             </Button>
           </div>
         </div>
