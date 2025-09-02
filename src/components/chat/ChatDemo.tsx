@@ -183,7 +183,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const sessionStartTime = useRef(Date.now());
   const routerTimeoutRef = useRef<NodeJS.Timeout>();
   
-  // WebSocket router and event bus
+  // WebSocket router and event bus - only connect when needed
   const { connect, disconnect, sendRequest, isConnected } = useWebSocketRouter();
   const { 
     connect: connectExec, 
@@ -923,18 +923,16 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     };
   }, [on, toast, setActionPhase]);
 
-  // Connect WebSocket when component mounts and agent is selected
+  // Connect WebSocket only when sending messages (removed automatic connection)
+  // WebSocket connections will be established on-demand when needed
+  
+  // Cleanup WebSocket connections on unmount
   useEffect(() => {
-    if (selectedAgent && shouldShowDemo) {
-      connect();
-      connectExec();
-    }
-    
     return () => {
       disconnect();
       disconnectExec();
     };
-  }, [selectedAgent, shouldShowDemo, connect, disconnect, connectExec, disconnectExec]);
+  }, [disconnect, disconnectExec]);
 
   // Start action sequence for install commands
   const startActionSequence = async (jsonData: any) => {
@@ -1343,8 +1341,21 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         return;
       }
       
+      // Connect WebSocket if not already connected
       if (!isConnected) {
-        throw new Error('WebSocket router not connected');
+        console.log('🔌 Connecting to WebSocket router...');
+        try {
+          await connect();
+          // Wait a moment for connection to establish
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          if (!isConnected) {
+            throw new Error('Failed to connect to WebSocket router');
+          }
+        } catch (connectError) {
+          console.error('Failed to connect to WebSocket:', connectError);
+          throw new Error('WebSocket connection failed');
+        }
       }
       
       // Start router request immediately  
@@ -1687,7 +1698,7 @@ Please proceed with creating and executing this batch script.`;
   };
 
   // Handle preflight completion (called from PreflightBlockCard)
-  const handlePreflightComplete = (success: boolean, runId?: string) => {
+  const handlePreflightComplete = async (success: boolean, runId?: string) => {
     if (success && runId) {
       // Preflight passed, start execution monitoring
       const executionMessage: Message = {
@@ -1705,6 +1716,12 @@ Please proceed with creating and executing this batch script.`;
       setMessages(prev => [...prev, executionMessage]);
 
       // Start execution monitoring via WebSocket
+      if (!isExecConnected) {
+        await connectExec();
+        // Wait for connection to establish
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
       sendExecRequest({
         run_id: runId
       });
@@ -2196,19 +2213,24 @@ Please proceed with creating and executing this batch script.`;
                                      }
                                      return updated;
                                    });
-                                   
-                                   // Connect to exec WebSocket and start preflight
-                                   connectExec();
-                                   
-                                   // Wait a moment for connection, then send preflight request
-                                   setTimeout(() => {
-                                     sendExecRequest({
-                                       mode: 'preflight',
-                                       agent_id: selectedAgent!,
-                                       decision: executableAction,
-                                       run_id: runId
-                                     });
-                                   }, 100);
+                                     
+                                     // Connect to exec WebSocket and start preflight
+                                     const startPreflight = async () => {
+                                       if (!isExecConnected) {
+                                         await connectExec();
+                                         // Wait for connection to establish
+                                         await new Promise(resolve => setTimeout(resolve, 1000));
+                                       }
+                                       
+                                       sendExecRequest({
+                                         mode: 'preflight',
+                                         agent_id: selectedAgent!,
+                                         decision: executableAction,
+                                         run_id: runId
+                                       });
+                                     };
+                                     
+                                     startPreflight();
                                  }
                                }}
               onCancel={() => {
