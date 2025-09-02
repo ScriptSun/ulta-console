@@ -12,10 +12,12 @@ import {
   Terminal, 
   ExternalLink,
   ChevronDown,
-  ChevronUp 
+  ChevronUp,
+  Info
 } from 'lucide-react';
 import { useEventBus } from '@/hooks/useEventBus';
 import { useNavigate } from 'react-router-dom';
+import { TaskDetailsDialog } from './TaskDetailsDialog';
 
 interface ExecutionStatusCardProps {
   run_id: string;
@@ -179,15 +181,20 @@ export function ExecutionStatusCard({ run_id, onComplete }: ExecutionStatusCardP
               </Button>
             )}
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/scripts/batches/runs/${run_id}`)}
-              className="h-7 px-2 text-xs"
+            <TaskDetailsDialog 
+              runId={run_id} 
+              title={getStatusText()}
+              status={status}
             >
-              <ExternalLink className="h-3 w-3 mr-1" />
-              Details
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+              >
+                <Info className="h-3 w-3 mr-1" />
+                Details
+              </Button>
+            </TaskDetailsDialog>
           </div>
         </CardTitle>
       </CardHeader>

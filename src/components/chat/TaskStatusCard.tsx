@@ -4,10 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ExternalLink, CheckCircle, XCircle, Clock, Play, BarChart3, AlertCircle, Brain, Search, Terminal } from 'lucide-react';
+import { ExternalLink, CheckCircle, XCircle, Clock, Play, BarChart3, AlertCircle, Brain, Search, Terminal, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEventBus } from '@/hooks/useEventBus';
 import { useToast } from '@/hooks/use-toast';
+import { TaskDetailsDialog } from './TaskDetailsDialog';
 
 interface TaskStatusCardProps {
   type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done' | 'input_error';
@@ -43,7 +44,7 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
   // Local state for streaming updates
   const [streamingProgress, setStreamingProgress] = useState(initialProgress || 0);
   const [streamingDuration, setStreamingDuration] = useState(initialDuration);
-  const [streamingStatus, setStreamingStatus] = useState(type);
+  const [streamingStatus, setStreamingStatus] = useState<TaskStatusCardProps['type']>(type);
   const [stdoutLines, setStdoutLines] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(false);
   const [hasTimeout, setHasTimeout] = useState(false);
@@ -308,15 +309,36 @@ export const TaskStatusCard: React.FC<TaskStatusCardProps> = ({
 
           {(runId || batchId) && (
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={handleViewDetails}
-              >
-                <ExternalLink className="w-3 h-3 mr-1" />
-                View Details
-              </Button>
+              {runId ? (
+                <TaskDetailsDialog 
+                  runId={runId} 
+                  title={config.title}
+                  status={
+                    currentType === 'task_failed' ? 'failed' : 
+                    (type === 'task_succeeded' || type === 'done' || streamingStatus === 'task_succeeded') ? 'completed' :
+                    (currentType === 'task_started' || currentType === 'task_progress') ? 'running' : 'queued'
+                  }
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                  >
+                    <Info className="w-3 h-3 mr-1" />
+                    Details
+                  </Button>
+                </TaskDetailsDialog>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={handleViewDetails}
+                >
+                  <ExternalLink className="w-3 h-3 mr-1" />
+                  View Details
+                </Button>
+              )}
               <span className="text-xs opacity-60 font-mono">
                 ID: {(runId || batchId)?.slice(0, 8)}...
               </span>
