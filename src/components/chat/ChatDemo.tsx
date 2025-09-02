@@ -127,11 +127,6 @@ interface Message {
     suggested_fixes: string[];
   };
   renderConfig?: RenderConfig;
-  // Execution tracking
-  executionStatus?: {
-    run_id: string;
-    status: 'queued' | 'running' | 'completed' | 'failed';
-  };
   // Preflight tracking
   preflightStatus?: {
     agent_id: string;
