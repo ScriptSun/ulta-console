@@ -155,13 +155,17 @@ function validateAiDraftActionResponse(obj: any): { isValid: boolean; missingFie
   if (obj.suggested) {
     if (!obj.suggested.kind) {
       missingFields.push('suggested.kind');
-    } else if (obj.suggested.kind === 'command') {
-      if (!obj.suggested.commands || !Array.isArray(obj.suggested.commands)) {
-        missingFields.push('suggested.commands array');
-      }
-    } else if (obj.suggested.kind === 'batch_script') {
-      if (!obj.suggested.name || !obj.suggested.overview || !obj.suggested.commands || !Array.isArray(obj.suggested.commands)) {
-        missingFields.push('suggested.name, suggested.overview, or suggested.commands array');
+    }
+    
+    // Both command and batch_script types must have commands array
+    if (!obj.suggested.commands || !Array.isArray(obj.suggested.commands)) {
+      missingFields.push('suggested.commands array');
+    }
+    
+    // Additional validation for batch_script type
+    if (obj.suggested.kind === 'batch_script') {
+      if (!obj.suggested.name || !obj.suggested.overview) {
+        missingFields.push('suggested.name or suggested.overview for batch_script');
       }
     }
   }
@@ -271,7 +275,7 @@ function validateDraftAction(draft: any, policies: any[]) {
         messages: [
           { 
             role: "system", 
-            content: systemPrompt + "\n\nIMPORTANT: For ai_draft_action mode, you MUST include ALL required fields: mode, task, summary, status, risk, suggested (with kind, and either command OR name/overview/commands/post_checks), notes array, and human message. Do not return incomplete responses. Always respond in valid JSON format." 
+            content: systemPrompt + "\n\nIMPORTANT: For ai_draft_action mode, you MUST include ALL required fields: mode, task, summary, status, risk, suggested, notes array, and human message. The 'suggested' object MUST have 'kind' field and 'commands' array (never singular 'command'). For both 'command' and 'batch_script' kinds, always use 'commands' as an array of strings. Always respond in valid JSON format." 
           },
           { role: "user", content: JSON.stringify(transformedPayload) }
         ]
