@@ -39,7 +39,7 @@ async function getSystemTemperature(): Promise<number> {
   }
 }
 
-import { getInputFillerSystemPrompt } from '../_shared/system-prompt.ts';
+import { getInputFillerSystemPrompt } from '../_shared/system-prompt-db.ts';
 
 // GPT call function
 async function callGPT({

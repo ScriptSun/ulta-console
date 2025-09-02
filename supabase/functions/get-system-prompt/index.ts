@@ -6,7 +6,7 @@ import {
   getAdviceSystemPrompt,
   getInputFillerSystemPrompt,
   getCommandSuggestionSystemPrompt
-} from '../_shared/system-prompt.ts';
+} from '../_shared/system-prompt-db.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

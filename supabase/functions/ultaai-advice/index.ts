@@ -39,7 +39,7 @@ async function getSystemTemperature(): Promise<number> {
   }
 }
 
-import { getAdviceSystemPrompt } from '../_shared/system-prompt.ts';
+import { getAdviceSystemPrompt } from '../_shared/system-prompt-db.ts';
 
 interface RequestBody {
   reason: string;
