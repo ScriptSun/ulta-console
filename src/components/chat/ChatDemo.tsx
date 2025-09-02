@@ -634,8 +634,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                         // Set action phase to planning for actions and drafts
                         setActionPhase('planning');
                         
-                        // Set up needs inputs if missing params
-                        if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
+                        // Set up needs inputs if missing params OR if action has input schema (for confirmed actions)
+                        if (data.batch_id && ((data.status === 'unconfirmed' && data.missing_params) || 
+                            (data.status === 'confirmed' && data.batch_details?.inputs_schema))) {
                           handleMissingParams(updated[i], data);
                           
                           // Delay showing input form to allow summary to be visible first
@@ -973,8 +974,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           decision: jsonData
         };
         
-        // Set up input requirements
-        if (jsonData.status === 'unconfirmed' && jsonData.missing_params && jsonData.batch_id) {
+        // Set up input requirements for both unconfirmed and confirmed actions with schemas
+        if (jsonData.batch_id && ((jsonData.status === 'unconfirmed' && jsonData.missing_params) || 
+            (jsonData.status === 'confirmed' && jsonData.batch_details?.inputs_schema))) {
           handleMissingParams(updated[msgIndex], jsonData);
           
           // Show input form after a brief delay
