@@ -1,63 +1,102 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  }
-
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { target } = await req.json()
+    if (req.method !== 'POST') {
+      return new Response(
+        JSON.stringify({ error: 'Method not allowed' }),
+        { 
+          status: 405, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
 
+    const { target } = await req.json();
+    
     if (!target) {
-      throw new Error('Missing target parameter')
+      return new Response(
+        JSON.stringify({ error: 'Target parameter is required' }),
+        { 
+          status: 400, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
     }
 
-    // Validate target
-    const validTargets = ['router', 'chat', 'tools', 'advice', 'input-filler', 'command-suggestion']
-    if (!validTargets.includes(target)) {
-      throw new Error(`Invalid target. Must be one of: ${validTargets.join(', ')}`)
-    }
-
-    // Create the file path
-    const filePath = `./prompts/${target}-system-prompt.md`
-
-    let content = ''
+    const filePath = `./_shared/prompts/${target}-system-prompt.md`;
+    
     try {
-      // Try to read the file
-      content = await Deno.readTextFile(filePath)
-    } catch (error) {
-      // If file doesn't exist, return empty content
-      console.warn(`Prompt file not found: ${filePath}`, error.message)
-      content = `# ${target} System Prompt\n\nPrompt content not yet defined.`
+      console.log(`📖 Reading prompt file: ${filePath}`);
+      const promptContent = await Deno.readTextFile(filePath);
+      
+      console.log(`✅ Successfully loaded ${target} prompt (${promptContent.length} chars)`);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          target,
+          prompt: promptContent.trim(),
+          filePath
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+      
+    } catch (fileError) {
+      console.error(`❌ Failed to read prompt file ${filePath}:`, fileError);
+      
+      return new Response(
+        JSON.stringify({
+          error: `Failed to load ${target} prompt`,
+          details: fileError.message,
+          filePath
+        }),
+        { 
+          status: 500, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
     }
-
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        target,
-        prompt: content,
-        filePath 
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
 
   } catch (error) {
-    console.error('Error loading system prompt:', error)
+    console.error('❌ Error in get-system-prompt function:', error);
+    
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Failed to load system prompt' 
+      JSON.stringify({
+        error: 'Internal server error',
+        details: error.message
       }),
       { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        status: 500, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
       }
-    )
+    );
   }
-})
+});
