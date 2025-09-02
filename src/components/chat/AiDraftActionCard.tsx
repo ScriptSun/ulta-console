@@ -119,11 +119,6 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                  <CheckCircle className="h-3 w-3" />
                  {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
                </Badge>
-               {(decision as any).estimated_time && (
-                 <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800">
-                   {(decision as any).estimated_time}
-                 </Badge>
-               )}
               </div>
             </div>
             <div className="bg-muted/20 p-3 rounded-md">
@@ -169,20 +164,15 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                 <FileText className="h-4 w-4" />
                 <span className="font-medium text-sm">{i18n.draft.batch.title}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge 
-                  className={`${getRiskColor(decision.risk || 'medium')} font-medium flex items-center gap-1.5 px-2.5 py-1`} 
-                  variant="outline"
-                >
-                  <CheckCircle className="h-3 w-3" />
-                  {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
-                </Badge>
-                 {(decision as any).estimated_time && (
-                   <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800">
-                     {(decision as any).estimated_time}
-                   </Badge>
-                 )}
-              </div>
+               <div className="flex items-center gap-2">
+                 <Badge 
+                   className={`${getRiskColor(decision.risk || 'medium')} font-medium flex items-center gap-1.5 px-2.5 py-1`} 
+                   variant="outline"
+                 >
+                   <CheckCircle className="h-3 w-3" />
+                   {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
+                 </Badge>
+               </div>
             </div>
             <div className="bg-muted/20 p-3 rounded-md">
               <h4 className="font-medium text-sm mb-1">{sanitizeText(decision.suggested.name)}</h4>
@@ -229,18 +219,23 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
         )}
 
         {/* Notes Section */}
-        {decision.notes && decision.notes.length > 0 && (
+        {(decision.notes && decision.notes.length > 0) || (decision as any).estimated_time ? (
           <div className="bg-muted/20 border border-muted-foreground/20 rounded-md p-3">
             <h4 className="font-medium text-sm text-foreground mb-2">Important notes:</h4>
             <ul className="space-y-1">
-                  {decision.notes.map((note, index) => (
-                    <li key={index} className="text-sm text-muted-foreground">
-                      • {sanitizeText(note)}
-                    </li>
-                  ))}
+              {decision.notes && decision.notes.map((note, index) => (
+                <li key={index} className="text-sm text-muted-foreground">
+                  • {sanitizeText(note)}
+                </li>
+              ))}
+              {(decision as any).estimated_time && (
+                <li className="text-sm text-muted-foreground">
+                  • Estimated Time: {(decision as any).estimated_time}
+                </li>
+              )}
             </ul>
           </div>
-        )}
+        ) : null}
 
         <Separator />
 
