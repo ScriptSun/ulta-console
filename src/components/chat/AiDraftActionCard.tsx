@@ -75,12 +75,6 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <Terminal className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">{sanitizeText(decision.summary) || i18n.draft.cardTitle.fallback}</CardTitle>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge className={`${getRiskColor(decision.risk)} ml-4 font-medium`} variant="outline">
-              {decision.risk.charAt(0).toUpperCase() + decision.risk.slice(1)} Risk
-            </Badge>
           </div>
         </div>
       </CardHeader>
@@ -89,9 +83,14 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
         {/* Command Section */}
         {decision.suggested.kind === "command" && (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Terminal className="h-4 w-4" />
-              <span className="font-medium text-sm">{i18n.draft.command.title}</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Terminal className="h-4 w-4" />
+                <span className="font-medium text-sm">{i18n.draft.command.title}</span>
+              </div>
+              <Badge className={`${getRiskColor(decision.risk)} font-medium`} variant="outline">
+                {decision.risk.charAt(0).toUpperCase() + decision.risk.slice(1)} Risk
+              </Badge>
             </div>
             <div className="group relative">
               <pre className="bg-muted/20 p-3 rounded-md text-sm font-mono whitespace-pre-wrap overflow-x-auto">
@@ -116,9 +115,14 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
         {/* Batch Script Section */}
         {decision.suggested.kind === "batch_script" && (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <FileText className="h-4 w-4" />
-              <span className="font-medium text-sm">{i18n.draft.batch.title}</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="font-medium text-sm">{i18n.draft.batch.title}</span>
+              </div>
+              <Badge className={`${getRiskColor(decision.risk)} font-medium`} variant="outline">
+                {decision.risk.charAt(0).toUpperCase() + decision.risk.slice(1)} Risk
+              </Badge>
             </div>
             <div className="bg-muted/20 p-3 rounded-md">
               <h4 className="font-medium text-sm mb-1">{sanitizeText(decision.suggested.name)}</h4>
