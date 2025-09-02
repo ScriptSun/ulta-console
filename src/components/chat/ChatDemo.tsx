@@ -1058,25 +1058,16 @@ Please try again or contact support if this persists.`;
     };
   }, [on, toast, setActionPhase]);
 
-  // Connect WebSocket immediately when component mounts or agent changes
+  // Connect WebSocket with consolidated logic
   useEffect(() => {
-    if (selectedAgent) {
-      console.log('🔌 Connecting to WebSocket router for agent:', selectedAgent);
-      connect();
-    }
-  }, [selectedAgent, connect]);
-
-  // Also connect on component mount if no agent selected yet
-  useEffect(() => {
-    if (!selectedAgent && !isConnected) {
-      console.log('🔌 Pre-connecting WebSocket router...');
-      connect();
-    }
-  }, [connect, isConnected, selectedAgent]);
+    console.log('🔌 Setting up WebSocket router connection...');
+    connect();
+  }, [selectedAgent]); // Only reconnect when agent changes
 
   // Cleanup WebSocket connections on unmount
   useEffect(() => {
     return () => {
+      console.log('🧹 Cleaning up WebSocket connections...');
       disconnect();
       disconnectExec();
     };
