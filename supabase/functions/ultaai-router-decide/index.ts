@@ -156,8 +156,8 @@ function validateAiDraftActionResponse(obj: any): { isValid: boolean; missingFie
     if (!obj.suggested.kind) {
       missingFields.push('suggested.kind');
     } else if (obj.suggested.kind === 'command') {
-      if (!obj.suggested.command || !obj.suggested.description) {
-        missingFields.push('suggested.command or suggested.description');
+      if (!obj.suggested.commands || !Array.isArray(obj.suggested.commands)) {
+        missingFields.push('suggested.commands array');
       }
     } else if (obj.suggested.kind === 'batch_script') {
       if (!obj.suggested.name || !obj.suggested.overview || !obj.suggested.commands || !Array.isArray(obj.suggested.commands)) {
@@ -193,7 +193,9 @@ function validateDraftAction(draft: any, policies: any[]) {
   
   // Extract commands based on suggestion type
   if (draft.suggested.kind === "command") {
-    commands.push(draft.suggested.command);
+    if (draft.suggested.commands && Array.isArray(draft.suggested.commands)) {
+      commands.push(...draft.suggested.commands);
+    }
   } else if (draft.suggested.kind === "batch_script" && draft.suggested.commands) {
     commands.push(...draft.suggested.commands);
   }
