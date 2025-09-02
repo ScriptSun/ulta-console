@@ -2075,7 +2075,7 @@ Please proceed with creating and executing this batch script.`;
             </div>
           )}
           
-          <Card className={`flex flex-col bg-background border ${forceEnabled ? "w-full h-full min-h-0" : "w-full max-w-3xl h-[80vh] shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"}`}>
+          <Card className={`flex flex-col bg-background border ${forceEnabled ? "w-full h-[calc(100vh-12rem)] min-h-0" : "w-full max-w-3xl h-[80vh] shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"}`}>
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center gap-3">
