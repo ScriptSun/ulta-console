@@ -1034,9 +1034,15 @@ Please try again or contact support if this persists.`;
     try {
       // Use batch details from decision if available (for WordPress and other installations)
       if (decision.batch_details) {
+        // Merge defaults with params from router response to auto-fill fields
+        const mergedDefaults = {
+          ...(decision.batch_details.inputs_defaults || {}),
+          ...(decision.params || {})
+        };
+        
         message.needsInputs = {
           schema: decision.batch_details.inputs_schema,
-          defaults: decision.batch_details.inputs_defaults || {},
+          defaults: mergedDefaults,
           missingParams: decision.missing_params || []
         };
         
@@ -1053,9 +1059,15 @@ Please try again or contact support if this persists.`;
         .single();
 
       if (!batchError && batchData) {
+        // Merge defaults with params from router response to auto-fill fields
+        const mergedDefaults = {
+          ...((batchData.inputs_defaults as Record<string, any>) || {}),
+          ...(decision.params || {})
+        };
+        
         message.needsInputs = {
           schema: batchData.inputs_schema,
-          defaults: (batchData.inputs_defaults as Record<string, any>) || {},
+          defaults: mergedDefaults,
           missingParams: decision.missing_params || []
         };
         
