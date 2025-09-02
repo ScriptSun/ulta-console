@@ -638,8 +638,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                           });
                         }
                       } else {
-                        // For action mode, show a more user-friendly summary
-                        updated[i].content = data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
+                        // For action mode, show the user-friendly human message
+                        updated[i].content = data.human_message || data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
                         
                         // Set action phase to planning for actions and drafts
                         setActionPhase('planning');
@@ -673,8 +673,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                         }
                       }
                    } else if (data.mode === 'ai_draft_action') {
-                      // For AI draft action mode, show summary and set up draft card
-                      updated[i].content = data.summary || `I've created a plan to ${data.task || 'help you'}.`;
+                      // For AI draft action mode, show human message and set up draft card
+                      updated[i].content = data.human_message || data.summary || `I've created a plan to ${data.task || 'help you'}.`;
                       
                       // Set action phase to planning for drafts
                       setActionPhase('planning');
