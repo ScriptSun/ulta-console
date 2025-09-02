@@ -493,7 +493,21 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       }, 25000); // 25 seconds
     };
     
+    // Track the last processed message ID to prevent duplicates
+    let lastProcessedMessageId: string | null = null;
+    
     const unsubscribe = onRouter((eventType, data) => {
+      // Prevent duplicate processing of the same router message
+      const messageId = `${eventType}-${data.rid || Date.now()}-${JSON.stringify(data).slice(0, 50)}`;
+      if (eventType === 'router.selected' && messageId === lastProcessedMessageId) {
+        console.log('🚫 Skipping duplicate router.selected event:', messageId);
+        return;
+      }
+      
+      if (eventType === 'router.selected') {
+        lastProcessedMessageId = messageId;
+      }
+      
       switch (eventType) {
         case 'router.start':
           console.log('Router started:', data);
@@ -635,11 +649,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           const recentMessage = messages.find(m => 
             m.role === 'assistant' && 
             m.decision?.mode === data.mode &&
-            Math.abs(m.timestamp.getTime() - now) < 1000
+            Math.abs(m.timestamp.getTime() - now) < 2000 // Increased to 2 seconds
           );
           
           if (recentMessage) {
-            console.log('🚫 Prevented duplicate message creation within 1 second');
+            console.log('🚫 Prevented duplicate message creation within 2 seconds for mode:', data.mode);
             return;
           }
           
@@ -873,7 +887,7 @@ Please try again or contact support if this persists.`;
         clearTimeout(routerTimeoutRef.current);
       }
     };
-  }, [selectedAgent, onRouter]); // Only re-run when agent changes or onRouter changes
+  }, [selectedAgent]); // Remove onRouter from dependencies to prevent re-registering listeners
 
   // Set up WebSocket execution event listeners
   useEffect(() => {
