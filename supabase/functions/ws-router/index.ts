@@ -244,15 +244,16 @@ serve(async (req) => {
           await streamTokensBatched(chatText, sendMessage);
         }
 
-        // If decision includes a batch_id, get full batch details
+        // If decision includes a batch_id, get slim batch details (optimized payload)
         if (decision.mode === 'action' && decision.batch_id) {
-          console.log(`Getting batch details for selected batch: ${decision.batch_id}`);
-          const detailsResponse = await supabase.functions.invoke('batch-details', {
+          console.log(`Getting slim batch details for selected batch: ${decision.batch_id}`);
+          const detailsResponse = await supabase.functions.invoke('batch-details-slim', {
             body: { batch_id: decision.batch_id }
           });
           
           if (!detailsResponse.error && detailsResponse.data?.batch) {
             decision.batch_details = detailsResponse.data.batch;
+            console.log(`✅ Attached slim batch details (${JSON.stringify(detailsResponse.data.batch).length} bytes vs full payload)`);
           }
         }
 

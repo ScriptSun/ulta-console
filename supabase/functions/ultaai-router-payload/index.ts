@@ -91,12 +91,20 @@ serve(async (req) => {
     ];
 
     // Build the query to match user_request against key, name, description using ILIKE
-    // Also include all required keys, limited to max 12 candidates
+    // Only select essential fields for candidate matching - no large schemas or detailed descriptions
     const { data: candidates, error: candidatesError } = await supabase
       .from('script_batches')
-      .select('id, key, name, description, inputs_schema, inputs_defaults, preflight, os_targets, risk, max_timeout_sec')
+      .select('id, key, name, description, os_targets, risk, max_timeout_sec')
       .or(`key.ilike.%${user_request}%,name.ilike.%${user_request}%,description.ilike.%${user_request}%,key.in.(${requiredKeys.join(',')})`)
       .limit(12);
+
+    // Compress descriptions for candidates to reduce payload size
+    const compressedCandidates = (candidates || []).map(candidate => ({
+      ...candidate,
+      description: candidate.description && candidate.description.length > 150 
+        ? candidate.description.substring(0, 147) + '...'
+        : candidate.description
+    }));
 
     if (candidatesError) {
       console.error('Error loading candidates:', candidatesError);
@@ -119,11 +127,11 @@ serve(async (req) => {
       });
     }
 
-    // 5. Build response payload
+    // 5. Build response payload with compressed candidates
     const response: RouterPayloadResponse = {
       user_request,
       heartbeat: agent.heartbeat,
-      candidates: candidates || [],
+      candidates: compressedCandidates,
       command_policies: commandPolicies || [],
       policy_notes: {
         wp_min_ram_mb: 2048,
@@ -135,7 +143,7 @@ serve(async (req) => {
       }
     };
 
-    console.log(`Router payload generated successfully. Found ${candidates?.length || 0} candidates and ${commandPolicies?.length || 0} policies`);
+    console.log(`Router payload generated successfully. Found ${compressedCandidates.length} compressed candidates and ${commandPolicies?.length || 0} policies`);
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

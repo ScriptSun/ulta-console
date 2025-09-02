@@ -19,6 +19,9 @@ verify_jwt = false
 [functions.batch-details]
 verify_jwt = false
 
+[functions.batch-details-slim]
+verify_jwt = false
+
 [functions.validate-command]
 verify_jwt = false
 
