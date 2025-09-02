@@ -36,7 +36,7 @@ import { useTheme } from 'next-themes'
 
 const mainItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, pageKey: 'dashboard' },
-  { title: 'Chat', url: '/chat', icon: MessageSquare, pageKey: 'chat' },
+  { title: 'UltaAi Chat', url: '/chat', icon: MessageSquare, pageKey: 'chat' },
   { title: 'Users', url: '/users', icon: Users, pageKey: 'users' },
   { title: 'Agents', url: '/agents', icon: Bot, pageKey: 'agents' },
   { title: 'Chat Inbox', url: '/chat/inbox', icon: MessageSquare, pageKey: 'chat' },
