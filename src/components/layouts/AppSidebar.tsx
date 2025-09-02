@@ -15,7 +15,8 @@ import {
   ClipboardCheck,
   Rocket,
   Brain,
-  FileText
+  FileText,
+  Command
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import {
@@ -46,7 +47,7 @@ const mainItems = [
 
 const securityItems = [
   { title: 'Security Dashboard', url: '/security/dashboard', icon: Shield, pageKey: 'security' },
-  { title: 'Command Policies', url: '/security/command-policies', icon: Shield, pageKey: 'policies' },
+  { title: 'Command Policies', url: '/security/command-policies', icon: Command, pageKey: 'policies' },
   { title: 'Security Center', url: '/security', icon: Shield, pageKey: 'security' },
 ]
 
