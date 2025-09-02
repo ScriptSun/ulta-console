@@ -2113,7 +2113,15 @@ Please proceed with creating and executing this batch script.`;
                       <div>
                         <div className="flex items-start gap-2">
                           <div className="flex-1 whitespace-pre-wrap">
-                            {typeof message.content === 'string' ? message.content : JSON.stringify(message.content)}
+                            {message.pending && !message.content ? (
+                              <div className="flex items-center gap-1" aria-label="Processing...">
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                              </div>
+                            ) : (
+                              typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
+                            )}
                           </div>
                           
                           {/* Task Status Icon */}
