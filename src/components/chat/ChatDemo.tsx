@@ -20,6 +20,7 @@ import { QuickInputChips } from './QuickInputChips';
 import { RenderedResultCard } from './RenderedResultCard';
 import { ExecutionStatusCard } from './ExecutionStatusCard';
 import { RenderConfig } from '@/types/renderTypes';
+import { RouterDecision } from '@/types/routerTypes';
 import { useEventBus } from '@/hooks/useEventBus';
 import { useWebSocketRouter } from '@/hooks/useWebSocketRouter';
 import { useWebSocketExec } from '@/hooks/useWebSocketExec';
@@ -96,16 +97,7 @@ interface Message {
     policy_notes?: string;
   };
   // New router decision fields
-  decision?: {
-    task: string;
-    status?: string;
-    batch_id?: string;
-    params?: any;
-    risk?: string;
-    preflight?: string[];
-    batch?: any;
-    reason?: string;
-  };
+  decision?: RouterDecision;
   preflightResult?: {
     preflight_ok: boolean;
     failed: string[];
@@ -2060,22 +2052,22 @@ Please proceed with creating and executing this batch script.`;
                       )}
                       
                        {/* Router Decision Action Buttons */}
-                       {message.decision && message.role === 'assistant' && (
+                       {message.decision && message.role === 'assistant' && message.decision.mode === 'action' && (
                          message.decision.status === 'confirmed' || 
                          message.decision.task === 'custom_shell' || 
-                         message.decision.task === 'proposed_batch'
+                         message.decision.task === 'proposed_batch_script'
                        ) && (
                          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-muted/50">
                            {/* Confirmed batch actions */}
-                           {message.decision.status === 'confirmed' && (
-                             <>
-                               <Button
-                                 size="sm"
-                                 variant="outline"
-                                 onClick={() => handlePreflightCheck(message.decision)}
-                                 disabled={isTyping}
-                                 className="text-xs"
-                               >
+                           {message.decision.mode === 'action' && message.decision.status === 'confirmed' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => message.decision && message.decision.mode === 'action' && handlePreflightCheck(message.decision)}
+                                  disabled={isTyping}
+                                  className="text-xs"
+                                >
                                  <CheckCircle className="w-3 h-3 mr-1" />
                                  Preflight
                                </Button>
@@ -2092,10 +2084,10 @@ Please proceed with creating and executing this batch script.`;
                            )}
                            
                            {/* Custom shell or proposed batch actions */}
-                           {(message.decision.task === 'custom_shell' || message.decision.task === 'proposed_batch') && (
+                           {message.decision.mode === 'action' && (message.decision.task === 'custom_shell' || message.decision.task === 'proposed_batch_script') && (
                              <Button
                                size="sm"
-                               onClick={() => handleExecution(message.decision, true)}
+                               onClick={() => message.decision && message.decision.mode === 'action' && handleExecution(message.decision, true)}
                                disabled={isTyping}
                                className="text-xs"
                              >
@@ -2455,7 +2447,7 @@ Please proceed with creating and executing this batch script.`;
                    )}
                    
                      {/* Custom Shell Command Card */}
-                     {message.decision?.task === 'custom_shell' && selectedAgentDetails && (
+                     {message.decision?.mode === 'action' && message.decision?.task === 'custom_shell' && selectedAgentDetails && (
                        <div className="mt-2">
                          <CustomShellCard
                           data={message.decision as any}
@@ -2466,7 +2458,7 @@ Please proceed with creating and executing this batch script.`;
                     )}
 
                     {/* Proposed Batch Script Card */}
-                    {message.decision?.task === 'proposed_batch_script' && selectedAgentDetails && (
+                    {message.decision?.mode === 'action' && message.decision?.task === 'proposed_batch_script' && selectedAgentDetails && (
                       <div className="mt-2">
                         <ProposedBatchScriptCard
                           data={message.decision as any}

@@ -137,11 +137,11 @@ export const ROUTER_RESPONSE_SCHEMA = {
     // Chat mode - plain text response
     {
       "type": "string"
-    },
-    // Action mode responses
-    {
-      "type": "object",
-      "oneOf": [
+     },
+     // Action mode responses
+     {
+       "type": "object",
+       "oneOf": [
         // Confirmed/unconfirmed batch
         { 
           "type": "object",
@@ -203,20 +203,62 @@ export const ROUTER_RESPONSE_SCHEMA = {
             "human": { "type": "string" }
           },
           "additionalProperties": false
-        },
-        // Not supported
-        { 
-          "type": "object",
-          "required": ["mode", "task", "status", "reason", "human"],
-          "properties": {
-            "mode": { "type": "string", "enum": ["action"] },
-            "task": { "type": "string", "enum": ["not_supported"] },
-            "status": { "type": "string", "enum": ["rejected"] },
-            "reason": { "type": "string" },
-            "human": { "type": "string" }
-          },
-          "additionalProperties": false
-        }
+         },
+         // AI Draft Action
+         { 
+           "type": "object",
+           "required": ["mode", "task", "summary", "status", "risk", "suggested"],
+           "properties": {
+             "mode": { "type": "string", "enum": ["ai_draft_action"] },
+             "task": { "type": "string" },
+             "summary": { "type": "string" },
+             "status": { "type": "string", "enum": ["unconfirmed"] },
+             "risk": { "type": "string", "enum": ["low", "medium", "high"] },
+             "suggested": {
+               "type": "object",
+               "oneOf": [
+                 {
+                   "type": "object",
+                   "required": ["kind", "description", "command"],
+                   "properties": {
+                     "kind": { "type": "string", "enum": ["command"] },
+                     "description": { "type": "string" },
+                     "command": { "type": "string" }
+                   },
+                   "additionalProperties": false
+                 },
+                 {
+                   "type": "object",
+                   "required": ["kind", "name", "overview", "commands"],
+                   "properties": {
+                     "kind": { "type": "string", "enum": ["batch_script"] },
+                     "name": { "type": "string" },
+                     "overview": { "type": "string" },
+                     "commands": { "type": "array", "items": { "type": "string" } },
+                     "post_checks": { "type": "array", "items": { "type": "string" } }
+                   },
+                   "additionalProperties": false
+                 }
+               ]
+             },
+             "notes": { "type": "array", "items": { "type": "string" } },
+             "human": { "type": "string" }
+           },
+           "additionalProperties": false
+         },
+         // Not supported
+         { 
+           "type": "object",
+           "required": ["mode", "task", "status", "reason", "human"],
+           "properties": {
+             "mode": { "type": "string", "enum": ["action"] },
+             "task": { "type": "string", "enum": ["not_supported"] },
+             "status": { "type": "string", "enum": ["rejected"] },
+             "reason": { "type": "string" },
+             "human": { "type": "string" }
+           },
+           "additionalProperties": false
+         }
       ]
     }
   ]
