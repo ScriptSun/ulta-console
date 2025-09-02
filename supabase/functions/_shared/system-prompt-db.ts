@@ -9,7 +9,7 @@ interface PromptCacheEntry {
 
 class PromptCache {
   private cache: Map<string, PromptCacheEntry> = new Map();
-  private readonly TTL = 5 * 60 * 1000; // 5 minutes cache TTL
+  private readonly TTL = 30 * 1000; // 30 seconds cache TTL for faster development
   private supabase: ReturnType<typeof createClient>;
   private isInitialized = false;
 
