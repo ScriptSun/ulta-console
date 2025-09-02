@@ -120,7 +120,12 @@ export function AppSidebar() {
         {/* Logo Section */}
         <div className="flex items-center gap-3 px-6 mb-8">
           {(() => {
-            const logoUrl = theme === 'dark' ? logoSettings.logo_dark_url : logoSettings.logo_light_url;
+            // More robust dark theme detection
+            const isDark = theme === 'dark' || 
+                          (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ||
+                          document.documentElement.classList.contains('dark');
+            
+            const logoUrl = isDark ? logoSettings.logo_dark_url : logoSettings.logo_light_url;
             const hasLogo = logoUrl && logoUrl.length > 0;
             
             return hasLogo ? (
