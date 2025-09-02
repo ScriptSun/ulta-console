@@ -50,6 +50,7 @@ interface RequestBody {
 }
 
 serve(async (req) => {
+  console.log('🚀🚀🚀 ROUTER FUNCTION CALLED - DEBUG VERSION ACTIVE 🚀🚀🚀');
   console.log('🚀 Function called with method:', req.method);
   
   // Handle CORS preflight requests
@@ -226,10 +227,13 @@ function validateDraftAction(draft: any, policies: any[]) {
         throw new Error("OPENAI_API_KEY environment variable is required but not set");
       }
 
+      console.log('🚀 ROUTER FUNCTION STARTING - DEBUGGING ENABLED');
+      console.log('📋 Request details:', { agent_id, user_request, hasPayload: !!payload });
+      
       // Get the published system prompt from database
       const systemPrompt = await getRouterSystemPrompt();
-      console.log('📝 Using system prompt from database (length:', systemPrompt.length, 'chars)');
-      console.log('🔍 SYSTEM PROMPT PREVIEW:', systemPrompt.substring(0, 200) + '...');
+      console.log('📝 SYSTEM PROMPT LOADED - Length:', systemPrompt.length, 'chars');
+      console.log('🔍 SYSTEM PROMPT FIRST 200 CHARS:', systemPrompt.substring(0, 200));
       console.log('🔍 SYSTEM PROMPT HASH:', await crypto.subtle.digest('SHA-256', new TextEncoder().encode(systemPrompt)).then(h => Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16)));
       const systemTemperature = await getSystemTemperature();
       console.log(`🌡️ Using system temperature: ${systemTemperature}`);
