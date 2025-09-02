@@ -129,14 +129,86 @@ serve(async (req) => {
     // 3. Call GPT with dual-mode system prompt
     console.log('🤖 Calling OpenAI GPT...');
     
-    // Helper function to safely parse JSON responses
-    function tryParseJSON(s: string) {
-      try { 
-        return JSON.parse(s); 
-      } catch { 
-        return null; 
+// Helper function to safely parse JSON responses
+function tryParseJSON(s: string) {
+  try { 
+    return JSON.parse(s); 
+  } catch { 
+    return null; 
+  }
+}
+
+// Validate draft action against command policies
+function validateDraftAction(draft: any, policies: any[]) {
+  console.log('🔍 Validating draft action against policies:', { 
+    draftTask: draft.task, 
+    policyCount: policies.length 
+  });
+  
+  if (!draft.suggested) {
+    console.log('⚠️ No suggested commands in draft');
+    return { ok: true };
+  }
+  
+  const commands: string[] = [];
+  
+  // Extract commands based on suggestion type
+  if (draft.suggested.kind === "command") {
+    commands.push(draft.suggested.command);
+  } else if (draft.suggested.kind === "batch_script" && draft.suggested.commands) {
+    commands.push(...draft.suggested.commands);
+  }
+  
+  console.log('📋 Commands to validate:', commands);
+  
+  let hasConfirmRule = false;
+  
+  // Check each command against each policy
+  for (const command of commands) {
+    for (const policy of policies) {
+      if (!policy.active) continue;
+      
+      let matches = false;
+      
+      // Check if command matches policy pattern
+      if (policy.match_type === "regex") {
+        try {
+          const regex = new RegExp(policy.match_value, 'i');
+          matches = regex.test(command);
+        } catch (e) {
+          console.warn('Invalid regex in policy:', policy.match_value);
+          continue;
+        }
+      } else if (policy.match_type === "exact") {
+        matches = command.toLowerCase().includes(policy.match_value.toLowerCase());
+      }
+      
+      if (matches) {
+        console.log(`🎯 Policy match found: ${policy.policy_name} (${policy.mode}) for command: ${command}`);
+        
+        if (policy.mode === "forbid") {
+          return {
+            ok: false,
+            reason: `Command "${command}" is forbidden by policy: ${policy.policy_name}`,
+          };
+        } else if (policy.mode === "confirm") {
+          hasConfirmRule = true;
+          // Add confirmation note to draft
+          if (!draft.notes) draft.notes = [];
+          draft.notes.push(`Requires confirmation: ${policy.confirm_message || policy.policy_name}`);
+        }
       }
     }
+  }
+  
+  // Ensure unconfirmed status if confirm rule matched
+  if (hasConfirmRule) {
+    draft.status = "unconfirmed";
+    console.log('✋ Confirm rule matched, keeping status as unconfirmed');
+  }
+  
+  return { ok: true };
+}
     
     try {
       const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -236,7 +308,38 @@ serve(async (req) => {
       } else if (obj && obj.mode === "ai_draft_action") {
         console.log('🚀 AI Draft Action mode response:', obj);
         
-        // Store ai_draft_action decision in agents table
+        // Validate draft action against policies
+        const validationResult = validateDraftAction(obj, transformedPayload.command_policies || []);
+        console.log('🛡️ Policy validation result:', validationResult);
+        
+        if (!validationResult.ok) {
+          // Convert to not_supported action if policy rejected
+          const rejectedAction = {
+            mode: "action",
+            task: "not_supported", 
+            status: "rejected",
+            reason: validationResult.reason || "Blocked by policy",
+            human: "Please try a different approach."
+          };
+          
+          console.log('❌ Draft action rejected by policy, converting to not_supported');
+          
+          // Store rejected decision in agents table
+          const { error: updateError } = await supabase
+            .from('agents')
+            .update({ last_decision_json: rejectedAction })
+            .eq('id', agent_id);
+
+          if (updateError) {
+            console.error('⚠️ Error updating agent with rejected decision:', updateError);
+          }
+          
+          return new Response(JSON.stringify(rejectedAction), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        // Policy validation passed, store ai_draft_action decision
         const { error: updateError } = await supabase
           .from('agents')
           .update({ last_decision_json: obj })

@@ -119,178 +119,72 @@ serve(async (req) => {
         return;
       }
 
-      // Step 2: Stream OpenAI decision making
+      // Step 2: Stream decision making using ultaai-router-decide
       try {
-        if (!openAIApiKey) {
-          throw new Error('OpenAI API key not configured');
-        }
-
-        // Get system prompt and prepare OpenAI request
-        const { data: systemPromptData } = await supabase
-          .from('system_prompts')
-          .select('content')
-          .eq('name', 'router_system_prompt')
-          .eq('published', true)
-          .order('version', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const systemPrompt = systemPromptData?.content || `You are UltaAI, a conversational hosting assistant that helps users install and configure server software.
-
-IMPORTANT: You must analyze the user request and available batch candidates to determine the best response.
-
-RESPONSE RULES:
-1. If the user wants to install/setup something that matches available candidates, return JSON action mode
-2. If the user is asking questions or chatting, return conversational text only
-3. Never mix JSON and conversational text in the same response
-
-FOR INSTALLATION/SETUP REQUESTS - Return ONLY this JSON structure:
-{
-  "mode": "action",
-  "task": "install_[software_name]", 
-  "summary": "Brief friendly message about what you'll help with",
-  "status": "unconfirmed",
-  "batch_id": "[actual_batch_id_from_candidates]",
-  "missing_params": ["param1", "param2"],
-  "risk": "low|medium|high",
-  "message": "Brief instruction about what details are needed",
-  "requires_inputs": true
-}
-
-FOR CHAT/QUESTIONS - Return conversational text only (no JSON).
-
-Available candidates:
-{candidates}
-
-User request: {user_request}
-
-Analyze the request against available candidates and respond accordingly.`;
-
-        // Get command policies for OpenAI
-        const { data: commandPolicies } = await supabase
-          .from('command_policies')
-          .select('id, policy_name, mode, match_type, match_value, os_whitelist, risk, timeout_sec, confirm_message');
-
-        const routingData = {
-          user_request: request.user_request,
-          candidates: candidates,
-          command_policies: commandPolicies || [],
-          policy_notes: {
-            wp_min_ram_mb: 2048,
-            wp_min_disk_gb: 5,
-            n8n_min_ram_mb: 2048,
-            n8n_min_disk_gb: 2,
-            ssl_requires_443: true,
-            web_requires_80: true
+        console.log('📞 Calling ultaai-router-decide for streaming decision...');
+        
+        // Call the router-decide function directly
+        const routerResponse = await supabase.functions.invoke('ultaai-router-decide', {
+          body: {
+            agent_id: request.agent_id,
+            user_request: request.user_request
           }
-        };
-
-        const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4.1-2025-04-14',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { 
-                role: 'user', 
-                content: `User request: ${request.user_request}\n\nRouting data: ${JSON.stringify(routingData, null, 2)}` 
-              }
-            ],
-            stream: true,
-            max_completion_tokens: 1000
-          }),
         });
 
-        if (!openAIResponse.ok) {
-          throw new Error(`OpenAI API error: ${openAIResponse.status} ${openAIResponse.statusText}`);
+        if (routerResponse.error) {
+          throw new Error(`Router decide error: ${routerResponse.error.message}`);
         }
 
-        const reader = openAIResponse.body?.getReader();
-        if (!reader) {
-          throw new Error('Failed to get response reader');
-        }
+        const decision = routerResponse.data;
+        console.log('🎯 Decision received from router-decide:', decision);
 
-        let fullResponse = '';
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
-
-              try {
-                const parsed = JSON.parse(data);
-                const delta = parsed.choices?.[0]?.delta?.content;
-                
-                if (delta) {
-                  fullResponse += delta;
-                  // Send each token as router.token
-                  sendMessage('router.token', { 
-                    delta,
-                    accumulated: fullResponse 
-                  });
-                }
-              } catch (parseError) {
-                // Skip malformed JSON
-                continue;
-              }
-            }
+        // Emit streaming tokens for consistency (optional for non-streaming responses)
+        if (decision.mode === 'ai_draft_action') {
+          // Send some streaming tokens to indicate AI is working on draft
+          const draftMessage = `Analyzing request and creating safe command plan...`;
+          for (let i = 0; i < draftMessage.length; i += 10) {
+            const chunk = draftMessage.slice(i, i + 10);
+            sendMessage('router.token', { 
+              delta: chunk,
+              accumulated: draftMessage.slice(0, i + chunk.length)
+            });
+            // Small delay to simulate streaming
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+        } else if (decision.mode === 'chat') {
+          // Stream chat response
+          const chatText = decision.text || '';
+          for (let i = 0; i < chatText.length; i += 8) {
+            const chunk = chatText.slice(i, i + 8);
+            sendMessage('router.token', { 
+              delta: chunk,
+              accumulated: chatText.slice(0, i + chunk.length)
+            });
+            // Small delay to simulate streaming
+            await new Promise(resolve => setTimeout(resolve, 30));
           }
         }
 
-        // Parse the final response to extract decision
-        let decision;
-        try {
-          // Try to extract JSON from OpenAI response first
-          const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            decision = JSON.parse(jsonMatch[0]);
-            
-            // If decision includes a batch_id, get full batch details
-            if (decision.mode === 'action' && decision.batch_id) {
-              console.log(`Getting batch details for selected batch: ${decision.batch_id}`);
-              const detailsResponse = await supabase.functions.invoke('batch-details', {
-                body: { batch_id: decision.batch_id }
-              });
-              
-              if (!detailsResponse.error && detailsResponse.data?.batch) {
-                decision.batch_details = detailsResponse.data.batch;
-              }
-            }
-          } else {
-            // Fallback: treat as chat response
-            decision = {
-              mode: 'chat',
-              message: fullResponse.trim()
-            };
+        // If decision includes a batch_id, get full batch details
+        if (decision.mode === 'action' && decision.batch_id) {
+          console.log(`Getting batch details for selected batch: ${decision.batch_id}`);
+          const detailsResponse = await supabase.functions.invoke('batch-details', {
+            body: { batch_id: decision.batch_id }
+          });
+          
+          if (!detailsResponse.error && detailsResponse.data?.batch) {
+            decision.batch_details = detailsResponse.data.batch;
           }
-        } catch (parseError) {
-          console.error('Failed to parse OpenAI response as JSON:', parseError);
-          decision = {
-            mode: 'chat',
-            message: fullResponse.trim()
-          };
         }
 
-        // Send router.selected with final decision
-        console.log('Final decision being sent:', JSON.stringify(decision, null, 2));
+        // Send router.selected with final decision (supports all modes: chat, action, ai_draft_action)
+        console.log('📤 Final decision being sent:', JSON.stringify(decision, null, 2));
         sendMessage('router.selected', decision);
 
         // Send router.done to mark completion
         sendMessage('router.done', { 
           success: true,
-          total_tokens: fullResponse.length 
+          mode: decision.mode
         });
 
       } catch (error) {
