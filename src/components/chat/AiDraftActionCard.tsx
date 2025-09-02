@@ -71,7 +71,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
 
   return (
     <Card className="border-l-4 border-l-primary/20 bg-primary/5">
-      <CardContent className="space-y-4 mt-4">
+      <CardContent className="space-y-4 mt-6 px-6 py-5">
         {/* Command Section */}
         {decision.suggested.kind === "command" && (
           <div>
