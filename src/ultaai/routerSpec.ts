@@ -95,8 +95,7 @@ Respond in three modes:
           "description": "<short label>",
           "command": "<one safe Linux command>"
         },
-        "notes": ["<short hint for UI>"],
-        "human": "Confirm to apply changes"
+        "notes": ["<short hint for UI>"]
       }
 
    B) Multi-step process (2-5 commands needed):
@@ -121,8 +120,7 @@ Respond in three modes:
             "<curl or systemctl check>"
           ]
         },
-        "notes": ["<short hint for UI>"],
-        "human": "Confirm to apply changes"
+        "notes": ["<short hint for UI>"]
       }
 
    C) If the request is unsafe or forbidden, return:
@@ -137,7 +135,7 @@ Respond in three modes:
 Draft Generation Rules:
 - Only use ai_draft_action when no existing batch matches after retrieval of top 12 candidates
 - Require either a single safe command OR a list of 2-5 single-line commands with no pipes or &&
-- Always include human tone fields: "summary" and human: "Confirm to apply changes"
+- Always include human tone fields: "summary"
 - Never output forbidden patterns or destructive commands
 
 Package Manager Rules:
@@ -268,9 +266,8 @@ export const ROUTER_RESPONSE_SCHEMA = {
                    "additionalProperties": false
                  }
                ]
-             },
-             "notes": { "type": "array", "items": { "type": "string" } },
-             "human": { "type": "string" }
+              },
+              "notes": { "type": "array", "items": { "type": "string" } }
            },
            "additionalProperties": false
          },
