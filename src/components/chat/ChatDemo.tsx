@@ -185,6 +185,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sessionStartTime = useRef(Date.now());
   const routerTimeoutRef = useRef<NodeJS.Timeout>();
+  const processedMessagesRef = useRef<Set<string>>(new Set());
   
   // Helper function to detect if user request is likely an action vs casual chat
   const detectActionRequest = (content: string): boolean => {
@@ -493,19 +494,24 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       }, 25000); // 25 seconds
     };
     
-    // Track the last processed message ID to prevent duplicates
-    let lastProcessedMessageId: string | null = null;
-    
     const unsubscribe = onRouter((eventType, data) => {
-      // Prevent duplicate processing of the same router message
-      const messageId = `${eventType}-${data.rid || Date.now()}-${JSON.stringify(data).slice(0, 50)}`;
-      if (eventType === 'router.selected' && messageId === lastProcessedMessageId) {
-        console.log('🚫 Skipping duplicate router.selected event:', messageId);
-        return;
-      }
+      // Create unique message ID using RID and timestamp for deduplication
+      const messageId = `${eventType}-${data.rid}-${data.ts}`;
       
+      // Check for duplicates using ref (persists across renders)
       if (eventType === 'router.selected') {
-        lastProcessedMessageId = messageId;
+        if (processedMessagesRef.current.has(messageId)) {
+          console.log('🚫 Skipping duplicate router.selected event with ID:', messageId);
+          return;
+        }
+        console.log('✅ Processing router.selected event with ID:', messageId);
+        processedMessagesRef.current.add(messageId);
+        
+        // Clean up old message IDs (keep only last 10)
+        if (processedMessagesRef.current.size > 10) {
+          const oldestId = processedMessagesRef.current.values().next().value;
+          processedMessagesRef.current.delete(oldestId);
+        }
       }
       
       switch (eventType) {
