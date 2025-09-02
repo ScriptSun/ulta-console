@@ -189,6 +189,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   // Helper function to detect if user request is likely an action vs casual chat
   const detectActionRequest = (content: string): boolean => {
     const lowerContent = content.toLowerCase();
+    console.log('🔍 detectActionRequest called with:', content);
     
     // Action keywords that indicate server management intent
     const actionKeywords = [
@@ -219,22 +220,28 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       lowerContent.includes(keyword)
     );
     
+    console.log('🔍 Analysis:', { hasActionKeywords, hasChatKeywords, lowerContent });
+    
     // If it has chat keywords and no action keywords, likely chat
     if (hasChatKeywords && !hasActionKeywords) {
+      console.log('✅ Detected as CHAT (has chat keywords, no action keywords)');
       return false;
     }
     
     // If it has action keywords, likely action
     if (hasActionKeywords) {
+      console.log('⚡ Detected as ACTION (has action keywords)');
       return true;
     }
     
     // For very short messages like "hi", "hey", etc. assume chat
     if (content.trim().length <= 10) {
+      console.log('✅ Detected as CHAT (short message)');
       return false;
     }
     
     // Default to action for ambiguous cases (better to show phases than not)
+    console.log('⚡ Detected as ACTION (default fallback)');
     return true;
   };
   
@@ -512,10 +519,21 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           break;
           
         case 'router.retrieved':
-          console.log('Router retrieved candidates:', data);
-          // Only show analyzing phase if we have candidates (indicating potential action)
-          if (data.candidate_count && data.candidate_count > 0) {
+          console.log('🔄 Router retrieved candidates:', data);
+          console.log('🔢 Candidate count:', data.candidate_count);
+          console.log('🎯 Current router phase before decision:', routerPhase);
+          
+          // Only show analyzing phase if:
+          // 1. We have candidates AND
+          // 2. We started with CHECKING phase (meaning it was detected as action request)
+          if (data.candidate_count && data.candidate_count > 0 && routerPhase === RouterPhases.CHECKING) {
+            console.log('📊 Setting phase to ANALYZING (candidates found and was action request)');
             setRouterPhase(RouterPhases.ANALYZING);
+          } else if (routerPhase === RouterPhases.THINKING) {
+            console.log('💭 Keeping THINKING phase (was detected as chat)');
+            // Keep thinking phase for chat requests
+          } else {
+            console.log('❓ No phase change (unexpected state)');
           }
           setCandidateCount(data.candidate_count || 0);
           break;
@@ -1454,7 +1472,15 @@ Please try again or contact support if this persists.`;
       
       // Detect if this is likely an action request vs casual chat
       const isActionRequest = detectActionRequest(content.trim());
-      setRouterPhase(isActionRequest ? RouterPhases.CHECKING : RouterPhases.THINKING);
+      console.log('🎯 Initial phase decision - isActionRequest:', isActionRequest);
+      
+      if (isActionRequest) {
+        setRouterPhase(RouterPhases.CHECKING);
+        console.log('⚡ Set initial phase to CHECKING (action detected)');
+      } else {
+        setRouterPhase(RouterPhases.THINKING);  
+        console.log('💭 Set initial phase to THINKING (chat detected)');
+      }
       
       console.log('🚀 Sending router request for:', content.trim());
       console.log('🔌 WebSocket connected:', isConnected);
