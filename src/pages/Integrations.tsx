@@ -168,6 +168,44 @@ export default function Integrations() {
         </Card>
       </div>
 
+      {/* API Configuration Section */}
+      <Card className="bg-gradient-accent border-accent/20">
+        <CardHeader className="text-accent-foreground">
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5" />
+            API Configuration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-accent-foreground space-y-4">
+          <p className="text-accent-foreground/80">
+            Manage your API keys and authentication settings for secure integration access.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <p className="text-sm text-accent-foreground/80">Active Keys</p>
+              <p className="text-xl font-bold">3</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-accent-foreground/80">Last Generated</p>
+              <p className="text-xl font-bold">2 days ago</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-accent-foreground/80">Security Level</p>
+              <p className="text-xl font-bold">High</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-2">
+            <Button variant="secondary" size="sm" onClick={() => navigate('/api-keys')}>
+              <Key className="h-4 w-4 mr-1" />
+              Configure API Keys
+            </Button>
+            <Button variant="outline" size="sm">
+              Generate New Key
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Integration Cards */}
       <div className="space-y-4">
         {integrations.map((integration) => {

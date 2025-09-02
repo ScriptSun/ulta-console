@@ -48,7 +48,6 @@ const securityItems = [
   { title: 'Security Dashboard', url: '/security/dashboard', icon: Shield, pageKey: 'security' },
   { title: 'Command Policies', url: '/security/command-policies', icon: Shield, pageKey: 'policies' },
   { title: 'Security Center', url: '/security', icon: Shield, pageKey: 'security' },
-  { title: 'API Keys', url: '/api-keys', icon: Key, pageKey: 'api_keys' },
 ]
 
 const toolsItems = [
