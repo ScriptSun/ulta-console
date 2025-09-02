@@ -3,9 +3,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Puzzle, CheckCircle, XCircle, Clock, ExternalLink, Key, Copy, Code2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useNavigate } from 'react-router-dom'
 
 export default function Integrations() {
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   const plans = [
     { name: 'Starter', slug: 'starter', periods: ['monthly', '6-months'] },
@@ -253,7 +255,7 @@ export default function Integrations() {
                   <Button variant="outline" size="sm">
                     View Logs
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => navigate('/widget-management')}>
                     Configure
                   </Button>
                 </div>
