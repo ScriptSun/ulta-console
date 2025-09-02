@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Brain, Settings, MessageSquare } from 'lucide-react';
+import { Brain, Settings, MessageSquare, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { AvailableModelsTab } from '@/components/ai/AvailableModelsTab';
 import { ModelConfigurationTab } from '@/components/ai/ModelConfigurationTab';
 import { SystemPromptTab } from '@/components/ai/SystemPromptTab';
+import { IntelligentSelectionTab } from '@/components/ai/IntelligentSelectionTab';
 
 export default function AiSettings() {
   const { toast } = useToast();
@@ -152,10 +153,14 @@ export default function AiSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="models" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
             Available Models
+          </TabsTrigger>
+          <TabsTrigger value="intelligent" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Intelligent Selection
           </TabsTrigger>
           <TabsTrigger value="configuration" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
@@ -169,6 +174,10 @@ export default function AiSettings() {
 
         <TabsContent value="models" className="space-y-6">
           <AvailableModelsTab />
+        </TabsContent>
+
+        <TabsContent value="intelligent" className="space-y-6">
+          <IntelligentSelectionTab />
         </TabsContent>
 
         <TabsContent value="configuration" className="space-y-6">
