@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Mail, Calendar, Eye, Edit, Trash2, Filter, CalendarDays } from 'lucide-react';
+import { Search, Mail, Calendar, Eye, Edit, Trash2, Filter, CalendarDays, Users as UsersIcon, UserCheck, Server, UserX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,47 @@ export default function Users() {
   const [dateFilter, setDateFilter] = useState('all');
   const [agentCountFilter, setAgentCountFilter] = useState('all');
   const { toast } = useToast();
+
+  // Query for user statistics
+  const { data: userStats } = useQuery({
+    queryKey: ['userStats'],
+    queryFn: async () => {
+      // Get total users count
+      const { count: totalUsers, error: totalError } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+      
+      if (totalError) throw totalError;
+      
+      // Get users with agents count
+      const { data: usersWithAgents, error: agentsError } = await supabase
+        .from('users')
+        .select(`
+          id,
+          agents!agents_user_id_fkey(count)
+        `);
+      
+      if (agentsError) throw agentsError;
+      
+      // Calculate statistics
+      const usersWithActiveAgents = usersWithAgents?.filter(user => 
+        user.agents && user.agents[0]?.count > 0
+      ).length || 0;
+      
+      const totalAgents = usersWithAgents?.reduce((sum, user) => 
+        sum + (user.agents?.[0]?.count || 0), 0
+      ) || 0;
+      
+      const usersWithoutAgents = (totalUsers || 0) - usersWithActiveAgents;
+      
+      return {
+        totalUsers: totalUsers || 0,
+        usersWithActiveAgents,
+        usersWithoutAgents,
+        totalAgents
+      };
+    },
+  });
 
   const { data: users, isLoading, refetch } = useQuery({
     queryKey: ['users', searchEmail, dateFilter, agentCountFilter],
@@ -165,6 +206,65 @@ export default function Users() {
             Manage users and their access to agents and features
           </p>
         </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-primary border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-primary-foreground/80">Total Users</p>
+                <p className="text-3xl font-bold text-primary-foreground">
+                  {userStats?.totalUsers || 0}
+                </p>
+              </div>
+              <UsersIcon className="h-8 w-8 text-primary-foreground/60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-secondary border-secondary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-secondary-foreground/80">Users with Agents</p>
+                <p className="text-3xl font-bold text-secondary-foreground">
+                  {userStats?.usersWithActiveAgents || 0}
+                </p>
+              </div>
+              <UserCheck className="h-8 w-8 text-secondary-foreground/60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-accent border-accent/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-accent-foreground/80">Total Agents</p>
+                <p className="text-3xl font-bold text-accent-foreground">
+                  {userStats?.totalAgents || 0}
+                </p>
+              </div>
+              <Server className="h-8 w-8 text-accent-foreground/60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-muted border-muted/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground/80">Users without Agents</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {userStats?.usersWithoutAgents || 0}
+                </p>
+              </div>
+              <UserX className="h-8 w-8 text-muted-foreground/60" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
