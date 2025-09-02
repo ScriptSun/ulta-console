@@ -195,8 +195,8 @@ export default function Integrations() {
             </div>
           </div>
           <div className="flex items-center gap-2 pt-2">
-            <Button variant="secondary" size="sm" onClick={() => navigate('/api-keys')}>
-              <Key className="h-4 w-4 mr-1" />
+            <Button onClick={() => navigate('/api-keys')}>
+              <Key className="h-4 w-4 mr-2" />
               Configure API Keys
             </Button>
             <Button variant="outline" size="sm">
