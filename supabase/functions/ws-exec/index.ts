@@ -79,18 +79,24 @@ serve(async (req) => {
       console.log('Execution request received:', request);
 
       // Handle preflight mode
-      if (request.mode === 'preflight' && request.agent_id && request.decision) {
+      if (request.mode === 'preflight') {
         await handlePreflightStream(request, sendMessage);
-        return;
-      }
-
+      } 
       // Handle execution mode
-      if (request.run_id) {
+      else if (request.mode === 'execution') {
         await handleExecutionStream(request, sendMessage);
-        return;
       }
-
-      throw new Error('Invalid request: missing run_id or preflight data');
+      // Auto-detect mode based on request content
+      else {
+        // If it has decision data, start with preflight
+        if (request.decision) {
+          await handlePreflightStream(request, sendMessage);
+        } else if (request.run_id) {
+          await handleExecutionStream(request, sendMessage);
+        } else {
+          sendMessage('error', { error: 'Invalid request: missing decision or run_id' });
+        }
+      }
 
     } catch (error) {
       console.error('Error processing WebSocket message:', error);
@@ -119,13 +125,25 @@ serve(async (req) => {
         decision: request.decision 
       });
 
-      // Call preflight endpoint
-      const preflightResponse = await supabase.functions.invoke('ultaai-preflight-run', {
-        body: {
-          agent_id: request.agent_id,
-          decision: request.decision
-        }
-      });
+      let preflightResponse;
+      
+      // Check if this is an AI draft action - use special preflight endpoint
+      if (request.decision?.suggested || request.decision?.script) {
+        preflightResponse = await supabase.functions.invoke('ultaai-draft-preflight', {
+          body: {
+            agent_id: request.agent_id,
+            decision: request.decision
+          }
+        });
+      } else {
+        // Use existing preflight endpoint for regular batches
+        preflightResponse = await supabase.functions.invoke('ultaai-preflight-run', {
+          body: {
+            agent_id: request.agent_id,
+            decision: request.decision
+          }
+        });
+      }
 
       if (preflightResponse.error) {
         throw new Error(`Preflight error: ${preflightResponse.error.message}`);
@@ -155,9 +173,35 @@ serve(async (req) => {
         checks: preflightData.preflight_checks || []
       });
 
-      // If preflight passed, automatically start execution
-      if (preflightData.preflight_ok && preflightData.run_id) {
-        // Switch to execution mode
+      // If preflight passed and this is a draft action, start execution via ultaai-exec-run
+      if (preflightData.preflight_ok && (request.decision?.suggested || request.decision?.script)) {
+        console.log('Starting draft action execution...');
+        
+        // Call exec-run to create batch_runs and start execution
+        const execResponse = await supabase.functions.invoke('ultaai-exec-run', {
+          body: {
+            agent_id: request.agent_id,
+            decision: request.decision,
+            confirm: true
+          }
+        });
+
+        if (execResponse.error) {
+          console.error('Error starting draft execution:', execResponse.error);
+          sendMessage('exec.error', { 
+            error: 'Failed to start execution',
+            details: execResponse.error.message 
+          });
+          return;
+        }
+
+        const execData = execResponse.data;
+        if (execData.run_id) {
+          // Switch to execution mode
+          await handleExecutionStream({ run_id: execData.run_id }, sendMessage);
+        }
+      } else if (preflightData.preflight_ok && preflightData.run_id) {
+        // For regular batches, use existing flow
         await handleExecutionStream({ run_id: preflightData.run_id }, sendMessage);
       }
 

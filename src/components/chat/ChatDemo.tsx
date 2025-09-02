@@ -70,6 +70,15 @@ interface Message {
       [key: string]: any;
     }>;
   };
+  executionStatus?: {
+    run_id: string;
+    status: 'preparing' | 'queued' | 'running' | 'completed' | 'failed' | 'preflight_failed';
+    error?: string;
+    contract?: any;
+    stdout?: string;
+    stderr?: string;
+    duration?: number;
+  };
   aiSuggestion?: {
     type: 'command' | 'batch_script';
     title: string;
@@ -749,17 +758,55 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   // Set up WebSocket execution event listeners
   useEffect(() => {
     const unsubscribers = [
+      on('preflight.start', (data) => {
+        console.log('Preflight started:', data);
+        setActionPhase('analyzing'); // Analyzing server when preflight starts
+      }),
+      
+      on('preflight.item', (data) => {
+        console.log('Preflight check:', data);
+        // Individual preflight checks are handled by ActionChips
+      }),
+      
+      on('preflight.done', (data) => {
+        console.log('Preflight completed:', data);
+        if (data.ok) {
+          setActionPhase('ready'); // Ready to apply changes
+        } else {
+          setActionPhase('failed'); // Could not complete changes
+          
+          // Update any messages with preflight failure
+          setMessages(prev => {
+            const updated = [...prev];
+            for (let i = updated.length - 1; i >= 0; i--) {
+              if (updated[i].executionStatus?.status === 'preparing') {
+                updated[i] = {
+                  ...updated[i],
+                  executionStatus: {
+                    ...updated[i].executionStatus!,
+                    status: 'preflight_failed',
+                    error: data.failed?.join(', ') || 'Preflight checks failed'
+                  }
+                };
+                break;
+              }
+            }
+            return updated;
+          });
+        }
+      }),
+      
       on('exec.queued', (data) => {
         console.log('Execution queued:', data);
         // Update execution status in messages
         setMessages(prev => {
           const updated = [...prev];
           for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].executionStatus?.run_id === data.run_id) {
+            if (updated[i].executionStatus?.run_id === data.run_id || updated[i].executionStatus?.status === 'preparing') {
               updated[i] = {
                 ...updated[i],
                 executionStatus: {
-                  ...updated[i].executionStatus!,
+                  run_id: data.run_id,
                   status: 'queued'
                 }
               };
@@ -804,12 +851,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       
        on('exec.finished', (data) => {
          console.log('Execution finished:', data);
-         // Set phase based on execution result
-         if (data.success) {
-           setActionPhase('completed'); // Changes applied on success
-         } else {
-           setActionPhase('failed'); // Could not complete changes on failure
-         }
+         setActionPhase(data.success ? 'completed' : 'failed'); // Changes applied or failed
          
          setMessages(prev => {
            const updated = [...prev];
@@ -819,7 +861,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                  ...updated[i],
                  executionStatus: {
                    ...updated[i].executionStatus!,
-                   status: data.success ? 'completed' : 'failed'
+                   status: data.success ? 'completed' : 'failed',
+                   contract: data.contract,
+                   stdout: data.stdout,
+                   stderr: data.stderr,
+                   duration: data.duration_ms
                  }
                };
                break;
@@ -831,43 +877,46 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       
       on('exec.error', (data) => {
         console.error('Execution error:', data);
-        // Log only, no UI notification
+        setActionPhase('failed'); // Could not complete changes
+        
+        setMessages(prev => {
+          const updated = [...prev];
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].executionStatus && (updated[i].executionStatus?.status === 'running' || updated[i].executionStatus?.status === 'queued' || updated[i].executionStatus?.status === 'preparing')) {
+              updated[i] = {
+                ...updated[i],
+                executionStatus: {
+                  ...updated[i].executionStatus!,
+                  status: 'failed',
+                  error: data.error
+                }
+              };
+              break;
+            }
+          }
+          return updated;
+        });
+        
+        toast({
+          title: "Execution Error",
+          description: data.error,
+          variant: "destructive"
+        });
       }),
       
-       on('preflight.start', (data) => {
-         console.log('Preflight started:', data);
-         setActionPhase('analyzing'); // Analyzing server when preflight starts
-       }),
-       
-       on('preflight.item', (data) => {
-         console.log('Preflight check:', data);
-         // Individual preflight checks are handled by PreflightBlockCard
-       }),
-       
-       on('preflight.done', (data) => {
-         console.log('Preflight completed:', data);
-         // Set phase based on preflight result
-         if (data.preflight_ok) {
-           setActionPhase('ready'); // Ready to apply changes if preflight passed
-         } else {
-           setActionPhase('failed'); // Failed if preflight blocked
-         }
-       }),
+      on('exec.connected', () => {
+        console.log('Exec WebSocket connected');
+      }),
       
-      on('preflight.error', (data) => {
-        console.error('Preflight error:', data);
-        toast({
-          title: "Preflight Error",
-          description: data.error,
-          variant: "destructive",
-        });
+      on('exec.disconnected', (data) => {
+        console.log('Exec WebSocket disconnected:', data);
       })
     ];
     
     return () => {
       unsubscribers.forEach(unsub => unsub());
     };
-  }, [on, toast]);
+  }, [on, toast, setActionPhase]);
 
   // Connect WebSocket when component mounts and agent is selected
   useEffect(() => {
@@ -2097,33 +2146,63 @@ Please proceed with creating and executing this batch script.`;
                                 // Handle draft confirmation
                                 if (message.decision && message.decision.mode === 'ai_draft_action') {
                                   // Convert draft to executable action
-                                  const executableAction = {
-                                    mode: 'action' as const,
-                                    task: message.decision.suggested.kind === 'command' ? 'custom_shell' : 'proposed_batch_script',
-                                    status: 'unconfirmed' as const,
-                                    risk: message.decision.risk,
-                                    params: message.decision.suggested.kind === 'command' ? {
-                                      description: message.decision.summary,
-                                      shell: message.decision.suggested.command
-                                    } : undefined,
-                                    script: message.decision.suggested.kind === 'batch_script' ? {
-                                      name: message.decision.suggested.name,
-                                      overview: message.decision.suggested.overview,
-                                      commands: message.decision.suggested.commands,
-                                      post_checks: message.decision.suggested.post_checks || []
-                                    } : undefined,
-                                    human: "Confirm & Execute to apply changes"
-                                  };
-                                  
-                                  handleExecution(executableAction, true);
-                                }
-                              }}
-                              onCancel={() => {
-                                // Clear the action phase when cancelled
-                                setActionPhase(null);
-                              }}
-                              disabled={isTyping}
-                            />
+                  // Convert AI draft to executable format
+                  const executableAction = {
+                    mode: 'action' as const,
+                    task: message.decision.suggested.kind === 'command' ? 'custom_shell' : 'proposed_batch_script',
+                    status: 'unconfirmed' as const,
+                    risk: message.decision.risk,
+                    params: message.decision.suggested.kind === 'command' ? {
+                      description: message.decision.summary,
+                      shell: message.decision.suggested.command
+                    } : undefined,
+                    script: message.decision.suggested.kind === 'batch_script' ? {
+                      name: message.decision.suggested.name,
+                      overview: message.decision.suggested.overview,
+                      commands: message.decision.suggested.commands,
+                      post_checks: message.decision.suggested.post_checks || []
+                    } : undefined,
+                    human: "Confirm & Execute to apply changes",
+                    // Add draft action data for WebSocket
+                    suggested: message.decision.suggested,
+                    summary: message.decision.summary
+                  };
+                  
+                  // Set up execution status tracking for draft actions
+                  setMessages(prev => {
+                    const updated = [...prev];
+                    const msgIndex = updated.findIndex(m => m.id === message.id);
+                    if (msgIndex !== -1) {
+                      updated[msgIndex] = {
+                        ...updated[msgIndex],
+                        executionStatus: {
+                          run_id: '', // Will be set by WebSocket
+                          status: 'preparing'
+                        }
+                      };
+                    }
+                    return updated;
+                  });
+                  
+                  // Connect to exec WebSocket and start preflight
+                  connectExec();
+                  
+                  // Wait a moment for connection, then send preflight request
+                  setTimeout(() => {
+                    sendExecRequest({
+                      mode: 'preflight',
+                      agent_id: selectedAgent!,
+                      decision: executableAction
+                    });
+                  }, 100);
+                }
+              }}
+              onCancel={() => {
+                // Clear the action phase when cancelled
+                setActionPhase(null);
+              }}
+              disabled={isTyping}
+            />
                           </div>
                         )}
                         

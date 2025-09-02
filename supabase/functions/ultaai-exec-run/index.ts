@@ -27,16 +27,34 @@ interface RequestBody {
     };
     batch_id?: string;
     risk?: string;
+    // Support for AI draft actions
+    suggested?: {
+      kind: 'command' | 'batch_script';
+      description?: string;
+      command?: string;
+      name?: string;
+      overview?: string;
+      commands?: string[];
+      post_checks?: string[];
+    };
+    summary?: string;
+    script?: {
+      name: string;
+      overview: string;
+      commands: string[];
+      post_checks: string[];
+    };
   };
   confirm?: boolean;
 }
 
 interface ExecutionResult {
-  status: 'success' | 'rejected' | 'awaiting_confirm' | 'error';
+  status: 'success' | 'rejected' | 'awaiting_confirm' | 'error' | 'started';
   message?: string;
   reason?: string;
   script_id?: string;
   batch_id?: string;
+  run_id?: string;
   exit_code?: number;
   stdout_tail?: string;
   stderr_tail?: string;
@@ -135,6 +153,25 @@ serve(async (req) => {
 
     console.log(`Processing execution for agent_id: ${agent_id}, task: ${decision.task}, confirm: ${confirm}`);
 
+    // Get agent tenant_id for batch_runs
+    const { data: agentData, error: agentError } = await supabase
+      .from('agents')
+      .select('customer_id')
+      .eq('id', agent_id)
+      .single();
+
+    if (agentError || !agentData) {
+      return new Response(JSON.stringify({
+        status: 'error',
+        reason: 'Agent not found'
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const tenant_id = agentData.customer_id;
+
     // 1. Handle not_supported decisions
     if (decision.task === 'not_supported') {
       return new Response(JSON.stringify({ 
@@ -146,7 +183,102 @@ serve(async (req) => {
       });
     }
 
-    // 2. Handle custom_shell decisions
+    // 2. Handle AI draft actions (convert them to execution)
+    if (decision.suggested || decision.script) {
+      const commands: string[] = [];
+      let source = 'ai_draft_action';
+      
+      if (decision.suggested?.kind === 'command' && decision.suggested.command) {
+        commands.push(decision.suggested.command);
+      } else if (decision.suggested?.kind === 'batch_script' && decision.suggested.commands) {
+        commands.push(...decision.suggested.commands);
+      } else if (decision.script?.commands) {
+        commands.push(...decision.script.commands);
+      }
+
+      if (commands.length === 0) {
+        return new Response(JSON.stringify({
+          status: 'error',
+          reason: 'No commands found in draft action'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Check policy for all draft commands
+      const policyResult = await callPolicyCheck(commands);
+      const forbiddenCommands = policyResult.result.filter((r: any) => r.mode === 'forbid');
+
+      if (forbiddenCommands.length > 0) {
+        return new Response(JSON.stringify({
+          status: 'rejected',
+          reason: 'Draft contains forbidden commands'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Create batch_runs entry for tracking
+      const { data: runData, error: runError } = await supabase
+        .from('batch_runs')
+        .insert({
+          batch_id: null, // No specific batch for draft actions
+          agent_id: agent_id,
+          tenant_id: tenant_id,
+          status: 'running',
+          started_at: new Date().toISOString(),
+          raw_stdout: '',
+          raw_stderr: '',
+          contract: null,
+          parser_warning: false
+        })
+        .select('id')
+        .single();
+
+      if (runError) {
+        console.error('Error creating batch run:', runError);
+        return new Response(JSON.stringify({
+          status: 'error',
+          reason: 'Failed to create execution record'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Add source metadata to the run
+      await supabase.from('batch_runs')
+        .update({
+          contract: { source: source, summary: decision.summary }
+        })
+        .eq('id', runData.id);
+
+      // Simulate execution (in real implementation, this would be handled by ws-exec)
+      const execution = await simulateCommandExecution(commands);
+      
+      // Update the run with results
+      await supabase.from('batch_runs')
+        .update({
+          status: execution.exit_code === 0 ? 'completed' : 'failed',
+          finished_at: new Date().toISOString(),
+          raw_stdout: execution.stdout_tail,
+          raw_stderr: execution.stderr_tail,
+          duration_sec: Math.floor(Math.random() * 30) + 5 // Simulate 5-35 second duration
+        })
+        .eq('id', runData.id);
+
+      return new Response(JSON.stringify({
+        status: 'started',
+        run_id: runData.id,
+        message: 'Draft action execution started',
+        ...execution
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 3. Handle custom_shell decisions
     if (decision.task === 'custom_shell') {
       const cmd = decision.params?.shell;
       if (!cmd) {
@@ -191,7 +323,7 @@ serve(async (req) => {
       });
     }
 
-    // 3. Handle proposed_batch decisions
+    // 4. Handle proposed_batch decisions
     if (decision.task === 'proposed_batch') {
       if (!decision.batch) {
         return new Response(JSON.stringify({ 
@@ -265,7 +397,7 @@ serve(async (req) => {
       });
     }
 
-    // 4. Handle confirmed batch (existing batch by key)
+    // 5. Handle confirmed batch (existing batch by key)
     // Look up batch by key
     const { data: batch, error: batchError } = await supabase
       .from('script_batches')
