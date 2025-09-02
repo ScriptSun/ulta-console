@@ -449,19 +449,29 @@ function validateDraftAction(draft: any, policies: any[]) {
         return new Response(JSON.stringify(obj), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-      } else if (obj && obj.text) {
-        // Handle structured chat response with text field
+      } else if (obj && (obj.text || obj.message)) {
+        // Handle structured chat response with text or message field
         console.log('💬 Structured chat mode response');
+        const chatText = obj.text || obj.message || "Hello, how can I help you?";
         return new Response(JSON.stringify({ 
           mode: "chat", 
-          text: obj.text 
+          text: chatText 
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } else {
         // Handle plain text chat response or fallback
         console.log('💬 Plain text chat mode response');
-        const chatText = obj && typeof obj === 'string' ? obj : (raw.trim() || "Hello, how can I help you?");
+        let chatText;
+        
+        // If obj is parsed JSON with mode=chat, extract the message
+        if (obj && obj.mode === "chat" && obj.message) {
+          chatText = obj.message;
+        } else if (obj && typeof obj === 'string') {
+          chatText = obj;
+        } else {
+          chatText = raw.trim() || "Hello, how can I help you?";
+        }
         
         return new Response(JSON.stringify({ 
           mode: "chat", 
