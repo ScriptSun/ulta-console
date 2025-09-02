@@ -23,6 +23,10 @@ export type RouterDecision =
             command: string;     // single safe command
           }
         | {
+            kind: "commands";
+            commands: string[];  // array of commands
+          }
+        | {
             kind: "batch_script";
             name: string;
             overview: string;

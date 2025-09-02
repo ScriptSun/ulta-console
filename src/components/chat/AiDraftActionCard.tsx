@@ -104,7 +104,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
     <Card className="border-l-4 border-l-primary/20 bg-primary/5">
       <CardContent className="space-y-2 mt-3 px-6 py-3">
         {/* Command Section */}
-        {decision.suggested.kind === "command" && (
+        {(decision.suggested.kind === "command" || decision.suggested.kind === "commands") && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -119,7 +119,12 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
               <div className="space-y-2">
                 {/* Handle both single command and commands array */}
                 {(() => {
-                  const commands = (decision.suggested as any).commands || [decision.suggested.command];
+                  let commands: string[] = [];
+                  if (decision.suggested.kind === "command") {
+                    commands = [decision.suggested.command];
+                  } else if (decision.suggested.kind === "commands") {
+                    commands = decision.suggested.commands;
+                  }
                   return commands.map((command: string, index: number) => (
                     <div key={index} className="group relative">
                       <div className="flex gap-2">
