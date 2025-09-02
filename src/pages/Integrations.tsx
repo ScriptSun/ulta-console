@@ -120,48 +120,48 @@ export default function Integrations() {
 
       {/* Integration Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gradient-card border-card-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Integrations
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">2</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-success">+1</span> from last week
-            </p>
+        <Card className="bg-gradient-primary border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-primary-foreground/80">Active Integrations</p>
+                <p className="text-3xl font-bold text-primary-foreground">2</p>
+                <p className="text-xs text-primary-foreground/60 mt-1">
+                  <span className="text-primary-foreground">+1</span> from last week
+                </p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-primary-foreground/60" />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card border-card-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Warning Status
-            </CardTitle>
-            <Clock className="h-4 w-4 text-warning" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">1</div>
-            <p className="text-xs text-muted-foreground">
-              Requires attention
-            </p>
+        <Card className="bg-gradient-secondary border-secondary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-secondary-foreground/80">Warning Status</p>
+                <p className="text-3xl font-bold text-secondary-foreground">1</p>
+                <p className="text-xs text-secondary-foreground/60 mt-1">
+                  Requires attention
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-secondary-foreground/60" />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card border-card-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Disconnected
-            </CardTitle>
-            <XCircle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">1</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-destructive">Service offline</span>
-            </p>
+        <Card className="bg-gradient-accent border-accent/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-accent-foreground/80">Disconnected</p>
+                <p className="text-3xl font-bold text-accent-foreground">1</p>
+                <p className="text-xs text-accent-foreground/60 mt-1">
+                  <span className="text-accent-foreground">Service offline</span>
+                </p>
+              </div>
+              <XCircle className="h-8 w-8 text-accent-foreground/60" />
+            </div>
           </CardContent>
         </Card>
       </div>
