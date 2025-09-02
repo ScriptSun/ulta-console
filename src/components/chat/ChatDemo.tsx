@@ -472,6 +472,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
 
   // Set up WebSocket router event listeners
   useEffect(() => {
+    if (!selectedAgent) return;
+    
+    console.log('🔌 Setting up router event listeners for agent:', selectedAgent);
     
     // Set router timeout (25 seconds)
     const startRouterTimeout = () => {
@@ -846,12 +849,13 @@ Please try again or contact support if this persists.`;
     });
     
     return () => {
+      console.log('🔌 Cleaning up router event listeners for agent:', selectedAgent);
       unsubscribe();
       if (routerTimeoutRef.current) {
         clearTimeout(routerTimeoutRef.current);
       }
     };
-  }, [onRouter, toast, selectedAgent, conversationId, streamingResponse, isTyping]);
+  }, [selectedAgent, onRouter]); // Only re-run when agent changes or onRouter changes
 
   // Set up WebSocket execution event listeners
   useEffect(() => {
