@@ -1345,13 +1345,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       if (!isConnected) {
         console.log('🔌 Connecting to WebSocket router...');
         try {
-          await connect();
+          connect();
           // Wait a moment for connection to establish
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          if (!isConnected) {
-            throw new Error('Failed to connect to WebSocket router');
-          }
+          await new Promise(resolve => setTimeout(resolve, 1500));
         } catch (connectError) {
           console.error('Failed to connect to WebSocket:', connectError);
           throw new Error('WebSocket connection failed');
