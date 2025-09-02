@@ -269,8 +269,9 @@ function validateDraftAction(draft: any, policies: any[]) {
       console.log(`🌡️ Using system temperature: ${systemTemperature}`);
 
       const requestBody: any = {
-        model: "gpt-4o-mini",
-        temperature: systemTemperature,
+        model: "gpt-5-mini-2025-08-07", // Use newer, faster model
+        max_completion_tokens: 2000, // Use max_completion_tokens for GPT-5
+        // Note: temperature not supported by GPT-5 models
         response_format: { type: "json_object" }, // Always use JSON mode for dual-mode responses
         messages: [
           { 
@@ -283,6 +284,7 @@ function validateDraftAction(draft: any, policies: any[]) {
 
       console.log('🔧 OpenAI request config:', {
         model: requestBody.model,
+        max_completion_tokens: requestBody.max_completion_tokens,
         hasResponseFormat: !!requestBody.response_format
       });
 
@@ -316,7 +318,7 @@ function validateDraftAction(draft: any, policies: any[]) {
         await costTracker.logUsage(
           tenant_id,
           agent_id,
-          'gpt-4o-mini',
+          'gpt-5-mini-2025-08-07',
           completion.usage.prompt_tokens || 0,
           completion.usage.completion_tokens || 0,
           'router_decision',
