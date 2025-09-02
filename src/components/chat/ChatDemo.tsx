@@ -629,7 +629,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                         }
                       } else {
                         // For action mode, show a more user-friendly summary
-                        updated[i].content = data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
+                        updated[i].content = data.summary || data.human || data.message || `I'll help you ${data.task || 'execute this task'}.`;
                         
                         // Set action phase to planning for actions and drafts
                         setActionPhase('planning');
@@ -929,7 +929,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     // Clear the thinking phases and start streaming summary
     setRouterPhase('');
     
-    const summaryText = jsonData.summary || jsonData.message || 'I\'ll help you with this task.';
+    const summaryText = jsonData.summary || jsonData.human || jsonData.message || 'I\'ll help you with this task.';
     
     // Create message bubble and simulate streaming
     const messageId = `streaming-${Date.now()}`;
