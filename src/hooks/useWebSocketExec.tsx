@@ -18,20 +18,25 @@ interface ExecRequest {
 export const useWebSocketExec = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const { emit } = useEventBus();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
 
   const connect = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       return; // Already connected
     }
 
-    // Use full URL to avoid env variables
+    // Use correct Supabase WebSocket URL format  
     const wsUrl = `wss://lfsdqyvvboapsyeauchm.functions.supabase.co/ws-exec`;
     
     try {
+      console.log('Attempting to connect to Exec WebSocket...');
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
-        console.log('Exec WebSocket connected');
+        console.log('Exec WebSocket connected successfully');
+        reconnectAttemptsRef.current = 0; // Reset attempts on successful connection
         emit('exec.connected', {});
       };
 
@@ -54,6 +59,20 @@ export const useWebSocketExec = () => {
       wsRef.current.onclose = (event) => {
         console.log('Exec WebSocket disconnected:', event.code, event.reason);
         emit('exec.disconnected', { code: event.code, reason: event.reason });
+        
+        // Attempt to reconnect if not a manual disconnect
+        if (event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
+          console.log(`Attempting to reconnect Exec WebSocket in ${delay}ms...`);
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectAttemptsRef.current++;
+            connect();
+          }, delay);
+        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+          console.error('Max reconnection attempts reached for Exec WebSocket');
+          emit('exec.error', { error: 'Max reconnection attempts reached' });
+        }
       };
 
       wsRef.current.onerror = (error) => {
@@ -67,8 +86,13 @@ export const useWebSocketExec = () => {
   }, [emit]);
 
   const disconnect = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    reconnectAttemptsRef.current = maxReconnectAttempts; // Prevent reconnection
+    
     if (wsRef.current) {
-      wsRef.current.close();
+      wsRef.current.close(1000); // Normal closure
       wsRef.current = null;
     }
   }, []);
