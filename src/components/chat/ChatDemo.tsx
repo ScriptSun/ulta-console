@@ -1438,28 +1438,19 @@ Please try again or contact support if this persists.`;
       const isActionRequest = detectActionRequest(content.trim());
       console.log('🎯 Message type decision - isActionRequest:', isActionRequest);
       
-      // For conversation-only mode OR casual chat messages, provide direct response
-      if (conversationOnly || !isActionRequest) {
-        console.log('💬 Handling as direct chat response');
-        setIsTyping(true);
-        
-        // Immediate chat response  
-        const conversationResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: conversationOnly ? generateConversationResponse(content.trim()) : generateChatResponse(content.trim()),
-          timestamp: new Date(),
-          pending: false
-        };
-        
-        setMessages(prev => [...prev, conversationResponse]);
-        setIsTyping(false);
-        return;
+      // All messages should go through the API - no hardcoded responses
+      console.log('📤 Sending all messages to router API for processing');
+      setIsTyping(true);
+      
+      // For action requests, show phases; for casual chat, keep it minimal
+      if (isActionRequest) {
+        setRouterPhase(RouterPhases.THINKING);
+        console.log('🔄 Starting router for action request');
+      } else {
+        setRouterPhase(RouterPhases.THINKING);
+        console.log('💭 Starting router for chat request');
       }
-      
-      // Only use WebSocket router for actual action requests
-      console.log('⚡ Handling as action request through router');
-      
+
       // Connect WebSocket if not already connected
       if (!isConnected) {
         console.log('🔌 Connecting to WebSocket router...');
@@ -1507,62 +1498,6 @@ Please try again or contact support if this persists.`;
       setIsTyping(false);
       setRouterPhase('');
     }
-  };
-
-  // Generate conversation-only responses
-  const generateConversationResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase();
-    
-    // WordPress installation
-    if (input.includes('wordpress') || input.includes('wp')) {
-      return "I'd be happy to help you with WordPress! In conversation-only mode, I can discuss installation steps, requirements, and best practices, but I won't actually install anything on your server. Would you like me to explain the WordPress installation process?";
-    }
-    
-    // System checks
-    if (input.includes('cpu') || input.includes('memory') || input.includes('disk')) {
-      return "I understand you want to check system resources. In conversation-only mode, I can explain how to monitor CPU, memory, and disk usage, and discuss what to look for, but I won't run any actual system commands. Would you like me to explain the monitoring process?";
-    }
-    
-    // Service management
-    if (input.includes('restart') || input.includes('nginx') || input.includes('apache') || input.includes('service')) {
-      return "I see you're interested in service management. In conversation-only mode, I can discuss service management best practices and explain commands, but I won't actually restart or modify any services. What would you like to know about service management?";
-    }
-    
-    // General technical questions
-    if (input.includes('how') || input.includes('what') || input.includes('why')) {
-      return "That's a great question! I'm in conversation-only mode, so I can provide information, explanations, and guidance, but I won't perform any actual system operations. How can I help explain or discuss this topic with you?";
-    }
-    
-    // Default response
-    return "I'm currently in conversation-only mode, which means I can chat and provide information, but I won't make any changes to your systems or run any commands. I'm here to discuss, explain, and guide you through technical topics. What would you like to talk about?";
-  };
-
-  // Generate chat responses for casual messages
-  const generateChatResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase().trim();
-    
-    // Greetings
-    if (['hi', 'hey', 'hello', 'good morning', 'good afternoon', 'good evening'].some(greeting => input.includes(greeting))) {
-      return "Hello! I'm your AI assistant. I can help you manage your servers and execute tasks. Try asking me to install software, check system status, or manage services. What can I help you with today?";
-    }
-    
-    // Thanks
-    if (input.includes('thank') || input.includes('thanks')) {
-      return "You're welcome! I'm here to help with any server management tasks or technical questions you might have. Feel free to ask me anything!";
-    }
-    
-    // General questions
-    if (input.startsWith('what') || input.startsWith('how') || input.startsWith('why')) {
-      return "I'm here to help answer your questions! I specialize in server management, system administration, and technical assistance. Could you be more specific about what you'd like to know?";
-    }
-    
-    // Help requests
-    if (input.includes('help')) {
-      return "I'd be happy to help! I can assist with:\n\n• Installing and configuring software\n• Checking system resources and status\n• Managing services (nginx, apache, etc.)\n• Running system maintenance tasks\n• Troubleshooting issues\n\nWhat specific task would you like help with?";
-    }
-    
-    // Default friendly response
-    return "I'm here to help! I can assist with server management, system administration, and various technical tasks. Try asking me to install software, check system status, or help with specific server tasks. What would you like to do?";
   };
 
   // Helper function to execute AI suggestion
@@ -2853,16 +2788,6 @@ Please proceed with creating and executing this batch script.`;
                         <span className="text-sm text-muted-foreground font-medium animate-pulse">
                           {getRouterPhaseText(routerPhase)}
                         </span>
-                        {candidateCount > 0 && routerPhase === RouterPhases.ANALYZING && (
-                          <Badge variant="outline" className="text-xs animate-pulse" aria-label={`${candidateCount} matches found`}>
-                            {candidateCount} matches
-                          </Badge>
-                        )}
-                        <div className="relative ml-2" aria-label="Processing...">
-                          <div className="w-8 h-4 relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary-glow to-primary rounded-full animate-[morph_2s_ease-in-out_infinite] shadow-lg shadow-primary/40"></div>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </div>
