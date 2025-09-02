@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText, Brain, Search } from 'lucide-react';
+import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText, Brain, Search, Clock, AlertCircle, Terminal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from 'next-themes';
@@ -66,6 +66,27 @@ interface Message {
       message?: string;
       [key: string]: any;
     }>;
+  };
+  aiSuggestion?: {
+    type: 'command' | 'batch_script';
+    title: string;
+    description: string;
+    commands?: string[];
+    batch_script?: {
+      name: string;
+      description: string;
+      commands: string[];
+      risk_level: 'low' | 'medium' | 'high';
+      inputs?: Array<{
+        name: string;
+        type: string;
+        description: string;
+        required: boolean;
+      }>;
+    };
+    explanation: string;
+    suggestions_mode: 'off' | 'show' | 'execute';
+    original_request: string;
   };
   // New router decision fields
   decision?: {
@@ -525,37 +546,64 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                     decision: data
                   };
                   
-                  // Handle different decision modes
-                  if (data.mode === 'chat') {
-                    // For chat mode, show the full message or the streamed content
-                    updated[i].content = data.message || data.text || streamingResponse || 'Response received';
-                  } else if (data.mode === 'action') {
-                    // For action mode, show a more user-friendly summary
-                    updated[i].content = data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
-                    
-                    // Set up needs inputs if missing params
-                    if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
-                      handleMissingParams(updated[i], data);
-                      
-                      // Delay showing input form to allow summary to be visible first
-                      setTimeout(() => {
-                        setMessages(prev => {
-                          const msgUpdated = [...prev];
-                          const msgIndex = msgUpdated.findIndex(m => m.id === updated[i].id);
-                          if (msgIndex !== -1) {
-                            msgUpdated[msgIndex].showInputsDelayed = true;
-                          }
-                          return msgUpdated;
-                        });
-                      }, 1000); // 1 second delay
-                    } else if (data.status === 'confirmed' && data.batch_id) {
-                      // Ready for preflight
-                      updated[i].preflightStatus = {
-                        agent_id: selectedAgent!,
-                        decision: data,
-                        streaming: true
-                      };
-                    }
+                   // Handle different decision modes
+                   if (data.mode === 'chat') {
+                     // For chat mode, show the full message or the streamed content
+                     updated[i].content = data.message || data.text || streamingResponse || 'Response received';
+                   } else if (data.mode === 'action') {
+                     // Check if this is a not_supported task and generate AI suggestions
+                     if (data.task === 'not_supported') {
+                       updated[i].content = getDecisionMessage(data);
+                       
+                       // Generate AI suggestions asynchronously
+                       const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+                       if (lastUserMessage) {
+                         generateAISuggestion(lastUserMessage.content, data).then(aiSuggestion => {
+                           if (aiSuggestion) {
+                             setMessages(prevMessages => {
+                               const updatedMessages = [...prevMessages];
+                               const messageIndex = updatedMessages.findIndex(m => m.id === updated[i].id);
+                               if (messageIndex !== -1) {
+                                 updatedMessages[messageIndex] = {
+                                   ...updatedMessages[messageIndex],
+                                   aiSuggestion: aiSuggestion
+                                 };
+                               }
+                               return updatedMessages;
+                             });
+                           }
+                         }).catch(error => {
+                           console.error('Failed to generate AI suggestion:', error);
+                         });
+                       }
+                     } else {
+                       // For action mode, show a more user-friendly summary
+                       updated[i].content = data.summary || data.message || `I'll help you ${data.task || 'execute this task'}.`;
+                       
+                       // Set up needs inputs if missing params
+                       if (data.status === 'unconfirmed' && data.missing_params && data.batch_id) {
+                         handleMissingParams(updated[i], data);
+                         
+                         // Delay showing input form to allow summary to be visible first
+                         setTimeout(() => {
+                           setMessages(prev => {
+                             const msgUpdated = [...prev];
+                             const msgIndex = msgUpdated.findIndex(m => m.id === updated[i].id);
+                             if (msgIndex !== -1) {
+                               msgUpdated[msgIndex].showInputsDelayed = true;
+                             }
+                             return msgUpdated;
+                           });
+                         }, 1000); // 1 second delay
+                       } else if (data.status === 'confirmed' && data.batch_id) {
+                         // Ready for preflight
+                         updated[i].preflightStatus = {
+                           agent_id: selectedAgent!,
+                           decision: data,
+                           streaming: true
+                         };
+                       }
+                     }
                   } else {
                     // Fallback - show the raw decision
                     updated[i].content = JSON.stringify(data, null, 2);
@@ -1234,11 +1282,38 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     return "I'm currently in conversation-only mode, which means I can chat and provide information, but I won't make any changes to your systems or run any commands. I'm here to discuss, explain, and guide you through technical topics. What would you like to talk about?";
   };
 
+  // Helper function to generate AI suggestions
+  const generateAISuggestion = async (userMessage: string, decision: any) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('ultaai-command-suggest', {
+        body: {
+          user_message: userMessage,
+          agent_os: selectedAgent ? 'linux' : 'linux', // You could get this from agent details
+          tenant_id: selectedAgent || null,
+          agent_id: selectedAgent || null
+        }
+      });
+
+      if (error) {
+        console.error('Error generating AI suggestion:', error);
+        return null;
+      }
+
+      return {
+        ...data,
+        original_request: userMessage
+      };
+    } catch (error) {
+      console.error('Error calling AI suggestion function:', error);
+      return null;
+    }
+  };
+
   // Helper function to generate decision message content
   const getDecisionMessage = (decision: any): string => {
     switch (decision.task) {
       case 'not_supported':
-        return `I'm not able to help with that request. ${decision.reason || 'This type of request is not supported.'}`;
+        return `I'm not able to help with that request directly. ${decision.reason || 'This type of request is not supported in our current system.'}`;
       
       case 'custom_shell':
         return `I can run this command: \`${decision.params?.shell}\`\nThis will ${decision.params?.description || 'execute the command'}.`;
@@ -1958,38 +2033,164 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                         </div>
                       )}
 
-                      {/* AI Advice Display */}
-                      {message.adviceResult && (
-                        <div className="mt-4 relative overflow-hidden rounded-xl backdrop-blur-sm bg-gradient-to-br from-accent/80 to-secondary/80 border border-accent-foreground/20 shadow-md shadow-primary/10 animate-in fade-in-0 slide-in-from-top-2 duration-300">
-                          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>
-                          <div className="relative p-4">
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center mt-0.5">
-                                <svg className="w-3.5 h-3.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                </svg>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-semibold text-foreground mb-3 tracking-tight">
-                                  💡 AI Suggestions
-                                </h4>
-                                <div className="space-y-2.5">
-                                  {message.adviceResult.suggested_fixes.map((fix, index) => (
-                                    <div key={index} className="group">
-                                      <div className="flex items-start gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 mt-2 flex-shrink-0 group-hover:scale-110 transition-transform duration-200"></div>
-                                        <div className="flex-1 text-sm text-muted-foreground leading-relaxed">
-                                          {fix}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                       {/* AI Advice Display */}
+                       {message.adviceResult && (
+                         <div className="mt-4 relative overflow-hidden rounded-xl backdrop-blur-sm bg-gradient-to-br from-accent/80 to-secondary/80 border border-accent-foreground/20 shadow-md shadow-primary/10 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+                           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5"></div>
+                           <div className="relative p-4">
+                             <div className="flex items-start gap-3">
+                               <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center mt-0.5">
+                                 <svg className="w-3.5 h-3.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                 </svg>
+                               </div>
+                               <div className="flex-1 min-w-0">
+                                 <h4 className="text-sm font-semibold text-foreground mb-3 tracking-tight">
+                                   💡 AI Suggestions
+                                 </h4>
+                                 <div className="space-y-2.5">
+                                   {message.adviceResult.suggested_fixes.map((fix, index) => (
+                                     <div key={index} className="group">
+                                       <div className="flex items-start gap-2">
+                                         <div className="w-1.5 h-1.5 rounded-full bg-primary/60 mt-2 flex-shrink-0 group-hover:scale-110 transition-transform duration-200"></div>
+                                         <div className="flex-1 text-sm text-muted-foreground leading-relaxed">
+                                           {fix}
+                                         </div>
+                                       </div>
+                                     </div>
+                                   ))}
+                                 </div>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       )}
+
+                       {/* AI Command Suggestions Display */}
+                       {message.aiSuggestion && (
+                         <div className="mt-4 relative overflow-hidden rounded-xl backdrop-blur-sm bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/50 dark:border-blue-800/50 shadow-md shadow-blue-500/10 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+                           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5"></div>
+                           <div className="relative p-4">
+                             <div className="flex items-start gap-3">
+                               <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center mt-0.5">
+                                 <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                 </svg>
+                               </div>
+                               <div className="flex-1 min-w-0">
+                                 <h4 className="text-sm font-semibold text-foreground mb-2 tracking-tight">
+                                   ⚡ AI Command Suggestion
+                                 </h4>
+                                 <div className="space-y-3">
+                                   <div className="p-3 rounded-lg bg-background/50 border border-border/50">
+                                     <h5 className="text-sm font-medium text-foreground mb-1">{message.aiSuggestion.title}</h5>
+                                     <p className="text-sm text-muted-foreground mb-3">{message.aiSuggestion.description}</p>
+                                     
+                                     {/* Commands Display */}
+                                     {message.aiSuggestion.type === 'command' && message.aiSuggestion.commands && (
+                                       <div className="space-y-2">
+                                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Suggested Commands:</p>
+                                         {message.aiSuggestion.commands.map((cmd, index) => (
+                                           <div key={index} className="bg-muted/50 rounded px-3 py-2 font-mono text-sm">
+                                             {cmd}
+                                           </div>
+                                         ))}
+                                       </div>
+                                     )}
+
+                                     {/* Batch Script Display */}
+                                     {message.aiSuggestion.type === 'batch_script' && message.aiSuggestion.batch_script && (
+                                       <div className="space-y-2">
+                                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Suggested Batch Script:</p>
+                                         <div className="bg-muted/50 rounded p-3 space-y-2">
+                                           <div className="flex items-center justify-between">
+                                             <span className="font-medium text-sm">{message.aiSuggestion.batch_script.name}</span>
+                                             <span className={`text-xs px-2 py-1 rounded-full ${
+                                               message.aiSuggestion.batch_script.risk_level === 'low' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                                               message.aiSuggestion.batch_script.risk_level === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                                               'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                                             }`}>
+                                               {message.aiSuggestion.batch_script.risk_level} risk
+                                             </span>
+                                           </div>
+                                           <p className="text-sm text-muted-foreground">{message.aiSuggestion.batch_script.description}</p>
+                                           <div className="space-y-1">
+                                             {message.aiSuggestion.batch_script.commands.map((cmd, index) => (
+                                               <div key={index} className="bg-background/70 rounded px-2 py-1 font-mono text-xs">
+                                                 {cmd}
+                                               </div>
+                                             ))}
+                                           </div>
+                                         </div>
+                                       </div>
+                                     )}
+
+                                     <div className="mt-3 p-2 bg-blue-50/50 dark:bg-blue-900/10 rounded text-xs text-muted-foreground">
+                                       <strong>Why this helps:</strong> {message.aiSuggestion.explanation}
+                                     </div>
+
+                                     {/* Action Buttons based on AI Suggestions mode */}
+                                     {message.aiSuggestion.suggestions_mode !== 'off' && (
+                                       <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border/50">
+                                         {message.aiSuggestion.suggestions_mode === 'show' && (
+                                           <div className="text-xs text-muted-foreground italic">
+                                             AI suggestions are in "Show" mode - execution disabled
+                                           </div>
+                                         )}
+                                         {message.aiSuggestion.suggestions_mode === 'execute' && (
+                                           <>
+                                             {message.aiSuggestion.type === 'command' && (
+                                               <Button
+                                                 size="sm"
+                                                 onClick={() => {
+                                                   const commandText = message.aiSuggestion!.commands?.join(' && ') || '';
+                                                   sendMessage(`Execute these commands: ${commandText}`);
+                                                 }}
+                                                 disabled={isTyping}
+                                                 className="text-xs"
+                                               >
+                                                 <Play className="w-3 h-3 mr-1" />
+                                                 Execute Commands
+                                               </Button>
+                                             )}
+                                             {message.aiSuggestion.type === 'batch_script' && (
+                                               <Button
+                                                 size="sm"
+                                                 onClick={() => {
+                                                   const scriptName = message.aiSuggestion!.batch_script?.name || 'suggested script';
+                                                   sendMessage(`Create and execute batch script: ${scriptName}`);
+                                                 }}
+                                                 disabled={isTyping}
+                                                 className="text-xs"
+                                               >
+                                                 <Play className="w-3 h-3 mr-1" />
+                                                 Create & Execute Script
+                                               </Button>
+                                             )}
+                                             <Button
+                                               size="sm"
+                                               variant="outline"
+                                               onClick={() => {
+                                                 sendMessage("No, I don't want to use this suggestion");
+                                               }}
+                                               disabled={isTyping}
+                                               className="text-xs"
+                                             >
+                                               <X className="w-3 h-3 mr-1" />
+                                               Decline
+                                             </Button>
+                                           </>
+                                         )}
+                                       </div>
+                                     )}
+                                   </div>
+                                 </div>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       )}
+                       
                       
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-xs opacity-70">
