@@ -2028,11 +2028,16 @@ Please proceed with creating and executing this batch script.`;
                    <div className={`group flex gap-3 ${
                      message.role === 'user' ? 'justify-end' : 'justify-start'
                    }`}>
-                     <div className={`max-w-[80%] rounded-lg p-3 ${
-                       message.role === 'user'
-                         ? 'bg-primary text-primary-foreground'
-                         : 'bg-muted'
-                     } ${compactDensity ? 'p-2 text-sm' : ''}`}>
+                    <div className={`${
+                        // Use wider width for messages with batch scripts or execution status
+                        (message.decision?.mode === 'action' || message.executionStatus || message.aiSuggestion) 
+                          ? 'max-w-[95%] w-full' 
+                          : 'max-w-[80%]'
+                      } rounded-lg p-3 ${
+                        message.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted'
+                      } ${compactDensity ? 'p-2 text-sm' : ''}`}>
                       {typeof message.content === 'string' && message.content.split('\n').length > 10 && !message.collapsed ? (
                         <div>
                           <div className="flex items-start gap-2">
