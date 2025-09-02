@@ -109,29 +109,38 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Terminal className="h-4 w-4" />
-                <span className="font-medium text-sm">{i18n.draft.command.title}</span>
+                <span className="font-medium text-sm">Commands to run:</span>
               </div>
                <Badge className={`${getRiskColor(decision.risk || 'medium')} font-medium`} variant="outline">
                  {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
                </Badge>
             </div>
-            <div className="group relative">
-              <pre className="bg-muted/20 p-3 rounded-md text-sm font-mono whitespace-pre-wrap overflow-x-auto">
-                <code>{decision.suggested.kind === "command" ? decision.suggested.command : ""}</code>
-              </pre>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                onClick={() => decision.suggested.kind === "command" && copyToClipboard(decision.suggested.command)}
-                aria-label="Copy command to clipboard"
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
+            <div className="bg-muted/20 p-3 rounded-md">
+              <div className="space-y-2">
+                {/* Handle both single command and commands array */}
+                {(() => {
+                  const commands = (decision.suggested as any).commands || [decision.suggested.command];
+                  return commands.map((command: string, index: number) => (
+                    <div key={index} className="group relative">
+                      <div className="flex gap-2">
+                        <pre className="flex-1 bg-background/50 p-2 rounded border">
+                          <code className="text-sm font-mono">{command}</code>
+                        </pre>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                          onClick={() => copyToClipboard(command)}
+                          aria-label={`Copy command to clipboard`}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              {decision.suggested.kind === "command" ? sanitizeText(decision.suggested.description) : ""}
-            </p>
           </div>
         )}
 
@@ -208,12 +217,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
         <Separator />
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {decision.human && (
-              <span>{sanitizeText(decision.human)}</span>
-            )}
-          </div>
+        <div className="flex items-center justify-end">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
