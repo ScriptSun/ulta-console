@@ -12,7 +12,7 @@ interface SystemPromptVersion {
 }
 
 // Fallback prompt (updated for draft generation)
-const FALLBACK_SYSTEM_PROMPT = `You are UltaAI, a conversational hosting assistant.
+const FALLBACK_SYSTEM_PROMPT = `You are UltaAI, a conversational hosting assistant that responds in JSON format.
 
 Router sequence:
 1. First retrieve top 12 candidates from available batches using BM25 + embeddings + OS + plan matching

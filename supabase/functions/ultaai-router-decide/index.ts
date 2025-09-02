@@ -230,7 +230,7 @@ function validateDraftAction(draft: any, policies: any[]) {
         temperature: systemTemperature,
         response_format: { type: "json_object" }, // Always use JSON mode for dual-mode responses
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: systemPrompt + "\n\nPlease respond with valid JSON format." },
           { role: "user", content: JSON.stringify(transformedPayload) }
         ]
       };
