@@ -12,6 +12,10 @@ interface ApiLog {
   type: 'request' | 'response' | 'error' | 'router_request' | 'router_response' | 'router_token';
   data: any;
   userMessage?: string;
+  systemPrompt?: string;
+  apiEndpoint?: string;
+  openaiRequest?: any;
+  openaiResponse?: any;
 }
 
 interface ApiLogsViewerProps {
@@ -116,9 +120,62 @@ export const ApiLogsViewer: React.FC<ApiLogsViewerProps> = ({
                     </Button>
                   </div>
                   
-                  {log.userMessage && (
+                   {log.userMessage && (
                     <div className="text-sm bg-muted p-2 rounded">
                       <strong>User Message:</strong> {log.userMessage}
+                    </div>
+                  )}
+
+                  {/* OpenAI API Details */}
+                  {log.apiEndpoint && (
+                    <div className="text-sm bg-blue-50 dark:bg-blue-900/20 p-3 rounded border">
+                      <div className="font-medium text-blue-800 dark:text-blue-200 mb-2">📡 OpenAI API Request</div>
+                      <div className="space-y-2 text-xs">
+                        <div><strong>Endpoint:</strong> <code className="bg-blue-100 dark:bg-blue-800/30 px-1 rounded">{log.apiEndpoint}</code></div>
+                        {log.openaiRequest && (
+                          <div>
+                            <strong>Model:</strong> <span className="font-mono">{log.openaiRequest.model}</span>
+                            {log.openaiRequest.max_completion_tokens && <span className="ml-2 text-muted-foreground">({log.openaiRequest.max_completion_tokens} tokens)</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* System Prompt */}
+                  {log.systemPrompt && (
+                    <div className="text-sm bg-amber-50 dark:bg-amber-900/20 p-3 rounded border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-amber-800 dark:text-amber-200">📋 System Prompt ({log.systemPrompt.length} chars)</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(log.systemPrompt)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <pre className="text-xs whitespace-pre-wrap break-words bg-amber-100 dark:bg-amber-800/30 p-2 rounded font-mono max-h-32 overflow-y-auto">
+                        {log.systemPrompt}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* OpenAI Response Metadata */}
+                  {log.openaiResponse && (
+                    <div className="text-sm bg-green-50 dark:bg-green-900/20 p-3 rounded border">
+                      <div className="font-medium text-green-800 dark:text-green-200 mb-2">🤖 OpenAI Response Metadata</div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div><strong>Model:</strong> {log.openaiResponse.model}</div>
+                        <div><strong>Finish Reason:</strong> {log.openaiResponse.finish_reason}</div>
+                        {log.openaiResponse.usage && (
+                          <>
+                            <div><strong>Prompt Tokens:</strong> {log.openaiResponse.usage.prompt_tokens}</div>
+                            <div><strong>Completion Tokens:</strong> {log.openaiResponse.usage.completion_tokens}</div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                   

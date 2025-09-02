@@ -25,6 +25,7 @@ import { RenderConfig } from '@/types/renderTypes';
 import { RouterDecision } from '@/types/routerTypes';
 import { useEventBus } from '@/hooks/useEventBus';
 import { useWebSocketRouter } from '@/hooks/useWebSocketRouter';
+import { useRouterLogs, RouterLogData } from '@/hooks/useRouterLogs';
 import { useWebSocketExec } from '@/hooks/useWebSocketExec';
 
 interface Agent {
@@ -185,6 +186,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   
   // WebSocket router and event bus - only connect when needed
   const { connect, disconnect, sendRequest, isConnected } = useWebSocketRouter();
+  const { routerLogData } = useRouterLogs();
   const { 
     connect: connectExec, 
     disconnect: disconnectExec, 
@@ -531,12 +533,17 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         case 'router.selected':
           console.log('Router selected decision:', data);
           
-          // Add router response to logs
+          // Add router response to logs with enhanced OpenAI data
+          const latestRouterData = routerLogData.get('latest');
           setApiLogs(prev => [...prev, {
             id: `router-resp-${Date.now()}`,
             timestamp: new Date().toISOString(),
             type: 'router_response',
-            data: data
+            data: data,
+            systemPrompt: latestRouterData?.systemPrompt,
+            apiEndpoint: latestRouterData?.apiEndpoint,
+            openaiRequest: latestRouterData?.openaiRequest,
+            openaiResponse: latestRouterData?.openaiResponse
           }]);
           
           // Clear router phase and typing state immediately
