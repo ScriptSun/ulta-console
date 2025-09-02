@@ -38,16 +38,16 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
-      case 'low': return 'bg-green-100 text-green-800 border-green-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'high': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'low': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'medium': return 'bg-warning/10 text-warning-foreground border-warning/20';
+      case 'high': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
+      default: return 'bg-muted/10 text-muted-foreground border-muted/20';
     }
   };
 
   if (!isExpanded) {
     return (
-      <Card className="border-primary/20 bg-primary/5">
+      <Card className="border-l-4 border-l-primary/20 bg-primary/5">
         <CardContent className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -59,6 +59,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
               size="sm" 
               onClick={() => setIsExpanded(true)}
               className="h-6 px-2"
+              aria-label="Show details"
             >
               Show details
             </Button>
@@ -69,7 +70,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
   }
 
   return (
-    <Card className="border-primary/20 bg-primary/5">
+    <Card className="border-l-4 border-l-primary/20 bg-primary/5">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
@@ -92,15 +93,16 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
               <Terminal className="h-4 w-4" />
               <span className="font-medium text-sm">{i18n.draft.command.title}</span>
             </div>
-            <div className="relative">
-              <pre className="bg-muted p-3 rounded-md text-sm font-mono whitespace-pre-wrap overflow-x-auto">
+            <div className="group relative">
+              <pre className="bg-muted/20 p-3 rounded-md text-sm font-mono whitespace-pre-wrap overflow-x-auto">
                 <code>{decision.suggested.kind === "command" ? decision.suggested.command : ""}</code>
               </pre>
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute top-2 right-2 h-6 w-6 p-0"
+                className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                 onClick={() => decision.suggested.kind === "command" && copyToClipboard(decision.suggested.command)}
+                aria-label="Copy command to clipboard"
               >
                 <Copy className="h-3 w-3" />
               </Button>
@@ -118,13 +120,13 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
               <FileText className="h-4 w-4" />
               <span className="font-medium text-sm">{i18n.draft.batch.title}</span>
             </div>
-            <div className="bg-muted p-3 rounded-md">
+            <div className="bg-muted/20 p-3 rounded-md">
               <h4 className="font-medium text-sm mb-1">{sanitizeText(decision.suggested.name)}</h4>
               <p className="text-sm text-muted-foreground mb-3">{sanitizeText(decision.suggested.overview)}</p>
               
               <div className="space-y-2">
                 {decision.suggested.commands.map((command, index) => (
-                  <div key={index} className="relative">
+                  <div key={index} className="group relative">
                     <div className="flex gap-2">
                       <span className="text-xs text-muted-foreground font-mono w-4 flex-shrink-0 mt-0.5">
                         {index + 1}.
@@ -135,8 +137,9 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                         onClick={() => copyToClipboard(command)}
+                        aria-label={`Copy command ${index + 1} to clipboard`}
                       >
                         <Copy className="h-3 w-3" />
                       </Button>
@@ -163,11 +166,11 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
 
         {/* Notes Section */}
         {decision.notes && decision.notes.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-            <h4 className="font-medium text-sm text-blue-800 mb-2">Important notes:</h4>
+          <div className="bg-primary/5 border border-primary/20 rounded-md p-3">
+            <h4 className="font-medium text-sm text-primary mb-2">Important notes:</h4>
             <ul className="space-y-1">
                   {decision.notes.map((note, index) => (
-                    <li key={index} className="text-sm text-blue-700">
+                    <li key={index} className="text-sm text-primary/80">
                       • {sanitizeText(note)}
                     </li>
                   ))}
@@ -190,6 +193,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
               size="sm"
               onClick={onCancel}
               disabled={disabled}
+              aria-label="Cancel action"
             >
               <X className="h-4 w-4 mr-1" />
               {i18n.draft.buttons.cancel}
@@ -198,6 +202,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
               size="sm"
               onClick={onConfirm}
               disabled={disabled}
+              aria-label="Confirm and execute action"  
             >
               <CheckCircle className="h-4 w-4 mr-1" />
               {i18n.draft.buttons.confirm}
