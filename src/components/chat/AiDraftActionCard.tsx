@@ -45,40 +45,36 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
     }
   };
 
-  // Handle incomplete AI draft action responses
+  // Handle incomplete AI draft action responses - parse summary to extract commands
   if (!decision.suggested || !decision.suggested.kind) {
-    return (
-      <Card className="border-l-4 border-l-primary/20 bg-primary/5">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Terminal className="h-4 w-4 text-primary" />
-            <span className="font-medium">AI Suggestion</span>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            {sanitizeText(decision.summary) || "AI is analyzing your request..."}
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCancel}
-              disabled={disabled}
-            >
-              <X className="h-4 w-4 mr-1" />
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={onConfirm}
-              disabled={disabled}
-            >
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Continue
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    // Try to extract commands from summary text
+    const summary = decision.summary || "";
+    const commandMatches = summary.match(/`([^`]+)`/g);
+    const commands = commandMatches ? commandMatches.map(cmd => cmd.replace(/`/g, '')) : [];
+    
+    // Create a structured response from the summary
+    const structuredDecision: AiDraftAction = {
+      ...decision,
+      task: decision.task || "install_software",
+      status: "unconfirmed" as const,
+      risk: decision.risk || "medium" as const,
+      suggested: commands.length > 1 ? {
+        kind: "batch_script" as const,
+        name: "Software Installation",
+        overview: summary.split('.')[0] + '.',
+        commands: commands,
+        post_checks: commands.filter(cmd => cmd.includes('--version'))
+      } : {
+        kind: "command" as const,
+        description: "Install software",
+        command: commands[0] || "sudo apt update"
+      },
+      notes: ["Review the commands before executing"],
+      human: decision.human || "Confirm to apply changes"
+    };
+    
+    // Use the structured decision instead
+    return <AiDraftActionCard decision={structuredDecision} onConfirm={onConfirm} onCancel={onCancel} disabled={disabled} />;
   }
 
   if (!isExpanded) {
