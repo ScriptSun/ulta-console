@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Eye, Edit, Power, History, Info, Activity, Bot, CheckSquare, Shield } from 'lucide-react';
+import { Plus, Eye, Edit, Power, History, Info, Activity, Bot, CheckSquare, Shield, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -115,6 +116,10 @@ export default function CommandPolicies() {
   const [editingPolicy, setEditingPolicy] = useState<CommandPolicy | null>(null);
   const [policies, setPolicies] = useState<CommandPolicy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [modeFilter, setModeFilter] = useState<string>('all');
+  const [riskFilter, setRiskFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { activeCommands, confirmCommands, totalScripts, forbidCommands, successRate } = useKPIData();
 
   // Fetch policies from Supabase
@@ -364,8 +369,34 @@ export default function CommandPolicies() {
     setIsDrawerOpen(true);
   };
 
-  const getFilteredPolicies = (mode: string) => {
-    return policies.filter(policy => policy.mode === mode);
+  const getFilteredPolicies = () => {
+    let filtered = policies;
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(policy =>
+        policy.policy_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        policy.match_value.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Mode filter
+    if (modeFilter !== 'all') {
+      filtered = filtered.filter(policy => policy.mode === modeFilter);
+    }
+
+    // Risk filter
+    if (riskFilter !== 'all') {
+      filtered = filtered.filter(policy => policy.risk === riskFilter);
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      const isActive = statusFilter === 'active';
+      filtered = filtered.filter(policy => policy.active === isActive);
+    }
+
+    return filtered;
   };
 
   return (
@@ -458,70 +489,86 @@ export default function CommandPolicies() {
         </AlertDescription>
       </Alert>
 
-      <Tabs defaultValue="auto" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="auto" className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-            Auto
-          </TabsTrigger>
-          <TabsTrigger value="confirm" className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-            Confirm
-          </TabsTrigger>
-          <TabsTrigger value="forbid" className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500"></div>
-            Forbid
-          </TabsTrigger>
-        </TabsList>
+      {/* Search and Filters */}
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search policies or commands..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Select value={modeFilter} onValueChange={setModeFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Modes" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border border-border shadow-lg z-50">
+              <SelectItem value="all">All Modes</SelectItem>
+              <SelectItem value="auto">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  Auto
+                </div>
+              </SelectItem>
+              <SelectItem value="confirm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                  Confirm
+                </div>
+              </SelectItem>
+              <SelectItem value="forbid">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                  Forbid
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
 
-        <TabsContent value="auto" className="space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">Loading policies...</div>
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={getFilteredPolicies('auto')}
-              searchKeys={['policy_name', 'match_value']}
-              searchPlaceholder="Search policies or commands..."
-              defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
-            />
-          )}
-        </TabsContent>
+          <Select value={riskFilter} onValueChange={setRiskFilter}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="All Risk" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border border-border shadow-lg z-50">
+              <SelectItem value="all">All Risk</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="critical">Critical</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <TabsContent value="confirm" className="space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">Loading policies...</div>
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={getFilteredPolicies('confirm')}
-              searchKeys={['policy_name', 'match_value']}
-              searchPlaceholder="Search policies or commands..."
-              defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
-            />
-          )}
-        </TabsContent>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border border-border shadow-lg z-50">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        <TabsContent value="forbid" className="space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">Loading policies...</div>
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={getFilteredPolicies('forbid')}
-              searchKeys={['policy_name', 'match_value']}
-              searchPlaceholder="Search policies or commands..."
-              defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
+      {/* Policies Table */}
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-muted-foreground">Loading policies...</div>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={getFilteredPolicies()}
+          searchKeys={['policy_name', 'match_value']}
+          searchPlaceholder="Search policies or commands..."
+          defaultHiddenColumns={['match_type', 'os_whitelist', 'param_schema']}
+        />
+      )}
 
       <PolicyDrawer
         open={isDrawerOpen}
