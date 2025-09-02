@@ -71,7 +71,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
 
   return (
     <Card className="border-l-4 border-l-primary/20 bg-primary/5">
-      <CardContent className="space-y-4 mt-6 px-6 py-5">
+      <CardContent className="space-y-4 mt-6 px-8 py-5">
         {/* Command Section */}
         {decision.suggested.kind === "command" && (
           <div>
@@ -177,12 +177,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
         <Separator />
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {decision.human && (
-              <span>{sanitizeText(decision.human)}</span>
-            )}
-          </div>
+        <div className="flex justify-end">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
