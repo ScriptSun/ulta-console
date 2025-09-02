@@ -2293,12 +2293,14 @@ Please proceed with creating and executing this batch script.`;
                          </div>
                        )}
                         
-                        {/* AI Draft Action Card */}
-                        {message.decision && message.role === 'assistant' && message.decision.mode === 'ai_draft_action' && (
-                          <div className="mt-3">
-                            <AiDraftActionCard
-                              decision={message.decision}
-                               onConfirm={() => {
+                         {/* AI Draft Action Card */}
+                         {message.decision && message.role === 'assistant' && message.decision.mode === 'ai_draft_action' && (
+                           <div className="mt-3">
+                             <AiDraftActionCard
+                               decision={message.decision}
+                               run_id={message.executionStatus?.run_id}
+                               executionStatus={message.executionStatus?.status as 'queued' | 'running' | 'completed' | 'failed' | null}
+                                onConfirm={() => {
                                  // Handle draft confirmation
                                  if (message.decision && message.decision.mode === 'ai_draft_action') {
                                    // Generate a run_id for tracking across router -> preflight -> exec
@@ -2702,8 +2704,8 @@ Please proceed with creating and executing this batch script.`;
                      </div>
                    )}
 
-                   {/* Execution Status Card - NEW */}
-                   {message.executionStatus && (
+                    {/* Execution Status Card - Only show for non-draft actions */}
+                    {message.executionStatus && message.decision?.mode !== 'ai_draft_action' && (
                      <div className="mt-2">
                        <ExecutionStatusCard
                          run_id={message.executionStatus.run_id}

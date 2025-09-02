@@ -1,23 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Copy, Terminal, FileText, X, CheckCircle, Shield } from 'lucide-react';
+import { Copy, Terminal, FileText, X, CheckCircle, Shield, XCircle, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useEventBus } from '@/hooks/useEventBus';
 import { AiDraftAction } from '@/types/routerTypes';
 import { i18n, sanitizeText } from '@/lib/i18n';
+import { TaskDetailsDialog } from './TaskDetailsDialog';
 
 interface AiDraftActionCardProps {
   decision: AiDraftAction;
   onConfirm: () => void;
   onCancel: () => void;
   disabled?: boolean;
+  run_id?: string;
+  executionStatus?: 'queued' | 'running' | 'completed' | 'failed' | null;
 }
 
-export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = false }: AiDraftActionCardProps) {
+export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = false, run_id, executionStatus }: AiDraftActionCardProps) {
   const { toast } = useToast();
+  const { on } = useEventBus();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [internalStatus, setInternalStatus] = useState<'queued' | 'running' | 'completed' | 'failed' | null>(executionStatus || null);
+  const [failureDetails, setFailureDetails] = useState<string>('');
+
+  // Listen for execution events if run_id is provided
+  useEffect(() => {
+    if (!run_id) return;
+    
+    const unsubscribers = [
+      on('exec.finished', (data) => {
+        if (data.run_id === run_id) {
+          setInternalStatus(data.success ? 'completed' : 'failed');
+          if (!data.success) {
+            setFailureDetails('Task failed. Check the logs for details.');
+          }
+        }
+      }),
+      
+      on('exec.error', (data) => {
+        if (data.run_id === run_id) {
+          setInternalStatus('failed');
+          setFailureDetails(data.error || 'Task failed with an error.');
+        }
+      }),
+      
+      on('exec.started', (data) => {
+        if (data.run_id === run_id) {
+          setInternalStatus('running');
+        }
+      })
+    ];
+    
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [on, run_id]);
+
+  // Update internal status when prop changes
+  useEffect(() => {
+    if (executionStatus) {
+      setInternalStatus(executionStatus);
+    }
+  }, [executionStatus]);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -218,8 +265,51 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
           </div>
         )}
 
-        {/* Notes Section */}
-        {(decision.notes && decision.notes.length > 0) || (decision as any).estimated_time ? (
+        {/* Conditional Notes/Failure Section */}
+        {internalStatus === 'failed' ? (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-destructive" />
+                <h4 className="font-medium text-sm text-destructive">Task Failed</h4>
+              </div>
+              {run_id && (
+                <TaskDetailsDialog 
+                  runId={run_id} 
+                  title="Task Failed"
+                  status="failed"
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                  >
+                    <Info className="h-3 w-3 mr-1" />
+                    Details
+                  </Button>
+                </TaskDetailsDialog>
+              )}
+            </div>
+            <p className="text-sm text-destructive">
+              ❌ {failureDetails || 'Task failed. Check the logs for details.'}
+            </p>
+            {run_id && (
+              <div className="text-xs text-muted-foreground font-mono mt-2">
+                Run ID: {run_id.slice(0, 8)}...
+              </div>
+            )}
+          </div>
+        ) : internalStatus === 'completed' ? (
+          <div className="bg-green-500/10 border border-green-500/20 rounded-md p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <h4 className="font-medium text-sm text-green-600">Task Completed</h4>
+            </div>
+            <p className="text-sm text-green-600">
+              ✅ Task completed successfully!
+            </p>
+          </div>
+        ) : (decision.notes && decision.notes.length > 0) || (decision as any).estimated_time ? (
           <div className="bg-muted/20 border border-muted-foreground/20 rounded-md p-3">
             <h4 className="font-medium text-sm text-foreground mb-2">Important notes:</h4>
             <ul className="space-y-1">
