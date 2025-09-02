@@ -111,6 +111,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                 <Terminal className="h-4 w-4" />
                 <span className="font-medium text-sm">Commands to run:</span>
               </div>
+              <div className="flex items-center gap-2">
                <Badge 
                  className={`${getRiskColor(decision.risk || 'medium')} font-medium flex items-center gap-1.5 px-2.5 py-1`} 
                  variant="outline"
@@ -118,6 +119,17 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                  <CheckCircle className="h-3 w-3" />
                  {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
                </Badge>
+               {(decision as any).estimated_time && (
+                 <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800">
+                   {(decision as any).estimated_time}
+                 </Badge>
+               )}
+               {(decision as any).impact && (
+                 <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-800">
+                   {(decision as any).impact}
+                 </Badge>
+               )}
+              </div>
             </div>
             <div className="bg-muted/20 p-3 rounded-md">
               <div className="space-y-2">
@@ -162,13 +174,25 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                 <FileText className="h-4 w-4" />
                 <span className="font-medium text-sm">{i18n.draft.batch.title}</span>
               </div>
-              <Badge 
-                className={`${getRiskColor(decision.risk || 'medium')} font-medium flex items-center gap-1.5 px-2.5 py-1`} 
-                variant="outline"
-              >
-                <CheckCircle className="h-3 w-3" />
-                {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge 
+                  className={`${getRiskColor(decision.risk || 'medium')} font-medium flex items-center gap-1.5 px-2.5 py-1`} 
+                  variant="outline"
+                >
+                  <CheckCircle className="h-3 w-3" />
+                  {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
+                </Badge>
+                {(decision as any).estimated_time && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800">
+                    {(decision as any).estimated_time}
+                  </Badge>
+                )}
+                {(decision as any).impact && (
+                  <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-800">
+                    {(decision as any).impact}
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="bg-muted/20 p-3 rounded-md">
               <h4 className="font-medium text-sm mb-1">{sanitizeText(decision.suggested.name)}</h4>
