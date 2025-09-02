@@ -1568,7 +1568,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                         selectedAgentData.status === 'online' ? 'bg-success' : 'bg-muted-foreground'
                       }`} />
                       <Select value={selectedAgent} onValueChange={handleAgentChange}>
-                        <SelectTrigger className="w-52 h-8">
+                        <SelectTrigger className="w-80 h-8">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="z-50">
