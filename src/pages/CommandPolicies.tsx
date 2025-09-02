@@ -386,87 +386,67 @@ export default function CommandPolicies() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-gradient-card border-card-border shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Commands
-              </CardTitle>
-              <Activity className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              {activeCommands.isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold text-foreground">{activeCommands.data}</div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                All policies
-              </p>
+          <Card className="bg-gradient-primary border-primary/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-primary-foreground/80">Total Commands</p>
+                  {activeCommands.isLoading ? (
+                    <Skeleton className="h-8 w-16 bg-primary-foreground/20" />
+                  ) : (
+                    <p className="text-3xl font-bold text-primary-foreground">{activeCommands.data}</p>
+                  )}
+                </div>
+                <Activity className="h-8 w-8 text-primary-foreground/60" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-card border-card-border shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Confirm Required
-              </CardTitle>
-              <CheckSquare className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              {confirmCommands.isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold text-foreground">{confirmCommands.data}</div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Need confirmation
-              </p>
+          <Card className="bg-gradient-secondary border-secondary/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-secondary-foreground/80">Confirm Required</p>
+                  {confirmCommands.isLoading ? (
+                    <Skeleton className="h-8 w-16 bg-secondary-foreground/20" />
+                  ) : (
+                    <p className="text-3xl font-bold text-secondary-foreground">{confirmCommands.data}</p>
+                  )}
+                </div>
+                <CheckSquare className="h-8 w-8 text-secondary-foreground/60" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-card border-card-border shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Forbid Policies
-              </CardTitle>
-              <Shield className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              {forbidCommands.isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold text-foreground">{forbidCommands.data}</div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Blocked commands
-              </p>
+          <Card className="bg-gradient-accent border-accent/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-accent-foreground/80">Forbid Policies</p>
+                  {forbidCommands.isLoading ? (
+                    <Skeleton className="h-8 w-16 bg-accent-foreground/20" />
+                  ) : (
+                    <p className="text-3xl font-bold text-accent-foreground">{forbidCommands.data}</p>
+                  )}
+                </div>
+                <Shield className="h-8 w-8 text-accent-foreground/60" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-card border-card-border shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                Success Rate
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground/60" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Last 30 days: Auto/Confirm executions vs Forbid blocks</p>
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-              <Bot className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              {successRate.isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold text-foreground">{successRate.data}%</div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Command success rate
-              </p>
+          <Card className="bg-gradient-muted border-muted/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground/80">Success Rate</p>
+                  {successRate.isLoading ? (
+                    <Skeleton className="h-8 w-16 bg-foreground/20" />
+                  ) : (
+                    <p className="text-3xl font-bold text-foreground">{successRate.data}%</p>
+                  )}
+                </div>
+                <Bot className="h-8 w-8 text-muted-foreground/60" />
+              </div>
             </CardContent>
           </Card>
         </div>
