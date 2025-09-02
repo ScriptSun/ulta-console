@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Filter, Search, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, Plus, Filter, Search, AlertTriangle, RefreshCw, Server, Activity, Zap, Cpu } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AgentDetailsDrawer } from '@/components/agents/AgentDetailsDrawer';
@@ -395,33 +395,61 @@ export default function Agents() {
         </Card>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-sm text-muted-foreground">Active</span>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-primary border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-primary-foreground/80">Total Agents</p>
+                <p className="text-3xl font-bold text-primary-foreground">
+                  {agents.length || 0}
+                </p>
+              </div>
+              <Server className="h-8 w-8 text-primary-foreground/60" />
             </div>
-            <p className="text-2xl font-bold">{statusCounts.active}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-yellow-500" />
-              <span className="text-sm text-muted-foreground">Suspended</span>
+
+        <Card className="bg-gradient-secondary border-secondary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-secondary-foreground/80">Active Agents</p>
+                <p className="text-3xl font-bold text-secondary-foreground">
+                  {statusCounts.active}
+                </p>
+              </div>
+              <Activity className="h-8 w-8 text-secondary-foreground/60" />
             </div>
-            <p className="text-2xl font-bold">{statusCounts.suspended}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-sm text-muted-foreground">Terminated</span>
+
+        <Card className="bg-gradient-accent border-accent/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-accent-foreground/80">Tasks Completed</p>
+                <p className="text-3xl font-bold text-accent-foreground">
+                  {agents.reduce((sum, agent) => sum + (agent.tasks_completed || 0), 0)}
+                </p>
+              </div>
+              <Zap className="h-8 w-8 text-accent-foreground/60" />
             </div>
-            <p className="text-2xl font-bold">{statusCounts.terminated}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-muted border-muted/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground/80">Avg CPU Usage</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {agents.length > 0 ? Math.round(agents.reduce((sum, agent) => sum + (agent.cpu_usage || 0), 0) / agents.length) : 0}%
+                </p>
+              </div>
+              <Cpu className="h-8 w-8 text-muted-foreground/60" />
+            </div>
           </CardContent>
         </Card>
       </div>
