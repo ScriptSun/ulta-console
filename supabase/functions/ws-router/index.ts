@@ -28,6 +28,101 @@ interface RouterRequest {
   run_id?: string;
 }
 
+// Intelligent token batching for improved streaming performance
+async function streamTokensBatched(text: string, sendMessage: Function) {
+  if (!text || text.length === 0) return;
+  
+  console.log(`🚀 Starting batched streaming for ${text.length} characters`);
+  
+  let buffer = '';
+  let accumulated = '';
+  let wordBuffer = '';
+  let lastSentTime = Date.now();
+  const MIN_BATCH_SIZE = 50;
+  const MAX_BATCH_SIZE = 150; 
+  const WORD_BOUNDARY_DELAY = 80; // Reduced delay
+  const DEBOUNCE_DELAY = 60; // Debounce rapid sends
+  
+  const sendBatch = async () => {
+    if (buffer.length === 0) return;
+    
+    const now = Date.now();
+    const timeSinceLastSend = now - lastSentTime;
+    
+    // Debounce rapid sends
+    if (timeSinceLastSend < DEBOUNCE_DELAY) {
+      await new Promise(resolve => setTimeout(resolve, DEBOUNCE_DELAY - timeSinceLastSend));
+    }
+    
+    console.log(`📦 Sending batch: "${buffer}" (${buffer.length} chars)`);
+    
+    accumulated += buffer;
+    sendMessage('router.token', {
+      delta: buffer,
+      accumulated: accumulated
+    });
+    
+    buffer = '';
+    lastSentTime = Date.now();
+    
+    // Brief pause between batches for natural streaming feel
+    await new Promise(resolve => setTimeout(resolve, WORD_BOUNDARY_DELAY));
+  };
+  
+  // Process text character by character
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    buffer += char;
+    wordBuffer += char;
+    
+    // Check for natural boundaries (space, punctuation)
+    const isWordBoundary = /[\s.,!?;:]/.test(char);
+    const isEndOfSentence = /[.!?]/.test(char);
+    
+    // Send batch on natural boundaries when buffer is substantial enough
+    if (isWordBoundary && buffer.length >= MIN_BATCH_SIZE) {
+      await sendBatch();
+      wordBuffer = '';
+    }
+    // Send batch on sentence boundaries regardless of size
+    else if (isEndOfSentence) {
+      await sendBatch(); 
+      wordBuffer = '';
+    }
+    // Send batch when max size reached
+    else if (buffer.length >= MAX_BATCH_SIZE) {
+      // Try to break at last word boundary if possible
+      const lastSpaceIndex = buffer.lastIndexOf(' ');
+      if (lastSpaceIndex > MIN_BATCH_SIZE) {
+        const batchToSend = buffer.substring(0, lastSpaceIndex + 1);
+        const remainder = buffer.substring(lastSpaceIndex + 1);
+        
+        // Send the batch up to the space
+        accumulated += batchToSend;
+        sendMessage('router.token', {
+          delta: batchToSend,
+          accumulated: accumulated
+        });
+        
+        buffer = remainder;
+        lastSentTime = Date.now();
+        await new Promise(resolve => setTimeout(resolve, WORD_BOUNDARY_DELAY));
+      } else {
+        // No good break point, send as-is
+        await sendBatch();
+      }
+      wordBuffer = '';
+    }
+  }
+  
+  // Send any remaining buffer
+  if (buffer.length > 0) {
+    await sendBatch();
+  }
+  
+  console.log('✅ Batched streaming completed');
+}
+
 serve(async (req) => {
   const { headers } = req;
   const upgradeHeader = headers.get("upgrade") || "";
@@ -140,31 +235,13 @@ serve(async (req) => {
         const decision = routerResponse.data;
         console.log('🎯 Decision received from router-decide:', decision);
 
-        // Emit streaming tokens for consistency (optional for non-streaming responses)
+        // Stream tokens with intelligent batching for better performance
         if (decision.mode === 'ai_draft_action') {
-          // Send some streaming tokens to indicate AI is working on draft
           const draftMessage = `Analyzing request and creating safe command plan...`;
-          for (let i = 0; i < draftMessage.length; i += 10) {
-            const chunk = draftMessage.slice(i, i + 10);
-            sendMessage('router.token', { 
-              delta: chunk,
-              accumulated: draftMessage.slice(0, i + chunk.length)
-            });
-            // Small delay to simulate streaming
-            await new Promise(resolve => setTimeout(resolve, 50));
-          }
+          await streamTokensBatched(draftMessage, sendMessage);
         } else if (decision.mode === 'chat') {
-          // Stream chat response
           const chatText = decision.text || '';
-          for (let i = 0; i < chatText.length; i += 8) {
-            const chunk = chatText.slice(i, i + 8);
-            sendMessage('router.token', { 
-              delta: chunk,
-              accumulated: chatText.slice(0, i + chunk.length)
-            });
-            // Small delay to simulate streaming
-            await new Promise(resolve => setTimeout(resolve, 30));
-          }
+          await streamTokensBatched(chatText, sendMessage);
         }
 
         // If decision includes a batch_id, get full batch details
