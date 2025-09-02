@@ -194,7 +194,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const { emit, on, onRouter } = useEventBus();
 
   // Check if current route should show chat demo
-  const shouldShowDemo = (forceEnabled || isDemoEnabled) && !currentRoute.includes('/admin') && !currentRoute.includes('/settings') && !currentRoute.includes('/chat');
+  const shouldShowDemo = forceEnabled || (isDemoEnabled && !currentRoute.includes('/admin') && !currentRoute.includes('/settings') && !currentRoute.includes('/chat'));
 
   // Load settings from localStorage
   useEffect(() => {

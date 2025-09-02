@@ -1,7 +1,6 @@
 import { ChatDemo } from '@/components/chat/ChatDemo';
 
 export default function Chat() {
-  // Use the exact ChatDemo component but force it to be enabled and visible
   return (
     <div className="h-screen flex flex-col">
       <div className="container mx-auto p-6 max-w-6xl flex-1 flex flex-col">
