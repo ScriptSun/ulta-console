@@ -60,7 +60,17 @@ Deno.serve(async (req) => {
       // Fetch widget by site key directly from database
       const { data: widget, error } = await supabase
         .from('widgets')
-        .select('*')
+        .select(`
+          id,
+          site_key,
+          name,
+          tenant_id,
+          theme,
+          status,
+          widget_scopes,
+          auto_update_enabled,
+          last_deployed_at
+        `)
         .eq('site_key', site_key)
         .maybeSingle()
 

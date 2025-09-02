@@ -41,12 +41,24 @@ serve(async (req) => {
 
     console.log(`Getting batch details for: ${batch_id}`);
 
-    // Get full batch details including schemas
+    // Get only essential batch fields - optimized query
     const { data: batch, error: batchError } = await supabase
       .from('script_batches')
-      .select('*')
+      .select(`
+        id,
+        name,
+        description,
+        risk,
+        max_timeout_sec,
+        inputs_schema,
+        inputs_defaults,
+        os_targets,
+        key,
+        customer_id,
+        active_version
+      `)
       .eq('id', batch_id)
-      .single();
+      .maybeSingle();
 
     if (batchError || !batch) {
       console.error('Error loading batch details:', batchError);

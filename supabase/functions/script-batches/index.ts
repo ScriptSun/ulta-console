@@ -113,7 +113,16 @@ async function handleGetVariants(req: Request, batchId: string) {
     // Get all variants for the batch
     const { data: variants, error } = await supabase
       .from('script_batch_variants')
-      .select('*')
+      .select(`
+        id,
+        batch_id,
+        os,
+        version,
+        active,
+        sha256,
+        created_at,
+        updated_at
+      `)
       .eq('batch_id', batchId)
       .order('os')
       .order('version', { ascending: false })
@@ -331,12 +340,19 @@ async function handleQuickRun(req: Request, batchId: string) {
     const body = await req.json()
     const { inputs = {}, agentOs = 'ubuntu', agentOsVersion = '22.04' } = body
 
-    // Get the batch details
+    // Get the batch details - only essential fields
     const { data: batch, error: batchError } = await supabase
       .from('script_batches')
-      .select('*')
+      .select(`
+        id,
+        name,
+        customer_id,
+        inputs_schema,
+        max_timeout_sec,
+        active_version
+      `)
       .eq('id', batchId)
-      .single()
+      .maybeSingle()
 
     if (batchError || !batch) {
       Logger.error('Batch not found', { error: batchError, batchId })
@@ -346,7 +362,14 @@ async function handleQuickRun(req: Request, batchId: string) {
     // Get the active variant for the agent's OS
     const { data: activeVariant, error: variantError } = await supabase
       .from('script_batch_variants')
-      .select('*')
+      .select(`
+        id,
+        os,
+        version,
+        active,
+        sha256,
+        updated_at
+      `)
       .eq('batch_id', batchId)
       .eq('os', agentOs)
       .eq('active', true)
@@ -490,26 +513,38 @@ async function handleStartRun(req: Request, batchId: string) {
       })
     }
 
-    // Get batch details for execution payload
+    // Get batch details for execution payload - only needed fields
     const { data: batch, error: batchError } = await supabase
       .from('script_batches')
-      .select('*')
+      .select(`
+        id,
+        name,
+        inputs_schema,
+        max_timeout_sec
+      `)
       .eq('id', batchId)
-      .single()
+      .maybeSingle()
 
     if (batchError || !batch) {
       Logger.error('Batch not found', { error: batchError, batchId })
       return new Response('Batch not found', { status: 404, headers: corsHeaders })
     }
 
-    // Get the active variant for the agent's OS
+    // Get the active variant for the agent's OS - only essential fields
     const { data: activeVariant, error: variantError } = await supabase
       .from('script_batch_variants')
-      .select('*')
+      .select(`
+        id,
+        os,
+        version,
+        sha256,
+        source,
+        min_os_version
+      `)
       .eq('batch_id', batchId)
       .eq('os', agentOs)
       .eq('active', true)
-      .single()
+      .maybeSingle()
 
     if (variantError || !activeVariant) {
       // Mark the run as failed and return error

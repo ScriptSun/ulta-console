@@ -115,10 +115,23 @@ serve(async (req) => {
       
       console.log('Fetching sessions for user:', user.id)
       
-      // Get only active sessions (updated within 1 hour)
+      // Get only active sessions - only needed fields  
       const { data: userSessions, error: sessionsError } = await supabase
         .from('user_sessions')
-        .select('*')
+        .select(`
+          id,
+          ip_address,
+          user_agent,
+          device_type,
+          location,
+          browser,
+          os,
+          session_start,
+          last_seen,
+          is_active,
+          created_at,
+          updated_at
+        `)
         .eq('user_id', user.id)
         .gte('updated_at', oneHourAgo)
         .order('created_at', { ascending: false })
@@ -286,10 +299,18 @@ serve(async (req) => {
         
         console.log('Processing session for user:', user.id)
         
-        // Check if an active session exists for this device (use limit(1) to handle duplicates gracefully)
+        // Check if an active session exists for this device - only needed fields
         const { data: existingSessions, error: findError } = await supabase
           .from('user_sessions')
-          .select('*')
+          .select(`
+            id,
+            user_id,
+            user_agent,
+            ip_address,
+            is_active,
+            created_at,
+            updated_at
+          `)
           .eq('user_id', user.id)
           .eq('user_agent', userAgent)
           .eq('ip_address', clientIP)
@@ -375,7 +396,18 @@ serve(async (req) => {
             // If creation failed, maybe another request created it - try to find it
             const { data: fallbackSessions } = await supabase
               .from('user_sessions')
-              .select('*')
+              .select(`
+                id,
+                user_id,
+                ip_address,
+                user_agent,
+                device_type,
+                location,
+                is_active,
+                created_at,
+                updated_at,
+                session_start
+              `)
               .eq('user_id', user.id)
               .eq('user_agent', userAgent)
               .eq('ip_address', clientIP)

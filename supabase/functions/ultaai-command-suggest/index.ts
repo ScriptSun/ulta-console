@@ -165,7 +165,17 @@ async function checkCommandPolicy(commands: string[], tenantId?: string): Promis
     // Get active command policies for tenant
     const { data: policies, error } = await supabase
       .from('command_policies')
-      .select('*')
+      .select(`
+        id,
+        policy_name,
+        mode,
+        match_type,
+        match_value,
+        active,
+        os_whitelist,
+        risk,
+        confirm_message
+      `)
       .eq('tenant_id', tenantId)
       .eq('active', true)
       .order('mode'); // Prioritize 'forbid' over 'confirm' over 'auto'

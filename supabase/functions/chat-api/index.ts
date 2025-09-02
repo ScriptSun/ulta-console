@@ -121,13 +121,22 @@ async function handleWebSocketUpgrade(req: Request, supabase: any) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // Validate session
+  // Validate session - only fetch needed fields
   const { data: session, error: sessionError } = await supabase
     .from('widget_sessions')
-    .select('*')
+    .select(`
+      session_id,
+      tenant_id,
+      agent_id,
+      user_id,
+      is_active,
+      expires_at,
+      last_rotated,
+      created_at
+    `)
     .eq('session_id', sessionId)
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
   if (sessionError || !session || new Date(session.expires_at) < new Date()) {
     console.log('WebSocket upgrade rejected: invalid session', sessionError);
@@ -411,10 +420,19 @@ async function handleChatStart(req: Request, supabase: any, body?: any) {
   }
 
   try {
-    // Check for existing open conversation
+    // Check for existing open conversation - only fetch needed fields
     let query = supabase
       .from('chat_conversations')
-      .select('*')
+      .select(`
+        id,
+        tenant_id,
+        agent_id,
+        user_id,
+        session_id,
+        status,
+        created_at,
+        meta
+      `)
       .eq('tenant_id', tenant_id)
       .eq('agent_id', agent_id)
       .eq('status', 'open');
@@ -1147,10 +1165,19 @@ async function checkConfirmCommand(supabase: any, message: string, tenantId: str
   policy_id?: string;
   risk_level?: string;
 }> {
-  // Get active command policies for this tenant in CONFIRM mode
+  // Get active command policies for this tenant in CONFIRM mode - only needed fields
   const { data: confirmPolicies } = await supabase
     .from('command_policies')
-    .select('*')
+    .select(`
+      id,
+      policy_name,
+      mode,
+      match_type,
+      match_value,
+      confirm_message,
+      risk,
+      timeout_sec
+    `)
     .eq('customer_id', tenantId)
     .eq('active', true)
     .eq('mode', 'confirm');
@@ -2769,12 +2796,20 @@ async function runPreflightChecks(supabase: any, agentId: string, preflightConfi
     return { passed: true, details: [] };
   }
   
-  // Get latest agent snapshot (heartbeat data)
+  // Get latest agent snapshot - only essential fields
   const { data: agent } = await supabase
     .from('agents')
-    .select('*')
+    .select(`
+      id,
+      hostname,
+      os,
+      status,
+      heartbeat,
+      last_heartbeat,
+      customer_id
+    `)
     .eq('id', agentId)
-    .single();
+    .maybeSingle();
     
   if (!agent) {
     details.push({
@@ -2785,14 +2820,24 @@ async function runPreflightChecks(supabase: any, agentId: string, preflightConfi
     return { passed: false, details };
   }
   
-  // Get latest heartbeat data
+  // Get latest heartbeat data - only essential fields
   const { data: heartbeat } = await supabase
     .from('agent_heartbeats')
-    .select('*')
+    .select(`
+      id,
+      agent_id,
+      timestamp,
+      cpu_usage,
+      memory_usage,
+      disk_usage,
+      uptime_seconds,
+      network_io_in,
+      network_io_out
+    `)
     .eq('agent_id', agentId)
     .order('timestamp', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
   
   if (!heartbeat) {
     details.push({

@@ -221,12 +221,24 @@ serve(async (req) => {
     try {
       const runId = request.run_id;
       
-      // Get initial run status
+      // Get initial run status - only needed fields
       const { data: runData, error: runError } = await supabase
         .from('batch_runs')
-        .select('*')
+        .select(`
+          id,
+          batch_id,
+          agent_id,
+          tenant_id,
+          status,
+          started_at,
+          finished_at,
+          duration_sec,
+          contract,
+          raw_stdout,
+          raw_stderr
+        `)
         .eq('id', runId)
-        .single();
+        .maybeSingle();
 
       if (runError || !runData) {
         throw new Error('Run not found');

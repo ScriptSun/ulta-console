@@ -276,7 +276,18 @@ async function checkCommandPolicy(supabase: any, tenant_id: string, intent: stri
     // Check for matching command policies
     const { data: policies, error } = await supabase
       .from('command_policies')
-      .select('*')
+      .select(`
+        id,
+        policy_name,
+        mode,
+        match_type,
+        match_value,
+        active,
+        os_whitelist,
+        risk,
+        timeout_sec,
+        confirm_message
+      `)
       .eq('customer_id', tenant_id)
       .eq('active', true)
       .or(`match_value.ilike.%${intent}%,match_value.ilike.%${text.substring(0, 50)}%`);
@@ -324,7 +335,16 @@ async function resolveBatch(supabase: any, tenant_id: string, intent: string, ag
     // Find matching batch
     const { data: batch } = await supabase
       .from('script_batches')
-      .select('*')
+      .select(`
+        id,
+        name,
+        description,
+        risk,
+        os_targets,
+        active_version,
+        customer_id,
+        max_timeout_sec
+      `)
       .eq('name', batchName)
       .contains('os_targets', [agent.os])
       .neq('active_version', null)
@@ -459,9 +479,17 @@ async function runPreflightChecks(supabase: any, agent_id: string, batch: any) {
     // Get latest agent snapshot
     const { data: agent } = await supabase
       .from('agents')
-      .select('*')
+      .select(`
+        id,
+        os,
+        status,
+        heartbeat,
+        memory_usage,
+        cpu_usage,
+        customer_id
+      `)
       .eq('id', agent_id)
-      .single();
+      .maybeSingle();
 
     if (!agent) {
       return {

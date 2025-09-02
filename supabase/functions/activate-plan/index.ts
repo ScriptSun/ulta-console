@@ -79,12 +79,22 @@ serve(async (req) => {
       });
     }
 
-    // Get the plan by name
+    // Get the plan by name - only needed fields
     const { data: plan, error: planError } = await supabaseAdmin
       .from('subscription_plans')
-      .select('*')
+      .select(`
+        id,
+        name,
+        slug,
+        price_monthly,
+        price_yearly,
+        monthly_ai_requests,
+        monthly_server_events,
+        features,
+        is_active
+      `)
       .eq('name', plan_name)
-      .single();
+      .maybeSingle();
 
     if (planError || !plan) {
       return new Response(JSON.stringify({ 
