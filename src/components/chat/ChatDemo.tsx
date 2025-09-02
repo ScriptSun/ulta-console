@@ -447,7 +447,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           
         case 'router.retrieved':
           console.log('Router retrieved candidates:', data);
-          // Phase management now handled in sendMessage
+          setRouterPhase('Analyzing server');
+          setCandidateCount(data.candidate_count || 0);
           break;
           
         case 'router.token':
@@ -518,39 +519,35 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           break;
           
         case 'router.selected':
-          (async () => {
-            console.log('Router selected decision:', data);
-            setRouterPhase('Selecting installer');
+          console.log('Router selected decision:', data);
+          
+          // Add router response to logs
+          setApiLogs(prev => [...prev, {
+            id: `router-resp-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: 'router_response',
+            data: data
+          }]);
+          
+          // Clear router phase and typing state immediately
+          setRouterPhase('');
+          setStreamingResponse('');
+          setIsTyping(false);
+          if (routerTimeoutRef.current) {
+            clearTimeout(routerTimeoutRef.current);
+          }
             
-            // Add router response to logs
-            setApiLogs(prev => [...prev, {
-              id: `router-resp-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              type: 'router_response',
-              data: data
-            }]);
-            
-            // Give a moment for the "Selecting installer" label to show
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            setRouterPhase('');
-            setStreamingResponse('');
-            setIsTyping(false);
-            if (routerTimeoutRef.current) {
-              clearTimeout(routerTimeoutRef.current);
-            }
-            
-            // Update the last pending message with final decision
-            setMessages(prev => {
-              const updated = [...prev];
-              // Find the most recent pending message
-              for (let i = updated.length - 1; i >= 0; i--) {
-                if (updated[i].pending && updated[i].role === 'assistant') {
-                  updated[i] = {
-                    ...updated[i],
-                    pending: false,
-                    decision: data
-                  };
+          // Update the last pending message with final decision
+          setMessages(prev => {
+            const updated = [...prev];
+            // Find the most recent pending message
+            for (let i = updated.length - 1; i >= 0; i--) {
+              if (updated[i].pending && updated[i].role === 'assistant') {
+                updated[i] = {
+                  ...updated[i],
+                  pending: false,
+                  decision: data
+                };
                   
                    // Handle different decision modes
                    if (data.mode === 'chat') {
@@ -682,7 +679,6 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
               // This would trigger a refetch of conversation data
               // The actual message will be stored via the real-time listener
             }
-          })();
           break;
           
         case 'router.done':
@@ -1333,23 +1329,20 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         throw new Error('WebSocket router not connected');
       }
       
-      // Start thinking sequence first, then send API request
+      // Start router request immediately  
       setIsTyping(true);
       setRouterPhase('Checking my ability');
       
-      // Wait 2 seconds, then show Analyzing server
-      setTimeout(() => {
-        setRouterPhase('Analyzing server');
-        setCandidateCount(5);
-        
-        // After another 2 seconds, send the actual API request
-        setTimeout(() => {
-          sendRequest({
-            agent_id: selectedAgent,
-            user_request: content.trim()
-          });
-        }, 2000);
-      }, 2000);
+      console.log('🚀 Sending router request for:', content.trim());
+      console.log('🔌 WebSocket connected:', isConnected);
+      
+      // Send the request immediately - no artificial delays
+      sendRequest({
+        agent_id: selectedAgent,
+        user_request: content.trim()
+      });
+      
+      console.log('📤 Router request sent successfully');
       
       // The response will be handled by the event listeners
 
