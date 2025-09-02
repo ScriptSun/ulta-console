@@ -515,20 +515,21 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           console.log('🔢 Candidate count:', data.candidate_count);
           console.log('🎯 Current router phase before decision:', routerPhase);
           
-          // Smooth phase progression: CHECKING -> ANALYZING (for actions only)  
-          if (data.candidate_count && data.candidate_count > 0 && routerPhase === RouterPhases.CHECKING) {
-            console.log('📊 Transitioning to ANALYZING phase (candidates found)');
+          // Different handling for action vs chat requests
+          if (routerPhase === RouterPhases.THINKING) {
+            console.log('💭 Chat request - keeping THINKING phase only, no server action phases');
+            // For chat requests, never show server management phases
+            setCandidateCount(0); // Don't show candidate badges for chat
+          } else if (routerPhase === RouterPhases.CHECKING && data.candidate_count && data.candidate_count > 0) {
+            console.log('📊 Action request - transitioning to ANALYZING phase (candidates found)');
             setRouterPhase(RouterPhases.ANALYZING);
             setCandidateCount(data.candidate_count);
             
-            // Immediate transition to SELECTING
+            // Immediate transition to SELECTING for actions
             console.log('✅ Transitioning to SELECTING phase');
             setRouterPhase(RouterPhases.SELECTING);
-          } else if (routerPhase === RouterPhases.THINKING) {
-            console.log('💭 Keeping THINKING phase (chat request)');
-            // Keep thinking phase for chat requests, no candidate display
           } else {
-            console.log('❓ No phase change (unexpected state)');
+            console.log('❓ No phase change for this request type');
           }
           break;
           
@@ -1439,18 +1440,9 @@ Please try again or contact support if this persists.`;
       console.log('🎯 Message type decision - isActionRequest:', isActionRequest);
       
       // All messages should go through the API - no hardcoded responses
-      console.log('📤 Sending all messages to router API for processing');
+      console.log('📤 Sending message to router API for processing');
       setIsTyping(true);
       
-      // For action requests, show phases; for casual chat, keep it minimal
-      if (isActionRequest) {
-        setRouterPhase(RouterPhases.THINKING);
-        console.log('🔄 Starting router for action request');
-      } else {
-        setRouterPhase(RouterPhases.THINKING);
-        console.log('💭 Starting router for chat request');
-      }
-
       // Connect WebSocket if not already connected
       if (!isConnected) {
         console.log('🔌 Connecting to WebSocket router...');
@@ -1463,14 +1455,20 @@ Please try again or contact support if this persists.`;
         }
       }
       
-      // Start router request for actions
-      setIsTyping(true);
-      setRouterPhase(RouterPhases.CHECKING);
-      console.log('⚡ Set initial phase to CHECKING (action request)');
+      // Handle different request types with appropriate phases
+      if (isActionRequest) {
+        // For server actions, show server management phases
+        setRouterPhase(RouterPhases.CHECKING);
+        console.log('⚡ Starting router for action request with server phases');
+      } else {
+        // For chat, use minimal "thinking" phase only
+        setRouterPhase(RouterPhases.THINKING);
+        console.log('💭 Starting router for chat request with thinking phase only');
+      }
       
-      console.log('🚀 Sending router request for action:', content.trim());
+      console.log('🚀 Sending router request:', content.trim());
       
-      // Send the request through router for actions only
+      // Send the request through router
       sendRequest({
         agent_id: selectedAgent,
         user_request: content.trim()
