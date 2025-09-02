@@ -412,18 +412,18 @@ export default function ScriptsBatches() {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div>
+        <div>
+          <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold">Batches</h1>
-            <p className="text-muted-foreground mt-1">
-              Batch script templates and versioned releases
-            </p>
+            {/* Statistics Badge */}
+            <Badge variant="outline" className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium">
+              <FileText className="h-4 w-4" />
+              {batches.length} Batches
+            </Badge>
           </div>
-          {/* Statistics Badge */}
-          <Badge variant="outline" className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium">
-            <FileText className="h-4 w-4" />
-            {batches.length} Batches
-          </Badge>
+          <p className="text-muted-foreground mt-1">
+            Batch script templates and versioned releases
+          </p>
         </div>
         
         <Button onClick={handleNewBatch} disabled={!canEdit}>
