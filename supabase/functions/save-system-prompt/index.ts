@@ -40,7 +40,7 @@ serve(async (req) => {
       );
     }
 
-    const filePath = `./prompts/${target}-system-prompt.md`;
+    const filePath = `../_shared/prompts/${target}-system-prompt.md`;
     
     try {
       console.log(`💾 Saving prompt to file: ${filePath}`);
