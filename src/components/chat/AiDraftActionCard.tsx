@@ -70,7 +70,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
   }
 
   return (
-    <Card className="border-l-4 border-l-primary/20 bg-primary/5">
+    <Card className="border-l-4 border-l-primary/20 bg-primary/5 w-[120%] max-w-none">
       <CardContent className="space-y-2 mt-3 px-6 py-3">
         {/* Command Section */}
         {decision.suggested.kind === "command" && (
