@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Copy, Terminal, FileText, X, CheckCircle } from 'lucide-react';
+import { Copy, Terminal, FileText, X, CheckCircle, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AiDraftAction } from '@/types/routerTypes';
 import { i18n, sanitizeText } from '@/lib/i18n';
@@ -116,7 +116,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                  className={`${getRiskColor(decision.risk || 'medium')} font-medium flex items-center gap-1.5 px-2.5 py-1`} 
                  variant="outline"
                >
-                 <CheckCircle className="h-3 w-3" />
+                 <Shield className="h-3 w-3" />
                  {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
                </Badge>
               </div>
@@ -169,7 +169,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
                    className={`${getRiskColor(decision.risk || 'medium')} font-medium flex items-center gap-1.5 px-2.5 py-1`} 
                    variant="outline"
                  >
-                   <CheckCircle className="h-3 w-3" />
+                   <Shield className="h-3 w-3" />
                    {(decision.risk || 'medium').charAt(0).toUpperCase() + (decision.risk || 'medium').slice(1)} Risk
                  </Badge>
                </div>
