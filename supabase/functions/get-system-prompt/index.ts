@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+import { getPromptFromFile } from '../_shared/system-prompt.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,11 +41,9 @@ serve(async (req) => {
       );
     }
 
-    const filePath = `./_shared/prompts/${target}-system-prompt.md`;
-    
     try {
-      console.log(`📖 Reading prompt file: ${filePath}`);
-      const promptContent = await Deno.readTextFile(filePath);
+      console.log(`📖 Loading ${target} prompt using system-prompt utility`);
+      const promptContent = await getPromptFromFile(target);
       
       console.log(`✅ Successfully loaded ${target} prompt (${promptContent.length} chars)`);
       
@@ -53,7 +52,7 @@ serve(async (req) => {
           success: true,
           target,
           prompt: promptContent.trim(),
-          filePath
+          filePath: `./prompts/${target}-system-prompt.md`
         }),
         { 
           headers: { 
@@ -64,13 +63,13 @@ serve(async (req) => {
       );
       
     } catch (fileError) {
-      console.error(`❌ Failed to read prompt file ${filePath}:`, fileError);
+      console.error(`❌ Failed to load ${target} prompt:`, fileError);
       
       return new Response(
         JSON.stringify({
           error: `Failed to load ${target} prompt`,
           details: fileError.message,
-          filePath
+          filePath: `./prompts/${target}-system-prompt.md`
         }),
         { 
           status: 500, 
