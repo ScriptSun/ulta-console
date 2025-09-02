@@ -2767,26 +2767,33 @@ Please proceed with creating and executing this batch script.`;
                 <div className="flex justify-start" role="status" aria-live="polite">
                   <div className="bg-muted rounded-lg p-3">
                     <div className="flex gap-2 items-center">
-                      <div className="flex items-center gap-2" aria-label={`Status: ${routerPhase}`}>
-                        {routerPhase === RouterPhases.THINKING && (
-                          <Brain className="w-4 h-4 text-blue-500 animate-pulse" aria-hidden="true" />
-                        )}
-                        {routerPhase === RouterPhases.CHECKING && (
-                          <Settings className="w-4 h-4 text-purple-500 animate-pulse" aria-hidden="true" />
-                        )}
-                        {routerPhase === RouterPhases.ANALYZING && (
-                          <Search className="w-4 h-4 text-orange-500 animate-pulse" aria-hidden="true" />
-                        )}
-                        {routerPhase === RouterPhases.SELECTING && (
-                          <CheckCircle className="w-4 h-4 text-green-500 animate-pulse" aria-hidden="true" />
-                        )}
-                        {routerPhase === RouterPhases.REQUESTING_DATA && (
-                          <Clock className="w-4 h-4 text-blue-600 animate-pulse" aria-hidden="true" />
-                        )}
-                        <span className="text-sm text-muted-foreground font-medium animate-pulse">
-                          {getRouterPhaseText(routerPhase)}
-                        </span>
-                      </div>
+                      {routerPhase === RouterPhases.THINKING ? (
+                        // Show 3-dot animation for thinking phase (chat)
+                        <div className="flex gap-1" aria-label="Thinking...">
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                        </div>
+                      ) : (
+                        // Show phase text with icon for server action phases
+                        <div className="flex items-center gap-2" aria-label={`Status: ${routerPhase}`}>
+                          {routerPhase === RouterPhases.CHECKING && (
+                            <Settings className="w-4 h-4 text-purple-500 animate-pulse" aria-hidden="true" />
+                          )}
+                          {routerPhase === RouterPhases.ANALYZING && (
+                            <Search className="w-4 h-4 text-orange-500 animate-pulse" aria-hidden="true" />
+                          )}
+                          {routerPhase === RouterPhases.SELECTING && (
+                            <CheckCircle className="w-4 h-4 text-green-500 animate-pulse" aria-hidden="true" />
+                          )}
+                          {routerPhase === RouterPhases.REQUESTING_DATA && (
+                            <Clock className="w-4 h-4 text-blue-600 animate-pulse" aria-hidden="true" />
+                          )}
+                          <span className="text-sm text-muted-foreground font-medium animate-pulse">
+                            {getRouterPhaseText(routerPhase)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
