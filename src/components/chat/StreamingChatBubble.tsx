@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Copy, Brain, Search, CheckCircle, Code } from 'lucide-react';
+import { RouterPhases } from '@/lib/i18n';
 
 interface StreamingChatBubbleProps {
   content: string;
@@ -27,11 +28,11 @@ export const StreamingChatBubble: React.FC<StreamingChatBubbleProps> = ({
   const [showRawResponse, setShowRawResponse] = useState(false);
   const getPhaseIcon = (phase: string) => {
     switch (phase) {
-      case 'Thinking':
+      case RouterPhases.THINKING:
         return <Brain className="w-4 h-4 text-blue-500 animate-pulse" aria-hidden="true" />;
-      case 'Analyzing server':
+      case RouterPhases.ANALYZING:
         return <Search className="w-4 h-4 text-orange-500 animate-pulse" aria-hidden="true" />;
-      case 'Selecting installer':
+      case RouterPhases.SELECTING:
         return <CheckCircle className="w-4 h-4 text-green-500 animate-pulse" aria-hidden="true" />;
       default:
         return null;
@@ -52,9 +53,9 @@ export const StreamingChatBubble: React.FC<StreamingChatBubbleProps> = ({
             {getPhaseIcon(routerPhase)}
             <span className="font-medium">
               {routerPhase}
-              {routerPhase === 'Selecting installer' && '...'}
+              {routerPhase === RouterPhases.SELECTING && '...'}
             </span>
-            {candidateCount > 0 && routerPhase === 'Analyzing server' && (
+            {candidateCount > 0 && routerPhase === RouterPhases.ANALYZING && (
               <Badge variant="outline" className="text-xs" aria-label={`${candidateCount} matches found`}>
                 {candidateCount} matches
               </Badge>

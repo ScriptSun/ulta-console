@@ -28,6 +28,7 @@ import { useWebSocketRouter } from '@/hooks/useWebSocketRouter';
 import { useRouterLogs, RouterLogData } from '@/hooks/useRouterLogs';
 import { useWebSocketExec } from '@/hooks/useWebSocketExec';
 import { ChatDocumentation } from './ChatDocumentation';
+import { i18n, RouterPhases } from '@/lib/i18n';
 
 interface Agent {
   id: string;
@@ -460,7 +461,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           
         case 'router.retrieved':
           console.log('Router retrieved candidates:', data);
-          setRouterPhase('Analyzing server');
+          setRouterPhase(RouterPhases.ANALYZING);
           setCandidateCount(data.candidate_count || 0);
           break;
           
@@ -1372,7 +1373,7 @@ Please try again or contact support if this persists.`;
       
       // Start router request immediately  
       setIsTyping(true);
-      setRouterPhase('Checking my ability');
+      setRouterPhase(RouterPhases.CHECKING);
       
       console.log('🚀 Sending router request for:', content.trim());
       console.log('🔌 WebSocket connected:', isConnected);
@@ -2713,23 +2714,23 @@ Please proceed with creating and executing this batch script.`;
                     <div className="flex gap-2 items-center">
                        {routerPhase && (
                          <div className="flex items-center gap-2" aria-label={`Status: ${routerPhase}`}>
-                           {routerPhase === 'Thinking' && (
-                             <Brain className="w-4 h-4 text-blue-500 animate-pulse" aria-hidden="true" />
-                           )}
-                           {routerPhase === 'Checking my ability' && (
-                             <Settings className="w-4 h-4 text-purple-500 animate-pulse" aria-hidden="true" />
-                           )}
-                           {routerPhase === 'Analyzing server' && (
-                             <Search className="w-4 h-4 text-orange-500 animate-pulse" aria-hidden="true" />
-                           )}
-                           {routerPhase === 'Selecting installer' && (
-                             <CheckCircle className="w-4 h-4 text-green-500 animate-pulse" aria-hidden="true" />
-                           )}
+                            {routerPhase === RouterPhases.THINKING && (
+                              <Brain className="w-4 h-4 text-blue-500 animate-pulse" aria-hidden="true" />
+                            )}
+                            {routerPhase === RouterPhases.CHECKING && (
+                              <Settings className="w-4 h-4 text-purple-500 animate-pulse" aria-hidden="true" />
+                            )}
+                            {routerPhase === RouterPhases.ANALYZING && (
+                              <Search className="w-4 h-4 text-orange-500 animate-pulse" aria-hidden="true" />
+                            )}
+                            {routerPhase === RouterPhases.SELECTING && (
+                              <CheckCircle className="w-4 h-4 text-green-500 animate-pulse" aria-hidden="true" />
+                            )}
                            <span className="text-sm text-muted-foreground font-medium">
-                             {routerPhase}
-                             {routerPhase === 'Selecting installer' && '...'}
-                           </span>
-                          {candidateCount > 0 && routerPhase === 'Analyzing server' && (
+                              {routerPhase}
+                              {routerPhase === RouterPhases.SELECTING && '...'}
+                            </span>
+                           {candidateCount > 0 && routerPhase === RouterPhases.ANALYZING && (
                             <Badge variant="outline" className="text-xs" aria-label={`${candidateCount} matches found`}>
                               {candidateCount} matches
                             </Badge>

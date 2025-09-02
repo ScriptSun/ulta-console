@@ -1,4 +1,15 @@
 // Internationalization constants for user-facing text
+
+// Router phase messages that appear during AI processing
+export const RouterPhases = {
+  CHECKING: "Checking my ability",
+  THINKING: "Thinking", 
+  ANALYZING: "Analyzing server",
+  SELECTING: "Selecting installer"
+} as const;
+
+export type RouterPhase = typeof RouterPhases[keyof typeof RouterPhases];
+
 export const i18n = {
   phases: {
     planning: "Planning changes",
@@ -8,6 +19,8 @@ export const i18n = {
     done: "Changes applied",
     failed: "Could not complete changes"
   },
+  
+  routerPhases: RouterPhases,
   
   draft: {
     cardTitle: {
