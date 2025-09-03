@@ -105,3 +105,6 @@ verify_jwt = false
 
 [functions.password-reset]
 verify_jwt = false
+
+[functions.check-email-dns]
+verify_jwt = true
