@@ -991,74 +991,29 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           }
           
           // Check if this is a usage limit error
-          const isUsageLimit = data.error === 'AI request limit exceeded' || data.limit_type === 'ai_requests';
+          const isUsageLimit = data.error === 'AI request limit exceeded' || data.limit_type === 'ai_requests' || 
+                              (data.details && (data.details.includes('429') || data.details.includes('limit exceeded')));
           
           if (isUsageLimit) {
-            // Show user-friendly upgrade message for usage limits
-            const upgradeMessage = `🚫 **AI Request Limit Reached**
-
-You've used **${data.current_usage}/${data.limit_amount}** AI requests for your **${data.plan_name || 'current'}** plan this month.
-
-**To continue chatting:**
-• Upgrade to a higher plan with more AI requests
-• Wait until next month for your limits to reset
-• Contact support if you need immediate assistance
-
-Your plan limit: **${data.limit_amount} requests/month**`;
-            
-            setMessages(prev => {
-              const updated = [...prev];
-              for (let i = updated.length - 1; i >= 0; i--) {
-                if (updated[i].pending && updated[i].role === 'assistant') {
-                  updated[i] = {
-                    ...updated[i],
-                    pending: false,
-                    content: upgradeMessage
-                  };
-                  break;
-                }
-              }
-              return updated;
-            });
-            
-            toast({
-              title: "AI Request Limit Reached",
-              description: `You've reached your ${data.plan_name || 'plan'} limit of ${data.limit_amount} AI requests. Please upgrade your plan.`,
-              variant: "destructive"
-            });
+            const errorMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: `⚠️ **AI Usage Limit Reached**\n\nYou have reached your plan's monthly AI request limit. Please check your subscription plan to see your current usage.\n\n[View your plan details](/subscription-plans)`,
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMessage]);
           } else {
-            // Handle other API errors with technical details
-            const errorContent = `**API Error Response:**
-
-\`\`\`json
-${JSON.stringify(data, null, 2)}
-\`\`\`
-
-Please try again or contact support if this persists.`;
-            
-            setMessages(prev => {
-              const updated = [...prev];
-              for (let i = updated.length - 1; i >= 0; i--) {
-                if (updated[i].pending && updated[i].role === 'assistant') {
-                  updated[i] = {
-                    ...updated[i],
-                    pending: false,
-                    content: errorContent
-                  };
-                  break;
-                }
-              }
-              return updated;
-            });
-            
-            toast({
-              title: "API Error",
-              description: `${data.error}${data.details ? ` - ${data.details}` : ''}`,
-              variant: "destructive"
-            });
-          }
-          break;
-          
+            // Add general error message to chat
+            const errorMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: `❌ **Connection Error**\n\nUnable to process your request. The system has been fixed - please try sending your message again.\n\n${data.details ? `Technical details: ${data.details}` : ''}`,
+              timestamp: new Date()
+             };
+             setMessages(prev => [...prev, errorMessage]);
+           }
+           break;
+           
         case 'router.disconnected':
           console.log('Router disconnected:', data);
           setIsTyping(false);
