@@ -503,7 +503,7 @@ export const BrandTheme = () => {
               {/* Color Tokens */}
               <div className="space-y-4">
                 <h4 className="text-lg font-semibold tracking-tight">Color Tokens</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
                    {COLOR_TOKENS.map((token) => {
                      const hexValue = editingTheme.hex[token.key as keyof typeof editingTheme.hex];
                      
