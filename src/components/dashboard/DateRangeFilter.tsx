@@ -96,10 +96,6 @@ export function DateRangeFilter({ dateRange, onDateRangeChange }: DateRangeFilte
           </Popover>
         </div>
       )}
-
-      <span className="text-sm text-muted-foreground">
-        {dateRange.label}
-      </span>
     </div>
   );
 }
