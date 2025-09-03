@@ -332,8 +332,10 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
 
                 {/* Email Logo */}
                 <div className="space-y-4">
-                  <Label className="text-sm font-medium">Email Logo</Label>
-                  <p className="text-xs text-muted-foreground">PNG, recommended height 40px</p>
+                  <div>
+                    <Label className="text-sm font-medium">Email Logo</Label>
+                    <p className="text-xs text-muted-foreground">PNG, recommended height 40px</p>
+                  </div>
                   <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4">
                     {emailLogo ? (
                       <div className="space-y-4">
@@ -375,8 +377,10 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
 
                 {/* Favicon Source */}
                 <div className="space-y-4">
-                  <Label className="text-sm font-medium">Favicon Source</Label>
-                  <p className="text-xs text-muted-foreground">PNG, square, at least 512x512</p>
+                  <div>
+                    <Label className="text-sm font-medium">Favicon Source</Label>
+                    <p className="text-xs text-muted-foreground">PNG, square, at least 512x512</p>
+                  </div>
                   <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4">
                     {faviconSource ? (
                       <div className="space-y-4">
