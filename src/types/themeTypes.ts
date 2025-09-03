@@ -1,19 +1,8 @@
 export type ThemeSpec = {
   preference: "light" | "dark" | "system"
   name?: string
-  hsl: {
-    primary: [number, number, number]
-    secondary: [number, number, number]
-    accent: [number, number, number]
-    background: [number, number, number]
-    foreground: [number, number, number]
-    muted: [number, number, number]
-    card: [number, number, number]
-    border: [number, number, number]
-    destructive: [number, number, number]
-    success: [number, number, number]
-    warning: [number, number, number]
-  }
+  hex: Record<"primary"|"secondary"|"accent"|"background"|"foreground"|"muted"|"card"|"border"|"destructive"|"success"|"warning", string>
+  hsl: Record<keyof ThemeSpec["hex"], [number, number, number]>
   radius: { sm: number, md: number, lg: number, xl: number }
   updatedAt: string
   version: number
@@ -22,6 +11,7 @@ export type ThemeSpec = {
 export type ThemeValidationResult = {
   ok: boolean
   reasons?: string[]
+  issues?: string[]
 }
 
 export type ThemeVersionInfo = {

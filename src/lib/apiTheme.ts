@@ -1,12 +1,26 @@
 import { ThemeSpec, ThemeValidationResult, ThemeVersionInfo } from '@/types/themeTypes';
+import { validateThemeHex, hexToHsl, hslToHex } from '@/lib/colorHelpers';
 
 // Mock API with simple timeouts
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Default theme spec
+// Default theme spec with both hex and hsl
 const defaultThemeSpec: ThemeSpec = {
   preference: "light",
   name: "Default Light",
+  hex: {
+    primary: "#8b5cf6",
+    secondary: "#f1f5f9",
+    accent: "#e2e8f0",
+    background: "#ffffff", 
+    foreground: "#0f172a",
+    muted: "#f8fafc",
+    card: "#ffffff",
+    border: "#e2e8f0",
+    destructive: "#ef4444",
+    success: "#22c55e",
+    warning: "#f59e0b"
+  },
   hsl: {
     primary: [262, 83, 58],
     secondary: [210, 40, 95],
@@ -29,7 +43,20 @@ const defaultThemeSpec: ThemeSpec = {
 const STORAGE_KEY = 'theme-spec';
 const VERSIONS_KEY = 'theme-versions';
 
-let currentTheme: ThemeSpec = JSON.parse(localStorage.getItem(STORAGE_KEY) || JSON.stringify(defaultThemeSpec));
+// Migration helper: convert old HSL-only theme to new format
+const migrateTheme = (theme: any): ThemeSpec => {
+  if (theme.hex) return theme; // Already migrated
+  
+  const hex: Record<string, string> = {};
+  Object.entries(theme.hsl).forEach(([key, hsl]) => {
+    const [h, s, l] = hsl as [number, number, number];
+    hex[key] = hslToHex(h, s, l);
+  });
+  
+  return { ...theme, hex };
+};
+
+let currentTheme: ThemeSpec = migrateTheme(JSON.parse(localStorage.getItem(STORAGE_KEY) || JSON.stringify(defaultThemeSpec)));
 let versions: ThemeVersionInfo[] = JSON.parse(localStorage.getItem(VERSIONS_KEY) || '[]');
 
 // Initialize default version if empty
@@ -51,43 +78,27 @@ export const apiTheme = {
   async validateTheme(theme: ThemeSpec): Promise<ThemeValidationResult> {
     await delay(300);
     
-    const reasons: string[] = [];
-    
-    // Validate HSL ranges
-    Object.entries(theme.hsl).forEach(([key, [h, s, l]]) => {
-      if (h < 0 || h > 360) reasons.push(`${key} hue must be 0-360`);
-      if (s < 0 || s > 100) reasons.push(`${key} saturation must be 0-100`);
-      if (l < 0 || l > 100) reasons.push(`${key} lightness must be 0-100`);
-      if (isNaN(h) || isNaN(s) || isNaN(l)) reasons.push(`${key} contains invalid values`);
-    });
+    // Validate HEX colors
+    const hexValidation = validateThemeHex(theme.hex);
+    if (!hexValidation.ok) {
+      return {
+        ok: false,
+        reasons: hexValidation.issues,
+        issues: hexValidation.issues
+      };
+    }
 
     // Validate radius values
+    const issues: string[] = [];
     Object.entries(theme.radius).forEach(([key, value]) => {
-      if (value < 0 || value > 100) reasons.push(`${key} radius must be 0-100px`);
-      if (isNaN(value)) reasons.push(`${key} radius contains invalid value`);
+      if (value < 0 || value > 100) issues.push(`${key} radius must be 0-100px`);
+      if (isNaN(value)) issues.push(`${key} radius contains invalid value`);
     });
 
-    // Check contrast (simplified mock validation)
-    const bgLightness = theme.hsl.background[2];
-    const fgLightness = theme.hsl.foreground[2];
-    const primaryLightness = theme.hsl.primary[2];
-    
-    if (Math.abs(bgLightness - fgLightness) < 40) {
-      reasons.push('Insufficient contrast between foreground and background');
-    }
-    
-    if (Math.abs(bgLightness - primaryLightness) < 25) {
-      reasons.push('Insufficient contrast between primary and background');
-    }
-
-    // Check for flat UI (background and card should differ)
-    if (Math.abs(theme.hsl.background[2] - theme.hsl.card[2]) < 2) {
-      reasons.push('Background and card lightness must differ by at least 2 points');
-    }
-
     return {
-      ok: reasons.length === 0,
-      reasons: reasons.length > 0 ? reasons : undefined
+      ok: issues.length === 0,
+      reasons: issues.length > 0 ? issues : undefined,
+      issues: issues.length > 0 ? issues : undefined
     };
   },
 
@@ -98,13 +109,24 @@ export const apiTheme = {
     if (!options?.overrideContrast) {
       const validation = await this.validateTheme(theme);
       if (!validation.ok) {
-        throw new Error(`Validation failed: ${validation.reasons?.join(', ')}`);
+        throw new Error(`Validation failed: ${validation.issues?.join(', ')}`);
       }
     }
+
+    // Convert HEX to HSL for CSS variables
+    const hsl: Record<string, [number, number, number]> = {};
+    Object.entries(theme.hex).forEach(([key, hexValue]) => {
+      try {
+        hsl[key] = hexToHsl(hexValue);
+      } catch (error) {
+        throw new Error(`Invalid HEX color for ${key}: ${hexValue}`);
+      }
+    });
 
     // Update theme
     const newTheme: ThemeSpec = {
       ...theme,
+      hsl: hsl as ThemeSpec['hsl'],
       version: currentTheme.version + 1,
       updatedAt: new Date().toISOString()
     };

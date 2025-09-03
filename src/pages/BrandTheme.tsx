@@ -11,7 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeSpec, ThemeValidationResult } from '@/types/themeTypes';
 import { apiTheme } from '@/lib/apiTheme';
-import { validateAllContrasts } from '@/lib/contrastHelper';
 import { applyCssVariables, CSS_VARIABLES_USAGE, AVAILABLE_VARIABLES } from '@/lib/cssVariablesWriter';
 import { Palette, Sun, Moon, Monitor, Download, Upload, AlertTriangle, Copy, RotateCcw, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -60,12 +59,22 @@ export const BrandTheme = () => {
     loadVersions();
   }, []);
 
+  const hasChanges = currentTheme && editingTheme ? JSON.stringify(currentTheme) !== JSON.stringify(editingTheme) : false;
+
   // Sync theme preference with editing theme when mode changes
   useEffect(() => {
     if (editingTheme && mode !== editingTheme.preference) {
       setEditingTheme(prev => prev ? { ...prev, preference: mode } : null);
     }
   }, [mode]);
+
+  // Validate theme when hex values change
+  useEffect(() => {
+    const checkChanges = currentTheme && editingTheme ? JSON.stringify(currentTheme) !== JSON.stringify(editingTheme) : false;
+    if (editingTheme && checkChanges) {
+      validateTheme(editingTheme);
+    }
+  }, [editingTheme?.hex, editingTheme?.radius, currentTheme]);
 
   const loadTheme = async () => {
     try {
@@ -171,6 +180,19 @@ export const BrandTheme = () => {
     const defaultTheme: ThemeSpec = {
       ...currentTheme,
       name: "Default Light",
+      hex: {
+        primary: "#8b5cf6",
+        secondary: "#f1f5f9", 
+        accent: "#e2e8f0",
+        background: "#ffffff",
+        foreground: "#0f172a",
+        muted: "#f8fafc",
+        card: "#ffffff",
+        border: "#e2e8f0",
+        destructive: "#ef4444",
+        success: "#22c55e",
+        warning: "#f59e0b"
+      },
       hsl: {
         primary: [262, 83, 58],
         secondary: [210, 40, 95],
@@ -236,6 +258,25 @@ export const BrandTheme = () => {
     reader.onload = (e) => {
       try {
         const theme = JSON.parse(e.target?.result as string) as ThemeSpec;
+        
+        // Validate the uploaded theme structure
+        if (!theme.hex || !theme.hsl || !theme.radius) {
+          throw new Error('Invalid theme structure');
+        }
+        
+        // Ensure all required color tokens exist
+        const requiredTokens = ['primary', 'secondary', 'accent', 'background', 'foreground', 'muted', 'card', 'border', 'destructive', 'success', 'warning'];
+        const missingHex = requiredTokens.filter(token => !theme.hex[token]);
+        const missingHsl = requiredTokens.filter(token => !theme.hsl[token]);
+        
+        if (missingHex.length > 0) {
+          throw new Error(`Missing HEX values for: ${missingHex.join(', ')}`);
+        }
+        
+        if (missingHsl.length > 0) {
+          throw new Error(`Missing HSL values for: ${missingHsl.join(', ')}`);
+        }
+        
         setEditingTheme(theme);
         toast({
           title: "Theme uploaded",
@@ -244,7 +285,7 @@ export const BrandTheme = () => {
       } catch (error) {
         toast({
           title: "Error uploading theme",
-          description: "Invalid theme file format",
+          description: error instanceof Error ? error.message : "Invalid theme file format",
           variant: "destructive"
         });
       }
@@ -268,8 +309,7 @@ export const BrandTheme = () => {
     );
   }
 
-  const hasChanges = JSON.stringify(currentTheme) !== JSON.stringify(editingTheme);
-  const canSave = hasChanges && (validationResult?.ok || overrideContrast);
+  const canSave = hasChanges && (validationResult?.ok !== false || overrideContrast);
 
   return (
     <div className="space-y-6">
@@ -345,67 +385,45 @@ export const BrandTheme = () => {
                 <h4 className="font-medium">Color Tokens</h4>
                 <div className="grid gap-4">
                   {COLOR_TOKENS.map((token) => {
-                    const [h, s, l] = editingTheme.hsl[token.key as keyof typeof editingTheme.hsl];
-                    const colorStyle = { backgroundColor: `hsl(${h}, ${s}%, ${l}%)` };
+                    const hexValue = editingTheme.hex[token.key as keyof typeof editingTheme.hex];
                     
                     return (
                       <div key={token.key} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded border" style={colorStyle} />
+                            <div 
+                              className="w-6 h-6 rounded border" 
+                              style={{ backgroundColor: hexValue }}
+                            />
                             <Label className="font-medium">{token.label}</Label>
                           </div>
                           <p className="text-sm text-muted-foreground">{token.description}</p>
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="space-y-1">
-                            <Label className="text-xs">H (0-360)</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              max="360"
-                              value={h}
-                              onChange={(e) => {
-                                const newH = Math.max(0, Math.min(360, parseInt(e.target.value) || 0));
-                                setEditingTheme(prev => prev ? {
-                                  ...prev,
-                                  hsl: { ...prev.hsl, [token.key]: [newH, s, l] }
-                                } : null);
-                              }}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">S (0-100)</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={s}
-                              onChange={(e) => {
-                                const newS = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
-                                setEditingTheme(prev => prev ? {
-                                  ...prev,
-                                  hsl: { ...prev.hsl, [token.key]: [h, newS, l] }
-                                } : null);
-                              }}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">L (0-100)</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={l}
-                              onChange={(e) => {
-                                const newL = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
-                                setEditingTheme(prev => prev ? {
-                                  ...prev,
-                                  hsl: { ...prev.hsl, [token.key]: [h, s, newL] }
-                                } : null);
-                              }}
-                            />
-                          </div>
+                        <div className="flex gap-2">
+                          <Input
+                            type="color"
+                            value={hexValue}
+                            onChange={(e) => {
+                              setEditingTheme(prev => prev ? {
+                                ...prev,
+                                hex: { ...prev.hex, [token.key]: e.target.value }
+                              } : null);
+                            }}
+                            className="w-16 h-10 p-1 cursor-pointer"
+                          />
+                          <Input
+                            type="text"
+                            value={hexValue}
+                            onChange={(e) => {
+                              const value = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`;
+                              setEditingTheme(prev => prev ? {
+                                ...prev,
+                                hex: { ...prev.hex, [token.key]: value }
+                              } : null);
+                            }}
+                            placeholder="#000000"
+                            className="font-mono text-sm"
+                          />
                         </div>
                       </div>
                     );
@@ -453,8 +471,8 @@ export const BrandTheme = () => {
                     <div className="space-y-1">
                       <div className="font-medium">Validation Issues:</div>
                       <ul className="list-disc list-inside space-y-1">
-                        {validationResult.reasons?.map((reason, index) => (
-                          <li key={index} className="text-sm">{reason}</li>
+                        {validationResult.issues?.map((issue, index) => (
+                          <li key={index} className="text-sm">{issue}</li>
                         ))}
                       </ul>
                       <div className="flex items-center space-x-2 mt-2">
