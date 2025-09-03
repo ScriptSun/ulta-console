@@ -12,7 +12,8 @@ import {
   Loader2,
   Check,
   Image,
-  Palette
+  Palette,
+  Settings
 } from 'lucide-react';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { useToast } from '@/hooks/use-toast';
@@ -419,55 +420,60 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
           </div>
 
           {/* Logo Size Controls */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Logo Size Controls</h3>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="width">Width (px)</Label>
-                <Input
-                  id="width"
-                  type="number"
-                  value={dimensions.width}
-                  onChange={(e) => setDimensions(prev => ({ ...prev, width: parseInt(e.target.value) || 120 }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="height">Height (px)</Label>
-                <Input
-                  id="height"
-                  type="number"
-                  value={dimensions.height}
-                  onChange={(e) => setDimensions(prev => ({ ...prev, height: parseInt(e.target.value) || 40 }))}
-                />
-              </div>
-            </div>
-
-            {/* Live Preview */}
+          <div className="bg-gradient-to-br from-card to-muted/50 border border-border/50 rounded-lg p-6 shadow-sm">
             <div className="space-y-4">
-            <Label className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-primary" />
-              Live Preview
-            </Label>
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Settings className="h-5 w-5 text-primary" />
+                Logo Size Controls
+              </h3>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="p-4 bg-white border rounded-lg">
-                  
-                  {logoSettings.logo_light_url && (
-                    <img 
-                      src={logoSettings.logo_light_url} 
-                      alt="Light logo preview" 
-                      style={{ width: dimensions.width, height: dimensions.height }}
-                    />
-                  )}
+                <div className="space-y-2">
+                  <Label htmlFor="width">Width (px)</Label>
+                  <Input
+                    id="width"
+                    type="number"
+                    value={dimensions.width}
+                    onChange={(e) => setDimensions(prev => ({ ...prev, width: parseInt(e.target.value) || 120 }))}
+                  />
                 </div>
-                <div className="p-4 bg-slate-900 border rounded-lg">
-                  
-                  {logoSettings.logo_dark_url && (
-                    <img 
-                      src={logoSettings.logo_dark_url} 
-                      alt="Dark logo preview" 
-                      style={{ width: dimensions.width, height: dimensions.height }}
-                    />
-                  )}
+                <div className="space-y-2">
+                  <Label htmlFor="height">Height (px)</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    value={dimensions.height}
+                    onChange={(e) => setDimensions(prev => ({ ...prev, height: parseInt(e.target.value) || 40 }))}
+                  />
+                </div>
+              </div>
+
+              {/* Live Preview */}
+              <div className="space-y-4">
+                <Label className="flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-primary" />
+                  Live Preview
+                </Label>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="p-4 bg-white border rounded-lg">
+                    
+                    {logoSettings.logo_light_url && (
+                      <img 
+                        src={logoSettings.logo_light_url} 
+                        alt="Light logo preview" 
+                        style={{ width: dimensions.width, height: dimensions.height }}
+                      />
+                    )}
+                  </div>
+                  <div className="p-4 bg-slate-900 border rounded-lg">
+                    
+                    {logoSettings.logo_dark_url && (
+                      <img 
+                        src={logoSettings.logo_dark_url} 
+                        alt="Dark logo preview" 
+                        style={{ width: dimensions.width, height: dimensions.height }}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
