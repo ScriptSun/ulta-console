@@ -92,18 +92,18 @@ export function AppSidebar() {
             to={item.url}
             className={cn(
               'flex items-center gap-3 px-6 py-5 rounded-lg transition-all duration-300 group',
-              'hover:bg-sidebar-accent/50 hover:backdrop-blur-sm',
-              active && 'bg-sidebar-accent shadow-lg backdrop-blur-sm'
+              'hover:bg-muted/50 hover:backdrop-blur-sm',
+              active && 'bg-muted shadow-lg backdrop-blur-sm'
             )}
           >
             <item.icon className={cn(
               "h-5 w-5 flex-shrink-0 transition-all duration-300",
-              active ? 'text-sidebar-primary' : 'text-sidebar-foreground/70 group-hover:text-sidebar-foreground'
+              active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
             )} />
             {!collapsed && (
               <span className={cn(
                 "truncate font-medium transition-all duration-300",
-                active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-sidebar-foreground'
+                active ? 'text-primary' : 'text-foreground group-hover:text-foreground'
               )}>
                 {item.title}
               </span>
@@ -115,8 +115,8 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar className="border-r-0 bg-sidebar shadow-2xl">
-      <SidebarContent className="px-0 py-6 overflow-y-auto scrollbar-none"
+    <Sidebar className="border-r-0 bg-card shadow-2xl">
+      <SidebarContent className="px-0 py-6 overflow-y-auto scrollbar-none bg-card"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {/* Logo Section */}
         <div className="flex items-center gap-3 px-6 mb-8">
@@ -143,12 +143,12 @@ export function AppSidebar() {
               </>
             ) : (
               <>
-                <div className="h-10 w-10 rounded-xl bg-sidebar-primary flex items-center justify-center shadow-lg">
-                  <Bot className="h-5 w-5 text-sidebar-primary-foreground" />
+                <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
+                  <Bot className="h-5 w-5 text-primary-foreground" />
                 </div>
                 {!collapsed && (
                   <div className="flex flex-col">
-                    <span className="font-bold text-sidebar-foreground text-lg">UltaAI</span>
+                    <span className="font-bold text-foreground text-lg">UltaAI</span>
                     <span className="text-xs text-primary font-medium">Control Hub</span>
                   </div>
                 )}
