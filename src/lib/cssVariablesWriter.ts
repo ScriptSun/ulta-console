@@ -18,26 +18,28 @@ export function applyCssVariables(t: ThemeSpec) {
   r.setProperty("--success", to(m.success));
   r.setProperty("--warning", to(m.warning));
   
-  // Apply derived color variables that are missing
+  // Determine if theme is dark based on background lightness
+  const isDark = m.background[2] < 50; // If lightness < 50%, it's dark
+  
+  // Apply derived color variables with proper dark/light handling
   const [h, s, l] = m.primary;
-  r.setProperty("--primary-foreground", t.preference === 'dark' ? `${h} ${s}% 95%` : `${h} ${s}% 98%`);
+  r.setProperty("--primary-foreground", isDark ? "0 0% 98%" : "0 0% 2%");
   r.setProperty("--primary-glow", `${h} ${Math.min(s + 10, 100)}% ${Math.min(l + 10, 90)}%`);
   r.setProperty("--primary-dark", `${h} ${s}% ${Math.max(l - 15, 10)}%`);
   
   // Apply secondary derived colors
   const [sh, ss, sl] = m.secondary;
-  r.setProperty("--secondary-foreground", t.preference === 'dark' ? `${sh} ${ss}% 90%` : `${sh} ${ss}% 15%`);
+  r.setProperty("--secondary-foreground", isDark ? "0 0% 90%" : "0 0% 15%");
   
   // Apply accent derived colors
   const [ah, as, al] = m.accent;
-  r.setProperty("--accent-foreground", t.preference === 'dark' ? `${ah} ${as}% 95%` : `${ah} ${as}% 15%`);
+  r.setProperty("--accent-foreground", isDark ? "0 0% 95%" : "0 0% 15%");
   
   // Apply muted derived colors
   const [mh, ms, ml] = m.muted;
-  r.setProperty("--muted-foreground", t.preference === 'dark' ? `${mh} ${Math.max(ms - 10, 0)}% 65%` : `${mh} ${Math.max(ms - 5, 0)}% 45%`);
+  r.setProperty("--muted-foreground", isDark ? "0 0% 65%" : "0 0% 45%");
   
   // Apply card derived colors
-  const [ch, cs, cl] = m.card;
   r.setProperty("--card-foreground", to(m.foreground));
   r.setProperty("--card-border", to(m.border));
   
@@ -51,6 +53,11 @@ export function applyCssVariables(t: ThemeSpec) {
   
   // Apply ring color
   r.setProperty("--ring", to(m.primary));
+  
+  // Apply status color foregrounds
+  r.setProperty("--destructive-foreground", isDark ? "0 0% 95%" : "0 0% 98%");
+  r.setProperty("--success-foreground", isDark ? "0 0% 95%" : "0 0% 98%");
+  r.setProperty("--warning-foreground", isDark ? "0 0% 10%" : "0 0% 2%");
   
   // Apply radius variables
   r.setProperty("--radius-sm", `${t.radius.sm}px`);
