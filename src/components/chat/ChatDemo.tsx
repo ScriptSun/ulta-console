@@ -2150,11 +2150,11 @@ Please proceed with creating and executing this batch script.`;
                   {/* Agent Selector */}
                   {selectedAgentData && (
                     <div className="flex items-center gap-2">
-                       <div className={`w-2 h-2 rounded-full ${
-                         selectedAgentData.status === 'online' 
-                           ? 'bg-green-500 animate-pulse shadow-lg shadow-green-500/50' 
-                           : 'bg-muted-foreground'
-                       }`} />
+                        <div className={`w-2 h-2 rounded-full ${
+                          (selectedAgentData.status === 'online' || selectedAgentData.status === 'active') 
+                            ? 'bg-green-500 animate-pulse shadow-lg shadow-green-500/50' 
+                            : 'bg-muted-foreground'
+                        }`} />
                       <Select value={selectedAgent} onValueChange={handleAgentChange}>
                          <SelectTrigger className="w-96 h-8">
                            <SelectValue />
