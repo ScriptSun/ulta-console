@@ -763,8 +763,21 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           }
           break;
           
-         case 'router.selected':
+        case 'router.selected':
+          // Generate unique event ID for this exact router decision
+          const eventId = `router.selected-${data.rid}-${data.ts || Date.now()}`;
+          
+          console.log('✅ Processing router.selected event with ID:', eventId);
           console.log('🎯 Router selected decision:', data);
+          
+          // ADDITIONAL SAFETY: Check if we already processed this exact event
+          if (processedMessagesRef.current.has(eventId)) {
+            console.log('🚫 ALREADY PROCESSED - skipping duplicate event:', eventId);
+            break;
+          }
+          
+          // Mark as processed immediately
+          processedMessagesRef.current.add(eventId);
           
           // Add router response to logs with enhanced OpenAI data
           const latestRouterData = routerLogData.get('latest');

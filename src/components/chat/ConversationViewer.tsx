@@ -105,35 +105,26 @@ export function ConversationViewer({
   const { toast } = useToast();
   const { on } = useEventBus();
 
-  // Listen to router events for real-time updates
+  // Listen to router events for real-time updates (ONLY non-message-creating events)
   useEffect(() => {
     if (!open) return;
     
+    console.log('🔍 ConversationViewer: Setting up NON-MESSAGE router event listeners');
+    
     const unsubscribers = [
-      on('router.start', (data) => {
-        console.log('Router started in conversation viewer:', data);
-        // Could show a loading indicator if needed
-      }),
-      on('router.token', (data) => {
-        console.log('Router token in conversation viewer:', data);
-        // Real-time token streaming could be shown here if needed
-      }),
-      on('router.selected', (data) => {
-        console.log('Router decision received in conversation viewer:', data);
-        // Update conversation with new decision if relevant
-      }),
+      // REMOVED router.selected - only ChatDemo should handle message creation
       on('router.done', () => {
-        console.log('Router completed in conversation viewer');
-        // Refresh conversation data when router completes
+        console.log('🔄 ConversationViewer: Router completed - refreshing data');
         fetchConversationData();
       }),
       on('router.error', (data) => {
-        console.error('Router error in conversation viewer:', data);
+        console.error('❌ ConversationViewer: Router error:', data);
         // Could show error state if needed
       })
     ];
 
     return () => {
+      console.log('🧹 ConversationViewer: Cleaning up router event listeners');
       unsubscribers.forEach(unsub => unsub());
     };
   }, [open, on]);

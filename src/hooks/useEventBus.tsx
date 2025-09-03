@@ -21,14 +21,18 @@ export const useEventBus = () => {
     return unsubscribe;
   };
 
-  // Typed router event subscriptions
+  // Typed router event subscriptions - FIXED: removed eventBus dependency
   const onRouter = useCallback((callback: (eventType: string, payload: any) => void) => {
+    console.log('🔧 useEventBus: Setting up onRouter callback');
     const routerEvents = ['router.start', 'router.token', 'router.retrieved', 'router.selected', 'router.done', 'router.connected', 'router.disconnected', 'router.error'];
     const unsubscribers = routerEvents.map(eventType => {
       return on(eventType, (payload) => callback(eventType, payload));
     });
-    return () => unsubscribers.forEach(unsub => unsub());
-  }, [eventBus]);
+    return () => {
+      console.log('🧹 useEventBus: Cleaning up onRouter subscriptions');
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, []); // REMOVED eventBus dependency to prevent re-subscriptions
 
   // Typed preflight event subscriptions
   const onPreflight = useCallback((callback: (eventType: string, payload: any) => void) => {
