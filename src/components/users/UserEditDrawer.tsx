@@ -257,7 +257,7 @@ export function UserEditDrawer({ user, open, onOpenChange, onUserUpdated }: User
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[35%] overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:w-[50%] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
