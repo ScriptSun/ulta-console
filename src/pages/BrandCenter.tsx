@@ -85,7 +85,7 @@ export default function BrandCenter() {
       </div>
 
       {/* Brand Management Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         {brandSections.map((section) => {
           const Icon = section.icon;
           return (
