@@ -464,8 +464,7 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
 
               {/* Live Preview */}
               <div className="space-y-4">
-                <Label className="flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-primary" />
+                <Label>
                   Live Preview
                 </Label>
                 <div className="grid gap-4 md:grid-cols-2">
