@@ -351,8 +351,8 @@ export const planStorage = {
 
     if (!plan.slug?.trim()) {
       errors.push('Plan slug is required');
-    } else if (!/^[a-z0-9-]+$/.test(plan.slug)) {
-      errors.push('Plan slug must contain only lowercase letters, numbers, and hyphens');
+    } else if (!/^[a-z0-9_-]+$/.test(plan.slug)) {
+      errors.push('Plan slug must contain only lowercase letters, numbers, hyphens, and underscores');
     }
 
     if (!plan.limits?.ai_requests || plan.limits.ai_requests <= 0) {

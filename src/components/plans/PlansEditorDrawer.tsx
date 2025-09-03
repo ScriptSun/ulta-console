@@ -128,8 +128,8 @@ export function PlansEditorDrawer({
 
     if (!data.slug?.trim()) {
       errors.push('Plan slug is required');
-    } else if (!/^[a-z0-9-]+$/.test(data.slug)) {
-      errors.push('Plan slug must contain only lowercase letters, numbers, and hyphens');
+    } else if (!/^[a-z0-9_-]+$/.test(data.slug)) {
+      errors.push('Plan slug must contain only lowercase letters, numbers, hyphens, and underscores');
     }
 
     if (!data.monthly_ai_requests || data.monthly_ai_requests <= 0) {
