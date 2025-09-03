@@ -763,21 +763,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           }
           break;
           
-        case 'router.selected':
-          // Generate unique event ID for this exact router decision
-          const eventId = `router.selected-${data.rid}-${data.ts || Date.now()}`;
-          
-          console.log('✅ Processing router.selected event with ID:', eventId);
+         case 'router.selected':
           console.log('🎯 Router selected decision:', data);
-          
-          // ADDITIONAL SAFETY: Check if we already processed this exact event
-          if (processedMessagesRef.current.has(eventId)) {
-            console.log('🚫 ALREADY PROCESSED - skipping duplicate event:', eventId);
-            break;
-          }
-          
-          // Mark as processed immediately
-          processedMessagesRef.current.add(eventId);
           
           // Add router response to logs with enhanced OpenAI data
           const latestRouterData = routerLogData.get('latest');
@@ -800,24 +787,31 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             clearTimeout(routerTimeoutRef.current);
           }
             
-          // Create unique message for this router decision
+          // Create a new assistant message with the final decision
+          console.log('🔴 Creating new assistant message for router decision');
+          console.log('🔍 Data RID:', data.rid, 'Mode:', data.mode);
+          console.log('🔍 Data text:', data.text || data.message);
+          console.log('🔍 Messages array length before:', messages.length);
+          
+          // SIMPLE BUT EFFECTIVE: Prevent duplicates by checking exact same content + recent timing
+          const messageContent = data.text || data.message || '';
+          const now = Date.now();
+          const isDuplicate = messages.some(m => 
+            m.role === 'assistant' && 
+            m.content === messageContent && 
+            (now - m.timestamp.getTime()) < 3000
+          );
+          
+          if (isDuplicate) {
+            console.log('🚫 BLOCKED DUPLICATE - same content within 3 seconds');
+            return;
+          }
+          
+          console.log('✅ CREATING MESSAGE - no duplicate found');
+          
           setMessages(prev => {
-            console.log('🔍 Messages array length before:', prev.length);
-            
-            // Create unique event ID
-            const messageEventId = `router.selected-${data.rid}-${data.ts || Date.now()}`;
-            
-            // Check if we already have this exact event
-            const alreadyProcessed = prev.some(m => m.id === messageEventId);
-            if (alreadyProcessed) {
-              console.log('🚫 BLOCKED DUPLICATE - already processed this router event');
-              return prev; // Return unchanged state
-            }
-            
-            console.log('✅ CREATING MESSAGE - no duplicate found');
-            
             const newMessage: Message = {
-              id: messageEventId, // Use event-specific ID to prevent duplicates
+              id: `router-result-${Date.now()}`,
               role: 'assistant',
               content: '',
               timestamp: new Date(),
