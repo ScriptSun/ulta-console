@@ -479,7 +479,7 @@ export const BrandTheme = () => {
                           {/* Color Preview Circle - Clickable */}
                           <div className="relative mb-3 flex justify-center">
                             <div 
-                              className="w-8 h-8 rounded-lg shadow-md ring-2 ring-white/10 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg cursor-pointer"
+                              className="w-12 h-12 rounded-xl shadow-md ring-2 ring-white/10 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg cursor-pointer"
                               style={{ backgroundColor: hexValue }}
                               onClick={() => {
                                 const colorInput = document.getElementById(`color-${token.key}`) as HTMLInputElement;
