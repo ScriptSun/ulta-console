@@ -37,8 +37,8 @@ const brandSections = [
     title: 'Brand Files',
     description: 'Upload and manage brand assets and documents',
     icon: FileImage,
-    color: 'text-accent',
-    bgColor: 'bg-accent/10',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     statsLine: 'Brand guidelines, assets, documentation',
     action: 'Upload',
     id: 'brand-files'
@@ -47,8 +47,8 @@ const brandSections = [
     title: 'Brand Guidelines',
     description: 'Define usage rules and brand standards',
     icon: Settings,
-    color: 'text-muted-foreground',
-    bgColor: 'bg-muted/10',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     statsLine: 'Logo usage, color specs, typography',
     action: 'Configure',
     id: 'brand-guidelines'
