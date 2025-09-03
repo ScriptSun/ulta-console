@@ -149,7 +149,7 @@ export function AppSidebar() {
                 {!collapsed && (
                   <div className="flex flex-col">
                     <span className="font-bold text-sidebar-foreground text-lg">UltaAI</span>
-                    <span className="text-xs text-sidebar-primary font-medium">Control Hub</span>
+                    <span className="text-xs text-primary font-medium">Control Hub</span>
                   </div>
                 )}
               </>
@@ -172,7 +172,7 @@ export function AppSidebar() {
           {/* Reports */}
           <SidebarGroup>
             {!collapsed && (
-              <SidebarGroupLabel className="text-xs font-semibold text-sidebar-primary uppercase tracking-wider px-6 mb-2">
+              <SidebarGroupLabel className="text-xs font-semibold text-primary uppercase tracking-wider px-6 mb-2">
                 Reports
               </SidebarGroupLabel>
             )}
@@ -188,7 +188,7 @@ export function AppSidebar() {
           {/* Security */}
           <SidebarGroup>
             {!collapsed && (
-              <SidebarGroupLabel className="text-xs font-semibold text-sidebar-primary uppercase tracking-wider px-6 mb-2">
+              <SidebarGroupLabel className="text-xs font-semibold text-primary uppercase tracking-wider px-6 mb-2">
                 Security
               </SidebarGroupLabel>
             )}
@@ -204,7 +204,7 @@ export function AppSidebar() {
           {/* Configure */}
           <SidebarGroup>
             {!collapsed && (
-              <SidebarGroupLabel className="text-xs font-semibold text-sidebar-primary uppercase tracking-wider px-6 mb-2">
+              <SidebarGroupLabel className="text-xs font-semibold text-primary uppercase tracking-wider px-6 mb-2">
                 Configure
               </SidebarGroupLabel>
             )}
