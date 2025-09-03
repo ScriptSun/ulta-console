@@ -243,7 +243,7 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
                           className="max-h-20 mx-auto"
                           style={{ width: dimensions.width, height: dimensions.height }}
                         />
-                         <div className="flex gap-2 justify-center mt-8 mb-1">
+                         <div className="flex gap-2 justify-center mt-10 mb-0">
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -298,7 +298,7 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
                           className="max-h-20 mx-auto"
                           style={{ width: dimensions.width, height: dimensions.height }}
                         />
-                         <div className="flex gap-2 justify-center mt-8 mb-1">
+                         <div className="flex gap-2 justify-center mt-10 mb-0">
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -351,7 +351,7 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
                     {emailLogo ? (
                       <div className="space-y-4">
                         <img src={emailLogo} alt="Email logo" className="max-h-10 mx-auto" />
-                         <div className="flex gap-2 justify-center mt-8 mb-1">
+                         <div className="flex gap-2 justify-center mt-10 mb-0">
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -396,7 +396,7 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
                     {faviconSource ? (
                       <div className="space-y-4">
                         <img src={faviconSource} alt="Favicon source" className="w-16 h-16 mx-auto" />
-                        <div className="flex gap-2 justify-center mt-8 mb-1">
+                        <div className="flex gap-2 justify-center mt-10 mb-0">
                           <Button 
                             size="sm" 
                             variant="outline"
