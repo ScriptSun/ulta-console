@@ -132,11 +132,11 @@ export const BrandTheme = () => {
         primary: editingTheme.hsl.primary, // Keep user's primary color
         secondary: [215, 28, 17],
         accent: [215, 20, 25],
-        background: [222, 84, 5],
-        foreground: [210, 40, 98],
-        muted: [215, 28, 17],
-        card: [215, 28, 17],
-        border: [215, 20, 25],
+        background: [220, 15, 3],
+        foreground: [220, 15, 96],
+        muted: [220, 15, 6],
+        card: [220, 15, 4],
+        border: [220, 15, 18],
         destructive: [0, 84, 60],
         success: [142, 76, 36],
         warning: [48, 96, 53]
@@ -197,6 +197,9 @@ export const BrandTheme = () => {
     };
     
     setEditingTheme(updatedTheme);
+    
+    // Apply CSS variables immediately for instant preview
+    applyCssVariables(updatedTheme);
     
     toast({
       title: "Theme applied",
