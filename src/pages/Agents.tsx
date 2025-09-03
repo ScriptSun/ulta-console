@@ -397,7 +397,7 @@ export default function Agents() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-primary border-primary/20">
+        <Card className="bg-gradient-primary border-primary/20 shadow-none">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -411,7 +411,7 @@ export default function Agents() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-secondary border-secondary/20">
+        <Card className="bg-gradient-secondary border-secondary/20 shadow-none">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -425,7 +425,7 @@ export default function Agents() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-accent border-accent/20">
+        <Card className="bg-gradient-accent border-accent/20 shadow-none">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -439,7 +439,7 @@ export default function Agents() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-muted border-muted/20">
+        <Card className="bg-gradient-muted border-muted/20 shadow-none">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
