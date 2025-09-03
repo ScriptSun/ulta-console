@@ -118,27 +118,27 @@ export const BrandTheme = () => {
       hex: {
         primary: editingTheme.hex.primary, // Keep user's primary color
         secondary: "#1e293b",
-        accent: "#334155", 
-        background: "#0f172a",
-        foreground: "#f8fafc",
+        accent: "#475569", 
+        background: "#0a0e1a",
+        foreground: "#f1f5f9",
         muted: "#1e293b",
-        card: "#1e293b",
-        border: "#334155",
+        card: "#151b2e",
+        border: "#2d3748",
         destructive: "#ef4444",
-        success: "#22c55e",
+        success: "#10b981",
         warning: "#f59e0b"
       },
       hsl: {
         primary: editingTheme.hsl.primary, // Keep user's primary color
         secondary: [215, 28, 17],
-        accent: [215, 20, 25],
-        background: [220, 15, 3],
-        foreground: [220, 15, 96],
-        muted: [220, 15, 6],
-        card: [220, 15, 4],
-        border: [220, 15, 18],
+        accent: [215, 16, 35],
+        background: [220, 26, 7],
+        foreground: [210, 40, 95],
+        muted: [215, 28, 17],
+        card: [220, 30, 13],
+        border: [213, 22, 24],
         destructive: [0, 84, 60],
-        success: [142, 76, 36],
+        success: [160, 84, 39],
         warning: [48, 96, 53]
       }
     };
