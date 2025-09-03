@@ -771,19 +771,25 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             
           // Create a new assistant message with the final decision
           console.log('🔴 Creating new assistant message for router decision');
+          console.log('🔍 Data RID:', data.rid, 'Mode:', data.mode);
+          console.log('🔍 Data text:', data.text || data.message);
+          console.log('🔍 Messages array length before:', messages.length);
           
-          // Prevent duplicate messages - use a more robust check
+          // SIMPLE BUT EFFECTIVE: Prevent duplicates by checking exact same content + recent timing
+          const messageContent = data.text || data.message || '';
           const now = Date.now();
-          const recentMessage = messages.find(m => 
+          const isDuplicate = messages.some(m => 
             m.role === 'assistant' && 
-            m.content === data.text && // Check for same content
-            (now - m.timestamp.getTime()) < 5000 // Within 5 seconds
+            m.content === messageContent && 
+            (now - m.timestamp.getTime()) < 3000
           );
           
-          if (recentMessage) {
-            console.log('🚫 Prevented duplicate message creation - same content within 5 seconds');
+          if (isDuplicate) {
+            console.log('🚫 BLOCKED DUPLICATE - same content within 3 seconds');
             return;
           }
+          
+          console.log('✅ CREATING MESSAGE - no duplicate found');
           
           setMessages(prev => {
             const newMessage: Message = {
