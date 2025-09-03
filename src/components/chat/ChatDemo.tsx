@@ -2112,6 +2112,34 @@ Please proceed with creating and executing this batch script.`;
                     </Button>
                   </ChatDocumentation>
                   
+                  {/* Connect to OpenAI Button */}
+                  {selectedAgent && selectedAgentDetails && (
+                    <Button
+                      onClick={isConnectedToOpenAI ? disconnectFromOpenAI : connectToOpenAI}
+                      disabled={openAIConnectionStatus === 'connecting'}
+                      size="sm"
+                      variant={isConnectedToOpenAI ? "destructive" : "default"}
+                      className="flex items-center gap-2"
+                    >
+                      {openAIConnectionStatus === 'connecting' ? (
+                        <>
+                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Connecting...
+                        </>
+                      ) : isConnectedToOpenAI ? (
+                        <>
+                          <X className="w-4 h-4" />
+                          Disconnect
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle className="w-4 h-4" />
+                          Connect to OpenAI
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  
                   {/* Settings Popover */}
                   <Popover>
                     <PopoverTrigger asChild>
