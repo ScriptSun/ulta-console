@@ -32,9 +32,6 @@ export default function Dashboard() {
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
           />
-          <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
-            All Systems Operational
-          </Badge>
         </div>
       </div>
 
