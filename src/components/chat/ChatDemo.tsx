@@ -216,7 +216,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     }
   }, [playSound]);
   
-  // Connect to OpenAI function
+  // Connect to OpenAI function - NOW INCLUDES WebSocket connection
   const connectToOpenAI = async () => {
     if (!selectedAgent || !selectedAgentDetails) {
       toast({
@@ -230,7 +230,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     setOpenAIConnectionStatus('connecting');
     
     try {
-      // Send heartbeat message to OpenAI
+      // FIRST: Connect WebSocket for real-time communication
+      console.log('🔌 Connecting WebSocket as part of OpenAI connection...');
+      connect();
+      
+      // SECOND: Send heartbeat message to OpenAI via API
       const heartbeatData = {
         agent_id: selectedAgent,
         hostname: selectedAgentDetails.hostname,
@@ -289,10 +293,16 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     }
   };
 
-  // Disconnect from OpenAI
+  // Disconnect from OpenAI - NOW INCLUDES WebSocket disconnection
   const disconnectFromOpenAI = () => {
     setIsConnectedToOpenAI(false);
     setOpenAIConnectionStatus('disconnected');
+    
+    // FIRST: Disconnect WebSocket
+    console.log('🔌 Disconnecting WebSocket as part of OpenAI disconnection...');
+    disconnect();
+    
+    // SECOND: Add disconnection message
     
     const disconnectionMessage: Message = {
       id: Date.now().toString(),
@@ -593,14 +603,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     };
   }, [selectedAgent, conversationId]);
 
-  // CONSOLIDATED: WebSocket connection AND router event listeners in ONE useEffect
+  // FIXED: Only set up router event listeners, NO automatic connection
   useEffect(() => {
     if (!selectedAgent) return;
     
-    console.log('🔌 CONSOLIDATED: Setting up WebSocket connection and router event listeners for agent:', selectedAgent);
-    
-    // Connect WebSocket first
-    connect();
+    console.log('🔌 Setting up router event listeners ONLY (no auto-connect) for agent:', selectedAgent);
     
     // Set router timeout (25 seconds)
     const startRouterTimeout = () => {
@@ -1018,14 +1025,14 @@ Please try again or contact support if this persists.`;
     });
     
     return () => {
-      console.log('🔌 CONSOLIDATED: Cleaning up WebSocket and router event listeners for agent:', selectedAgent);
+      console.log('🔌 Cleaning up router event listeners ONLY for agent:', selectedAgent);
       unsubscribe();
-      disconnect(); // Also disconnect WebSocket
+      // NOTE: Do NOT disconnect WebSocket here - let the Connect button control it
       if (routerTimeoutRef.current) {
         clearTimeout(routerTimeoutRef.current);
       }
     };
-  }, [selectedAgent, connect, disconnect, onRouter]); // Include all dependencies
+  }, [selectedAgent, onRouter]); // Removed connect/disconnect dependencies
 
   // Set up WebSocket execution event listeners
   useEffect(() => {
