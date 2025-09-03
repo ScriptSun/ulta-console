@@ -18,6 +18,7 @@ export default function ApiKeys() {
   const [generateDialog, setGenerateDialog] = useState(false)
   const [newKeyName, setNewKeyName] = useState('')
   const [newKeyPermissions, setNewKeyPermissions] = useState<string[]>(['read'])
+  const [isGenerating, setIsGenerating] = useState(false)
   
   const { apiKeys, loading, generateApiKey, revokeApiKey, updateApiKey } = useApiKeys()
   const { toast } = useToast()

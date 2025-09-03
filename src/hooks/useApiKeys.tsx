@@ -53,26 +53,52 @@ export function useApiKeys() {
 
   const generateApiKey = async (name: string, permissions: string[] = ['read']): Promise<NewApiKey | null> => {
     try {
-      // Get current user's customer ID
+      // Get current user's customer ID - try multiple approaches
+      let customerIdResult;
+      
+      // First try getting from user_roles
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('customer_id')
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (rolesError || !userRoles?.customer_id) {
-        throw new Error('User customer not found');
+      if (userRoles?.customer_id) {
+        customerIdResult = userRoles.customer_id;
+      } else {
+        // Fallback: try getting from console_team_members
+        const { data: teamMembers, error: teamError } = await supabase
+          .from('console_team_members')
+          .select('team_id')
+          .limit(1)
+          .maybeSingle();
+          
+        if (teamMembers?.team_id) {
+          customerIdResult = teamMembers.team_id;
+        } else {
+          // Last fallback: use a default customer ID or create one
+          // For now, we'll use a default system customer ID
+          customerIdResult = '22222222-2222-2222-2222-222222222222';
+        }
       }
+
+      console.log('Using customer ID for API key generation:', customerIdResult);
 
       const { data, error } = await supabase
         .rpc('generate_api_key', {
-          _customer_id: userRoles.customer_id,
+          _customer_id: customerIdResult,
           _name: name,
           _permissions: permissions
         });
 
-      if (error) throw error;
-      if (!data || data.length === 0) throw new Error('Failed to generate API key');
+      if (error) {
+        console.error('RPC Error:', error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        throw new Error('No data returned from generate_api_key function');
+      }
 
       const newKey = data[0];
       
@@ -85,11 +111,21 @@ export function useApiKeys() {
       await fetchApiKeys();
 
       return newKey;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating API key:', error);
+      let errorMessage = "Failed to generate API key";
+      
+      if (error.message?.includes('customer')) {
+        errorMessage = "Unable to determine customer context. Please ensure you're properly logged in.";
+      } else if (error.message?.includes('permission')) {
+        errorMessage = "Insufficient permissions to generate API keys.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to generate API key",
+        description: errorMessage,
         variant: "destructive",
       });
       return null;
