@@ -200,7 +200,7 @@ export function useSubscriptionPlans() {
   const updatePlan = async (planId: string, planData: Partial<SubscriptionPlan>) => {
     try {
       // Filter out generated columns that can't be updated
-      const { price_monthly, id, created_at, updated_at, ...updateData } = planData;
+      const { price_monthly, id, created_at, updated_at, slug, key, ...updateData } = planData;
       
       const { error } = await supabase
         .from('subscription_plans')

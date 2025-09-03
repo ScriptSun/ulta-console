@@ -241,24 +241,36 @@ export function PlansEditorDrawer({
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="key">Plan Key *</Label>
+                      <Label htmlFor="key">Plan Key {!isEditing && '*'}</Label>
                       <Input
                         id="key"
                         value={formData.key || ''}
                         onChange={(e) => handleInputChange('key', e.target.value)}
                         placeholder="e.g., professional_plan"
+                        disabled={isEditing}
                       />
+                      {isEditing && (
+                        <p className="text-xs text-muted-foreground">
+                          Key cannot be changed after creation
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="slug">Slug *</Label>
+                    <Label htmlFor="slug">Slug {!isEditing && '*'}</Label>
                     <Input
                       id="slug"
                       value={formData.slug || ''}
                       onChange={(e) => handleInputChange('slug', e.target.value)}
                       placeholder="e.g., professional"
+                      disabled={isEditing}
                     />
+                    {isEditing && (
+                      <p className="text-xs text-muted-foreground">
+                        Slug cannot be changed after creation
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
