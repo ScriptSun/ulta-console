@@ -131,7 +131,7 @@ export default function Security() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-sm font-medium text-muted-foreground">Security Score</div>
-                  <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ml-8 ${
                     securityScore === 'A+' || securityScore.startsWith('A') ? 'bg-success/20 text-success' :
                     securityScore.startsWith('B') ? 'bg-orange-500/20 text-orange-600' :
                     'bg-destructive/20 text-destructive'
