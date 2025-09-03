@@ -473,7 +473,7 @@ export const BrandTheme = () => {
                     const hexValue = editingTheme.hex[token.key as keyof typeof editingTheme.hex];
                     
                     return (
-                      <div key={token.key} className="flex flex-col gap-3 p-4 border border-border/50 rounded-lg bg-gradient-to-br from-card to-muted/30 hover:shadow-sm transition-all duration-200">
+                      <div key={token.key} className="flex flex-col gap-3 p-4 rounded-lg bg-gradient-to-br from-card to-muted/30 hover:shadow-sm transition-all duration-200">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <div className="relative group">
