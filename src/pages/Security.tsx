@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { 
   Shield, 
   Activity, 
@@ -9,12 +8,8 @@ import {
   Lock,
   Users,
   FileText,
-  ArrowRight,
-  Bot
+  ArrowRight
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
 
 const securitySections = [
   {
@@ -52,65 +47,6 @@ const securitySections = [
 ];
 
 export default function Security() {
-  const { toast } = useToast();
-  const [aiSuggestionsMode, setAiSuggestionsMode] = useState<'off' | 'show' | 'execute'>('off');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchSystemSettings();
-  }, []);
-
-  const fetchSystemSettings = async () => {
-    try {
-      // Fetch AI suggestions mode from system_settings using new schema
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'ai_suggestions_mode')
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows found
-      
-      setAiSuggestionsMode(data?.setting_value as 'off' | 'show' | 'execute' || 'off');
-    } catch (error) {
-      console.error('Error fetching system settings:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load system settings',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateAiSuggestionsMode = async (mode: 'off' | 'show' | 'execute') => {
-    try {
-      const { error } = await supabase
-        .from('system_settings')
-        .upsert({ 
-          setting_key: 'ai_suggestions_mode',
-          setting_value: mode,
-          description: 'AI suggestions mode configuration'
-        });
-
-      if (error) throw error;
-
-      setAiSuggestionsMode(mode);
-      toast({
-        title: 'Settings Updated',
-        description: `AI Suggestions Mode set to ${mode}`,
-      });
-    } catch (error) {
-      console.error('Error updating system settings:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update system settings',
-        variant: 'destructive',
-      });
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -152,61 +88,6 @@ export default function Security() {
             </Card>
           );
         })}
-
-        {/* AI Suggestions Card */}
-        <Card className="group hover:shadow-md transition-smooth">
-          <CardHeader className="pb-4">
-             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-               <Bot className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle>AI Suggestions</CardTitle>
-            <CardDescription>
-              Configure how AI suggestions are displayed and executed
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {loading ? (
-              <div className="flex justify-center">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-              </div>
-            ) : (
-              <ToggleGroup
-                type="single"
-                value={aiSuggestionsMode}
-                onValueChange={(value) => value && updateAiSuggestionsMode(value as 'off' | 'show' | 'execute')}
-                className="grid grid-cols-1 gap-2"
-              >
-                <ToggleGroupItem 
-                  value="off" 
-                  className="justify-start px-3 py-2 h-auto data-[state=on]:bg-muted data-[state=on]:text-foreground"
-                >
-                  <div className="text-left">
-                    <div className="font-medium">Off</div>
-                    <div className="text-xs text-muted-foreground">No AI suggestions</div>
-                  </div>
-                </ToggleGroupItem>
-                <ToggleGroupItem 
-                  value="show" 
-                  className="justify-start px-3 py-2 h-auto data-[state=on]:bg-muted data-[state=on]:text-foreground"
-                >
-                  <div className="text-left">
-                    <div className="font-medium">Show</div>
-                    <div className="text-xs text-muted-foreground">Display safe commands (no execution)</div>
-                  </div>
-                </ToggleGroupItem>
-                <ToggleGroupItem 
-                  value="execute" 
-                  className="justify-start px-3 py-2 h-auto data-[state=on]:bg-muted data-[state=on]:text-foreground"
-                >
-                  <div className="text-left">
-                    <div className="font-medium">Execute</div>
-                    <div className="text-xs text-muted-foreground">Show commands with Execute button</div>
-                  </div>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Security Overview */}

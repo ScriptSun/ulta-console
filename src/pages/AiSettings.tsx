@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Brain, Settings, MessageSquare, Zap } from 'lucide-react';
+import { Brain, Settings, MessageSquare, Zap, Bot } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { AvailableModelsTab } from '@/components/ai/AvailableModelsTab';
 import { ModelConfigurationTab } from '@/components/ai/ModelConfigurationTab';
 import { SystemPromptTab } from '@/components/ai/SystemPromptTab';
 import { IntelligentSelectionTab } from '@/components/ai/IntelligentSelectionTab';
+import { AISuggestionsTab } from '@/components/ai/AISuggestionsTab';
 
 export default function AiSettings() {
   const { toast } = useToast();
@@ -153,7 +154,7 @@ export default function AiSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="models" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
             Models
@@ -165,6 +166,10 @@ export default function AiSettings() {
           <TabsTrigger value="prompts" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             System Prompts
+          </TabsTrigger>
+          <TabsTrigger value="suggestions" className="flex items-center gap-2">
+            <Bot className="h-4 w-4" />
+            AI Suggestions
           </TabsTrigger>
           <TabsTrigger value="intelligent" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
@@ -182,6 +187,10 @@ export default function AiSettings() {
 
         <TabsContent value="prompts" className="space-y-6">
           <SystemPromptTab />
+        </TabsContent>
+
+        <TabsContent value="suggestions" className="space-y-6">
+          <AISuggestionsTab />
         </TabsContent>
 
         <TabsContent value="intelligent" className="space-y-6">
