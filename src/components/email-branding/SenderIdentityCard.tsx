@@ -14,10 +14,13 @@ import {
   Eye,
   RotateCcw,
   Save,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { EmailBrandingSpec } from '@/types/emailBrandingTypes';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SenderIdentityCardProps {
   settings: EmailBrandingSpec | null;
@@ -29,6 +32,8 @@ export function SenderIdentityCard({ settings, onSave, saving }: SenderIdentityC
   const [senderName, setSenderName] = useState(settings?.senderName || '');
   const [senderEmail, setSenderEmail] = useState(settings?.senderEmail || '');
   const [showDnsRecords, setShowDnsRecords] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const { toast } = useToast();
 
   React.useEffect(() => {
     if (settings) {
@@ -42,6 +47,70 @@ export function SenderIdentityCard({ settings, onSave, saving }: SenderIdentityC
       senderName,
       senderEmail
     });
+  };
+
+  const handleRecheck = async () => {
+    if (!senderEmail) {
+      toast({
+        title: "Email required",
+        description: "Please enter a sender email before checking DNS records",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const domain = senderEmail.split('@')[1];
+    if (!domain) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setChecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-email-dns', {
+        body: {
+          domain: domain,
+          dkimSelector: settings?.dkim?.selector || 'default'
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Update the settings with the new DNS check results
+      await onSave({
+        spf: {
+          status: data.spf.status,
+          record: data.spf.record
+        },
+        dkim: {
+          status: data.dkim.status,
+          selector: data.dkim.selector,
+          host: data.dkim.host,
+          record: data.dkim.record
+        }
+      });
+
+      toast({
+        title: "DNS records checked",
+        description: `SPF: ${data.spf.status}, DKIM: ${data.dkim.status}`,
+      });
+
+    } catch (error: any) {
+      console.error('DNS check failed:', error);
+      toast({
+        title: "DNS check failed",
+        description: error.message || "Failed to check DNS records. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setChecking(false);
+    }
   };
 
   const getStatusBadge = (status: "ok" | "pending" | "missing") => {
@@ -150,11 +219,11 @@ export function SenderIdentityCard({ settings, onSave, saving }: SenderIdentityC
                   </h4>
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-sm font-mono break-all">
-                      TXT @ "v=spf1 include:spf.yourprovider.com ~all"
+                      {settings?.spf.record || 'TXT @ "v=spf1 include:spf.yourprovider.com ~all"'}
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Replace "yourprovider.com" with your email service provider's SPF record
+                    {settings?.spf.record ? 'Current SPF record found in DNS' : 'Replace "yourprovider.com" with your email service provider\'s SPF record'}
                   </p>
                 </div>
 
@@ -166,19 +235,23 @@ export function SenderIdentityCard({ settings, onSave, saving }: SenderIdentityC
                   </h4>
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-sm font-mono break-all">
-                      TXT selector._domainkey "v=DKIM1; k=rsa; p=YOUR_PUBLIC_KEY"
+                      {settings?.dkim.record || 'TXT selector._domainkey "v=DKIM1; k=rsa; p=YOUR_PUBLIC_KEY"'}
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Contact your email service provider for the specific DKIM record values
+                    {settings?.dkim.record ? 'Current DKIM record found in DNS' : 'Contact your email service provider for the specific DKIM record values'}
                   </p>
                 </div>
               </div>
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline">
-            <RotateCcw className="h-4 w-4 mr-2" />
+          <Button variant="outline" onClick={handleRecheck} disabled={checking || !senderEmail}>
+            {checking ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RotateCcw className="h-4 w-4 mr-2" />
+            )}
             Recheck Status
           </Button>
         </div>
