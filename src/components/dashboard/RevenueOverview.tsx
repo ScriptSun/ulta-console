@@ -101,7 +101,7 @@ export function RevenueOverview({
           {/* MRR */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden shadow-sm shadow-success/20">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-muted-foreground">Monthly Recurring Revenue</div>
+              <div className="text-sm font-medium text-muted-foreground">Recurring Revenue</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/20 text-success text-xs font-medium">
                 {getTrendIcon(mrrTrend)}
                 <span>
