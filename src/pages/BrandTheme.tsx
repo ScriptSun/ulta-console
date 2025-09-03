@@ -475,7 +475,7 @@ export const BrandTheme = () => {
                     return (
                       <div key={token.key} className="group relative">
                         {/* Main Card */}
-                        <div className="relative p-4 rounded-xl bg-gradient-to-br from-background/60 to-background/30 backdrop-blur-xl border border-border/20 hover:border-border/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/5">
+                        <div className="relative p-4 rounded-xl backdrop-blur-xl border border-border/20 hover:border-border/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/5">
                           {/* Color Preview Circle - Clickable */}
                           <div className="relative mb-3 flex justify-center">
                             <div 
