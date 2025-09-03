@@ -298,16 +298,44 @@ export const BrandTheme = () => {
               return (
                 <Button
                   key={pref.id}
-                  variant={isActive ? "default" : "outline"}
-                  className="h-auto p-4 flex flex-col items-center space-y-2"
+                  variant="ghost"
+                  className={`
+                    group relative h-auto p-6 flex flex-col items-center space-y-3 
+                    rounded-2xl border-2 transition-all duration-300 hover:scale-[1.02]
+                    ${isActive 
+                      ? 'bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/30 shadow-lg shadow-primary/10' 
+                      : 'bg-gradient-to-br from-muted/30 via-card/50 to-background/80 border-border/40 hover:border-primary/20 hover:bg-gradient-to-br hover:from-primary/5 hover:via-primary/2 hover:to-transparent'
+                    }
+                    backdrop-blur-sm
+                  `}
                   onClick={() => handleThemePreferenceChange(pref.id)}
                 >
-                  <Icon className="h-6 w-6" />
-                  <div className="text-center">
-                    <div className="font-medium">{pref.name}</div>
-                    <div className="text-xs opacity-70">{pref.description}</div>
+                  <div className={`
+                    p-3 rounded-xl transition-all duration-300
+                    ${isActive 
+                      ? 'bg-gradient-to-br from-primary to-primary-dark shadow-lg shadow-primary/20' 
+                      : 'bg-gradient-to-br from-muted to-card border border-border/20 group-hover:from-primary/10 group-hover:to-primary/5'
+                    }
+                  `}>
+                    <Icon className={`h-7 w-7 transition-colors duration-300 ${
+                      isActive ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary'
+                    }`} />
                   </div>
-                  {isActive && <Badge variant="secondary">Active</Badge>}
+                  <div className="text-center space-y-1">
+                    <div className={`font-semibold text-sm transition-colors duration-300 ${
+                      isActive ? 'text-primary' : 'text-foreground'
+                    }`}>{pref.name}</div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isActive ? 'text-primary/70' : 'text-muted-foreground'
+                    }`}>{pref.description}</div>
+                  </div>
+                  {isActive && (
+                    <div className="absolute -top-2 -right-2">
+                      <div className="flex items-center justify-center w-6 h-6 bg-gradient-to-br from-primary to-primary-dark rounded-full shadow-lg shadow-primary/30 animate-pulse-glow">
+                        <div className="w-2 h-2 bg-primary-foreground rounded-full"></div>
+                      </div>
+                    </div>
+                  )}
                 </Button>
               );
             })}
