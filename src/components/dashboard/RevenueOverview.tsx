@@ -146,7 +146,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* ARPU */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
              <div className="flex items-center justify-between mb-3">
-               <div className="text-sm font-medium text-muted-foreground">Average Revenue Per User</div>
+               <div className="text-sm font-medium text-muted-foreground">Revenue Per User</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium">
                 {getTrendIcon(arpuTrend)}
                 <span>
