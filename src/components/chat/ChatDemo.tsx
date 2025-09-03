@@ -457,7 +457,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           
           if (error) {
             console.error(`❌ Error checking usage for agent ${agentId}:`, error);
-            usageData[agentId] = { current: 0, limit: 25, plan: 'Unknown' }; // Default fallback
+            // Don't set fallback data, let it remain undefined so we show "Loading..."
             continue;
           }
           
@@ -472,7 +472,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             };
           } else {
             console.warn(`⚠️ No usage data returned for agent ${agentId}`);
-            usageData[agentId] = { current: 0, limit: 25, plan: 'Unknown' };
+            // Don't set fallback data, let it remain undefined so we show "Loading..."
           }
         } catch (error) {
           console.error(`💥 Failed to fetch usage for agent ${agentId}:`, error);
