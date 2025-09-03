@@ -24,7 +24,7 @@ export function PlansStatsCards({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <Card className="bg-gradient-primary border-primary/20 shadow-lg">
+      <Card className="bg-gradient-primary border-primary/20">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-primary-foreground/90">Free Plan Usage</CardTitle>
           <Settings2 className="h-4 w-4 text-primary-foreground/60" />
@@ -39,10 +39,10 @@ export function PlansStatsCards({
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-secondary border-secondary/20 shadow-lg">
+      <Card className="bg-gradient-secondary border-secondary/20">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-secondary-foreground/90">Active Agents</CardTitle>
-          <Badge className="bg-success/20 text-success border-success/30 shadow-sm">
+          <Badge className="bg-success/20 text-success border-success/30">
             Active
           </Badge>
         </CardHeader>
@@ -56,7 +56,7 @@ export function PlansStatsCards({
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-accent border-accent/20 shadow-lg">
+      <Card className="bg-gradient-accent border-accent/20">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-accent-foreground/90">Avg AI Limit</CardTitle>
         </CardHeader>
@@ -70,7 +70,7 @@ export function PlansStatsCards({
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-muted border-muted/20 shadow-lg">
+      <Card className="bg-gradient-muted border-muted/20">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-foreground/90">Total Usage</CardTitle>
         </CardHeader>
