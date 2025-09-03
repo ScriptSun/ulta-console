@@ -7,7 +7,6 @@ import {
   Key, 
   Lock,
   Users,
-  FileText,
   ArrowRight,
   RefreshCw
 } from 'lucide-react';
@@ -37,14 +36,6 @@ const securitySections = [
     url: '/api-keys',
     color: 'text-primary',
     bgColor: 'bg-primary/10',
-  },
-  {
-    title: 'Compliance',
-    description: 'Security policies and compliance reports',
-    icon: FileText,
-    url: '/security/compliance',
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-500/10',
   },
 ];
 
