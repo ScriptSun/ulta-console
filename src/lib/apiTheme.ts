@@ -1,4 +1,4 @@
-import { ThemeSpec, ThemeValidationResult, ThemeVersionInfo } from '@/types/themeTypes';
+import { ThemeSpec, ThemeValidationResult } from '@/types/themeTypes';
 import { validateThemeHex, hexToHsl, hslToHex } from '@/lib/colorHelpers';
 
 // Mock API with simple timeouts
@@ -41,7 +41,6 @@ const defaultThemeSpec: ThemeSpec = {
 
 // Store in localStorage for persistence
 const STORAGE_KEY = 'theme-spec';
-const VERSIONS_KEY = 'theme-versions';
 
 // Migration helper: convert old HSL-only theme to new format
 const migrateTheme = (theme: any): ThemeSpec => {
@@ -57,17 +56,6 @@ const migrateTheme = (theme: any): ThemeSpec => {
 };
 
 let currentTheme: ThemeSpec = migrateTheme(JSON.parse(localStorage.getItem(STORAGE_KEY) || JSON.stringify(defaultThemeSpec)));
-let versions: ThemeVersionInfo[] = JSON.parse(localStorage.getItem(VERSIONS_KEY) || '[]');
-
-// Initialize default version if empty
-if (versions.length === 0) {
-  versions = [{
-    version: 1,
-    actor: 'system',
-    updatedAt: defaultThemeSpec.updatedAt
-  }];
-  localStorage.setItem(VERSIONS_KEY, JSON.stringify(versions));
-}
 
 export const apiTheme = {
   async getTheme(): Promise<ThemeSpec> {
@@ -134,52 +122,9 @@ export const apiTheme = {
     currentTheme = newTheme;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(currentTheme));
 
-    // Add to version history
-    const newVersion: ThemeVersionInfo = {
-      version: newTheme.version,
-      actor: 'user', // In real app, get from auth
-      updatedAt: newTheme.updatedAt
-    };
-    
-    versions.unshift(newVersion);
-    localStorage.setItem(VERSIONS_KEY, JSON.stringify(versions));
-
     return {
       theme: newTheme,
       etag: `"${newTheme.version}-${Date.now()}"`
     };
-  },
-
-  async getVersions(): Promise<ThemeVersionInfo[]> {
-    await delay(200);
-    return [...versions];
-  },
-
-  async revertToVersion(version: number): Promise<ThemeSpec> {
-    await delay(300);
-    
-    // In a real app, we'd fetch the actual theme data for that version
-    // For now, just increment version and return current with modifications
-    const revertedTheme: ThemeSpec = {
-      ...currentTheme,
-      version: currentTheme.version + 1,
-      updatedAt: new Date().toISOString(),
-      name: `${currentTheme.name} (Reverted to v${version})`
-    };
-
-    currentTheme = revertedTheme;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentTheme));
-
-    // Add revert to version history
-    const revertVersion: ThemeVersionInfo = {
-      version: revertedTheme.version,
-      actor: 'user',
-      updatedAt: revertedTheme.updatedAt
-    };
-    
-    versions.unshift(revertVersion);
-    localStorage.setItem(VERSIONS_KEY, JSON.stringify(versions));
-
-    return revertedTheme;
   }
 };

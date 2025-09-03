@@ -14,12 +14,6 @@ export type ThemeValidationResult = {
   issues?: string[]
 }
 
-export type ThemeVersionInfo = {
-  version: number
-  actor: string
-  updatedAt: string
-}
-
 export type ContrastCheckResult = {
   pass: boolean
   ratio: number

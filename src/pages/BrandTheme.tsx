@@ -14,7 +14,6 @@ import { apiTheme } from '@/lib/apiTheme';
 import { applyCssVariables, CSS_VARIABLES_USAGE, AVAILABLE_VARIABLES } from '@/lib/cssVariablesWriter';
 import { Palette, Sun, Moon, Monitor, Download, Upload, AlertTriangle, Copy, RotateCcw, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const THEME_PREFERENCES = [
   { id: 'light' as const, name: 'Light', icon: Sun, description: 'Clean bright interface' },
@@ -52,11 +51,9 @@ export const BrandTheme = () => {
   const [saving, setSaving] = useState(false);
   const [validationResult, setValidationResult] = useState<ThemeValidationResult | null>(null);
   const [overrideContrast, setOverrideContrast] = useState(false);
-  const [versions, setVersions] = useState<any[]>([]);
 
   useEffect(() => {
     loadTheme();
-    loadVersions();
   }, []);
 
   const hasChanges = currentTheme && editingTheme ? JSON.stringify(currentTheme) !== JSON.stringify(editingTheme) : false;
@@ -95,15 +92,6 @@ export const BrandTheme = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadVersions = async () => {
-    try {
-      const versionList = await apiTheme.getVersions();
-      setVersions(versionList);
-    } catch (error) {
-      console.error('Error loading versions:', error);
     }
   };
 
@@ -152,9 +140,6 @@ export const BrandTheme = () => {
       
       // Apply to CSS immediately
       applyCssVariables(result.theme);
-      
-      // Reload versions
-      await loadVersions();
 
       toast({
         title: "Theme applied successfully",
@@ -214,27 +199,7 @@ export const BrandTheme = () => {
   };
 
   const handleRevert = async (version: number) => {
-    try {
-      setSaving(true);
-      const theme = await apiTheme.revertToVersion(version);
-      setCurrentTheme(theme);
-      setEditingTheme({ ...theme });
-      applyCssVariables(theme);
-      await loadVersions();
-      
-      toast({
-        title: "Theme reverted",
-        description: `Reverted to version ${version}`
-      });
-    } catch (error) {
-      toast({
-        title: "Error reverting theme",
-        description: "Could not revert to selected version",
-        variant: "destructive"
-      });
-    } finally {
-      setSaving(false);
-    }
+    // Version history removed - this function is no longer needed
   };
 
   const handleDownloadTheme = () => {
@@ -561,46 +526,6 @@ export const BrandTheme = () => {
                       />
                     </label>
                   </Button>
-                </div>
-              </div>
-
-              {/* Version History */}
-              <div className="space-y-2">
-                <h4 className="font-medium">Version History</h4>
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Version</TableHead>
-                        <TableHead>Actor</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {versions.map((version) => (
-                        <TableRow key={version.version}>
-                          <TableCell>v{version.version}</TableCell>
-                          <TableCell>{version.actor}</TableCell>
-                          <TableCell>
-                            {new Date(version.updatedAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            {version.version !== currentTheme.version && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleRevert(version.version)}
-                                disabled={saving}
-                              >
-                                Revert
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
                 </div>
               </div>
             </TabsContent>
