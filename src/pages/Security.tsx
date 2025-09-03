@@ -121,26 +121,62 @@ export default function Security() {
           </CardContent>
         </Card>
 
-        <Card className={`border-2 ${
-          securityScore === 'A+' || securityScore.startsWith('A') ? 'bg-green-50 border-green-200' :
-          securityScore.startsWith('B') ? 'bg-orange-50 border-orange-200' :
-          'bg-red-50 border-red-200'
-        }`}>
-          <CardContent className="p-6">
+        <Card className="bg-gradient-card border-card-border shadow-card">
+          <CardContent className={`p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden shadow-sm ${
+            securityScore === 'A+' || securityScore.startsWith('A') ? 'shadow-success/20' :
+            securityScore.startsWith('B') ? 'shadow-orange-500/20' :
+            'shadow-destructive/20'
+          }`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground/80">Security Score</p>
-                <p className="text-3xl font-bold text-foreground">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-medium text-muted-foreground">Security Score</div>
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                    securityScore === 'A+' || securityScore.startsWith('A') ? 'bg-success/20 text-success' :
+                    securityScore.startsWith('B') ? 'bg-orange-500/20 text-orange-600' :
+                    'bg-destructive/20 text-destructive'
+                  }`}>
+                    <span>
+                      {securityScore === 'A+' ? 'Excellent security' : 
+                       securityScore.startsWith('A') ? 'Good security' : 
+                       securityScore.startsWith('B') ? 'Fair security' : 'Needs attention'}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-4xl font-bold text-foreground mb-2">
                   {loading ? '...' : securityScore}
-                </p>
-                <p className="text-xs text-muted-foreground/60">
-                  {securityScore === 'A+' ? 'Excellent security' : 
-                   securityScore.startsWith('A') ? 'Good security' : 
-                   securityScore.startsWith('B') ? 'Fair security' : 'Needs attention'}
-                </p>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Current security rating
+                </div>
               </div>
               <Shield className="h-8 w-8 text-muted-foreground/60" />
             </div>
+            
+            {/* Enhanced gradient overlays based on security score */}
+            {(securityScore === 'A+' || securityScore.startsWith('A')) && (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-br from-success/15 via-success/5 to-transparent pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-success/25 via-success/10 to-transparent pointer-events-none"></div>
+                <div className="absolute -top-4 -right-4 w-16 h-16 bg-success/30 rounded-full blur-xl pointer-events-none"></div>
+              </>
+            )}
+            
+            {securityScore.startsWith('B') && (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/15 via-orange-500/5 to-transparent pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-orange-500/25 via-orange-500/10 to-transparent pointer-events-none"></div>
+                <div className="absolute -top-4 -right-4 w-16 h-16 bg-orange-500/30 rounded-full blur-xl pointer-events-none"></div>
+              </>
+            )}
+            
+            {(!securityScore.startsWith('A') && !securityScore.startsWith('B')) && (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-br from-destructive/25 via-destructive/10 to-transparent pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-destructive/40 via-destructive/20 to-transparent pointer-events-none"></div>
+                <div className="absolute -top-4 -right-4 w-20 h-20 bg-destructive/50 rounded-full blur-xl pointer-events-none"></div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
