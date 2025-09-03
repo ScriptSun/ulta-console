@@ -122,7 +122,11 @@ export default function Security() {
         </Card>
 
         <Card className="bg-gradient-muted border-muted/20">
-          <CardContent className="p-6">
+          <CardContent className={`p-6 ${
+            securityScore === 'A+' || securityScore.startsWith('A') ? 'bg-green-50 border-green-200' :
+            securityScore.startsWith('B') ? 'bg-orange-50 border-orange-200' :
+            'bg-red-50 border-red-200'
+          }`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground/80">Security Score</p>
