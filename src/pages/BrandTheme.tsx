@@ -522,21 +522,21 @@ export const BrandTheme = () => {
                                }}
                              >
                              </div>
-                             {/* Hidden color input */}
+                             {/* Positioned color input - appears above the square when opened */}
                              <input
                                id={`color-${token.key}`}
                                type="color"
                                value={hexValue}
-                              onChange={(e) => {
-                                const newHexValue = e.target.value;
-                                const hsl = hexToHsl(newHexValue);
-                                setEditingTheme(prev => prev ? {
-                                  ...prev,
-                                  hex: { ...prev.hex, [token.key]: newHexValue },
-                                  hsl: { ...prev.hsl, [token.key]: hsl }
-                                } : null);
-                              }}
-                               className="hidden"
+                               onChange={(e) => {
+                                 const newHexValue = e.target.value;
+                                 const hsl = hexToHsl(newHexValue);
+                                 setEditingTheme(prev => prev ? {
+                                   ...prev,
+                                   hex: { ...prev.hex, [token.key]: newHexValue },
+                                   hsl: { ...prev.hsl, [token.key]: hsl }
+                                 } : null);
+                               }}
+                               className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full opacity-0 w-8 h-8 cursor-pointer"
                              />
                            </div>
                            
