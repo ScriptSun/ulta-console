@@ -593,11 +593,14 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     };
   }, [selectedAgent, conversationId]);
 
-  // Set up WebSocket router event listeners
+  // CONSOLIDATED: WebSocket connection AND router event listeners in ONE useEffect
   useEffect(() => {
     if (!selectedAgent) return;
     
-    console.log('🔌 Setting up router event listeners for agent:', selectedAgent);
+    console.log('🔌 CONSOLIDATED: Setting up WebSocket connection and router event listeners for agent:', selectedAgent);
+    
+    // Connect WebSocket first
+    connect();
     
     // Set router timeout (25 seconds)
     const startRouterTimeout = () => {
@@ -1015,13 +1018,14 @@ Please try again or contact support if this persists.`;
     });
     
     return () => {
-      console.log('🔌 Cleaning up router event listeners for agent:', selectedAgent);
+      console.log('🔌 CONSOLIDATED: Cleaning up WebSocket and router event listeners for agent:', selectedAgent);
       unsubscribe();
+      disconnect(); // Also disconnect WebSocket
       if (routerTimeoutRef.current) {
         clearTimeout(routerTimeoutRef.current);
       }
     };
-  }, [selectedAgent]); // Remove onRouter from dependencies to prevent re-registering listeners
+  }, [selectedAgent, connect, disconnect, onRouter]); // Include all dependencies
 
   // Set up WebSocket execution event listeners
   useEffect(() => {
@@ -1186,11 +1190,11 @@ Please try again or contact support if this persists.`;
     };
   }, [on, toast, setActionPhase]);
 
-  // Connect WebSocket with consolidated logic
-  useEffect(() => {
-    console.log('🔌 Setting up WebSocket router connection...');
-    connect();
-  }, [selectedAgent]); // Only reconnect when agent changes
+  // REMOVED: This was causing duplicate connections - now handled in consolidated useEffect above
+  // useEffect(() => {
+  //   console.log('🔌 Setting up WebSocket router connection...');
+  //   connect();
+  // }, [selectedAgent]); // Only reconnect when agent changes
 
   // Cleanup WebSocket connections on unmount
   useEffect(() => {
