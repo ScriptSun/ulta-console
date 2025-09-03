@@ -444,29 +444,43 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   useEffect(() => {
     // Fetch agent usage data
     const fetchAgentUsageData = async (agentIds: string[]) => {
+      console.log('🔍 Fetching usage data for agents:', agentIds);
       const usageData: Record<string, { current: number; limit: number; plan: string }> = {};
       
       for (const agentId of agentIds) {
         try {
-          const { data } = await supabase.rpc('check_agent_usage_limit', {
+          console.log(`📊 Checking usage for agent: ${agentId}`);
+          const { data, error } = await supabase.rpc('check_agent_usage_limit', {
             _agent_id: agentId,
             _usage_type: 'ai_request'
           });
+          
+          if (error) {
+            console.error(`❌ Error checking usage for agent ${agentId}:`, error);
+            usageData[agentId] = { current: 0, limit: 25, plan: 'Unknown' }; // Default fallback
+            continue;
+          }
+          
+          console.log(`📈 Usage data for agent ${agentId}:`, data);
           
           if (data && data.length > 0) {
             const usage = data[0];
             usageData[agentId] = {
               current: usage.current_usage || 0,
-              limit: usage.limit_amount || 0,
+              limit: usage.limit_amount || 25,
               plan: usage.plan_name || 'Unknown'
             };
+          } else {
+            console.warn(`⚠️ No usage data returned for agent ${agentId}`);
+            usageData[agentId] = { current: 0, limit: 25, plan: 'Unknown' };
           }
         } catch (error) {
-          console.error(`Failed to fetch usage for agent ${agentId}:`, error);
-          usageData[agentId] = { current: 0, limit: 0, plan: 'Unknown' };
+          console.error(`💥 Failed to fetch usage for agent ${agentId}:`, error);
+          usageData[agentId] = { current: 0, limit: 25, plan: 'Unknown' };
         }
       }
       
+      console.log('💾 Setting agent usage data:', usageData);
       setAgentUsageData(usageData);
     };
 
@@ -480,14 +494,17 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         if (error) throw error;
 
         if (data && data.length > 0) {
+          console.log('🎯 Loaded agents:', data.length);
           setAgents(data);
           
           // Fetch usage data for all agents
+          console.log('🔄 About to fetch usage data for agents...');
           await fetchAgentUsageData(data.map(agent => agent.id));
           
           if (!selectedAgent) {
             const demoAgent = data.find(a => a.hostname?.includes('Demo') || a.agent_type === 'demo') || data[0];
             setSelectedAgent(demoAgent.id);
+            console.log('✅ Selected default agent:', demoAgent.id);
           }
         } else {
           // Seed demo agent if none exists (dev mode only)
@@ -508,7 +525,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     if (shouldShowDemo) {
       loadAgents();
     }
-  }, [shouldShowDemo, selectedAgent, toast]);
+  }, [shouldShowDemo, toast]); // Removed selectedAgent from dependencies to avoid circular dependency
 
   // Seed demo agent for development
   const seedDemoAgent = async () => {
@@ -2137,19 +2154,25 @@ Please proceed with creating and executing this batch script.`;
                                       {agent.os}
                                     </Badge>
                                   </div>
-                                  {usage && (
-                                    <div className="flex items-center gap-2 ml-auto">
-                                      <Badge 
-                                        variant={isNearLimit ? "destructive" : "secondary"} 
-                                        className="text-xs"
-                                      >
-                                        {usage.current}/{usage.limit}
-                                      </Badge>
-                                      <span className="text-xs text-muted-foreground">
-                                        ({usagePercent}%)
-                                      </span>
-                                    </div>
-                                  )}
+                                   {usage ? (
+                                     <div className="flex items-center gap-2 ml-auto">
+                                       <Badge 
+                                         variant={isNearLimit ? "destructive" : "secondary"} 
+                                         className="text-xs"
+                                       >
+                                         {usage.current}/{usage.limit}
+                                       </Badge>
+                                       <span className="text-xs text-muted-foreground">
+                                         ({usagePercent}%)
+                                       </span>
+                                     </div>
+                                   ) : (
+                                     <div className="flex items-center gap-2 ml-auto">
+                                       <Badge variant="outline" className="text-xs">
+                                         Loading...
+                                       </Badge>
+                                     </div>
+                                   )}
                                 </div>
                               </SelectItem>
                             );
