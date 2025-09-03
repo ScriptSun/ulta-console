@@ -328,7 +328,7 @@ export const BrandTheme = () => {
         }
         
         // Ensure all required color tokens exist
-        const requiredTokens = ['primary', 'secondary', 'accent', 'background', 'foreground', 'muted', 'card', 'border', 'destructive', 'success', 'warning'];
+        const requiredTokens = ['primary', 'secondary', 'accent', 'background', 'foreground', 'muted', 'card', 'border', 'destructive', 'success', 'warning', 'gradientStart', 'gradientEnd'];
         const missingHex = requiredTokens.filter(token => !theme.hex[token]);
         const missingHsl = requiredTokens.filter(token => !theme.hsl[token]);
         

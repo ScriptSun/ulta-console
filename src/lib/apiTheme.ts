@@ -48,15 +48,80 @@ const STORAGE_KEY = 'theme-spec';
 
 // Migration helper: convert old HSL-only theme to new format
 const migrateTheme = (theme: any): ThemeSpec => {
-  if (theme.hex) return theme; // Already migrated
+  // If theme already has hex and all required properties, return as-is
+  if (theme.hex && theme.hex.gradientStart && theme.hex.gradientEnd) return theme;
   
   const hex: Record<string, string> = {};
-  Object.entries(theme.hsl).forEach(([key, hsl]) => {
-    const [h, s, l] = hsl as [number, number, number];
-    hex[key] = hslToHex(h, s, l);
+  const hsl: Record<string, [number, number, number]> = {};
+  
+  // Convert existing HSL to HEX if needed
+  if (theme.hsl) {
+    Object.entries(theme.hsl).forEach(([key, hslValue]) => {
+      const [h, s, l] = hslValue as [number, number, number];
+      hex[key] = hslToHex(h, s, l);
+      hsl[key] = [h, s, l];
+    });
+  }
+  
+  // Add missing gradient properties with sensible defaults
+  if (!hex.gradientStart) {
+    hex.gradientStart = hex.muted || "#f8fafc";
+    hsl.gradientStart = hsl.muted || [210, 40, 96];
+  }
+  
+  if (!hex.gradientEnd) {
+    hex.gradientEnd = hex.secondary || "#f1f5f9";
+    hsl.gradientEnd = hsl.secondary || [210, 40, 95];
+  }
+  
+  // Ensure all required properties exist
+  const requiredTokens = ['primary', 'secondary', 'accent', 'background', 'foreground', 'muted', 'card', 'border', 'destructive', 'success', 'warning', 'gradientStart', 'gradientEnd'];
+  
+  requiredTokens.forEach(token => {
+    if (!hex[token]) {
+      // Add default values for any missing tokens
+      const defaults = {
+        primary: "#8b5cf6",
+        secondary: "#f1f5f9",
+        accent: "#e2e8f0",
+        background: "#ffffff",
+        foreground: "#0f172a",
+        muted: "#f8fafc",
+        card: "#ffffff",
+        border: "#e2e8f0",
+        destructive: "#ef4444",
+        success: "#22c55e",
+        warning: "#f59e0b",
+        gradientStart: "#f8fafc",
+        gradientEnd: "#f1f5f9"
+      };
+      
+      const defaultHsl: Record<string, [number, number, number]> = {
+        primary: [262, 83, 58],
+        secondary: [210, 40, 95],
+        accent: [210, 40, 90],
+        background: [0, 0, 100],
+        foreground: [222, 84, 5],
+        muted: [210, 40, 96],
+        card: [0, 0, 100],
+        border: [214, 32, 91],
+        destructive: [0, 84, 60],
+        success: [142, 76, 36],
+        warning: [48, 96, 53],
+        gradientStart: [210, 40, 96],
+        gradientEnd: [210, 40, 95]
+      };
+      
+      hex[token] = defaults[token as keyof typeof defaults];
+      hsl[token] = defaultHsl[token as keyof typeof defaultHsl];
+    }
   });
   
-  return { ...theme, hex };
+  return { 
+    ...theme, 
+    hex: hex as ThemeSpec['hex'],
+    hsl: hsl as ThemeSpec['hsl']
+  };
 };
 
 let currentTheme: ThemeSpec = migrateTheme(JSON.parse(localStorage.getItem(STORAGE_KEY) || JSON.stringify(defaultThemeSpec)));
