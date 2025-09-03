@@ -26,7 +26,7 @@ const securitySections = [
     title: 'Access Control', 
     description: 'User roles and permission management',
     icon: Users,
-    url: '/security/access',
+    url: '/access-control',
     color: 'text-green-500',
     bgColor: 'bg-green-500/10',
   },
