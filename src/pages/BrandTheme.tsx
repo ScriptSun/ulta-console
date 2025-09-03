@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeSpec, ThemeValidationResult } from '@/types/themeTypes';
 import { apiTheme } from '@/lib/apiTheme';
 import { validateAllContrasts } from '@/lib/contrastHelper';
@@ -45,6 +46,7 @@ const RADIUS_TOKENS = [
 
 export const BrandTheme = () => {
   const { toast } = useToast();
+  const { mode, setMode } = useTheme();
   const [currentTheme, setCurrentTheme] = useState<ThemeSpec | null>(null);
   const [editingTheme, setEditingTheme] = useState<ThemeSpec | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,15 +60,24 @@ export const BrandTheme = () => {
     loadVersions();
   }, []);
 
+  // Sync theme preference with editing theme when mode changes
+  useEffect(() => {
+    if (editingTheme && mode !== editingTheme.preference) {
+      setEditingTheme(prev => prev ? { ...prev, preference: mode } : null);
+    }
+  }, [mode]);
+
   const loadTheme = async () => {
     try {
       setLoading(true);
       const theme = await apiTheme.getTheme();
-      setCurrentTheme(theme);
-      setEditingTheme({ ...theme });
+      // Sync with current theme mode
+      const syncedTheme = { ...theme, preference: mode };
+      setCurrentTheme(syncedTheme);
+      setEditingTheme({ ...syncedTheme });
       
       // Apply current theme to CSS
-      applyCssVariables(theme);
+      applyCssVariables(syncedTheme);
     } catch (error) {
       toast({
         title: "Error loading theme",
@@ -100,6 +111,19 @@ export const BrandTheme = () => {
       });
       return { ok: false, reasons: ['Validation failed'] };
     }
+  };
+
+  const handleThemePreferenceChange = (newPreference: 'light' | 'dark' | 'system') => {
+    // Apply theme preference immediately
+    setMode(newPreference);
+    
+    // Update editing theme
+    setEditingTheme(prev => prev ? { ...prev, preference: newPreference } : null);
+    
+    toast({
+      title: "Theme preference updated",
+      description: `Switched to ${newPreference} mode`
+    });
   };
 
   const handleSaveAndApply = async () => {
@@ -264,14 +288,14 @@ export const BrandTheme = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {THEME_PREFERENCES.map((pref) => {
               const Icon = pref.icon;
-              const isActive = editingTheme.preference === pref.id;
+              const isActive = mode === pref.id;
               
               return (
                 <Button
                   key={pref.id}
                   variant={isActive ? "default" : "outline"}
                   className="h-auto p-4 flex flex-col items-center space-y-2"
-                  onClick={() => setEditingTheme(prev => prev ? { ...prev, preference: pref.id } : null)}
+                  onClick={() => handleThemePreferenceChange(pref.id)}
                 >
                   <Icon className="h-6 w-6" />
                   <div className="text-center">
