@@ -514,7 +514,7 @@ export const BrandTheme = () => {
                            {/* Color Preview Square - Clickable */}
                            <div className="relative mb-4 flex justify-center">
                              <div 
-                               className="w-16 h-16 rounded-xl cursor-pointer border border-border/20 hover:scale-105 transition-transform duration-200 shadow-sm"
+                               className="w-8 h-8 rounded-xl cursor-pointer border border-border/20 hover:scale-105 transition-transform duration-200 shadow-sm"
                                style={{ backgroundColor: hexValue }}
                                onClick={() => {
                                  const colorInput = document.getElementById(`color-${token.key}`) as HTMLInputElement;
