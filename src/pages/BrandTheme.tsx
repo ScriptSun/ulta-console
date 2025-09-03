@@ -475,33 +475,7 @@ export const BrandTheme = () => {
                     return (
                       <div key={token.key} className="group relative">
                         {/* Main Card */}
-                        <div className="relative p-4 rounded-xl bg-background backdrop-blur-xl border border-border/20 hover:border-border/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/5">
-                          {/* Color Preview Circle - Clickable */}
-                          <div className="relative mb-3 flex justify-center">
-                            <div 
-                              className="w-12 h-12 rounded-xl shadow-md ring-2 ring-white/10 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg cursor-pointer"
-                              style={{ backgroundColor: hexValue }}
-                              onClick={() => {
-                                const colorInput = document.getElementById(`color-${token.key}`) as HTMLInputElement;
-                                colorInput?.click();
-                              }}
-                            >
-                              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 via-transparent to-black/10"></div>
-                            </div>
-                            {/* Hidden color input */}
-                            <input
-                              id={`color-${token.key}`}
-                              type="color"
-                              value={hexValue}
-                              onChange={(e) => {
-                                setEditingTheme(prev => prev ? {
-                                  ...prev,
-                                  hex: { ...prev.hex, [token.key]: e.target.value }
-                                } : null);
-                              }}
-                              className="hidden"
-                            />
-                          </div>
+                        <div className="relative p-4 rounded-xl bg-gradient-to-br from-background/60 to-background/30 backdrop-blur-xl border border-border/20 hover:border-border/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/5">
                           
                           {/* Label */}
                           <div className="text-center mb-3">
