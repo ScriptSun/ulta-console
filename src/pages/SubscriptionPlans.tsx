@@ -4,11 +4,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Plus, 
   Copy, 
-  Trash2
+  Trash2,
+  FileText
 } from 'lucide-react';
 import { PlansTable } from '@/components/plans/PlansTable';
 import { PlansEditorDrawer } from '@/components/plans/PlansEditorDrawer';
 import { PlansStatsCards } from '@/components/plans/PlansStatsCards';
+import { PlansDocumentation } from '@/components/plans/PlansDocumentation';
 import { useSubscriptionPlans, SubscriptionPlan } from '@/hooks/useSubscriptionPlans';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -120,11 +122,23 @@ export default function SubscriptionPlans() {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Subscription Plans</h1>
-          <p className="text-muted-foreground">
-            Configure subscription plans for your company
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Subscription Plans</h1>
+            <p className="text-muted-foreground">
+              Configure subscription plans for your company
+            </p>
+          </div>
+          <PlansDocumentation>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="text-muted-foreground hover:text-foreground"
+              title="View Documentation"
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+          </PlansDocumentation>
         </div>
         <Button onClick={handleCreatePlan}>
           <Plus className="h-4 w-4 mr-2" />
