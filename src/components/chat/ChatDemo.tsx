@@ -188,6 +188,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const sessionStartTime = useRef(Date.now());
   const routerTimeoutRef = useRef<NodeJS.Timeout>();
   const processedMessagesRef = useRef<Set<string>>(new Set());
+  const lastSentMessageRef = useRef<{ key: string; timestamp: number } | null>(null); // Prevent rapid duplicates
   
   // Sound notification function
   const playNotificationSound = useCallback(() => {
@@ -1531,7 +1532,24 @@ Please try again or contact support if this persists.`;
   const sendMessage = async (content: string, isAction = false) => {
     if (!content.trim() || !selectedAgent) return;
 
-    console.log('🚀 sendMessage called with:', content.trim(), 'isAction:', isAction);
+    console.log('🚀🚀🚀 sendMessage CALLED - DETAILED DEBUG:', {
+      content: content.trim(),
+      isAction,
+      timestamp: Date.now(),
+      selectedAgent,
+      callStack: new Error().stack?.split('\n').slice(0, 4),
+      messagesLength: messages.length
+    });
+
+    // PREVENT RAPID DUPLICATE SUBMISSIONS
+    const now = Date.now();
+    const lastSentKey = `${content.trim()}-${selectedAgent}`;
+    if (lastSentMessageRef.current?.key === lastSentKey && 
+        (now - lastSentMessageRef.current.timestamp) < 1000) {
+      console.log('🚫🚫🚫 BLOCKED RAPID DUPLICATE SUBMISSION:', content.trim());
+      return;
+    }
+    lastSentMessageRef.current = { key: lastSentKey, timestamp: now };
 
     // Clear action phase when starting new message  
     setActionPhase(null);
