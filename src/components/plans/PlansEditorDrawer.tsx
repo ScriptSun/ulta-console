@@ -189,7 +189,7 @@ export function PlansEditorDrawer({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="sm:max-w-4xl">
+      <SheetContent className="sm:max-w-2xl">
         <SheetHeader>
           <div className="flex items-center justify-between">
             <div>
