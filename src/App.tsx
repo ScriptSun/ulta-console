@@ -39,6 +39,7 @@ import RouterDemo from "./pages/_demo/Router";
 import WidgetTest from "./pages/WidgetTest";
 import ProfileSettings from "./pages/ProfileSettings";
 import SystemSettings from "./pages/SystemSettings";
+import BrandCenter from "./pages/BrandCenter";
 import AiSettings from "./pages/AiSettings";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
@@ -276,6 +277,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <SystemSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/system-settings/brand" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <BrandCenter />
                 </RootLayout>
               </ProtectedRoute>
             } />
