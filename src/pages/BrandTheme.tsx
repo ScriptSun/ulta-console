@@ -473,22 +473,22 @@ export const BrandTheme = () => {
                     const hexValue = editingTheme.hex[token.key as keyof typeof editingTheme.hex];
                     
                     return (
-                      <div key={token.key} className="flex flex-col gap-4 p-6 border border-border/50 rounded-xl bg-gradient-to-br from-card to-muted/30 hover:shadow-md transition-all duration-300">
+                      <div key={token.key} className="flex flex-col gap-3 p-4 border border-border/50 rounded-lg bg-gradient-to-br from-card to-muted/30 hover:shadow-sm transition-all duration-200">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
                             <div className="relative group">
                               <div 
-                                className="w-8 h-8 rounded-xl shadow-lg border-2 border-white/20 backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl" 
+                                className="w-6 h-6 rounded-lg shadow-sm border border-white/20 transition-all duration-200 group-hover:scale-105" 
                                 style={{ backgroundColor: hexValue }}
                               />
-                              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
+                              <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
                             </div>
-                            <Label className="font-semibold text-lg">{token.label}</Label>
+                            <Label className="font-medium">{token.label}</Label>
                           </div>
-                          <p className="text-sm text-muted-foreground/80 ml-11">{token.description}</p>
+                          <p className="text-xs text-muted-foreground/80 ml-8">{token.description}</p>
                         </div>
-                        <div className="flex gap-3">
-                          <div className="relative group">
+                        <div className="flex gap-2">
+                          <div className="relative">
                             <Input
                               type="color"
                               value={hexValue}
@@ -498,12 +498,8 @@ export const BrandTheme = () => {
                                   hex: { ...prev.hex, [token.key]: e.target.value }
                                 } : null);
                               }}
-                              className="w-20 h-12 p-0 border-2 rounded-xl cursor-pointer overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group-hover:border-primary/50"
-                              style={{
-                                background: `linear-gradient(135deg, ${hexValue}, ${hexValue}dd)`
-                              }}
+                              className="w-12 h-9 p-0 border rounded-lg cursor-pointer overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
                             />
-                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
                           </div>
                           <Input
                             type="text"
@@ -516,7 +512,7 @@ export const BrandTheme = () => {
                               } : null);
                             }}
                             placeholder="#000000"
-                            className="font-mono text-sm flex-1 h-12 px-4 rounded-xl border-2 bg-background/50 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-primary/30 focus:border-primary transition-all duration-300"
+                            className="font-mono text-sm flex-1 h-9 px-3 rounded-lg bg-background/50 shadow-sm hover:border-primary/30 focus:border-primary transition-all duration-200"
                           />
                         </div>
                       </div>
