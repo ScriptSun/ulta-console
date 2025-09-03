@@ -466,59 +466,73 @@ export const BrandTheme = () => {
 
             <TabsContent value="colors" className="space-y-6">
               {/* Color Tokens */}
-              <div className="space-y-4">
-                <h4 className="font-medium">Color Tokens</h4>
-                <div className="grid grid-cols-1 lg:grid-cols-8 gap-4">
+              <div className="space-y-6">
+                <h4 className="text-xl font-semibold tracking-tight">Color Tokens</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-6">
                   {COLOR_TOKENS.map((token) => {
                     const hexValue = editingTheme.hex[token.key as keyof typeof editingTheme.hex];
                     
                     return (
-                      <div key={token.key} className="flex flex-col gap-3 p-4 rounded-lg hover:shadow-sm transition-all duration-200">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <div className="relative group">
-                              <div 
-                                className="w-6 h-6 rounded-lg shadow-sm border border-white/20 transition-all duration-200 group-hover:scale-105" 
-                                style={{ backgroundColor: hexValue }}
-                              />
-                              <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+                      <div key={token.key} className="group relative">
+                        {/* Main Card */}
+                        <div className="relative p-6 rounded-2xl bg-gradient-to-br from-background/60 to-background/30 backdrop-blur-xl border border-border/20 hover:border-border/40 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/5">
+                          {/* Color Preview Circle */}
+                          <div className="relative mb-4 flex justify-center">
+                            <div 
+                              className="w-16 h-16 rounded-2xl shadow-lg ring-4 ring-white/10 transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl"
+                              style={{ backgroundColor: hexValue }}
+                            >
+                              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 via-transparent to-black/10"></div>
                             </div>
-                            <Label className="font-medium">{token.label}</Label>
                           </div>
-                          <p className="text-xs text-muted-foreground/80 ml-8">{token.description}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="relative">
+                          
+                          {/* Label */}
+                          <div className="text-center mb-4">
+                            <h5 className="font-semibold text-sm tracking-wide mb-1">{token.label}</h5>
+                            <p className="text-xs text-muted-foreground/80 leading-relaxed">{token.description}</p>
+                          </div>
+                          
+                          {/* Color Inputs */}
+                          <div className="space-y-3">
+                            {/* Color Picker */}
+                            <div className="relative">
+                              <Input
+                                type="color"
+                                value={hexValue}
+                                onChange={(e) => {
+                                  setEditingTheme(prev => prev ? {
+                                    ...prev,
+                                    hex: { ...prev.hex, [token.key]: e.target.value }
+                                  } : null);
+                                }}
+                                className="w-full h-10 border-0 rounded-xl cursor-pointer backdrop-blur-sm hover:scale-105 transition-transform duration-200"
+                                style={{ 
+                                  background: `linear-gradient(135deg, ${hexValue}dd, ${hexValue})`,
+                                  boxShadow: 'none',
+                                  outline: 'none'
+                                }}
+                              />
+                              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/10 to-transparent pointer-events-none"></div>
+                            </div>
+                            
+                            {/* Hex Input */}
                             <Input
-                              type="color"
+                              type="text"
                               value={hexValue}
                               onChange={(e) => {
+                                const value = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`;
                                 setEditingTheme(prev => prev ? {
                                   ...prev,
-                                  hex: { ...prev.hex, [token.key]: e.target.value }
+                                  hex: { ...prev.hex, [token.key]: value }
                                 } : null);
                               }}
-                              className="w-12 h-9 p-0 border-0 rounded-lg cursor-pointer overflow-hidden"
-                              style={{ 
-                                background: 'none',
-                                boxShadow: 'none',
-                                outline: 'none'
-                              }}
+                              placeholder="#000000"
+                              className="font-mono text-xs text-center h-9 rounded-xl bg-background/50 backdrop-blur-sm border border-border/30 hover:border-primary/30 focus:border-primary/60 transition-all duration-300"
                             />
                           </div>
-                          <Input
-                            type="text"
-                            value={hexValue}
-                            onChange={(e) => {
-                              const value = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`;
-                              setEditingTheme(prev => prev ? {
-                                ...prev,
-                                hex: { ...prev.hex, [token.key]: value }
-                              } : null);
-                            }}
-                            placeholder="#000000"
-                            className="font-mono text-sm flex-1 h-9 px-3 rounded-lg bg-background/50 shadow-sm hover:border-primary/30 focus:border-primary transition-all duration-200"
-                          />
+                          
+                          {/* Subtle gradient overlay */}
+                          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 via-transparent to-black/5 pointer-events-none"></div>
                         </div>
                       </div>
                     );
