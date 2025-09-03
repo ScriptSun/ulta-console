@@ -40,9 +40,12 @@ const mainItems = [
   { title: 'UltaAi Chat', url: '/chat', icon: MessageSquare, pageKey: 'chat' },
   { title: 'Users', url: '/users', icon: Users, pageKey: 'users' },
   { title: 'Agents', url: '/agents', icon: Bot, pageKey: 'agents' },
-  { title: 'Chat Inbox', url: '/chat/inbox', icon: MessageSquare, pageKey: 'chat' },
   { title: 'Templates & Scripts', url: '/scripts/batches', icon: Package, pageKey: 'scripts' },
   { title: 'Tasks', url: '/tasks', icon: CheckSquare, pageKey: 'tasks' },
+]
+
+const reportsItems = [
+  { title: 'Chat Inbox', url: '/chat/inbox', icon: MessageSquare, pageKey: 'chat' },
 ]
 
 const securityItems = [
@@ -160,6 +163,22 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
                 {mainItems.map((item) => (
+                  <NavItem key={item.title} item={item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Reports */}
+          <SidebarGroup>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-xs font-semibold text-sidebar-primary uppercase tracking-wider px-6 mb-2">
+                Reports
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {reportsItems.map((item) => (
                   <NavItem key={item.title} item={item} />
                 ))}
               </SidebarMenu>
