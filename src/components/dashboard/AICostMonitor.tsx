@@ -211,7 +211,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
               Processed tokens
             </div>
             {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none"></div>
           </div>
           
           {/* Requests */}
@@ -227,7 +227,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
               API calls made
             </div>
             {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 via-transparent to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none"></div>
           </div>
           
           {/* Avg/Request */}
