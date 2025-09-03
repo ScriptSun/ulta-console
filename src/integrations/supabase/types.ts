@@ -1167,6 +1167,8 @@ export type Database = {
           colors: Json
           created_at: string | null
           created_by: string | null
+          email_logo_url: string | null
+          favicon_source_url: string | null
           font_family: string | null
           id: string
           is_active: boolean | null
@@ -1182,6 +1184,8 @@ export type Database = {
           colors: Json
           created_at?: string | null
           created_by?: string | null
+          email_logo_url?: string | null
+          favicon_source_url?: string | null
           font_family?: string | null
           id?: string
           is_active?: boolean | null
@@ -1197,6 +1201,8 @@ export type Database = {
           colors?: Json
           created_at?: string | null
           created_by?: string | null
+          email_logo_url?: string | null
+          favicon_source_url?: string | null
           font_family?: string | null
           id?: string
           is_active?: boolean | null

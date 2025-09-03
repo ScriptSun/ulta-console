@@ -58,16 +58,19 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
   const [generatingFavicons, setGeneratingFavicons] = useState(false);
   const [faviconGenerated, setFaviconGenerated] = useState(false);
 
+  // Initialize email logo and favicon from loaded settings
   useEffect(() => {
     if (logoSettings) {
       setDimensions({
         width: logoSettings.logo_width || 120,
         height: logoSettings.logo_height || 40
       });
+      setEmailLogo(logoSettings.email_logo_url || '');
+      setFaviconSource(logoSettings.favicon_source_url || '');
     }
   }, [logoSettings]);
 
-  const handleLogoUpload = async (file: File, theme: 'light' | 'dark' | 'email') => {
+  const handleLogoUpload = async (file: File, theme: 'light' | 'dark' | 'email' | 'favicon') => {
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
@@ -78,20 +81,34 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
       return;
     }
 
-    const url = await uploadLogo(file, theme as 'light' | 'dark');
+    const url = await uploadLogo(file, theme);
     if (url) {
-      if (theme === 'email') {
-        setEmailLogo(url);
-      } else {
-        const settings = {
-          [`logo_${theme}_url`]: url
-        } as any;
+      let settings: Partial<typeof logoSettings> = {};
+      
+      switch (theme) {
+        case 'light':
+          settings = { logo_light_url: url };
+          break;
+        case 'dark':
+          settings = { logo_dark_url: url };
+          break;
+        case 'email':
+          settings = { email_logo_url: url };
+          setEmailLogo(url);
+          return; // Don't save to logoSettings yet, wait for final save
+        case 'favicon':
+          settings = { favicon_source_url: url };
+          setFaviconSource(url);
+          return; // Don't save to logoSettings yet, wait for final save
+      }
+      
+      if (theme === 'light' || theme === 'dark') {
         await saveLogoSettings(settings);
       }
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, theme: 'light' | 'dark' | 'email') => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, theme: 'light' | 'dark' | 'email' | 'favicon') => {
     const file = event.target.files?.[0];
     if (file) {
       handleLogoUpload(file, theme);
@@ -111,9 +128,7 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
         return;
       }
 
-      // Create object URL for preview
-      const url = URL.createObjectURL(file);
-      setFaviconSource(url);
+      handleLogoUpload(file, 'favicon');
     }
   };
 
@@ -160,22 +175,18 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
 
   const handleSaveAndApply = async () => {
     try {
-      // Save all logo settings including dimensions
+      // Save all logo settings including email logo and favicon
       await saveLogoSettings({
         logo_width: dimensions.width,
-        logo_height: dimensions.height
+        logo_height: dimensions.height,
+        email_logo_url: emailLogo,
+        favicon_source_url: faviconSource
       });
-
-      // Save email logo if provided
-      if (emailLogo) {
-        // For now, we'll just show success since the main logo settings are saved
-        // In a full implementation, you'd save the email logo to the database as well
-      }
 
       // Show success message
       toast({
         title: "Brand assets saved",
-        description: "Your brand logos and settings have been saved successfully.",
+        description: "Your brand logos, email logo, and favicon have been saved successfully.",
       });
       
       // Close the drawer

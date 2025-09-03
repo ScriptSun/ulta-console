@@ -7,6 +7,8 @@ interface CompanyLogoSettings {
   id?: string;
   logo_light_url: string;
   logo_dark_url: string;
+  email_logo_url?: string;
+  favicon_source_url?: string;
   logo_width: number;
   logo_height: number;
   created_by?: string;
@@ -18,11 +20,13 @@ export function useCompanyLogo() {
   const [logoSettings, setLogoSettings] = useState<CompanyLogoSettings>({
     logo_light_url: '',
     logo_dark_url: '',
+    email_logo_url: '',
+    favicon_source_url: '',
     logo_width: 120,
     logo_height: 40
   });
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState({ light: false, dark: false });
+  const [uploading, setUploading] = useState({ light: false, dark: false, email: false, favicon: false });
 
   const loadLogoSettings = async () => {
     try {
@@ -51,6 +55,8 @@ export function useCompanyLogo() {
           id: themeData.id,
           logo_light_url: themeData.logo_light_url || '',
           logo_dark_url: themeData.logo_dark_url || '',
+          email_logo_url: themeData.email_logo_url || '',
+          favicon_source_url: themeData.favicon_source_url || '',
           logo_width: themeData.logo_width || 120,
           logo_height: themeData.logo_height || 40,
           created_by: themeData.created_by
@@ -63,7 +69,7 @@ export function useCompanyLogo() {
     }
   };
 
-  const uploadLogo = async (file: File, theme: 'light' | 'dark') => {
+  const uploadLogo = async (file: File, theme: 'light' | 'dark' | 'email' | 'favicon') => {
     if (!user) return null;
 
     setUploading(prev => ({ ...prev, [theme]: true }));
@@ -106,6 +112,8 @@ export function useCompanyLogo() {
         name: 'Company Logo Settings',
         logo_light_url: settings.logo_light_url !== undefined ? settings.logo_light_url : logoSettings.logo_light_url,
         logo_dark_url: settings.logo_dark_url !== undefined ? settings.logo_dark_url : logoSettings.logo_dark_url,
+        email_logo_url: settings.email_logo_url !== undefined ? settings.email_logo_url : logoSettings.email_logo_url,
+        favicon_source_url: settings.favicon_source_url !== undefined ? settings.favicon_source_url : logoSettings.favicon_source_url,
         logo_width: settings.logo_width !== undefined ? settings.logo_width : logoSettings.logo_width,
         logo_height: settings.logo_height !== undefined ? settings.logo_height : logoSettings.logo_height,
         created_by: user.id,
