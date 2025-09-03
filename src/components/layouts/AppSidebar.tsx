@@ -91,9 +91,9 @@ export function AppSidebar() {
           <Link 
             to={item.url}
             className={cn(
-              'flex items-center gap-3 px-6 py-5 rounded-lg transition-all duration-300 group',
-              'hover:bg-muted/50 hover:backdrop-blur-sm',
-              active && 'bg-muted shadow-lg backdrop-blur-sm'
+              'flex items-center gap-3 px-6 py-5 rounded-lg transition-all duration-300 group relative',
+              'hover:bg-muted/50',
+              active && 'bg-primary/10 border-l-4 border-primary'
             )}
           >
             <item.icon className={cn(
@@ -103,7 +103,7 @@ export function AppSidebar() {
             {!collapsed && (
               <span className={cn(
                 "truncate font-medium transition-all duration-300",
-                active ? 'text-primary' : 'text-foreground group-hover:text-foreground'
+                active ? 'text-primary font-semibold' : 'text-foreground group-hover:text-foreground'
               )}>
                 {item.title}
               </span>
