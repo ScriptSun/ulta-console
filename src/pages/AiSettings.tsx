@@ -56,6 +56,18 @@ export default function AiSettings() {
 
   const migrateOldSettings = async () => {
     try {
+      // Check if migration has already been completed
+      const { data: migrationCheck } = await supabase
+        .from('system_settings')
+        .select('*')
+        .eq('setting_key', 'ai_migration_complete')
+        .maybeSingle();
+
+      if (migrationCheck) {
+        // Migration already completed, skip
+        return;
+      }
+
       // Check if old ai_models setting exists
       const { data: oldSettings, error } = await supabase
         .from('system_settings')
