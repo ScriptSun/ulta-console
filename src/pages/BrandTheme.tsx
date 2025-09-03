@@ -111,15 +111,96 @@ export const BrandTheme = () => {
   };
 
   const handleThemePreferenceChange = (newPreference: 'light' | 'dark' | 'system') => {
+    if (!editingTheme) return;
+    
+    // Define dark and light theme color sets
+    const darkThemeColors = {
+      hex: {
+        primary: editingTheme.hex.primary, // Keep user's primary color
+        secondary: "#1e293b",
+        accent: "#334155", 
+        background: "#0f172a",
+        foreground: "#f8fafc",
+        muted: "#1e293b",
+        card: "#1e293b",
+        border: "#334155",
+        destructive: "#ef4444",
+        success: "#22c55e",
+        warning: "#f59e0b"
+      },
+      hsl: {
+        primary: editingTheme.hsl.primary, // Keep user's primary color
+        secondary: [215, 28, 17],
+        accent: [215, 20, 25],
+        background: [222, 84, 5],
+        foreground: [210, 40, 98],
+        muted: [215, 28, 17],
+        card: [215, 28, 17],
+        border: [215, 20, 25],
+        destructive: [0, 84, 60],
+        success: [142, 76, 36],
+        warning: [48, 96, 53]
+      }
+    };
+
+    const lightThemeColors = {
+      hex: {
+        primary: editingTheme.hex.primary, // Keep user's primary color
+        secondary: "#f1f5f9",
+        accent: "#e2e8f0",
+        background: "#ffffff",
+        foreground: "#0f172a",
+        muted: "#f8fafc",
+        card: "#ffffff",
+        border: "#e2e8f0",
+        destructive: "#ef4444",
+        success: "#22c55e",
+        warning: "#f59e0b"
+      },
+      hsl: {
+        primary: editingTheme.hsl.primary, // Keep user's primary color
+        secondary: [210, 40, 95],
+        accent: [210, 40, 90],
+        background: [0, 0, 100],
+        foreground: [222, 84, 5],
+        muted: [210, 40, 96],
+        card: [0, 0, 100],
+        border: [214, 32, 91],
+        destructive: [0, 84, 60],
+        success: [142, 76, 36],
+        warning: [48, 96, 53]
+      }
+    };
+
+    // Auto-apply dark or light color scheme based on preference
+    let colors;
+    if (newPreference === 'dark') {
+      colors = darkThemeColors;
+    } else if (newPreference === 'light') {
+      colors = lightThemeColors;
+    } else {
+      // System mode - detect based on user's system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      colors = prefersDark ? darkThemeColors : lightThemeColors;
+    }
+
     // Apply theme preference immediately
     setMode(newPreference);
     
-    // Update editing theme
-    setEditingTheme(prev => prev ? { ...prev, preference: newPreference } : null);
+    // Update editing theme with complete color scheme
+    const updatedTheme: ThemeSpec = {
+      ...editingTheme,
+      preference: newPreference,
+      name: newPreference === 'dark' ? 'Dark Theme' : newPreference === 'light' ? 'Light Theme' : 'System Theme',
+      hex: colors.hex,
+      hsl: colors.hsl as ThemeSpec['hsl']
+    };
+    
+    setEditingTheme(updatedTheme);
     
     toast({
-      title: "Theme preference updated",
-      description: `Switched to ${newPreference} mode`
+      title: "Theme applied",
+      description: `Switched to ${newPreference} mode with proper color scheme`
     });
   };
 
