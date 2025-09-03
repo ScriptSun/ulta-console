@@ -498,7 +498,7 @@ export const BrandTheme = () => {
                                   hex: { ...prev.hex, [token.key]: e.target.value }
                                 } : null);
                               }}
-                              className="w-12 h-9 p-0 border rounded-lg cursor-pointer overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+                              className="w-12 h-9 p-0 border-0 rounded-lg cursor-pointer overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
                             />
                           </div>
                           <Input
