@@ -122,7 +122,7 @@ export default function Security() {
         </Card>
 
         <Card className="bg-gradient-card border-card-border shadow-card">
-          <CardContent className={`p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden shadow-sm ${
+          <CardContent className={`p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-white relative overflow-hidden shadow-sm ${
             securityScore === 'A+' || securityScore.startsWith('A') ? 'shadow-success/20' :
             securityScore.startsWith('B') ? 'shadow-orange-500/20' :
             'shadow-destructive/20'
