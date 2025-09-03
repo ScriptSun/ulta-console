@@ -174,6 +174,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const [conversationOnly, setConversationOnly] = useState(false);
   const [apiLogs, setApiLogs] = useState<any[]>([]);
   const [logViewerOpen, setLogViewerOpen] = useState(false);
+  const [isConnectedToOpenAI, setIsConnectedToOpenAI] = useState(false);
+  const [openAIConnectionStatus, setOpenAIConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   
   // Router streaming state
   const [routerPhase, setRouterPhase] = useState<string>('');
