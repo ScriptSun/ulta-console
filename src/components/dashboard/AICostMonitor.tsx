@@ -188,7 +188,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
               <DollarSign className="h-3 w-3" />
               Total Cost
             </div>
-            <div className="text-2xl font-bold text-card-foreground mb-1">
+            <div className="text-xl font-bold text-card-foreground mb-1">
               ${totalCost.toFixed(4)}
             </div>
             <div className="text-xs text-muted-foreground">
@@ -204,7 +204,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
               <Zap className="h-3 w-3" />
               Total Tokens
             </div>
-            <div className="text-2xl font-bold text-card-foreground mb-1">
+            <div className="text-xl font-bold text-card-foreground mb-1">
               {totalTokens.toLocaleString()}
             </div>
             <div className="text-xs text-muted-foreground">
@@ -220,7 +220,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
               <BarChart className="h-3 w-3" />
               Requests
             </div>
-            <div className="text-2xl font-bold text-card-foreground mb-1">
+            <div className="text-xl font-bold text-card-foreground mb-1">
               {totalRequests.toLocaleString()}
             </div>
             <div className="text-xs text-muted-foreground">
@@ -236,7 +236,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
               <TrendingUp className="h-3 w-3" />
               Avg/Request
             </div>
-            <div className="text-2xl font-bold text-card-foreground mb-1">
+            <div className="text-xl font-bold text-card-foreground mb-1">
               ${avgCostPerRequest.toFixed(4)}
             </div>
             <div className="text-xs text-muted-foreground">
