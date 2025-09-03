@@ -93,7 +93,9 @@ export function AppSidebar() {
             className={cn(
               'flex items-center gap-3 px-6 py-5 rounded-lg transition-all duration-300 group relative',
               'hover:bg-muted/50',
-              active && 'bg-primary/10 border-l-4 border-primary'
+              active 
+                ? 'bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/30 shadow-md border-l-4 border-l-primary' 
+                : ''
             )}
           >
             <item.icon className={cn(
