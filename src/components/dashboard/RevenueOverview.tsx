@@ -169,7 +169,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           </div>
 
           {/* Net Revenue */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-primary/30 relative overflow-hidden">
+          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm font-medium text-muted-foreground">Net Revenue After AI Costs</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary-foreground text-xs font-medium">
