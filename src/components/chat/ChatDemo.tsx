@@ -1033,14 +1033,15 @@ Please try again or contact support if this persists.`;
     });
     
     return () => {
-      console.log('🔌 Cleaning up router event listeners ONLY for agent:', selectedAgent);
+      console.log('🧹🧹🧹 CLEANING UP ROUTER EVENT LISTENERS for agent:', selectedAgent);
+      console.log('🧹🧹🧹 Cleanup running at:', new Date().toISOString());
       unsubscribe();
       // NOTE: Do NOT disconnect WebSocket here - let the Connect button control it
       if (routerTimeoutRef.current) {
         clearTimeout(routerTimeoutRef.current);
       }
     };
-  }, [selectedAgent, onRouter]); // Removed connect/disconnect dependencies
+  }, [selectedAgent, onRouter]); // Minimal dependencies to prevent stale closures
 
   // Set up WebSocket execution event listeners
   useEffect(() => {
