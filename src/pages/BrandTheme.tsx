@@ -315,26 +315,26 @@ export const BrandTheme = () => {
                         : 'bg-muted group-hover:bg-primary/10'
                       }
                     `}>
-                      <Icon className={`h-6 w-6 ${
-                        isActive 
-                          ? 'text-primary-foreground' 
-                          : 'text-muted-foreground group-hover:text-primary'
-                      }`} />
+                       <Icon className={`h-6 w-6 ${
+                         isActive 
+                           ? 'text-white' 
+                           : 'text-muted-foreground group-hover:text-primary'
+                       }`} />
                     </div>
-                    <div className="flex-1">
-                      <h3 className={`font-medium text-base ${
-                        isActive ? 'text-primary-foreground' : 'text-foreground'
-                      }`}>
-                        {pref.name}
-                      </h3>
-                      <p className={`text-sm mt-1 ${
-                        isActive 
-                          ? 'text-primary-foreground/70' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        {pref.description}
-                      </p>
-                    </div>
+                     <div className="flex-1">
+                       <h3 className={`font-medium text-base ${
+                         isActive ? 'text-white' : 'text-foreground'
+                       }`}>
+                         {pref.name}
+                       </h3>
+                       <p className={`text-sm mt-1 ${
+                         isActive 
+                           ? 'text-white/70' 
+                           : 'text-muted-foreground'
+                       }`}>
+                         {pref.description}
+                       </p>
+                     </div>
                     {isActive && (
                       <div className="flex items-center justify-center w-6 h-6 bg-primary-foreground rounded-full">
                         <div className="w-2 h-2 bg-primary rounded-full"></div>
