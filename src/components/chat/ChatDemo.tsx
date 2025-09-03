@@ -216,6 +216,99 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     }
   }, [playSound]);
   
+  // Connect to OpenAI function
+  const connectToOpenAI = async () => {
+    if (!selectedAgent || !selectedAgentDetails) {
+      toast({
+        title: "No Agent Selected",
+        description: "Please select an agent before connecting to OpenAI",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setOpenAIConnectionStatus('connecting');
+    
+    try {
+      // Send heartbeat message to OpenAI
+      const heartbeatData = {
+        agent_id: selectedAgent,
+        hostname: selectedAgentDetails.hostname,
+        status: selectedAgentDetails.status,
+        os: selectedAgentDetails.os,
+        timestamp: new Date().toISOString(),
+        heartbeat: selectedAgentHeartbeat,
+        message: `Agent ${selectedAgentDetails.hostname} is connecting to OpenAI`
+      };
+
+      const { data, error } = await supabase.functions.invoke('chat-api', {
+        body: {
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an AI assistant connected to server agents. You help manage servers and execute tasks.'
+            },
+            {
+              role: 'user', 
+              content: `Initial heartbeat from agent: ${JSON.stringify(heartbeatData, null, 2)}`
+            }
+          ],
+          agent_id: selectedAgent,
+          conversation_id: conversationId
+        }
+      });
+
+      if (error) throw error;
+
+      setIsConnectedToOpenAI(true);
+      setOpenAIConnectionStatus('connected');
+      
+      // Add connection message to chat
+      const connectionMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `✅ Connected to OpenAI! Agent **${selectedAgentDetails.hostname}** is now linked and ready to receive commands.`,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, connectionMessage]);
+      
+      toast({
+        title: "Connected to OpenAI",
+        description: `Agent ${selectedAgentDetails.hostname} is now connected`,
+      });
+      
+    } catch (error) {
+      console.error('Error connecting to OpenAI:', error);
+      setOpenAIConnectionStatus('error');
+      toast({
+        title: "Connection Failed",
+        description: "Failed to connect to OpenAI. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Disconnect from OpenAI
+  const disconnectFromOpenAI = () => {
+    setIsConnectedToOpenAI(false);
+    setOpenAIConnectionStatus('disconnected');
+    
+    const disconnectionMessage: Message = {
+      id: Date.now().toString(),
+      role: 'assistant', 
+      content: `❌ Disconnected from OpenAI. Agent **${selectedAgentDetails?.hostname}** is no longer linked.`,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, disconnectionMessage]);
+    
+    toast({
+      title: "Disconnected",
+      description: "OpenAI connection closed",
+    });
+  };
+  
   // Helper function to detect if user request is likely an action vs casual chat
   const detectActionRequest = (content: string): boolean => {
     const lowerContent = content.toLowerCase();
