@@ -1592,6 +1592,60 @@ export type Database = {
         }
         Relationships: []
       }
+      email_branding_settings: {
+        Row: {
+          colors: Json
+          created_at: string
+          created_by: string
+          customer_id: string
+          dkim_host: string
+          dkim_record: string
+          dkim_selector: string
+          dkim_status: string
+          id: string
+          sender_email: string
+          sender_name: string
+          spf_record: string
+          spf_status: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          colors?: Json
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          dkim_host?: string
+          dkim_record?: string
+          dkim_selector?: string
+          dkim_status?: string
+          id?: string
+          sender_email?: string
+          sender_name?: string
+          spf_record?: string
+          spf_status?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          colors?: Json
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          dkim_host?: string
+          dkim_record?: string
+          dkim_selector?: string
+          dkim_status?: string
+          id?: string
+          sender_email?: string
+          sender_name?: string
+          spf_record?: string
+          spf_status?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
       email_change_requests: {
         Row: {
           approved_at: string | null
@@ -1670,6 +1724,113 @@ export type Database = {
           subject?: string
           type?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      email_template_versions: {
+        Row: {
+          category: string
+          colors: Json
+          created_at: string
+          created_by: string
+          id: string
+          mjml: string
+          preheader: string | null
+          subject: string
+          template_id: string
+          variables: Json
+          version: number
+        }
+        Insert: {
+          category: string
+          colors: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          mjml: string
+          preheader?: string | null
+          subject: string
+          template_id: string
+          variables: Json
+          version: number
+        }
+        Update: {
+          category?: string
+          colors?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          mjml?: string
+          preheader?: string | null
+          subject?: string
+          template_id?: string
+          variables?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          category: string
+          colors: Json
+          created_at: string
+          created_by: string
+          customer_id: string
+          id: string
+          mjml: string
+          name: string
+          preheader: string | null
+          slug: string
+          status: string
+          subject: string
+          updated_at: string
+          updated_by: string
+          variables: Json
+          version: number
+        }
+        Insert: {
+          category?: string
+          colors?: Json
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          id?: string
+          mjml: string
+          name: string
+          preheader?: string | null
+          slug: string
+          status?: string
+          subject: string
+          updated_at?: string
+          updated_by?: string
+          variables?: Json
+          version?: number
+        }
+        Update: {
+          category?: string
+          colors?: Json
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          id?: string
+          mjml?: string
+          name?: string
+          preheader?: string | null
+          slug?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          updated_by?: string
+          variables?: Json
+          version?: number
         }
         Relationships: []
       }
@@ -3257,6 +3418,10 @@ export type Database = {
           _metric_type: string
           _tenant_id: string
         }
+        Returns: undefined
+      }
+      initialize_default_email_templates: {
+        Args: { _customer_id: string }
         Returns: undefined
       }
       is_admin: {

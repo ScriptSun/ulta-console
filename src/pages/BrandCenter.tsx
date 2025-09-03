@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { 
   Palette,
   Image,
-  ArrowRight
+  ArrowRight,
+  Mail
 } from 'lucide-react';
 import { LogoFaviconManager } from '@/components/brand/LogoFaviconManager';
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +31,17 @@ const brandSections = [
     action: 'Customize',
     id: 'theme-colors',
     href: '/system-settings/brand/theme'
+  },
+  {
+    title: 'Email Branding',
+    description: 'Configure sender identity and email templates',
+    icon: Mail,
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    statsLine: 'Sender identity, 5 email templates, MJML editor',
+    action: 'Configure',
+    id: 'email-branding',
+    href: '/system-settings/brand/email'
   }
 ];
 
@@ -63,7 +75,7 @@ export default function BrandCenter() {
       </div>
 
       {/* Brand Management Grid */}
-      <div className="grid gap-6 md:grid-cols-2 max-w-4xl">
+      <div className="grid gap-6 md:grid-cols-3">
         {brandSections.map((section) => {
           const Icon = section.icon;
           return (
