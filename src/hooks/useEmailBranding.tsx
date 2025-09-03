@@ -156,24 +156,46 @@ export function useEmailBranding() {
     try {
       setSaving(true);
       
-      if (!brandingSettings?.customerId) {
-        throw new Error('No customer ID found');
+      // Get user's customer ID
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('customer_id')
+        .limit(1)
+        .single();
+
+      if (!userRoles) {
+        throw new Error('No customer found');
       }
 
-      const updateData: any = {};
+      const customerId = userRoles.customer_id;
+      const updateData: any = { customer_id: customerId };
       
       if (settings.senderName !== undefined) updateData.sender_name = settings.senderName;
       if (settings.senderEmail !== undefined) updateData.sender_email = settings.senderEmail;
       if (settings.colors !== undefined) updateData.colors = settings.colors;
+      
+      // Handle SPF and DKIM updates
+      if (settings.spf !== undefined) {
+        updateData.spf_status = settings.spf.status;
+        updateData.spf_record = settings.spf.record;
+      }
+      if (settings.dkim !== undefined) {
+        updateData.dkim_status = settings.dkim.status;
+        updateData.dkim_selector = settings.dkim.selector;
+        updateData.dkim_host = settings.dkim.host;
+        updateData.dkim_record = settings.dkim.record;
+      }
 
+      // Use upsert to ensure only one row per customer
       const { error } = await supabase
         .from('email_branding_settings')
-        .update(updateData)
-        .eq('customer_id', brandingSettings.customerId);
+        .upsert(updateData, {
+          onConflict: 'customer_id'
+        });
 
       if (error) throw error;
 
-      // Reload settings
+      // Reload settings to update UI
       await loadBrandingSettings();
 
       toast({
@@ -190,7 +212,7 @@ export function useEmailBranding() {
     } finally {
       setSaving(false);
     }
-  }, [brandingSettings, loadBrandingSettings, toast]);
+  }, [loadBrandingSettings, toast]);
 
   const saveTemplate = useCallback(async (templateId: string, updates: Partial<EmailTemplate>) => {
     try {
