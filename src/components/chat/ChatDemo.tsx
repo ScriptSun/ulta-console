@@ -231,11 +231,13 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     setOpenAIConnectionStatus('connecting');
     
     try {
-      // FIRST: Connect WebSocket for real-time communication
+      // FIRST: Clear any existing messages to prevent duplicates
+      console.log('🧹 CLEARING MESSAGES before connecting to OpenAI');
+      setMessages([]);
+      
+      // SECOND: Connect WebSocket for real-time communication
       console.log('🔌 Connecting WebSocket as part of OpenAI connection...');
       connect();
-      
-      // SECOND: Send heartbeat message to OpenAI via API
       const heartbeatData = {
         agent_id: selectedAgent,
         hostname: selectedAgentDetails.hostname,
@@ -299,11 +301,13 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
     setIsConnectedToOpenAI(false);
     setOpenAIConnectionStatus('disconnected');
     
-    // FIRST: Disconnect WebSocket
+    // FIRST: Clear messages to prevent stale data
+    console.log('🧹 CLEARING MESSAGES during disconnection');
+    setMessages([]);
+    
+    // SECOND: Disconnect WebSocket
     console.log('🔌 Disconnecting WebSocket as part of OpenAI disconnection...');
     disconnect();
-    
-    // SECOND: Add disconnection message
     
     const disconnectionMessage: Message = {
       id: Date.now().toString(),
@@ -535,6 +539,9 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   // Load agent details and heartbeat when selectedAgent changes
   useEffect(() => {
     if (selectedAgent && shouldShowDemo) {
+      // Clear messages when switching agents to prevent confusion
+      console.log('🧹 CLEARING MESSAGES when switching agents');
+      setMessages([]);
       fetchAgentDetailsAndHeartbeat(selectedAgent);
     }
   }, [selectedAgent, shouldShowDemo]);
