@@ -129,7 +129,19 @@ export function EmailTemplateEditor({
   const handleSave = async () => {
     try {
       setSaving(true);
-      await onSave(template.id, editedTemplate);
+      await onSave(template.id, {
+        name: editedTemplate.name,
+        subject: editedTemplate.subject,
+        preheader: editedTemplate.preheader,
+        category: editedTemplate.category,
+        colors: editedTemplate.colors,
+        mjml: editedTemplate.mjml,
+        variables: editedTemplate.variables,
+        slug: editedTemplate.slug
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error saving template:', error);
     } finally {
       setSaving(false);
     }

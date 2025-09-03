@@ -196,29 +196,64 @@ export function useEmailBranding() {
     try {
       setSaving(true);
       
-      const updateData: any = {};
-      
-      if (updates.subject !== undefined) updateData.subject = updates.subject;
-      if (updates.preheader !== undefined) updateData.preheader = updates.preheader;
-      if (updates.category !== undefined) updateData.category = updates.category;
-      if (updates.colors !== undefined) updateData.colors = updates.colors;
-      if (updates.mjml !== undefined) updateData.mjml = updates.mjml;
-      if (updates.variables !== undefined) updateData.variables = updates.variables;
-      
-      // Increment version for content changes
-      if (updates.mjml !== undefined || updates.subject !== undefined) {
-        const currentTemplate = templates.find(t => t.id === templateId);
-        if (currentTemplate) {
-          updateData.version = currentTemplate.version + 1;
+      // Handle new template creation
+      if (templateId === 'new') {
+        const { data: userRoles } = await supabase
+          .from('user_roles')
+          .select('customer_id')
+          .limit(1)
+          .single();
+
+        if (!userRoles) {
+          throw new Error('No customer found');
         }
+
+        const { data, error } = await supabase
+          .from('email_templates')
+          .insert({
+            customer_id: userRoles.customer_id,
+            name: updates.name || 'New Template',
+            slug: updates.slug || 'new-template',
+            subject: updates.subject || 'New Email Template',
+            preheader: updates.preheader || 'Your new email template',
+            category: updates.category || 'transactional',
+            colors: updates.colors || { useTheme: true },
+            mjml: updates.mjml || '<mjml><mj-body><mj-section><mj-column><mj-text>Your new template content</mj-text></mj-column></mj-section></mj-body></mjml>',
+            variables: updates.variables || {},
+            created_by: userRoles.customer_id,
+            updated_by: userRoles.customer_id
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+      } else {
+        // Update existing template
+        const updateData: any = {};
+        
+        if (updates.name !== undefined) updateData.name = updates.name;
+        if (updates.subject !== undefined) updateData.subject = updates.subject;
+        if (updates.preheader !== undefined) updateData.preheader = updates.preheader;
+        if (updates.category !== undefined) updateData.category = updates.category;
+        if (updates.colors !== undefined) updateData.colors = updates.colors;
+        if (updates.mjml !== undefined) updateData.mjml = updates.mjml;
+        if (updates.variables !== undefined) updateData.variables = updates.variables;
+        
+        // Increment version for content changes
+        if (updates.mjml !== undefined || updates.subject !== undefined) {
+          const currentTemplate = templates.find(t => t.id === templateId);
+          if (currentTemplate) {
+            updateData.version = currentTemplate.version + 1;
+          }
+        }
+
+        const { error } = await supabase
+          .from('email_templates')
+          .update(updateData)
+          .eq('id', templateId);
+
+        if (error) throw error;
       }
-
-      const { error } = await supabase
-        .from('email_templates')
-        .update(updateData)
-        .eq('id', templateId);
-
-      if (error) throw error;
 
       // Reload templates
       await loadBrandingSettings();
