@@ -148,46 +148,11 @@ export default function AiSettings() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-foreground">AI Settings</h1>
         <p className="text-muted-foreground">
-          Configure AI models, parameters, and system prompts for your platform.
+          Configure the router system prompt for your platform.
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="models" className="flex items-center gap-2">
-            <Brain className="h-4 w-4" />
-            Available Models
-          </TabsTrigger>
-          <TabsTrigger value="intelligent" className="flex items-center gap-2">
-            <Zap className="h-4 w-4" />
-            Intelligent Selection
-          </TabsTrigger>
-          <TabsTrigger value="configuration" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Model Configuration
-          </TabsTrigger>
-          <TabsTrigger value="prompt" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            System Prompt
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="models" className="space-y-6">
-          <AvailableModelsTab />
-        </TabsContent>
-
-        <TabsContent value="intelligent" className="space-y-6">
-          <IntelligentSelectionTab />
-        </TabsContent>
-
-        <TabsContent value="configuration" className="space-y-6">
-          <ModelConfigurationTab />
-        </TabsContent>
-
-        <TabsContent value="prompt" className="space-y-6">
-          <SystemPromptTab />
-        </TabsContent>
-      </Tabs>
+      <SystemPromptTab />
     </div>
   );
 }
