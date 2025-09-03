@@ -197,7 +197,7 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Image className="h-5 w-5" />
+              <Image className="h-5 w-5 text-primary" />
               Logos and Favicon Management
             </CardTitle>
             <CardDescription>
