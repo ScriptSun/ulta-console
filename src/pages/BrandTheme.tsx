@@ -621,7 +621,7 @@ export const BrandTheme = () => {
               {/* Available Variables */}
               <div className="space-y-2">
                 <h4 className="font-medium">Available Variables</h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {AVAILABLE_VARIABLES.map((variable) => (
                     <Button
                       key={variable}
