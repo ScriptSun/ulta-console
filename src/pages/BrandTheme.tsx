@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeSpec, ThemeValidationResult } from '@/types/themeTypes';
 import { apiTheme } from '@/lib/apiTheme';
+import { validateThemeHex, hexToHsl, hslToHex } from '@/lib/colorHelpers';
 import { applyCssVariables, CSS_VARIABLES_USAGE, AVAILABLE_VARIABLES } from '@/lib/cssVariablesWriter';
 import { Palette, Sun, Moon, Monitor, Download, Upload, AlertTriangle, Copy, RotateCcw, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -468,69 +469,63 @@ export const BrandTheme = () => {
               {/* Color Tokens */}
               <div className="space-y-4">
                 <h4 className="text-lg font-semibold tracking-tight">Color Tokens</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
-                  {COLOR_TOKENS.map((token) => {
-                    const hexValue = editingTheme.hex[token.key as keyof typeof editingTheme.hex];
-                    
-                    return (
-                      <div key={token.key} className="group relative">
-                        {/* Main Card */}
-                        <div className="relative p-4 rounded-xl backdrop-blur-xl border border-border/20 hover:border-border/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/5">
-                          {/* Color Preview Circle - Clickable */}
-                          <div className="relative mb-3 flex justify-center">
-                            <div 
-                              className="w-12 h-12 rounded-xl shadow-md ring-2 ring-white/10 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg cursor-pointer"
-                              style={{ backgroundColor: hexValue }}
-                              onClick={() => {
-                                const colorInput = document.getElementById(`color-${token.key}`) as HTMLInputElement;
-                                colorInput?.click();
-                              }}
-                            >
-                              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 via-transparent to-black/10"></div>
-                            </div>
-                            {/* Hidden color input */}
-                            <input
-                              id={`color-${token.key}`}
-                              type="color"
-                              value={hexValue}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                   {COLOR_TOKENS.map((token) => {
+                     const hexValue = editingTheme.hex[token.key as keyof typeof editingTheme.hex];
+                     
+                     return (
+                       <div key={token.key} className="group relative">
+                         {/* Main Card */}
+                         <div className="relative p-4 rounded-lg bg-card border border-border hover:border-border/60 transition-all duration-200">
+                           {/* Color Preview Square - Clickable */}
+                           <div className="relative mb-4 flex justify-center">
+                             <div 
+                               className="w-16 h-16 rounded-xl cursor-pointer border border-border/20 hover:scale-105 transition-transform duration-200 shadow-sm"
+                               style={{ backgroundColor: hexValue }}
+                               onClick={() => {
+                                 const colorInput = document.getElementById(`color-${token.key}`) as HTMLInputElement;
+                                 colorInput?.click();
+                               }}
+                             >
+                             </div>
+                             {/* Hidden color input */}
+                             <input
+                               id={`color-${token.key}`}
+                               type="color"
+                               value={hexValue}
                               onChange={(e) => {
+                                const newHexValue = e.target.value;
+                                const hsl = hexToHsl(newHexValue);
                                 setEditingTheme(prev => prev ? {
                                   ...prev,
-                                  hex: { ...prev.hex, [token.key]: e.target.value }
+                                  hex: { ...prev.hex, [token.key]: newHexValue },
+                                  hsl: { ...prev.hsl, [token.key]: hsl }
                                 } : null);
                               }}
-                              className="hidden"
-                            />
-                          </div>
-                          
-                          {/* Label */}
-                          <div className="text-center mb-3">
-                            <h5 className="font-medium text-sm tracking-wide mb-1">{token.label}</h5>
-                            <p className="text-xs text-muted-foreground/80 leading-relaxed">{token.description}</p>
-                          </div>
-                          
-                          {/* Hex Input Only */}
-                          <Input
-                            type="text"
-                            value={hexValue}
-                            onChange={(e) => {
-                              const value = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`;
-                              setEditingTheme(prev => prev ? {
-                                ...prev,
-                                hex: { ...prev.hex, [token.key]: value }
-                              } : null);
-                            }}
-                            placeholder="#000000"
-                            className="font-mono text-xs text-center h-8 rounded-lg bg-background/50 backdrop-blur-sm border border-border/30 hover:border-primary/30 focus:border-primary/60 transition-all duration-300"
-                          />
-                          
-                          {/* Subtle gradient overlay */}
-                          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/5 via-transparent to-black/5 pointer-events-none"></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                               className="hidden"
+                             />
+                           </div>
+                           
+                           {/* Token Info */}
+                           <div className="text-center space-y-2">
+                             <h5 className="font-medium text-sm text-foreground">
+                               {token.label}
+                             </h5>
+                             <p className="text-xs text-muted-foreground">
+                               {token.description}
+                             </p>
+                             <div 
+                               className="font-mono text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors duration-200 select-all"
+                               onClick={() => copyToClipboard(hexValue || '')}
+                             >
+                               {hexValue}
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     );
+                   })}
+                 </div>
               </div>
 
               {/* Radius Tokens */}
