@@ -42,6 +42,7 @@ import SystemSettings from "./pages/SystemSettings";
 import BrandCenter from "./pages/BrandCenter";
 import { BrandTheme } from "./pages/BrandTheme";
 import EmailBranding from "./pages/EmailBranding";
+import EmailTemplateEdit from "./pages/EmailTemplateEdit";
 import AiSettings from "./pages/AiSettings";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
@@ -300,6 +301,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <EmailBranding />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/system-settings/brand/email/edit/:templateId" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <EmailTemplateEdit />
                 </RootLayout>
               </ProtectedRoute>
             } />

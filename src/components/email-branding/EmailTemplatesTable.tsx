@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -28,17 +29,16 @@ import { format } from 'date-fns';
 
 interface EmailTemplatesTableProps {
   templates: EmailTemplate[];
-  onEdit: (template: EmailTemplate) => void;
   onDuplicate: (templateId: string) => Promise<string | undefined>;
   loading: boolean;
 }
 
 export function EmailTemplatesTable({ 
   templates, 
-  onEdit, 
   onDuplicate, 
   loading 
 }: EmailTemplatesTableProps) {
+  const navigate = useNavigate();
   const handleExportHtml = async (template: EmailTemplate) => {
     // This would normally call an API to render the MJML to HTML
     const html = `<!-- ${template.name} -->\n${template.mjml}`;
@@ -127,7 +127,7 @@ export function EmailTemplatesTable({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEdit(template)}>
+                    <DropdownMenuItem onClick={() => navigate(`/system-settings/brand/email/edit/${template.id}`)}>
                       <Edit className="h-4 w-4 mr-2" />
                       Edit
                     </DropdownMenuItem>

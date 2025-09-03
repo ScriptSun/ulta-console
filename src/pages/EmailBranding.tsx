@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,37 +17,17 @@ import {
 import { useEmailBranding } from '@/hooks/useEmailBranding';
 import { SenderIdentityCard } from '@/components/email-branding/SenderIdentityCard';
 import { EmailTemplatesTable } from '@/components/email-branding/EmailTemplatesTable';
-import { EmailTemplateEditor } from '@/components/email-branding/EmailTemplateEditor';
-import { EmailTemplate } from '@/types/emailBrandingTypes';
 
 export default function EmailBranding() {
+  const navigate = useNavigate();
   const { 
     brandingSettings, 
     templates, 
     loading, 
     saving,
     saveBrandingSettings,
-    saveTemplate,
     duplicateTemplate
   } = useEmailBranding();
-
-  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
-  const [editorOpen, setEditorOpen] = useState(false);
-
-  const handleEditTemplate = (template: EmailTemplate) => {
-    setEditingTemplate(template);
-    setEditorOpen(true);
-  };
-
-  const handleCloseEditor = () => {
-    setEditingTemplate(null);
-    setEditorOpen(false);
-  };
-
-  const handleSaveTemplate = async (templateId: string, updates: Partial<EmailTemplate>) => {
-    await saveTemplate(templateId, updates);
-    setEditorOpen(false);
-  };
 
   if (loading) {
     return (
@@ -97,38 +78,7 @@ export default function EmailBranding() {
             </div>
             <Button 
               variant="outline"
-              onClick={() => {
-                // Create new generic template
-                const newTemplate: EmailTemplate = {
-                  id: 'new',
-                  name: 'New Template',
-                  slug: 'new-template',
-                  subject: 'New Email Template',
-                  preheader: 'Your new email template',
-                  category: 'transactional',
-                  colors: { useTheme: true },
-                  mjml: `<mjml>
-<mj-head>
-<mj-attributes>
-<mj-all font-family="Inter, Arial, sans-serif" />
-<mj-text color="{{colors.text}}" font-size="14px" />
-<mj-button background-color="{{colors.accent}}" color="#ffffff" border-radius="8px" />
-</mj-attributes>
-</mj-head>
-<mj-body background-color="#ffffff">
-<mj-section><mj-column>
-<mj-text font-size="16px" font-weight="600">Your New Template</mj-text>
-<mj-text>This is your new email template. Edit the content as needed.</mj-text>
-</mj-column></mj-section>
-</mj-body>
-</mjml>`,
-                  variables: {},
-                  version: 1,
-                  updatedAt: new Date().toISOString(),
-                  updatedBy: { id: 'current', name: 'You' }
-                };
-                handleEditTemplate(newTemplate);
-              }}
+              onClick={() => navigate('/system-settings/brand/email/edit/new')}
             >
               <Plus className="h-4 w-4 mr-2" />
               New Template
@@ -138,23 +88,11 @@ export default function EmailBranding() {
         <CardContent>
           <EmailTemplatesTable 
             templates={templates}
-            onEdit={handleEditTemplate}
             onDuplicate={duplicateTemplate}
             loading={saving}
           />
         </CardContent>
       </Card>
-
-      {/* Template Editor */}
-      {editingTemplate && (
-        <EmailTemplateEditor
-          template={editingTemplate}
-          open={editorOpen}
-          onClose={handleCloseEditor}
-          onSave={handleSaveTemplate}
-          brandingSettings={brandingSettings}
-        />
-      )}
     </div>
   );
 }
