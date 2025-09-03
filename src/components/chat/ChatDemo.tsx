@@ -187,6 +187,33 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const routerTimeoutRef = useRef<NodeJS.Timeout>();
   const processedMessagesRef = useRef<Set<string>>(new Set());
   
+  // Sound notification function
+  const playNotificationSound = useCallback(() => {
+    if (!playSound) return;
+    
+    try {
+      // Create a simple notification sound using Web Audio API
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Create a pleasant notification sound (two-tone chime)
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+      console.warn('Failed to play notification sound:', error);
+    }
+  }, [playSound]);
+  
   // Helper function to detect if user request is likely an action vs casual chat
   const detectActionRequest = (content: string): boolean => {
     const lowerContent = content.toLowerCase();
