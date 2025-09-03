@@ -2154,10 +2154,10 @@ Please proceed with creating and executing this batch script.`;
                         selectedAgentData.status === 'online' ? 'bg-success' : 'bg-muted-foreground'
                       }`} />
                       <Select value={selectedAgent} onValueChange={handleAgentChange}>
-                        <SelectTrigger className="w-80 h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                         <SelectContent className="z-50">
+                         <SelectTrigger className="w-96 h-8">
+                           <SelectValue />
+                         </SelectTrigger>
+                          <SelectContent className="z-50 w-96 max-w-none">
                           {agents.map(agent => {
                             const usage = agentUsageData[agent.id];
                             const usagePercent = usage ? Math.round((usage.current / usage.limit) * 100) : 0;
