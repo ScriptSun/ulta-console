@@ -442,7 +442,7 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
               <Label>Live Preview</Label>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="p-4 bg-white border rounded-lg">
-                  <p className="text-xs text-gray-600 mb-2">Light background</p>
+                  
                   {logoSettings.logo_light_url && (
                     <img 
                       src={logoSettings.logo_light_url} 
