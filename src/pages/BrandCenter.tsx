@@ -4,9 +4,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Palette,
   Image,
-  FileImage,
-  ArrowRight,
-  Settings
+  ArrowRight
 } from 'lucide-react';
 import { LogoFaviconManager } from '@/components/brand/LogoFaviconManager';
 import { useNavigate } from 'react-router-dom';
@@ -32,26 +30,6 @@ const brandSections = [
     action: 'Customize',
     id: 'theme-colors',
     href: '/system-settings/brand/theme'
-  },
-  {
-    title: 'Brand Files',
-    description: 'Upload and manage brand assets and documents',
-    icon: FileImage,
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    statsLine: 'Brand guidelines, assets, documentation',
-    action: 'Upload',
-    id: 'brand-files'
-  },
-  {
-    title: 'Brand Guidelines',
-    description: 'Define usage rules and brand standards',
-    icon: Settings,
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    statsLine: 'Logo usage, color specs, typography',
-    action: 'Configure',
-    id: 'brand-guidelines'
   }
 ];
 
@@ -85,7 +63,7 @@ export default function BrandCenter() {
       </div>
 
       {/* Brand Management Grid */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 max-w-4xl">
         {brandSections.map((section) => {
           const Icon = section.icon;
           return (
@@ -127,28 +105,6 @@ export default function BrandCenter() {
         />
       )}
 
-      {/* Coming Soon sections */}
-      {(activeSection === 'brand-files' || activeSection === 'brand-guidelines') && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle>Coming Soon</CardTitle>
-              <CardDescription>
-                This feature is under development and will be available in a future update.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={handleCloseDrawer}
-              >
-                Close
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }
