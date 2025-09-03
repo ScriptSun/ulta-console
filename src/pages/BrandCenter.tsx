@@ -9,6 +9,7 @@ import {
   Settings
 } from 'lucide-react';
 import { LogoFaviconManager } from '@/components/brand/LogoFaviconManager';
+import { useNavigate } from 'react-router-dom';
 
 const brandSections = [
   {
@@ -29,7 +30,8 @@ const brandSections = [
     bgColor: 'bg-secondary/10',
     statsLine: 'Primary, Secondary, Accent colors configured',
     action: 'Customize',
-    id: 'theme-colors'
+    id: 'theme-colors',
+    href: '/system-settings/brand/theme'
   },
   {
     title: 'Brand Files',
@@ -54,10 +56,15 @@ const brandSections = [
 ];
 
 export default function BrandCenter() {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = React.useState<string | null>(null);
 
-  const handleSectionClick = (sectionId: string) => {
-    setActiveSection(sectionId);
+  const handleSectionClick = (sectionId: string, href?: string) => {
+    if (href) {
+      navigate(href);
+    } else {
+      setActiveSection(sectionId);
+    }
   };
 
   const handleCloseDrawer = () => {
@@ -102,7 +109,7 @@ export default function BrandCenter() {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => handleSectionClick(section.id)}
+                  onClick={() => handleSectionClick(section.id, (section as any).href)}
                 >
                   {section.action}
                 </Button>
@@ -121,7 +128,7 @@ export default function BrandCenter() {
       )}
 
       {/* Coming Soon sections */}
-      {(activeSection === 'theme-colors' || activeSection === 'brand-files' || activeSection === 'brand-guidelines') && (
+      {(activeSection === 'brand-files' || activeSection === 'brand-guidelines') && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <Card className="w-full max-w-md mx-4">
             <CardHeader>
