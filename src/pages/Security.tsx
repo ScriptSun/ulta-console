@@ -61,6 +61,61 @@ export default function Security() {
         </div>
       </div>
 
+      {/* Security Overview Stats - Moved to Top */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-primary border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-primary-foreground/80">Active Sessions</p>
+                <p className="text-3xl font-bold text-primary-foreground">12</p>
+                <p className="text-xs text-primary-foreground/60">Current user sessions</p>
+              </div>
+              <Users className="h-8 w-8 text-primary-foreground/60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-secondary border-secondary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-secondary-foreground/80">API Keys</p>
+                <p className="text-3xl font-bold text-secondary-foreground">8</p>
+                <p className="text-xs text-secondary-foreground/60">Active API keys</p>
+              </div>
+              <Key className="h-8 w-8 text-secondary-foreground/60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-accent border-accent/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-accent-foreground/80">Failed Logins</p>
+                <p className="text-3xl font-bold text-accent-foreground">0</p>
+                <p className="text-xs text-accent-foreground/60">Last 24 hours</p>
+              </div>
+              <Lock className="h-8 w-8 text-accent-foreground/60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-muted border-muted/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground/80">Security Score</p>
+                <p className="text-3xl font-bold text-foreground">A+</p>
+                <p className="text-xs text-muted-foreground/60">Excellent security</p>
+              </div>
+              <Shield className="h-8 w-8 text-muted-foreground/60" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {securitySections.map((section) => {
           const Icon = section.icon;
@@ -88,58 +143,6 @@ export default function Security() {
             </Card>
           );
         })}
-      </div>
-
-      {/* Security Overview */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">
-              Current user sessions
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">API Keys</CardTitle>
-            <Key className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">
-              Active API keys
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Failed Logins</CardTitle>
-            <Lock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">
-              Last 24 hours
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Security Score</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-success-foreground">A+</div>
-            <p className="text-xs text-muted-foreground">
-              Excellent security
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
