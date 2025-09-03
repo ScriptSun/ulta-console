@@ -162,7 +162,11 @@ class AIService {
   private async callModel(modelId: string, params: AIRequestParams): Promise<any> {
     // Use the edge function for all AI requests to handle failover centrally
     const response = await supabase.functions.invoke('ai-router', {
-      body: params
+      body: {
+        ...params,
+        agentId: params.agentId, // Ensure agentId is passed for limit checking
+        tenantId: params.tenantId // Ensure tenantId is passed for usage logging
+      }
     });
 
     if (response.error) {
@@ -170,6 +174,18 @@ class AIService {
     }
 
     if (!response.data.success) {
+      // Handle rate limit errors specifically
+      if (response.data.limit_type === 'ai_requests') {
+        const limitError = new Error(response.data.message || 'AI request limit exceeded');
+        (limitError as any).isRateLimit = true;
+        (limitError as any).limitData = {
+          current_usage: response.data.current_usage,
+          limit_amount: response.data.limit_amount,
+          plan_name: response.data.plan_name
+        };
+        throw limitError;
+      }
+      
       throw new Error(response.data.error || 'AI request failed');
     }
 
@@ -226,7 +242,7 @@ class AIService {
         console.log(`🌡️ Using system temperature setting: ${params.temperature}`);
       }
 
-      // The edge function now handles all failover logic
+      // The edge function now handles all failover logic and usage limit checking
       const result = await this.callModel('', params); // Model selection happens in edge function
       
       console.log(`✅ AI request successful with model: ${result.model} after ${result.failover_attempts} attempts`);
@@ -237,6 +253,15 @@ class AIService {
         usage: result.usage,
         failover_attempts: result.failover_attempts
       };
+    } catch (error: any) {
+      // Handle usage limit errors specifically
+      if (error.isRateLimit) {
+        const limitError = new Error(error.message);
+        (limitError as any).isUsageLimit = true;
+        (limitError as any).limitData = error.limitData;
+        throw limitError;
+      }
+      throw error;
     } finally {
       finishRequest();
     }

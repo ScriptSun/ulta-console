@@ -95,6 +95,47 @@ serve(async (req) => {
 
     console.log(`🎯 Processing router decision for agent_id: ${agent_id}, user_request: ${user_request}`);
 
+    // CHECK USAGE LIMITS BEFORE MAKING AI REQUESTS
+    console.log(`🔍 Checking usage limits for agent: ${agent_id}`);
+    try {
+      const { data: limitCheck, error: limitError } = await supabase
+        .rpc('check_agent_usage_limit', {
+          _agent_id: agent_id,
+          _usage_type: 'ai_request'
+        });
+
+      if (limitError) {
+        console.error('Error checking usage limits:', limitError);
+      } else if (limitCheck && limitCheck.length > 0) {
+        const limit = limitCheck[0];
+        console.log('Usage limit check result:', limit);
+        
+        if (!limit.allowed) {
+          console.log(`❌ Usage limit exceeded for agent ${agent_id}: ${limit.current_usage}/${limit.limit_amount}`);
+          
+          return new Response(
+            JSON.stringify({
+              error: 'AI request limit exceeded',
+              message: `You have reached your ${limit.plan_name || 'plan'} limit of ${limit.limit_amount} AI requests this month. Please upgrade your plan to continue.`,
+              current_usage: limit.current_usage,
+              limit_amount: limit.limit_amount,
+              plan_name: limit.plan_name,
+              limit_type: 'ai_requests'
+            }),
+            { 
+              status: 429, // Too Many Requests
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+        
+        console.log(`✅ Usage check passed: ${limit.current_usage}/${limit.limit_amount} (${limit.plan_name})`);
+      }
+    } catch (limitCheckError) {
+      console.error('Failed to check usage limits:', limitCheckError);
+      // Continue with request - don't block on limit check failures
+    }
+
     // 1. Call ultaai-router-payload
     console.log('📞 Calling ultaai-router-payload...');
     const payloadResponse = await supabase.functions.invoke('ultaai-router-payload', {
@@ -312,6 +353,18 @@ function validateDraftAction(draft: any, policies: any[]) {
           'router_decision',
           { user_request_length: user_request.length }
         );
+      }
+      
+      // Increment agent usage counter for plan tracking
+      try {
+        await supabase.rpc('increment_agent_usage', {
+          _agent_id: agent_id,
+          _usage_type: 'ai_request',
+          _increment: 1
+        });
+        console.log(`📊 Incremented AI usage counter for agent: ${agent_id}`);
+      } catch (usageError) {
+        console.error('Failed to increment usage counter:', usageError);
       }
 
       const raw = completion.choices[0]?.message?.content ?? "";

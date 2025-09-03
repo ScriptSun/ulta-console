@@ -986,35 +986,73 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             clearTimeout(routerTimeoutRef.current);
           }
           
-          // Update any pending message to show error with full JSON response
-          setMessages(prev => {
-            const updated = [...prev];
-            for (let i = updated.length - 1; i >= 0; i--) {
-              if (updated[i].pending && updated[i].role === 'assistant') {
-                const errorContent = `**API Error Response:**
+          // Check if this is a usage limit error
+          const isUsageLimit = data.error === 'AI request limit exceeded' || data.limit_type === 'ai_requests';
+          
+          if (isUsageLimit) {
+            // Show user-friendly upgrade message for usage limits
+            const upgradeMessage = `🚫 **AI Request Limit Reached**
+
+You've used **${data.current_usage}/${data.limit_amount}** AI requests for your **${data.plan_name || 'current'}** plan this month.
+
+**To continue chatting:**
+• Upgrade to a higher plan with more AI requests
+• Wait until next month for your limits to reset
+• Contact support if you need immediate assistance
+
+Your plan limit: **${data.limit_amount} requests/month**`;
+            
+            setMessages(prev => {
+              const updated = [...prev];
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].pending && updated[i].role === 'assistant') {
+                  updated[i] = {
+                    ...updated[i],
+                    pending: false,
+                    content: upgradeMessage
+                  };
+                  break;
+                }
+              }
+              return updated;
+            });
+            
+            toast({
+              title: "AI Request Limit Reached",
+              description: `You've reached your ${data.plan_name || 'plan'} limit of ${data.limit_amount} AI requests. Please upgrade your plan.`,
+              variant: "destructive"
+            });
+          } else {
+            // Handle other API errors with technical details
+            const errorContent = `**API Error Response:**
 
 \`\`\`json
 ${JSON.stringify(data, null, 2)}
 \`\`\`
 
 Please try again or contact support if this persists.`;
-                
-                updated[i] = {
-                  ...updated[i],
-                  pending: false,
-                  content: errorContent
-                };
-                break;
+            
+            setMessages(prev => {
+              const updated = [...prev];
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].pending && updated[i].role === 'assistant') {
+                  updated[i] = {
+                    ...updated[i],
+                    pending: false,
+                    content: errorContent
+                  };
+                  break;
+                }
               }
-            }
-            return updated;
-          });
-          
-          toast({
-            title: "API Error",
-            description: `${data.error}${data.details ? ` - ${data.details}` : ''}`,
-            variant: "destructive"
-          });
+              return updated;
+            });
+            
+            toast({
+              title: "API Error",
+              description: `${data.error}${data.details ? ` - ${data.details}` : ''}`,
+              variant: "destructive"
+            });
+          }
           break;
           
         case 'router.disconnected':

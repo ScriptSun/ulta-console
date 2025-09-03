@@ -196,6 +196,51 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
+    // CHECK USAGE LIMITS BEFORE MAKING AI REQUESTS
+    if (params.agentId) {
+      console.log(`🔍 Checking usage limits for agent: ${params.agentId}`);
+      
+      try {
+        const { data: limitCheck, error: limitError } = await supabase
+          .rpc('check_agent_usage_limit', {
+            _agent_id: params.agentId,
+            _usage_type: 'ai_request'
+          });
+
+        if (limitError) {
+          console.error('Error checking usage limits:', limitError);
+        } else if (limitCheck && limitCheck.length > 0) {
+          const limit = limitCheck[0];
+          console.log('Usage limit check result:', limit);
+          
+          if (!limit.allowed) {
+            console.log(`❌ Usage limit exceeded for agent ${params.agentId}: ${limit.current_usage}/${limit.limit_amount}`);
+            
+            return new Response(
+              JSON.stringify({
+                success: false,
+                error: 'AI request limit exceeded',
+                message: `You have reached your ${limit.plan_name || 'plan'} limit of ${limit.limit_amount} AI requests this month. Please upgrade your plan to continue.`,
+                current_usage: limit.current_usage,
+                limit_amount: limit.limit_amount,
+                plan_name: limit.plan_name,
+                limit_type: 'ai_requests'
+              }),
+              { 
+                status: 429, // Too Many Requests
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            );
+          }
+          
+          console.log(`✅ Usage check passed: ${limit.current_usage}/${limit.limit_amount} (${limit.plan_name})`);
+        }
+      } catch (limitCheckError) {
+        console.error('Failed to check usage limits:', limitCheckError);
+        // Continue with request - don't block on limit check failures
+      }
+    }
+
     // Load AI settings for failover models
     const { data: settings, error: settingsError } = await supabase
       .from('system_settings')
@@ -241,7 +286,7 @@ serve(async (req: Request) => {
           throw new Error("No content received from AI model");
         }
 
-        // Log successful usage
+        // Log successful usage and INCREMENT USAGE COUNTER
         await logAIUsage(
           supabase,
           modelId,
@@ -250,6 +295,20 @@ serve(async (req: Request) => {
           params.agentId,
           params.requestType
         );
+        
+        // Increment agent usage counter for plan tracking
+        if (params.agentId) {
+          try {
+            await supabase.rpc('increment_agent_usage', {
+              _agent_id: params.agentId,
+              _usage_type: 'ai_request',
+              _increment: 1
+            });
+            console.log(`📊 Incremented AI usage counter for agent: ${params.agentId}`);
+          } catch (usageError) {
+            console.error('Failed to increment usage counter:', usageError);
+          }
+        }
 
         console.log(`✅ AI request successful with model: ${modelId}`);
         
