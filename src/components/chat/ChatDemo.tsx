@@ -1040,15 +1040,22 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
             clearTimeout(routerTimeoutRef.current);
           }
           
-          // Check if this is a usage limit error
-          const isUsageLimit = data.error === 'AI request limit exceeded' || data.limit_type === 'ai_requests' || 
-                              (data.details && (data.details.includes('429') || data.details.includes('limit exceeded')));
+          // Check if this is a usage limit error (429 status code)
+          const isUsageLimit = data.error === 'AI request limit exceeded' || 
+                              data.limit_type === 'ai_requests' || 
+                              (data.details && (data.details.includes('429') || data.details.includes('limit exceeded'))) ||
+                              (data.details && data.details.includes('non-2xx') && data.error === 'Failed to process request with AI');
           
           if (isUsageLimit) {
+            // Get current agent's usage info for better messaging
+            const currentAgent = agentUsageData[selectedAgent];
+            const usageInfo = currentAgent ? 
+              `\n\n**Current Usage:** ${currentAgent.current}/${currentAgent.limit} AI requests on ${currentAgent.plan} plan` : '';
+            
             const errorMessage: Message = {
               id: Date.now().toString(),
               role: 'assistant',
-              content: `⚠️ **AI Usage Limit Reached**\n\nYou have reached your plan's monthly AI request limit. Please check your subscription plan to see your current usage.\n\n[View your plan details](/subscription-plans)`,
+              content: `⚠️ **AI Usage Limit Reached**\n\nYou have reached your plan's monthly AI request limit. Please upgrade your plan to continue using AI features.${usageInfo}\n\n🔗 [Upgrade Your Plan](/subscription-plans)`,
               timestamp: new Date()
             };
             setMessages(prev => [...prev, errorMessage]);
