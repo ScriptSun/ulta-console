@@ -210,204 +210,209 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
         </CardHeader>
 
         <CardContent className="space-y-8">
-          {/* Logo Management Section */}
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold">Brand Logos</h3>
-            
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Light Theme Logo */}
-              <div className="space-y-4">
-                <Label className="text-sm font-medium">Light Theme Logo</Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4">
-                  {logoSettings.logo_light_url ? (
-                    <div className="space-y-4">
-                      <img 
-                        src={logoSettings.logo_light_url} 
-                        alt="Light logo" 
-                        className="max-h-20 mx-auto"
-                        style={{ width: dimensions.width, height: dimensions.height }}
-                      />
-                      <div className="flex gap-2 justify-center my-[10%]">
+          {/* Brand Logos Section - Main Content */}
+          <div className="bg-gradient-to-br from-card to-muted/50 border border-border/50 rounded-lg p-6 shadow-sm">
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Palette className="h-5 w-5 text-primary" />
+                Brand Logos
+              </h3>
+              
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Light Theme Logo */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Light Theme Logo</Label>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4">
+                    {logoSettings.logo_light_url ? (
+                      <div className="space-y-4">
+                        <img 
+                          src={logoSettings.logo_light_url} 
+                          alt="Light logo" 
+                          className="max-h-20 mx-auto"
+                          style={{ width: dimensions.width, height: dimensions.height }}
+                        />
+                        <div className="flex gap-2 justify-center my-[10%]">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => lightLogoRef.current?.click()}
+                            disabled={uploading.light}
+                          >
+                            Replace
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleRemoveLogo('light')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
                         <Button 
-                          size="sm" 
-                          variant="outline"
                           onClick={() => lightLogoRef.current?.click()}
                           disabled={uploading.light}
                         >
-                          Replace
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleRemoveLogo('light')}
-                        >
-                          <Trash2 className="h-4 w-4" />
+                          {uploading.light ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
+                          ) : (
+                            <>Upload Light Logo</>
+                          )}
                         </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
-                      <Button 
-                        onClick={() => lightLogoRef.current?.click()}
-                        disabled={uploading.light}
-                      >
-                        {uploading.light ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
-                        ) : (
-                          <>Upload Light Logo</>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                  <input
-                    ref={lightLogoRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleFileChange(e, 'light')}
-                  />
+                    )}
+                    <input
+                      ref={lightLogoRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileChange(e, 'light')}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Dark Theme Logo */}
-              <div className="space-y-4">
-                <Label className="text-sm font-medium">Dark Theme Logo</Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4 bg-slate-900">
-                  {logoSettings.logo_dark_url ? (
-                    <div className="space-y-4">
-                      <img 
-                        src={logoSettings.logo_dark_url} 
-                        alt="Dark logo" 
-                        className="max-h-20 mx-auto"
-                        style={{ width: dimensions.width, height: dimensions.height }}
-                      />
-                      <div className="flex gap-2 justify-center my-[10%]">
+                {/* Dark Theme Logo */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Dark Theme Logo</Label>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4 bg-slate-900">
+                    {logoSettings.logo_dark_url ? (
+                      <div className="space-y-4">
+                        <img 
+                          src={logoSettings.logo_dark_url} 
+                          alt="Dark logo" 
+                          className="max-h-20 mx-auto"
+                          style={{ width: dimensions.width, height: dimensions.height }}
+                        />
+                        <div className="flex gap-2 justify-center my-[10%]">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => darkLogoRef.current?.click()}
+                            disabled={uploading.dark}
+                          >
+                            Replace
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleRemoveLogo('dark')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <Upload className="h-12 w-12 text-white mx-auto" />
                         <Button 
-                          size="sm" 
-                          variant="outline"
                           onClick={() => darkLogoRef.current?.click()}
                           disabled={uploading.dark}
                         >
-                          Replace
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleRemoveLogo('dark')}
-                        >
-                          <Trash2 className="h-4 w-4" />
+                          {uploading.dark ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
+                          ) : (
+                            <>Upload Dark Logo</>
+                          )}
                         </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Upload className="h-12 w-12 text-white mx-auto" />
-                      <Button 
-                        onClick={() => darkLogoRef.current?.click()}
-                        disabled={uploading.dark}
-                      >
-                        {uploading.dark ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
-                        ) : (
-                          <>Upload Dark Logo</>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                  <input
-                    ref={darkLogoRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleFileChange(e, 'dark')}
-                  />
+                    )}
+                    <input
+                      ref={darkLogoRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileChange(e, 'dark')}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Email Logo */}
-              <div className="space-y-4">
-                <Label className="text-sm font-medium">Email Logo</Label>
-                <p className="text-xs text-muted-foreground">PNG, recommended height 40px</p>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4">
-                  {emailLogo ? (
-                    <div className="space-y-4">
-                      <img src={emailLogo} alt="Email logo" className="max-h-10 mx-auto" />
-                      <div className="flex gap-2 justify-center my-[10%]">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => emailLogoRef.current?.click()}
-                        >
-                          Replace
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => setEmailLogo('')}
-                        >
-                          <Trash2 className="h-4 w-4" />
+                {/* Email Logo */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Email Logo</Label>
+                  <p className="text-xs text-muted-foreground">PNG, recommended height 40px</p>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4">
+                    {emailLogo ? (
+                      <div className="space-y-4">
+                        <img src={emailLogo} alt="Email logo" className="max-h-10 mx-auto" />
+                        <div className="flex gap-2 justify-center my-[10%]">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => emailLogoRef.current?.click()}
+                          >
+                            Replace
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setEmailLogo('')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
+                        <Button onClick={() => emailLogoRef.current?.click()}>
+                          Upload Email Logo
                         </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
-                      <Button onClick={() => emailLogoRef.current?.click()}>
-                        Upload Email Logo
-                      </Button>
-                    </div>
-                  )}
-                  <input
-                    ref={emailLogoRef}
-                    type="file"
-                    accept="image/png"
-                    className="hidden"
-                    onChange={(e) => handleFileChange(e, 'email')}
-                  />
+                    )}
+                    <input
+                      ref={emailLogoRef}
+                      type="file"
+                      accept="image/png"
+                      className="hidden"
+                      onChange={(e) => handleFileChange(e, 'email')}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Favicon Source */}
-              <div className="space-y-4">
-                <Label className="text-sm font-medium">Favicon Source</Label>
-                <p className="text-xs text-muted-foreground">PNG, square, at least 512x512</p>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4">
-                  {faviconSource ? (
-                    <div className="space-y-4">
-                      <img src={faviconSource} alt="Favicon source" className="w-16 h-16 mx-auto" />
-                      <div className="flex gap-2 justify-center my-[10%]">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => faviconRef.current?.click()}
-                        >
-                          Replace
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => setFaviconSource('')}
-                        >
-                          <Trash2 className="h-4 w-4" />
+                {/* Favicon Source */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Favicon Source</Label>
+                  <p className="text-xs text-muted-foreground">PNG, square, at least 512x512</p>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4">
+                    {faviconSource ? (
+                      <div className="space-y-4">
+                        <img src={faviconSource} alt="Favicon source" className="w-16 h-16 mx-auto" />
+                        <div className="flex gap-2 justify-center my-[10%]">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => faviconRef.current?.click()}
+                          >
+                            Replace
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setFaviconSource('')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
+                        <Button onClick={() => faviconRef.current?.click()}>
+                          Upload Favicon Source
                         </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
-                      <Button onClick={() => faviconRef.current?.click()}>
-                        Upload Favicon Source
-                      </Button>
-                    </div>
-                  )}
-                  <input
-                    ref={faviconRef}
-                    type="file"
-                    accept="image/png"
-                    className="hidden"
-                    onChange={handleFaviconUpload}
-                  />
+                    )}
+                    <input
+                      ref={faviconRef}
+                      type="file"
+                      accept="image/png"
+                      className="hidden"
+                      onChange={handleFaviconUpload}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
