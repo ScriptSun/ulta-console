@@ -12,6 +12,7 @@ interface SystemSettings {
   rate_limits: any;
   security: any;
   notifications: any;
+  upgrade_url: string;
 }
 
 class SystemSettingsService {
@@ -107,9 +108,37 @@ class SystemSettingsService {
     this.settingsCache = {};
   }
 
-  public async refreshSettings(): Promise<void> {
-    await this.clearCache();
+  public async getUpgradeUrl(): Promise<string> {
     await this.loadSettings();
+    
+    const upgradeUrl = this.settingsCache.upgrade_url;
+    if (upgradeUrl && typeof upgradeUrl === 'string') {
+      return upgradeUrl;
+    }
+    
+    // Default fallback URL
+    return '/subscription-plans';
+  }
+
+  public async setUpgradeUrl(url: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({ 
+          setting_key: 'upgrade_url',
+          setting_value: url
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      // Update cache
+      this.settingsCache.upgrade_url = url;
+    } catch (error) {
+      console.error('Error setting upgrade URL:', error);
+      throw error;
+    }
   }
 }
 

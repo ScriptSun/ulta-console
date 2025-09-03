@@ -25,7 +25,9 @@ import {
   ChevronDown,
   MessageSquare,
   Bot,
-  Palette
+  Palette,
+  Crown,
+  ExternalLink
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -116,6 +118,9 @@ export default function SystemSettings() {
     },
   });
 
+  // Upgrade URL Configuration
+  const [upgradeUrl, setUpgradeUrl] = useState('/subscription-plans');
+
   useEffect(() => {
     loadSystemSettings();
     if (user) {
@@ -158,7 +163,6 @@ export default function SystemSettings() {
 
       setSettings(data || []);
       
-      // Parse and set individual settings
       data?.forEach(setting => {
         const value = setting.setting_value as any; // Type assertion for JSON parsing
         switch (setting.setting_key) {
@@ -202,6 +206,9 @@ export default function SystemSettings() {
                 batch_completions: false,
               },
             });
+            break;
+          case 'upgrade_url':
+            setUpgradeUrl(String(value || '/subscription-plans'));
             break;
         }
       });
@@ -491,7 +498,7 @@ export default function SystemSettings() {
       </div>
 
       <Tabs defaultValue="ai" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="ai" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
             AI Models
@@ -507,6 +514,10 @@ export default function SystemSettings() {
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             Notifications
+          </TabsTrigger>
+          <TabsTrigger value="upgrade" className="flex items-center gap-2">
+            <Crown className="h-4 w-4" />
+            Upgrade
           </TabsTrigger>
           {isOwnerOrAdmin && (
             <TabsTrigger value="theme" className="flex items-center gap-2">
@@ -1048,6 +1059,79 @@ export default function SystemSettings() {
                   <>
                     <Save className="mr-2 h-4 w-4" />
                     Save Notification Settings
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="upgrade">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-amber-600" />
+                Upgrade Configuration
+              </CardTitle>
+              <CardDescription>
+                Configure where users are redirected when they need to upgrade their plan
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="upgrade-url">Upgrade URL</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="upgrade-url"
+                      placeholder="https://yourcompany.com/upgrade or /subscription-plans"
+                      value={upgradeUrl}
+                      onChange={(e) => setUpgradeUrl(e.target.value)}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (upgradeUrl.startsWith('http')) {
+                          window.open(upgradeUrl, '_blank', 'noopener,noreferrer');
+                        } else {
+                          window.location.href = upgradeUrl;
+                        }
+                      }}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    When users hit their usage limits, they'll be directed to this URL. 
+                    Use a full URL (https://...) for external sites or a path (/subscription-plans) for internal pages.
+                  </p>
+                </div>
+                
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <Crown className="h-4 w-4" />
+                    How it works
+                  </h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• When agents hit their AI usage limits, users see an upgrade prompt</li>
+                    <li>• The upgrade button uses this configured URL</li>
+                    <li>• External URLs open in a new tab, internal paths navigate within the app</li>
+                    <li>• Each company can customize this to point to their billing system</li>
+                  </ul>
+                </div>
+              </div>
+
+              <Button onClick={() => updateSetting('upgrade_url', upgradeUrl)} disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Upgrade Settings
                   </>
                 )}
               </Button>

@@ -22,7 +22,8 @@ import {
   CheckCircle,
   AlertTriangle,
   Copy,
-  Download
+  Download,
+  Crown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
@@ -921,7 +922,7 @@ const logsChannel = supabase
             {/* Footer */}
             <footer className="border-t pt-6">
               <p className="text-center text-sm text-muted-foreground">
-                This documentation covers the complete chat system architecture. For specific implementation details, 
+                This documentation covers the complete chat system architecture including the upgrade-plan function for automatic plan management. For specific implementation details, 
                 refer to the source code in <code>src/components/chat/</code> and <code>supabase/functions/</code>.
               </p>
             </footer>

@@ -28,6 +28,7 @@ import { useWebSocketRouter } from '@/hooks/useWebSocketRouter';
 import { useRouterLogs, RouterLogData } from '@/hooks/useRouterLogs';
 import { useWebSocketExec } from '@/hooks/useWebSocketExec';
 import { ChatDocumentation } from './ChatDocumentation';
+import { UsageLimitCard } from './UsageLimitCard';
 import { i18n, RouterPhases, getRouterPhaseText } from '@/lib/i18n';
 
 interface Agent {
@@ -47,6 +48,12 @@ interface Message {
   pending?: boolean;
   collapsed?: boolean;
   showInputsDelayed?: boolean; // Flag to control input form visibility timing
+  usageLimitReached?: {
+    currentUsage: number;
+    limitAmount: number;
+    planName: string;
+    agentId: string;
+  };
   taskStatus?: {
     type: 'task_queued' | 'task_started' | 'task_progress' | 'task_succeeded' | 'task_failed' | 'done' | 'input_error';
     intent: string;
@@ -1049,14 +1056,18 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
           if (isUsageLimit) {
             // Get current agent's usage info for better messaging
             const currentAgent = agentUsageData[selectedAgent];
-            const usageInfo = currentAgent ? 
-              `\n\n**Current Usage:** ${currentAgent.current}/${currentAgent.limit} AI requests on ${currentAgent.plan} plan` : '';
             
             const errorMessage: Message = {
               id: Date.now().toString(),
               role: 'assistant',
-              content: `⚠️ **AI Usage Limit Reached**\n\nYou have reached your plan's monthly AI request limit. Please upgrade your plan to continue using AI features.${usageInfo}\n\n🔗 [Upgrade Your Plan](/subscription-plans)`,
-              timestamp: new Date()
+              content: '',
+              timestamp: new Date(),
+              usageLimitReached: {
+                currentUsage: currentAgent?.current || 0,
+                limitAmount: currentAgent?.limit || 0,
+                planName: currentAgent?.plan || 'Unknown',
+                agentId: selectedAgent
+              }
             };
             setMessages(prev => [...prev, errorMessage]);
           } else {
@@ -2473,20 +2484,20 @@ Please proceed with creating and executing this batch script.`;
               
                {messages.map((message) => (
                  <div key={message.id}>
-                   {/* Always show chat message bubble */}
-                   <div className={`group flex gap-3 ${
-                     message.role === 'user' ? 'justify-end' : 'justify-start'
-                   }`}>
-                    <div className={`${
-                        // Use wider width for messages with batch scripts or execution status
-                        (message.decision?.mode === 'action' || message.executionStatus || message.aiSuggestion) 
-                          ? 'max-w-[95%] w-full' 
-                          : 'max-w-[80%]'
-                      } rounded-lg p-3 ${
-                        message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      } ${compactDensity ? 'p-2 text-sm' : ''}`}>
+                    {/* Always show chat message bubble */}
+                    <div className={`group flex gap-3 ${
+                      message.role === 'user' ? 'justify-end' : 'justify-start'
+                    }`}>
+                     <div className={`${
+                         // Use wider width for messages with batch scripts or execution status
+                         (message.decision?.mode === 'action' || message.executionStatus || message.aiSuggestion || message.usageLimitReached) 
+                           ? 'max-w-[95%] w-full' 
+                           : 'max-w-[80%]'
+                       } rounded-lg p-3 ${
+                         message.role === 'user'
+                           ? 'bg-primary text-primary-foreground'
+                           : 'bg-muted'
+                       } ${compactDensity ? 'p-2 text-sm' : ''}`}>
                       {typeof message.content === 'string' && message.content.split('\n').length > 10 && !message.collapsed ? (
                         <div>
                           <div className="flex items-start gap-2">
@@ -2725,7 +2736,47 @@ Please proceed with creating and executing this batch script.`;
                         </div>
                       )}
 
-                      {/* Execution Results Display */}
+                        {/* Usage Limit Card */}
+                        {message.usageLimitReached && message.role === 'assistant' && (
+                          <div className="mt-3">
+                            <UsageLimitCard
+                              currentUsage={message.usageLimitReached.currentUsage}
+                              limitAmount={message.usageLimitReached.limitAmount}
+                              planName={message.usageLimitReached.planName}
+                              onRefresh={() => {
+                                // Refresh agent usage data
+                                if (message.usageLimitReached) {
+                                  const agentId = message.usageLimitReached.agentId;
+                                  const refreshUsage = async () => {
+                                    try {
+                                      const { data } = await supabase.rpc('check_agent_usage_limit', {
+                                        _agent_id: agentId,
+                                        _usage_type: 'ai_request'
+                                      });
+                                      
+                                      if (data && data.length > 0) {
+                                        const usage = data[0];
+                                        setAgentUsageData(prev => ({
+                                          ...prev,
+                                          [agentId]: {
+                                            current: usage.current_usage || 0,
+                                            limit: usage.limit_amount,
+                                            plan: usage.plan_name || 'Unknown'
+                                          }
+                                        }));
+                                      }
+                                    } catch (error) {
+                                      console.error('Failed to refresh usage:', error);
+                                    }
+                                  };
+                                  refreshUsage();
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
+
+                       {/* Execution Results Display */}
                       {message.executionResult && (
                         <div className="mt-3">
                           <RenderedResultCard
