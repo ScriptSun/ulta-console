@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, Save, Loader2, FileText, Brain, Wrench, MessageCircle, Lightbulb, Command, RefreshCw } from 'lucide-react';
+import { Save, Loader2, Brain, RefreshCw } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import { useTheme } from 'next-themes';
 import { loadAllPromptsFromDB, savePromptToDB } from '@/lib/systemPromptsService';
@@ -18,64 +17,21 @@ interface PromptType {
   content: string;
 }
 
-const DEFAULT_PROMPT_TYPES: PromptType[] = [
-  {
-    key: 'router',
-    name: 'Router System Prompt',
-    description: 'Main decision-making prompt that routes user requests to appropriate actions or chat responses.',
-    usedBy: ['ultaai-router-decide', 'ws-router'],
-    icon: Brain,
-    content: ''
-  },
-  {
-    key: 'chat',
-    name: 'Chat System Prompt',
-    description: 'Friendly conversational prompt for general chat interactions and user support.',
-    usedBy: ['chat-api', 'chat-router'],
-    icon: MessageCircle,
-    content: ''
-  },
-  {
-    key: 'tools',
-    name: 'Tools System Prompt',
-    description: 'Technical prompt for executing server management tasks and handling tool operations.',
-    usedBy: ['ultaai-exec-run', 'ws-exec'],
-    icon: Wrench,
-    content: ''
-  },
-  {
-    key: 'advice',
-    name: 'Advice System Prompt',
-    description: 'Analytical prompt for generating system insights and performance recommendations.',
-    usedBy: ['ultaai-advice'],
-    icon: Lightbulb,
-    content: ''
-  },
-  {
-    key: 'input-filler',
-    name: 'Input Filler System Prompt',
-    description: 'Specialized prompt for automatically filling batch input parameters from user requests.',
-    usedBy: ['ultaai-inputs-fill'],
-    icon: FileText,
-    content: ''
-  },
-  {
-    key: 'command-suggestion',
-    name: 'Command Suggestion System Prompt',
-    description: 'Safety-focused prompt for analyzing and suggesting appropriate server commands.',
-    usedBy: ['ultaai-command-suggest'],
-    icon: Command,
-    content: ''
-  }
-];
+const DEFAULT_ROUTER_PROMPT: PromptType = {
+  key: 'router',
+  name: 'Router System Prompt',
+  description: 'Main decision-making prompt that routes user requests to appropriate actions or chat responses.',
+  usedBy: ['ultaai-router-decide', 'ws-router'],
+  icon: Brain,
+  content: ''
+};
 
 export function SystemPromptTab() {
   const { toast } = useToast();
   const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
-  const [prompts, setPrompts] = useState<PromptType[]>(DEFAULT_PROMPT_TYPES);
-  const [activeTab, setActiveTab] = useState('router');
-  const [savingPrompt, setSavingPrompt] = useState('');
+  const [routerPrompt, setRouterPrompt] = useState<PromptType>(DEFAULT_ROUTER_PROMPT);
+  const [savingPrompt, setSavingPrompt] = useState(false);
 
   useEffect(() => {
     loadPrompts();
@@ -84,77 +40,67 @@ export function SystemPromptTab() {
   const loadPrompts = async () => {
     setLoading(true);
     try {
-      console.log('🔄 Loading system prompts from database...');
+      console.log('🔄 Loading router system prompt from database...');
       
       const dbPrompts = await loadAllPromptsFromDB();
       
-      // Merge with default prompt types to ensure we have all metadata
-      const mergedPrompts = DEFAULT_PROMPT_TYPES.map(defaultPrompt => {
-        const dbPrompt = dbPrompts.find(p => p.prompt_key === defaultPrompt.key);
-        return {
-          ...defaultPrompt,
-          content: dbPrompt?.content || `# ${defaultPrompt.name}\n\nPrompt content not yet defined.`
-        };
-      });
+      // Find router prompt in database
+      const dbRouterPrompt = dbPrompts.find(p => p.prompt_key === 'router');
+      const updatedRouterPrompt = {
+        ...DEFAULT_ROUTER_PROMPT,
+        content: dbRouterPrompt?.content || `# ${DEFAULT_ROUTER_PROMPT.name}\n\nPrompt content not yet defined.`
+      };
 
-      setPrompts(mergedPrompts);
-      console.log('✅ All prompts loaded successfully from database');
+      setRouterPrompt(updatedRouterPrompt);
+      console.log('✅ Router prompt loaded successfully from database');
       
       toast({
-        title: 'Prompts Loaded',
-        description: 'System prompts loaded from database.',
+        title: 'Router Prompt Loaded',
+        description: 'Router system prompt loaded from database.',
       });
     } catch (error: any) {
-      console.error('❌ Failed to load prompts:', error);
+      console.error('❌ Failed to load router prompt:', error);
       toast({
         title: 'Loading Failed',
-        description: `Failed to load system prompts: ${error.message}`,
+        description: `Failed to load router prompt: ${error.message}`,
         variant: 'destructive',
       });
-      // Fall back to default prompts
-      setPrompts(DEFAULT_PROMPT_TYPES);
+      // Fall back to default prompt
+      setRouterPrompt(DEFAULT_ROUTER_PROMPT);
     } finally {
       setLoading(false);
     }
   };
 
-  const savePrompt = async (promptKey: string, content: string) => {
-    setSavingPrompt(promptKey);
+  const savePrompt = async (content: string) => {
+    setSavingPrompt(true);
     try {
-      console.log(`💾 Saving ${promptKey} prompt to database...`);
+      console.log(`💾 Saving router prompt to database...`);
       
-      await savePromptToDB(promptKey, content.trim());
+      await savePromptToDB('router', content.trim());
       
       // Update local state
-      setPrompts(prev => prev.map(p => 
-        p.key === promptKey ? { ...p, content } : p
-      ));
+      setRouterPrompt(prev => ({ ...prev, content }));
       
-      console.log(`✅ Successfully saved ${promptKey} prompt to database`);
+      console.log(`✅ Successfully saved router prompt to database`);
       toast({
-        title: 'Prompt Saved',
-        description: `${prompts.find(p => p.key === promptKey)?.name} has been saved to database.`,
+        title: 'Router Prompt Saved',
+        description: 'Router system prompt has been saved to database.',
       });
     } catch (error: any) {
-      console.error(`❌ Error saving ${promptKey} prompt:`, error);
+      console.error(`❌ Error saving router prompt:`, error);
       toast({
         title: 'Save Failed',
         description: `Failed to save prompt: ${error.message}`,
         variant: 'destructive',
       });
     } finally {
-      setSavingPrompt('');
+      setSavingPrompt(false);
     }
   };
 
-  const updatePromptContent = (promptKey: string, content: string) => {
-    setPrompts(prev => prev.map(p => 
-      p.key === promptKey ? { ...p, content } : p
-    ));
-  };
-
-  const getCurrentPrompt = () => {
-    return prompts.find(p => p.key === activeTab) || prompts[0];
+  const updatePromptContent = (content: string) => {
+    setRouterPrompt(prev => ({ ...prev, content }));
   };
 
   return (
@@ -162,107 +108,89 @@ export function SystemPromptTab() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Database-Stored System Prompts
+            <Brain className="h-5 w-5" />
+            Router System Prompt
           </CardTitle>
           <CardDescription>
-            Manage system prompts stored in database with Base64 encoding. Each prompt serves a specific purpose in the AI pipeline.
+            Main decision-making prompt that routes user requests to appropriate actions or chat responses.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-6">
-              {prompts.map((prompt) => {
-                const Icon = prompt.icon;
-                return (
-                  <TabsTrigger key={prompt.key} value={prompt.key} className="flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{prompt.name.split(' ')[0]}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+          <div className="space-y-4">
+            {/* Prompt Info */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                {routerPrompt.name}
+              </h3>
+              <p className="text-sm text-muted-foreground">{routerPrompt.description}</p>
+              <div className="flex flex-wrap gap-1">
+                {routerPrompt.usedBy.map((func) => (
+                  <Badge key={func} variant="secondary" className="text-xs">
+                    {func}
+                  </Badge>
+                ))}
+              </div>
+            </div>
 
-            {prompts.map((prompt) => (
-              <TabsContent key={prompt.key} value={prompt.key} className="mt-6">
-                <div className="space-y-4">
-                  {/* Prompt Info */}
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <prompt.icon className="h-5 w-5" />
-                      {prompt.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">{prompt.description}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {prompt.usedBy.map((func) => (
-                        <Badge key={func} variant="secondary" className="text-xs">
-                          {func}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Editor */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Prompt Content</label>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                          {prompt.content.length} characters
-                        </span>
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          onClick={loadPrompts}
-                          disabled={loading}
-                          className="gap-1"
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                          Reload
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="border border-border rounded-lg overflow-hidden">
-                      <Editor
-                        height="400px"
-                        language="markdown"
-                        theme={theme === 'dark' ? 'vs-dark' : 'vs'}
-                        value={prompt.content}
-                        onChange={(value) => updatePromptContent(prompt.key, value || '')}
-                        options={{
-                          minimap: { enabled: false },
-                          scrollBeyondLastLine: false,
-                          wordWrap: 'on',
-                          automaticLayout: true,
-                          fontSize: 14,
-                          lineNumbers: 'on',
-                          folding: true,
-                          tabSize: 2,
-                          insertSpaces: true
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Save Button */}
-                  <div className="flex justify-end">
-                    <Button 
-                      onClick={() => savePrompt(prompt.key, prompt.content)}
-                      disabled={savingPrompt === prompt.key}
-                      className="gap-2"
-                    >
-                      {savingPrompt === prompt.key ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4" />
-                      )}
-                      Save to Database
-                    </Button>
-                  </div>
+            {/* Editor */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Prompt Content</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {routerPrompt.content.length} characters
+                  </span>
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={loadPrompts}
+                    disabled={loading}
+                    className="gap-1"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Reload
+                  </Button>
                 </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+              </div>
+              <div className="border border-border rounded-lg overflow-hidden">
+                <Editor
+                  height="400px"
+                  language="markdown"
+                  theme={theme === 'dark' ? 'vs-dark' : 'vs'}
+                  value={routerPrompt.content}
+                  onChange={(value) => updatePromptContent(value || '')}
+                  options={{
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    wordWrap: 'on',
+                    automaticLayout: true,
+                    fontSize: 14,
+                    lineNumbers: 'on',
+                    folding: true,
+                    tabSize: 2,
+                    insertSpaces: true
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex justify-end">
+              <Button 
+                onClick={() => savePrompt(routerPrompt.content)}
+                disabled={savingPrompt}
+                className="gap-2"
+              >
+                {savingPrompt ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save to Database
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -273,10 +201,10 @@ export function SystemPromptTab() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="text-sm space-y-2">
-            <p>• <strong>Database storage:</strong> Prompts are stored in the `system_prompts` table with Base64 encoding</p>
+            <p>• <strong>Database storage:</strong> Router prompt is stored in the `system_prompts` table with Base64 encoding</p>
             <p>• <strong>No encoding issues:</strong> Base64 encoding handles HTML entities and Unicode characters</p>
-            <p>• <strong>Immediate effect:</strong> Changes take effect immediately across all services</p>
-            <p>• <strong>Specialized prompts:</strong> Each prompt is optimized for its specific use case</p>
+            <p>• <strong>Immediate effect:</strong> Changes take effect immediately across all router services</p>
+            <p>• <strong>Decision making:</strong> This prompt controls how user requests are routed and processed</p>
             <p>• <strong>Version tracking:</strong> Database tracks creation and update timestamps</p>
             <p>• <strong>Reliable:</strong> No file system dependencies or edge function issues</p>
           </div>
