@@ -452,7 +452,7 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
                   )}
                 </div>
                 <div className="p-4 bg-slate-900 border rounded-lg">
-                  <p className="text-xs text-gray-300 mb-2">Dark background</p>
+                  
                   {logoSettings.logo_dark_url && (
                     <img 
                       src={logoSettings.logo_dark_url} 
