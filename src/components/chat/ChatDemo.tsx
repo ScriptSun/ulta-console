@@ -1364,30 +1364,12 @@ Please try again or contact support if this persists.`;
         if (agentDetails.heartbeat && Object.keys(agentDetails.heartbeat).length > 0) {
           const agentInfoMessage = `New agent selected: ${agentDetails.hostname || agentDetails.agent_type} (${agentDetails.os}). Current status: ${agentDetails.status}. Latest heartbeat data: ${JSON.stringify(agentDetails.heartbeat, null, 2)}`;
           
-          // Add system message about agent selection
-          const systemMessage: Message = {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `🔄 Connected to agent: **${agentDetails.hostname || agentDetails.agent_type}**\n\n📊 **System Info:**\n- OS: ${agentDetails.os}\n- Status: ${agentDetails.status}\n- Type: ${agentDetails.agent_type}\n- Last seen: ${agentDetails.last_heartbeat ? new Date(agentDetails.last_heartbeat).toLocaleString() : 'Never'}\n\n💓 **Latest Heartbeat:**\n\`\`\`json\n${JSON.stringify(agentDetails.heartbeat, null, 2)}\n\`\`\`\n\nHow can I help you manage this system?`,
-            timestamp: new Date(),
-            pending: false
-          };
-
-          setMessages([systemMessage]);
+          // Don't add automatic messages - only show messages when user connects to OpenAI
           
           // Send heartbeat data to router for context
           console.log('Sending agent context to ChatGPT:', agentInfoMessage);
         } else {
-          // If no heartbeat, just show basic agent info
-          const basicInfoMessage: Message = {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `🔄 Connected to agent: **${agentDetails.hostname || agentDetails.agent_type}**\n\n📊 **System Info:**\n- OS: ${agentDetails.os}\n- Status: ${agentDetails.status}\n- Type: ${agentDetails.agent_type}\n\n⚠️ No recent heartbeat data available.\n\nHow can I help you manage this system?`,
-            timestamp: new Date(),
-            pending: false
-          };
-
-          setMessages([basicInfoMessage]);
+          // Don't add automatic messages - only show messages when user connects to OpenAI
         }
       }
     } catch (error) {
