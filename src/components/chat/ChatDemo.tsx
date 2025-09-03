@@ -159,6 +159,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [selectedAgentDetails, setSelectedAgentDetails] = useState<Agent | null>(null);
   const [selectedAgentHeartbeat, setSelectedAgentHeartbeat] = useState<any>(null);
+  const [agentUsageData, setAgentUsageData] = useState<Record<string, { current: number; limit: number; plan: string }>>({});
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -441,6 +442,34 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
 
   // Load agents
   useEffect(() => {
+    // Fetch agent usage data
+    const fetchAgentUsageData = async (agentIds: string[]) => {
+      const usageData: Record<string, { current: number; limit: number; plan: string }> = {};
+      
+      for (const agentId of agentIds) {
+        try {
+          const { data } = await supabase.rpc('check_agent_usage_limit', {
+            _agent_id: agentId,
+            _usage_type: 'ai_request'
+          });
+          
+          if (data && data.length > 0) {
+            const usage = data[0];
+            usageData[agentId] = {
+              current: usage.current_usage || 0,
+              limit: usage.limit_amount || 0,
+              plan: usage.plan_name || 'Unknown'
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch usage for agent ${agentId}:`, error);
+          usageData[agentId] = { current: 0, limit: 0, plan: 'Unknown' };
+        }
+      }
+      
+      setAgentUsageData(usageData);
+    };
+
     const loadAgents = async () => {
       try {
         const { data, error } = await supabase
@@ -452,6 +481,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
 
         if (data && data.length > 0) {
           setAgents(data);
+          
+          // Fetch usage data for all agents
+          await fetchAgentUsageData(data.map(agent => agent.id));
+          
           if (!selectedAgent) {
             const demoAgent = data.find(a => a.hostname?.includes('Demo') || a.agent_type === 'demo') || data[0];
             setSelectedAgent(demoAgent.id);
@@ -2089,17 +2122,38 @@ Please proceed with creating and executing this batch script.`;
                         <SelectTrigger className="w-80 h-8">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="z-50">
-                          {agents.map(agent => (
-                            <SelectItem key={agent.id} value={agent.id}>
-                              <div className="flex items-center gap-2">
-                                <span>{agent.hostname || `${agent.agent_type} Agent`}</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {agent.os}
-                                </Badge>
-                              </div>
-                            </SelectItem>
-                          ))}
+                         <SelectContent className="z-50">
+                          {agents.map(agent => {
+                            const usage = agentUsageData[agent.id];
+                            const usagePercent = usage ? Math.round((usage.current / usage.limit) * 100) : 0;
+                            const isNearLimit = usagePercent >= 80;
+                            
+                            return (
+                              <SelectItem key={agent.id} value={agent.id}>
+                                <div className="flex items-center justify-between w-full gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <span>{agent.hostname || `${agent.agent_type} Agent`}</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {agent.os}
+                                    </Badge>
+                                  </div>
+                                  {usage && (
+                                    <div className="flex items-center gap-2 ml-auto">
+                                      <Badge 
+                                        variant={isNearLimit ? "destructive" : "secondary"} 
+                                        className="text-xs"
+                                      >
+                                        {usage.current}/{usage.limit}
+                                      </Badge>
+                                      <span className="text-xs text-muted-foreground">
+                                        ({usagePercent}%)
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>
