@@ -439,7 +439,10 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
 
             {/* Live Preview */}
             <div className="space-y-4">
-              <Label>Live Preview</Label>
+            <Label className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-primary" />
+              Live Preview
+            </Label>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="p-4 bg-white border rounded-lg">
                   
