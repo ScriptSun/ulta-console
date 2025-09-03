@@ -524,6 +524,8 @@ export const BrandTheme = () => {
                             className="font-mono text-xs text-center h-8 rounded-lg bg-background/50 backdrop-blur-sm border border-border/30 hover:border-primary/30 focus:border-primary/60 transition-all duration-300"
                           />
                           
+                          {/* Subtle gradient overlay */}
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/5 via-transparent to-black/5 pointer-events-none"></div>
                         </div>
                       </div>
                     );
