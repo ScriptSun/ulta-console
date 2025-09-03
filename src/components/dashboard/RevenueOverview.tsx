@@ -194,7 +194,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           </div>
 
           {/* Churn Rate */}
-          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden shadow-md shadow-destructive/40">
+          <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden shadow-md shadow-destructive/20">
              <div className="flex items-center justify-between mb-3">
                <div className="text-sm font-medium text-muted-foreground">Churn Rate</div>
                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-destructive/20 text-destructive text-xs font-medium">
