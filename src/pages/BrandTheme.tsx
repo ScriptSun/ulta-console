@@ -561,7 +561,7 @@ export const BrandTheme = () => {
                                  } : null);
                                }}
                                placeholder="#000000"
-                               className="font-mono text-xs text-center h-8 bg-transparent border-0 border-b border-border/30 rounded-none hover:border-foreground/30 focus:border-primary focus:bg-muted/20 transition-all duration-200"
+                               className="font-mono text-xs text-center h-8 bg-input border border-border rounded-md hover:border-foreground/30 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all duration-200"
                              />
                            </div>
                          </div>
