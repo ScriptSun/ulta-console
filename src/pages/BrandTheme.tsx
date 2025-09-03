@@ -12,7 +12,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeSpec, ThemeValidationResult } from '@/types/themeTypes';
 import { apiTheme } from '@/lib/apiTheme';
 import { validateThemeHex, hexToHsl, hslToHex } from '@/lib/colorHelpers';
-import { applyCssVariables, CSS_VARIABLES_USAGE, AVAILABLE_VARIABLES } from '@/lib/cssVariablesWriter';
+import { applyCssVariables } from '@/lib/cssVariablesWriter';
 import { Palette, Sun, Moon, Monitor, Download, Upload, AlertTriangle, Copy, RotateCcw, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -43,6 +43,40 @@ const RADIUS_TOKENS = [
   { key: 'md', label: 'Medium', description: 'Medium radius' },
   { key: 'lg', label: 'Large', description: 'Large radius' },
   { key: 'xl', label: 'Extra Large', description: 'Extra large radius' }
+];
+
+const CSS_VARIABLES_USAGE = `/* Color variables */
+color: hsl(var(--primary));
+background-color: hsl(var(--background));
+border-color: hsl(var(--border));
+
+/* Gradient variables */
+background: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
+
+/* Radius variables */
+border-radius: var(--radius-sm);
+border-radius: var(--radius-md);
+border-radius: var(--radius-lg);
+border-radius: var(--radius-xl);`;
+
+const AVAILABLE_VARIABLES = [
+  '--primary',
+  '--secondary', 
+  '--accent',
+  '--background',
+  '--foreground',
+  '--muted',
+  '--card',
+  '--border',
+  '--destructive',
+  '--success',
+  '--warning',
+  '--gradient-start',
+  '--gradient-end',
+  '--radius-sm',
+  '--radius-md',
+  '--radius-lg',
+  '--radius-xl'
 ];
 
 export const BrandTheme = () => {
