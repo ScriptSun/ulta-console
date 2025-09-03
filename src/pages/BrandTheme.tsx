@@ -548,12 +548,21 @@ export const BrandTheme = () => {
                              <p className="text-xs text-muted-foreground">
                                {token.description}
                              </p>
-                             <div 
-                               className="font-mono text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors duration-200 select-all"
-                               onClick={() => copyToClipboard(hexValue || '')}
-                             >
-                               {hexValue}
-                             </div>
+                             <Input
+                               type="text"
+                               value={hexValue}
+                               onChange={(e) => {
+                                 const value = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`;
+                                 const hsl = hexToHsl(value);
+                                 setEditingTheme(prev => prev ? {
+                                   ...prev,
+                                   hex: { ...prev.hex, [token.key]: value },
+                                   hsl: { ...prev.hsl, [token.key]: hsl }
+                                 } : null);
+                               }}
+                               placeholder="#000000"
+                               className="font-mono text-xs text-center h-8 bg-transparent border-0 border-b border-border/30 rounded-none hover:border-foreground/30 focus:border-primary focus:bg-muted/20 transition-all duration-200"
+                             />
                            </div>
                          </div>
                        </div>
