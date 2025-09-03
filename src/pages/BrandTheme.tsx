@@ -296,47 +296,52 @@ export const BrandTheme = () => {
               const isActive = mode === pref.id;
               
               return (
-                <Button
+                <div
                   key={pref.id}
-                  variant="ghost"
                   className={`
-                    group relative h-auto p-6 flex flex-col items-center space-y-3 
-                    rounded-2xl border-2 transition-all duration-300 hover:scale-[1.02]
+                    relative cursor-pointer group p-6 rounded-xl transition-all duration-200 
                     ${isActive 
-                      ? 'bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/30 shadow-lg shadow-primary/10' 
-                      : 'bg-gradient-to-br from-muted/30 via-card/50 to-background/80 border-border/40 hover:border-primary/20 hover:bg-gradient-to-br hover:from-primary/5 hover:via-primary/2 hover:to-transparent'
+                      ? 'bg-primary text-primary-foreground shadow-lg' 
+                      : 'bg-card hover:bg-muted/50 border border-border hover:border-primary/20'
                     }
-                    backdrop-blur-sm
                   `}
                   onClick={() => handleThemePreferenceChange(pref.id)}
                 >
-                  <div className={`
-                    p-3 rounded-xl transition-all duration-300
-                    ${isActive 
-                      ? 'bg-gradient-to-br from-primary to-primary-dark shadow-lg shadow-primary/20' 
-                      : 'bg-gradient-to-br from-muted to-card border border-border/20 group-hover:from-primary/10 group-hover:to-primary/5'
-                    }
-                  `}>
-                    <Icon className={`h-7 w-7 transition-colors duration-300 ${
-                      isActive ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary'
-                    }`} />
-                  </div>
-                  <div className="text-center space-y-1">
-                    <div className={`font-semibold text-sm transition-colors duration-300 ${
-                      isActive ? 'text-primary' : 'text-foreground'
-                    }`}>{pref.name}</div>
-                    <div className={`text-xs transition-colors duration-300 ${
-                      isActive ? 'text-primary/70' : 'text-muted-foreground'
-                    }`}>{pref.description}</div>
-                  </div>
-                  {isActive && (
-                    <div className="absolute -top-2 -right-2">
-                      <div className="flex items-center justify-center w-6 h-6 bg-gradient-to-br from-primary to-primary-dark rounded-full shadow-lg shadow-primary/30 animate-pulse-glow">
-                        <div className="w-2 h-2 bg-primary-foreground rounded-full"></div>
-                      </div>
+                  <div className="flex items-center space-x-4">
+                    <div className={`
+                      flex items-center justify-center w-12 h-12 rounded-lg
+                      ${isActive 
+                        ? 'bg-primary-foreground/10' 
+                        : 'bg-muted group-hover:bg-primary/10'
+                      }
+                    `}>
+                      <Icon className={`h-6 w-6 ${
+                        isActive 
+                          ? 'text-primary-foreground' 
+                          : 'text-muted-foreground group-hover:text-primary'
+                      }`} />
                     </div>
-                  )}
-                </Button>
+                    <div className="flex-1">
+                      <h3 className={`font-medium text-base ${
+                        isActive ? 'text-primary-foreground' : 'text-foreground'
+                      }`}>
+                        {pref.name}
+                      </h3>
+                      <p className={`text-sm mt-1 ${
+                        isActive 
+                          ? 'text-primary-foreground/70' 
+                          : 'text-muted-foreground'
+                      }`}>
+                        {pref.description}
+                      </p>
+                    </div>
+                    {isActive && (
+                      <div className="flex items-center justify-center w-6 h-6 bg-primary-foreground rounded-full">
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               );
             })}
           </div>
