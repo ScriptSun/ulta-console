@@ -17,6 +17,8 @@ export function applyCssVariables(t: ThemeSpec) {
   r.setProperty("--destructive", to(m.destructive));
   r.setProperty("--success", to(m.success));
   r.setProperty("--warning", to(m.warning));
+  r.setProperty("--gradient-start", to(m.gradientStart));
+  r.setProperty("--gradient-end", to(m.gradientEnd));
   
   // Determine if theme is dark based on background lightness
   const isDark = m.background[2] < 50; // If lightness < 50%, it's dark
@@ -64,12 +66,18 @@ export function applyCssVariables(t: ThemeSpec) {
   r.setProperty("--radius-md", `${t.radius.md}px`);
   r.setProperty("--radius-lg", `${t.radius.lg}px`);
   r.setProperty("--radius-xl", `${t.radius.xl}px`);
+  
+  // Apply gradient variables
+  r.setProperty("--gradient-primary", `linear-gradient(135deg, hsl(${to(m.gradientStart)}), hsl(${to(m.gradientEnd)}))`);
 }
 
 export const CSS_VARIABLES_USAGE = `/* Color variables */
 color: hsl(var(--primary));
 background-color: hsl(var(--background));
 border-color: hsl(var(--border));
+
+/* Gradient variables */
+background: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
 
 /* Radius variables */
 border-radius: var(--radius-sm);
@@ -89,6 +97,8 @@ export const AVAILABLE_VARIABLES = [
   '--destructive',
   '--success',
   '--warning',
+  '--gradient-start',
+  '--gradient-end',
   '--radius-sm',
   '--radius-md',
   '--radius-lg',

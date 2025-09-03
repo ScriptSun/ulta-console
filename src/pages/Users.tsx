@@ -214,7 +214,7 @@ export default function Users() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-primary border-primary/20">
+        <Card className="border-primary/20" style={{ background: 'var(--gradient-primary)' }}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>

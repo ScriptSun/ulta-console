@@ -32,7 +32,9 @@ const COLOR_TOKENS = [
   { key: 'border', label: 'Border', description: 'Border color' },
   { key: 'destructive', label: 'Destructive', description: 'Error/danger color' },
   { key: 'success', label: 'Success', description: 'Success color' },
-  { key: 'warning', label: 'Warning', description: 'Warning color' }
+  { key: 'warning', label: 'Warning', description: 'Warning color' },
+  { key: 'gradientStart', label: 'Gradient Start', description: 'Gradient starting color' },
+  { key: 'gradientEnd', label: 'Gradient End', description: 'Gradient ending color' }
 ];
 
 const RADIUS_TOKENS = [
@@ -126,7 +128,9 @@ export const BrandTheme = () => {
         border: "#2d3748",
         destructive: "#ef4444",
         success: "#10b981",
-        warning: "#f59e0b"
+        warning: "#f59e0b",
+        gradientStart: "#1e293b",
+        gradientEnd: "#0a0e1a"
       },
       hsl: {
         primary: editingTheme.hsl.primary, // Keep user's primary color
@@ -139,7 +143,9 @@ export const BrandTheme = () => {
         border: [213, 22, 24],
         destructive: [0, 84, 60],
         success: [160, 84, 39],
-        warning: [48, 96, 53]
+        warning: [48, 96, 53],
+        gradientStart: [215, 28, 17],
+        gradientEnd: [220, 26, 7]
       }
     };
 
@@ -155,7 +161,9 @@ export const BrandTheme = () => {
         border: "#e2e8f0",
         destructive: "#ef4444",
         success: "#22c55e",
-        warning: "#f59e0b"
+        warning: "#f59e0b",
+        gradientStart: "#f8fafc",
+        gradientEnd: "#f1f5f9"
       },
       hsl: {
         primary: editingTheme.hsl.primary, // Keep user's primary color
@@ -168,7 +176,9 @@ export const BrandTheme = () => {
         border: [214, 32, 91],
         destructive: [0, 84, 60],
         success: [142, 76, 36],
-        warning: [48, 96, 53]
+        warning: [48, 96, 53],
+        gradientStart: [210, 40, 96],
+        gradientEnd: [210, 40, 95]
       }
     };
 
@@ -260,7 +270,9 @@ export const BrandTheme = () => {
         border: "#e2e8f0",
         destructive: "#ef4444",
         success: "#22c55e",
-        warning: "#f59e0b"
+        warning: "#f59e0b",
+        gradientStart: "#f8fafc",
+        gradientEnd: "#f1f5f9"
       },
       hsl: {
         primary: [262, 83, 58],
@@ -273,7 +285,9 @@ export const BrandTheme = () => {
         border: [214, 32, 91],
         destructive: [0, 84, 60],
         success: [142, 76, 36],
-        warning: [48, 96, 53]
+        warning: [48, 96, 53],
+        gradientStart: [210, 40, 96],
+        gradientEnd: [210, 40, 95]
       },
       radius: { sm: 6, md: 12, lg: 16, xl: 24 }
     };

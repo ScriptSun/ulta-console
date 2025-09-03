@@ -19,7 +19,9 @@ const defaultThemeSpec: ThemeSpec = {
     border: "#e2e8f0",
     destructive: "#ef4444",
     success: "#22c55e",
-    warning: "#f59e0b"
+    warning: "#f59e0b",
+    gradientStart: "#f8fafc",
+    gradientEnd: "#f1f5f9"
   },
   hsl: {
     primary: [262, 83, 58],
@@ -32,7 +34,9 @@ const defaultThemeSpec: ThemeSpec = {
     border: [214, 32, 91],
     destructive: [0, 84, 60],
     success: [142, 76, 36],
-    warning: [48, 96, 53]
+    warning: [48, 96, 53],
+    gradientStart: [210, 40, 96],
+    gradientEnd: [210, 40, 95]
   },
   radius: { sm: 6, md: 12, lg: 16, xl: 24 },
   updatedAt: new Date().toISOString(),
