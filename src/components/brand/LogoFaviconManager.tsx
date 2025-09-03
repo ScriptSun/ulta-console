@@ -13,7 +13,8 @@ import {
   Check,
   Image,
   Palette,
-  Settings
+  Settings,
+  RotateCcw
 } from 'lucide-react';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +41,8 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
     uploading, 
     uploadLogo, 
     saveLogoSettings, 
-    removeLogo 
+    removeLogo,
+    loadLogoSettings
   } = useCompanyLogo();
 
   const lightLogoRef = useRef<HTMLInputElement>(null);
@@ -222,8 +224,35 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
         </CardHeader>
 
         <CardContent className="space-y-8">
-          {/* Brand Logos Section - Main Content */}
-          <div className="bg-gradient-to-br from-card to-muted/50 border border-border/50 rounded-lg p-6 shadow-sm">
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Loading brand assets...</h3>
+                  <p className="text-sm text-muted-foreground">Please wait while we fetch your logos</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Retry Button */}
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Brand Assets</h2>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={loadLogoSettings}
+                  disabled={loading}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+
+              {/* Brand Logos Section - Main Content */}
+              <div className="bg-gradient-to-br from-card to-muted/50 border border-border/50 rounded-lg p-6 shadow-sm">
             <div className="space-y-6">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Palette className="h-5 w-5 text-primary" />
@@ -547,6 +576,8 @@ export function LogoFaviconManager({ open, onClose }: LogoFaviconManagerProps) {
               )}
             </Button>
           </div>
+          </>
+        )}
         </CardContent>
       </Card>
     </div>

@@ -30,6 +30,7 @@ export function useCompanyLogo() {
 
   const loadLogoSettings = async () => {
     try {
+      setLoading(true);
       console.log('Loading logo settings...');
       
       // Load public company logos - get the first active theme (for public display on login)
@@ -44,7 +45,12 @@ export function useCompanyLogo() {
       console.log('Logo query result:', { data, error });
 
       if (error && error.code !== 'PGRST116') {
-        throw error;
+        console.error('Database error:', error);
+        // Don't throw on network errors, just log them
+        if (!error.message?.includes('timeout') && !error.message?.includes('Network connection failed')) {
+          throw error;
+        }
+        return;
       }
 
       if (data) {
@@ -62,10 +68,27 @@ export function useCompanyLogo() {
           created_by: themeData.created_by
         });
       } else {
-        console.log('No active company theme found');
+        console.log('No active company theme found - creating default state');
+        // Set default state if no data found
+        setLogoSettings({
+          logo_light_url: '',
+          logo_dark_url: '',
+          email_logo_url: '',
+          favicon_source_url: '',
+          logo_width: 120,
+          logo_height: 40
+        });
       }
     } catch (err: any) {
       console.error('Error loading logo settings:', err);
+      // Show user-friendly error message
+      toast({
+        title: "Loading error",
+        description: "Failed to load logos. Please refresh the page.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
