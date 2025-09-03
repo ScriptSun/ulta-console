@@ -237,7 +237,11 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       
       // SECOND: Connect WebSocket for real-time communication
       console.log('🔌 Connecting WebSocket as part of OpenAI connection...');
-      connect();
+      if (!isConnected) {
+        connect();
+        // Wait a moment for connection to establish
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
       const heartbeatData = {
         agent_id: selectedAgent,
         hostname: selectedAgentDetails.hostname,

@@ -53,7 +53,6 @@ const securityItems = [
 
 const toolsItems = [
   { title: 'Subscription Plans', url: '/subscription-plans', icon: CreditCard, pageKey: 'plans' },
-  { title: 'Chat Widgets', url: '/widget-management', icon: Globe, pageKey: 'widgets' },
   { title: 'Integrations', url: '/integrations', icon: Puzzle, pageKey: 'integrations' },
   { title: 'AI Settings', url: '/ai-settings', icon: Brain, pageKey: 'ai-settings' },
   { title: 'Router Logs', url: '/router-logs', icon: FileText, pageKey: 'router-logs' },
