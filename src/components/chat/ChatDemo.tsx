@@ -267,7 +267,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
       const connectionMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `✅ Connected to OpenAI! Agent **${selectedAgentDetails.hostname}** is now linked and ready to receive commands.`,
+        content: "Server Connected, What's Next?",
         timestamp: new Date()
       };
       
