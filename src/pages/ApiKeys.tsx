@@ -238,7 +238,7 @@ export default function ApiKeys() {
                 </div>
               </div>
               <Badge variant="outline" className={getStatusColor(apiKey.status)}>
-                {apiKey.status}
+                {apiKey.status.charAt(0).toUpperCase() + apiKey.status.slice(1)}
               </Badge>
             </CardHeader>
             <CardContent className="space-y-4">
