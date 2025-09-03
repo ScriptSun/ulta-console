@@ -5,17 +5,19 @@ import { DollarSign, Users, TrendingDown, TrendingUp } from 'lucide-react';
 import { DateRange } from '@/hooks/useDateRangeFilter';
 import { useRevenueData } from '@/hooks/useRevenueData';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
 interface RevenueOverviewProps {
   dateRange: DateRange;
 }
-
-export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
-  const { data, isLoading, error } = useRevenueData(dateRange);
-
+export function RevenueOverview({
+  dateRange
+}: RevenueOverviewProps) {
+  const {
+    data,
+    isLoading,
+    error
+  } = useRevenueData(dateRange);
   if (error) {
-    return (
-      <Card className="bg-gradient-card border-card-border shadow-card">
+    return <Card className="bg-gradient-card border-card-border shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
@@ -25,13 +27,10 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         <CardContent className="flex items-center justify-center h-32">
           <p className="text-destructive">Failed to load revenue data</p>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
   if (isLoading) {
-    return (
-      <Card className="bg-gradient-card border-card-border shadow-card">
+    return <Card className="bg-gradient-card border-card-border shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
@@ -40,23 +39,18 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="p-4 rounded-lg bg-muted/30 animate-pulse">
+            {[...Array(3)].map((_, i) => <div key={i} className="p-4 rounded-lg bg-muted/30 animate-pulse">
                 <div className="h-4 bg-muted rounded w-20 mb-2"></div>
                 <div className="h-8 bg-muted rounded w-16 mb-2"></div>
                 <div className="h-3 bg-muted rounded w-24"></div>
-              </div>
-            ))}
+              </div>)}
           </div>
           <div className="h-64 bg-muted/30 rounded-lg animate-pulse"></div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
   if (!data) {
-    return (
-      <Card className="bg-gradient-card border-card-border shadow-card">
+    return <Card className="bg-gradient-card border-card-border shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
@@ -66,42 +60,29 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
         <CardContent className="flex items-center justify-center h-32">
           <p className="text-muted-foreground">No subscription data</p>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
 
   // Calculate trend indicators
   const mrrTrend = data.mrr > data.previousPeriodMrr ? 'up' : data.mrr < data.previousPeriodMrr ? 'down' : 'same';
   const arpuTrend = data.arpu > data.previousPeriodArpu ? 'up' : data.arpu < data.previousPeriodArpu ? 'down' : 'same';
   const churnTrend = data.churnRate < data.previousPeriodChurn ? 'up' : data.churnRate > data.previousPeriodChurn ? 'down' : 'same';
-
   const getTrendIcon = (trend: string, isChurn = false) => {
     if (trend === 'up') {
-      return isChurn ? (
-        <TrendingUp className="h-4 w-4 text-destructive" />
-      ) : (
-        <TrendingUp className="h-4 w-4 text-success" />
-      );
+      return isChurn ? <TrendingUp className="h-4 w-4 text-destructive" /> : <TrendingUp className="h-4 w-4 text-success" />;
     }
     if (trend === 'down') {
-      return isChurn ? (
-        <TrendingDown className="h-4 w-4 text-success" />
-      ) : (
-        <TrendingDown className="h-4 w-4 text-destructive" />
-      );
+      return isChurn ? <TrendingDown className="h-4 w-4 text-success" /> : <TrendingDown className="h-4 w-4 text-destructive" />;
     }
     return null;
   };
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
     }).format(value);
   };
-
-  return (
-    <Card className="bg-gradient-card border-card-border shadow-card">
+  return <Card className="bg-gradient-card border-card-border shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="h-5 w-5 text-primary" />
@@ -120,14 +101,11 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* MRR */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden shadow-sm shadow-success/20">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-muted-foreground">Recurring Revenue</div>
+              <div className="text-sm font-medium text-muted-foreground">Monthly Recurring Revenue</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/20 text-success text-xs font-medium">
                 {getTrendIcon(mrrTrend)}
                 <span>
-                  {data.previousPeriodMrr > 0 
-                    ? (((data.mrr - data.previousPeriodMrr) / data.previousPeriodMrr) * 100).toFixed(2)
-                    : '0.00'
-                  }%
+                  {data.previousPeriodMrr > 0 ? ((data.mrr - data.previousPeriodMrr) / data.previousPeriodMrr * 100).toFixed(2) : '0.00'}%
                 </span>
               </div>
             </div>
@@ -146,14 +124,11 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* ARPU */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted border border-card-border relative overflow-hidden">
              <div className="flex items-center justify-between mb-3">
-               <div className="text-sm font-medium text-muted-foreground">Revenue Per User</div>
+               <div className="text-sm font-medium text-muted-foreground">Average Revenue Per User</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium">
                 {getTrendIcon(arpuTrend)}
                 <span>
-                  {data.previousPeriodArpu > 0 
-                    ? (((data.arpu - data.previousPeriodArpu) / data.previousPeriodArpu) * 100).toFixed(2)
-                    : '0.00'
-                  }%
+                  {data.previousPeriodArpu > 0 ? ((data.arpu - data.previousPeriodArpu) / data.previousPeriodArpu * 100).toFixed(2) : '0.00'}%
                 </span>
               </div>
             </div>
@@ -171,14 +146,11 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           {/* Net Revenue */}
           <div className="p-6 rounded-lg bg-gradient-to-br from-card to-muted relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-muted-foreground">Net Revenue After AI Costs</div>
+              <div className="text-sm font-medium text-muted-foreground">Revenue After AI Costs</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary-foreground text-xs font-medium">
                 {getTrendIcon(data.netRevenue > data.previousPeriodNetRevenue ? 'up' : data.netRevenue < data.previousPeriodNetRevenue ? 'down' : 'same')}
                 <span className="text-primary">
-                  {data.previousPeriodNetRevenue > 0 
-                    ? (((data.netRevenue - data.previousPeriodNetRevenue) / data.previousPeriodNetRevenue) * 100).toFixed(2)
-                    : '0.00'
-                  }%
+                  {data.previousPeriodNetRevenue > 0 ? ((data.netRevenue - data.previousPeriodNetRevenue) / data.previousPeriodNetRevenue * 100).toFixed(2) : '0.00'}%
                 </span>
               </div>
             </div>
@@ -226,43 +198,51 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.mrrTrend}>
                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                   <XAxis 
-                     dataKey="date" 
-                     tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                     axisLine={{ stroke: 'hsl(var(--border))' }}
-                     tickLine={{ stroke: 'hsl(var(--border))' }}
-                    tickFormatter={(value) => {
-                      const date = new Date(value);
-                      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    }}
-                  />
-                   <YAxis 
-                     tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                     axisLine={{ stroke: 'hsl(var(--border))' }}
-                     tickLine={{ stroke: 'hsl(var(--border))' }}
-                    tickFormatter={(value) => `$${value}`}
-                  />
-                   <Tooltip 
-                     contentStyle={{
-                       backgroundColor: 'hsl(var(--card))',
-                       border: '1px solid hsl(var(--border))',
-                       borderRadius: '8px',
-                       color: 'hsl(var(--foreground))'
-                     }}
-                    formatter={(value) => [formatCurrency(Number(value)), 'MRR']}
-                    labelFormatter={(value) => {
-                      const date = new Date(value);
-                      return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="mrr" 
-                    stroke="#10b981" 
-                    strokeWidth={3}
-                    dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2, fill: 'hsl(var(--card))' }}
-                  />
+                   <XAxis dataKey="date" tick={{
+                  fontSize: 12,
+                  fill: 'hsl(var(--muted-foreground))'
+                }} axisLine={{
+                  stroke: 'hsl(var(--border))'
+                }} tickLine={{
+                  stroke: 'hsl(var(--border))'
+                }} tickFormatter={value => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric'
+                  });
+                }} />
+                   <YAxis tick={{
+                  fontSize: 12,
+                  fill: 'hsl(var(--muted-foreground))'
+                }} axisLine={{
+                  stroke: 'hsl(var(--border))'
+                }} tickLine={{
+                  stroke: 'hsl(var(--border))'
+                }} tickFormatter={value => `$${value}`} />
+                   <Tooltip contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  color: 'hsl(var(--foreground))'
+                }} formatter={value => [formatCurrency(Number(value)), 'MRR']} labelFormatter={value => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  });
+                }} />
+                  <Line type="monotone" dataKey="mrr" stroke="#10b981" strokeWidth={3} dot={{
+                  fill: '#10b981',
+                  strokeWidth: 2,
+                  r: 4
+                }} activeDot={{
+                  r: 6,
+                  stroke: '#10b981',
+                  strokeWidth: 2,
+                  fill: 'hsl(var(--card))'
+                }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -280,43 +260,49 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.churnTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                   <XAxis 
-                     dataKey="date" 
-                     tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                     axisLine={{ stroke: 'hsl(var(--border))' }}
-                     tickLine={{ stroke: 'hsl(var(--border))' }}
-                    tickFormatter={(value) => {
-                      const date = new Date(value);
-                      return date.toLocaleDateString('en-US', { month: 'short' });
-                    }}
-                  />
-                   <YAxis 
-                     tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                     axisLine={{ stroke: 'hsl(var(--border))' }}
-                     tickLine={{ stroke: 'hsl(var(--border))' }}
-                    tickFormatter={(value) => `${value}%`}
-                  />
-                   <Tooltip 
-                     contentStyle={{
-                       backgroundColor: 'hsl(var(--card))',
-                       border: '1px solid hsl(var(--border))',
-                       borderRadius: '8px',
-                       color: 'hsl(var(--foreground))'
-                     }}
-                    formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Churn Rate']}
-                    labelFormatter={(value) => {
-                      const date = new Date(value);
-                      return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="churn" 
-                    stroke="#ef4444" 
-                    strokeWidth={3}
-                    dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2, fill: 'hsl(var(--card))' }}
-                  />
+                   <XAxis dataKey="date" tick={{
+                  fontSize: 12,
+                  fill: 'hsl(var(--muted-foreground))'
+                }} axisLine={{
+                  stroke: 'hsl(var(--border))'
+                }} tickLine={{
+                  stroke: 'hsl(var(--border))'
+                }} tickFormatter={value => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString('en-US', {
+                    month: 'short'
+                  });
+                }} />
+                   <YAxis tick={{
+                  fontSize: 12,
+                  fill: 'hsl(var(--muted-foreground))'
+                }} axisLine={{
+                  stroke: 'hsl(var(--border))'
+                }} tickLine={{
+                  stroke: 'hsl(var(--border))'
+                }} tickFormatter={value => `${value}%`} />
+                   <Tooltip contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  color: 'hsl(var(--foreground))'
+                }} formatter={value => [`${Number(value).toFixed(1)}%`, 'Churn Rate']} labelFormatter={value => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString('en-US', {
+                    month: 'long',
+                    year: 'numeric'
+                  });
+                }} />
+                  <Line type="monotone" dataKey="churn" stroke="#ef4444" strokeWidth={3} dot={{
+                  fill: '#ef4444',
+                  strokeWidth: 2,
+                  r: 4
+                }} activeDot={{
+                  r: 6,
+                  stroke: '#ef4444',
+                  strokeWidth: 2,
+                  fill: 'hsl(var(--card))'
+                }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -326,6 +312,5 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
           </div>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 }
