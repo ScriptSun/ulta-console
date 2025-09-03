@@ -465,17 +465,6 @@ export const BrandTheme = () => {
             </TabsList>
 
             <TabsContent value="colors" className="space-y-6">
-              {/* Theme Name */}
-              <div className="space-y-2">
-                <Label htmlFor="theme-name">Theme Name</Label>
-                <Input
-                  id="theme-name"
-                  value={editingTheme.name || ''}
-                  onChange={(e) => setEditingTheme(prev => prev ? { ...prev, name: e.target.value } : null)}
-                  placeholder="Enter theme name"
-                />
-              </div>
-
               {/* Color Tokens */}
               <div className="space-y-4">
                 <h4 className="font-medium">Color Tokens</h4>
