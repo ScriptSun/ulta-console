@@ -174,7 +174,7 @@ export function RevenueOverview({ dateRange }: RevenueOverviewProps) {
               <div className="text-sm font-medium text-muted-foreground">Net Revenue After AI Costs</div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary-foreground text-xs font-medium">
                 {getTrendIcon(data.netRevenue > data.previousPeriodNetRevenue ? 'up' : data.netRevenue < data.previousPeriodNetRevenue ? 'down' : 'same')}
-                <span>
+                <span className="text-primary">
                   {data.previousPeriodNetRevenue > 0 
                     ? (((data.netRevenue - data.previousPeriodNetRevenue) / data.previousPeriodNetRevenue) * 100).toFixed(2)
                     : '0.00'
