@@ -468,7 +468,7 @@ export const BrandTheme = () => {
               {/* Color Tokens */}
               <div className="space-y-4">
                 <h4 className="font-medium">Color Tokens</h4>
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
                   {COLOR_TOKENS.map((token) => {
                     const hexValue = editingTheme.hex[token.key as keyof typeof editingTheme.hex];
                     
@@ -498,7 +498,12 @@ export const BrandTheme = () => {
                                   hex: { ...prev.hex, [token.key]: e.target.value }
                                 } : null);
                               }}
-                              className="w-12 h-9 p-0 border-0 rounded-lg cursor-pointer overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+                              className="w-12 h-9 p-0 border-0 rounded-lg cursor-pointer overflow-hidden"
+                              style={{ 
+                                background: 'none',
+                                boxShadow: 'none',
+                                outline: 'none'
+                              }}
                             />
                           </div>
                           <Input
