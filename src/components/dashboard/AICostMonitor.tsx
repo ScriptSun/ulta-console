@@ -183,7 +183,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
         {/* Summary Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {/* Total Cost */}
-          <div className="p-3 rounded-lg bg-card border border-primary/30 relative overflow-hidden">
+          <div className="p-3 rounded-lg bg-card relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
               <DollarSign className="h-3 w-3" />
               Total Cost
@@ -199,7 +199,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
           </div>
           
           {/* Total Tokens */}
-          <div className="p-3 rounded-lg bg-card border border-accent/30 relative overflow-hidden">
+          <div className="p-3 rounded-lg bg-card relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
               <Zap className="h-3 w-3" />
               Total Tokens
@@ -215,7 +215,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
           </div>
           
           {/* Requests */}
-          <div className="p-3 rounded-lg bg-card border border-secondary/30 relative overflow-hidden">
+          <div className="p-3 rounded-lg bg-card relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
               <BarChart className="h-3 w-3" />
               Requests
@@ -231,7 +231,7 @@ export function AICostMonitor({ costData, dateRange, isLoading }: AICostMonitorP
           </div>
           
           {/* Avg/Request */}
-          <div className="p-3 rounded-lg bg-card border border-primary/30 relative overflow-hidden">
+          <div className="p-3 rounded-lg bg-card relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
               <TrendingUp className="h-3 w-3" />
               Avg/Request
