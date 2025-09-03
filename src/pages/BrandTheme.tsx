@@ -279,7 +279,7 @@ export const BrandTheme = () => {
   return (
     <div className="space-y-6">
       {/* Theme Preference Card */}
-      <Card>
+      <Card className="bg-gradient-to-br from-card to-muted/50 border border-border/50 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Palette className="h-5 w-5" />
@@ -316,7 +316,7 @@ export const BrandTheme = () => {
       </Card>
 
       {/* Theme Customizer Card */}
-      <Card>
+      <Card className="bg-gradient-to-br from-card to-muted/50 border border-border/50 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Palette className="h-5 w-5" />
