@@ -8,8 +8,10 @@ import {
   Lock,
   Users,
   FileText,
-  ArrowRight
+  ArrowRight,
+  RefreshCw
 } from 'lucide-react';
+import { useSecurityDashboard } from '@/hooks/useSecurityDashboard';
 
 const securitySections = [
   {
@@ -47,6 +49,8 @@ const securitySections = [
 ];
 
 export default function Security() {
+  const { activeSessions, apiKeys, failedLogins, securityScore, loading, error, refreshData } = useSecurityDashboard();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -59,6 +63,15 @@ export default function Security() {
             Manage security settings, audit trails, and compliance
           </p>
         </div>
+        <Button 
+          onClick={refreshData} 
+          variant="outline" 
+          size="sm"
+          disabled={loading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Security Overview Stats - Moved to Top */}
@@ -68,7 +81,9 @@ export default function Security() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-primary-foreground/80">Active Sessions</p>
-                <p className="text-3xl font-bold text-primary-foreground">12</p>
+                <p className="text-3xl font-bold text-primary-foreground">
+                  {loading ? '...' : activeSessions}
+                </p>
                 <p className="text-xs text-primary-foreground/60">Current user sessions</p>
               </div>
               <Users className="h-8 w-8 text-primary-foreground/60" />
@@ -81,7 +96,9 @@ export default function Security() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-secondary-foreground/80">API Keys</p>
-                <p className="text-3xl font-bold text-secondary-foreground">8</p>
+                <p className="text-3xl font-bold text-secondary-foreground">
+                  {loading ? '...' : apiKeys}
+                </p>
                 <p className="text-xs text-secondary-foreground/60">Active API keys</p>
               </div>
               <Key className="h-8 w-8 text-secondary-foreground/60" />
@@ -94,7 +111,9 @@ export default function Security() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-accent-foreground/80">Failed Logins</p>
-                <p className="text-3xl font-bold text-accent-foreground">0</p>
+                <p className="text-3xl font-bold text-accent-foreground">
+                  {loading ? '...' : failedLogins}
+                </p>
                 <p className="text-xs text-accent-foreground/60">Last 24 hours</p>
               </div>
               <Lock className="h-8 w-8 text-accent-foreground/60" />
@@ -107,14 +126,28 @@ export default function Security() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground/80">Security Score</p>
-                <p className="text-3xl font-bold text-foreground">A+</p>
-                <p className="text-xs text-muted-foreground/60">Excellent security</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {loading ? '...' : securityScore}
+                </p>
+                <p className="text-xs text-muted-foreground/60">
+                  {securityScore === 'A+' ? 'Excellent security' : 
+                   securityScore.startsWith('A') ? 'Good security' : 
+                   securityScore.startsWith('B') ? 'Fair security' : 'Needs attention'}
+                </p>
               </div>
               <Shield className="h-8 w-8 text-muted-foreground/60" />
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <p className="text-sm text-destructive">
+            Error loading security data: {error}
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {securitySections.map((section) => {
