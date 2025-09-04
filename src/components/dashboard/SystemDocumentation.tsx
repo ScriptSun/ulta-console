@@ -59,7 +59,7 @@ export function SystemDocumentation({ children }: SystemDocumentationProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            System Documentation
+            Login Page Documentation
           </DialogTitle>
         </DialogHeader>
         
