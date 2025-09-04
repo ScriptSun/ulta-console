@@ -88,6 +88,9 @@ export default function NotificationSettings() {
   const [checkingDomain, setCheckingDomain] = useState(false);
   const [domainInput, setDomainInput] = useState('');
   const [testEmail, setTestEmail] = useState('test@example.com');
+  const [providerConfigs, setProviderConfigs] = useState<{
+    sendgrid?: { fromEmail?: string; fromName?: string; };
+  }>({});
 
   useEffect(() => {
     loadSettings();
@@ -273,7 +276,15 @@ export default function NotificationSettings() {
       if (type === 'email') {
         provider = settings.emailProviders.find(p => p.id === providerId);
         providerType = provider?.type || 'unknown';
-        config = { ...provider?.config, type: provider?.type, testEmail };
+        config = { 
+          ...provider?.config, 
+          type: provider?.type, 
+          testEmail,
+          ...(provider?.type === 'sendgrid' && {
+            fromEmail: providerConfigs.sendgrid?.fromEmail,
+            fromName: providerConfigs.sendgrid?.fromName
+          })
+        };
       } else {
         provider = settings.channelProviders.find(p => p.id === providerId);
         providerType = provider?.type || 'unknown';
@@ -414,14 +425,63 @@ export default function NotificationSettings() {
       case 'sendgrid':
       case 'resend':
         return (
-          <div>
-            <Label>API Key</Label>
-            <Input
-              type="password"
-              value={provider.config.apiKey || ''}
-              onChange={(e) => updateConfig('apiKey', e.target.value)}
-              placeholder="••••••••"
-            />
+          <div className="space-y-4">
+            <div>
+              <Label>API Key</Label>
+              <Input
+                type="password"
+                value={provider.config.apiKey || ''}
+                onChange={(e) => updateConfig('apiKey', e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+            {provider.type === 'sendgrid' && (
+              <>
+                <div>
+                  <Label htmlFor="fromEmail">From Email Address (must be verified in SendGrid)</Label>
+                  <Input
+                    id="fromEmail"
+                    type="email"
+                    placeholder="noreply@yourdomain.com"
+                    value={providerConfigs.sendgrid?.fromEmail || ''}
+                    onChange={(e) => setProviderConfigs({
+                      ...providerConfigs,
+                      sendgrid: {
+                        ...providerConfigs.sendgrid,
+                        fromEmail: e.target.value
+                      }
+                    })}
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    This must be a verified sender identity in your SendGrid account.{' '}
+                    <a
+                      href="https://app.sendgrid.com/settings/sender_auth"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Verify your sender identity here
+                    </a>
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="fromName">From Name (optional)</Label>
+                  <Input
+                    id="fromName"
+                    type="text"
+                    placeholder="Your App Name"
+                    value={providerConfigs.sendgrid?.fromName || ''}
+                    onChange={(e) => setProviderConfigs({
+                      ...providerConfigs,
+                      sendgrid: {
+                        ...providerConfigs.sendgrid,
+                        fromName: e.target.value
+                      }
+                    })}
+                  />
+                </div>
+              </>
+            )}
           </div>
         );
       

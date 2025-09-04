@@ -99,13 +99,22 @@ async function testEmailProvider(config: any): Promise<{ success: boolean; messa
         };
       }
 
+      // Validate from email is provided
+      if (!config.fromEmail) {
+        return {
+          success: false,
+          message: 'From email address is required for SendGrid',
+          error: 'You must provide a verified from email address'
+        };
+      }
+
       // Send actual test email via SendGrid
       const emailPayload = {
         personalizations: [{
           to: [{ email: testEmail }],
           subject: 'UltaAI Test Email'
         }],
-        from: { email: 'test@ultaai.com', name: 'UltaAI Test' },
+        from: { email: config.fromEmail, name: config.fromName || 'UltaAI Test' },
         content: [{
           type: 'text/html',
           value: '<h1>Test Email</h1><p>This is a test email from UltaAI notification system.</p>'
