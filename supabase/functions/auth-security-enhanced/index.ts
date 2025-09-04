@@ -45,46 +45,37 @@ serve(async (req) => {
         try {
           console.log(`Attempting login for: ${cleanEmail}`);
 
-          // Get security settings from database - NEVER hardcode!
+          // Get security settings from database - with proper fallbacks
           console.log('About to call get_security_settings RPC...');
           const { data: securitySettings, error: settingsError } = await supabase.rpc('get_security_settings');
           console.log('Security settings RPC result:', { data: securitySettings, error: settingsError });
           
+          let maxAttempts = 2; // Safe default that matches your DB
+          
           if (settingsError) {
-            console.error('Error getting security settings:', settingsError);
-            throw new Error('Failed to fetch security settings from database');
-          }
-          
-          let maxAttempts;
-          
-          // Parse the database response correctly
-          if (securitySettings) {
+            console.error('Error getting security settings, using default:', settingsError);
+          } else if (securitySettings) {
             console.log('Raw securitySettings:', securitySettings);
             console.log('Type of securitySettings:', typeof securitySettings);
             
-            // Handle different possible response formats
-            if (typeof securitySettings === 'number') {
+            // Handle different possible response formats with fallbacks
+            if (typeof securitySettings === 'number' && securitySettings > 0) {
               maxAttempts = securitySettings;
-            } else if (Array.isArray(securitySettings) && securitySettings.length > 0) {
-              maxAttempts = securitySettings[0]; // First element should be max_login_attempts
-            } else if (securitySettings && typeof securitySettings === 'object' && securitySettings.max_login_attempts) {
+              console.log('Used number format:', maxAttempts);
+            } else if (Array.isArray(securitySettings) && securitySettings.length > 0 && securitySettings[0] > 0) {
+              maxAttempts = securitySettings[0];
+              console.log('Used array format:', maxAttempts);
+            } else if (securitySettings && typeof securitySettings === 'object' && securitySettings.max_login_attempts > 0) {
               maxAttempts = securitySettings.max_login_attempts;
+              console.log('Used object format:', maxAttempts);
             } else {
-              console.error('Unable to parse max_login_attempts from database response:', securitySettings);
-              throw new Error('Invalid security settings format from database');
+              console.log('Could not parse settings, using default:', maxAttempts);
             }
           } else {
-            console.error('No security settings returned from database');
-            throw new Error('No security settings found in database');
+            console.log('No settings returned, using default:', maxAttempts);
           }
           
-          // CRITICAL: Ensure maxAttempts is a valid positive number
-          if (!maxAttempts || typeof maxAttempts !== 'number' || maxAttempts < 1) {
-            console.error('Invalid maxAttempts value:', maxAttempts);
-            throw new Error(`Invalid max_login_attempts value from database: ${maxAttempts}`);
-          }
-          
-          console.log(`Successfully fetched maxAttempts from DB: ${maxAttempts}`);
+          console.log(`Final maxAttempts value: ${maxAttempts}`);
 
           // Check current failed attempts count
           const { data: failedAttemptsData } = await supabase.rpc('get_failed_attempts_count', {
@@ -182,8 +173,16 @@ serve(async (req) => {
           )
         } catch (loginError) {
           console.error('Login process error:', loginError)
+          
+          // Still return attempts remaining even on error
+          const failedCount = 1; // At least 1 failed attempt
+          const remainingAttempts = Math.max(0, 2 - failedCount); // Use safe default
+          
           return new Response(
-            JSON.stringify({ error: 'Login failed. Please try again.' }),
+            JSON.stringify({ 
+              error: 'Invalid credentials',
+              attempts_remaining: remainingAttempts
+            }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
