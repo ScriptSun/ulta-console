@@ -54,8 +54,16 @@ serve(async (req) => {
             console.error('Error getting security settings:', settingsError);
           }
           
-          const maxAttempts = securitySettings?.max_login_attempts || 5;
-          console.log(`Max attempts set to: ${maxAttempts}`, 'from settings:', securitySettings);
+          // Extract max_login_attempts properly
+          let maxAttempts = 5; // Default fallback
+          if (securitySettings && typeof securitySettings === 'object' && securitySettings.max_login_attempts) {
+            maxAttempts = securitySettings.max_login_attempts;
+            console.log(`Using max_login_attempts from DB: ${maxAttempts}`);
+          } else {
+            console.warn('Failed to get max_login_attempts from DB, using default:', maxAttempts);
+          }
+          
+          console.log(`Final maxAttempts value: ${maxAttempts}`);
 
           // Check current failed attempts count
           const { data: failedAttemptsData } = await supabase.rpc('get_failed_attempts_count', {
