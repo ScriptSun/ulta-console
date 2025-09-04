@@ -346,7 +346,7 @@ export default function NotificationSettings() {
       case 'sendgrid':
         return { apiKey: '' };
       case 'mailgun':
-        return { domain: '', region: 'us', apiKey: '' };
+        return { domain: '', region: 'us', apiKey: '', fromEmail: '', fromName: '' };
       case 'ses':
         return { accessKey: '', secretKey: '', region: 'us-east-1' };
       case 'postmark':
@@ -682,7 +682,23 @@ export default function NotificationSettings() {
                 type="password"
                 value={provider.config.apiKey || ''}
                 onChange={(e) => updateConfig('apiKey', e.target.value)}
-                placeholder="••••••••"
+                placeholder="key-••••••••••••••••••••••••••••••••"
+              />
+            </div>
+            <div>
+              <Label>From Email</Label>
+              <Input
+                value={provider.config.fromEmail || ''}
+                onChange={(e) => updateConfig('fromEmail', e.target.value)}
+                placeholder="noreply@yourdomain.com"
+              />
+            </div>
+            <div>
+              <Label>From Name</Label>
+              <Input
+                value={provider.config.fromName || ''}
+                onChange={(e) => updateConfig('fromName', e.target.value)}
+                placeholder="Your Company Name"
               />
             </div>
           </div>
