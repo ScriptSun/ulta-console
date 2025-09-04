@@ -283,6 +283,50 @@ const App = () => (
                 </RootLayout>
               </ProtectedRoute>
             } />
+            {/* Individual system settings pages */}
+            <Route path="/system-settings/ai-models" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <AiSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/system-settings/api-limits" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <SystemSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/system-settings/security" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <SystemSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/system-settings/notifications" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <SystemSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/system-settings/upgrade" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <SystemSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/system-settings/theme" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <SystemSettings />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            {/* Brand routes */}
             <Route path="/system-settings/brand" element={
               <ProtectedRoute>
                 <RootLayout>
