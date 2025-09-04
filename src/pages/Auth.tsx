@@ -8,21 +8,29 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
+import { useEnhancedSecurity } from '@/hooks/useEnhancedSecurity';
 import { useTheme } from 'next-themes';
-import { Loader2, Mail, Lock, Building, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Loader2, Mail, Lock, Building, Eye, EyeOff, ArrowLeft, Shield, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Auth = () => {
-  const { user, signIn, loading } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { logoSettings } = useCompanyLogo();
   const { theme } = useTheme();
+  const { performSecureLogin, loading: securityLoading } = useEnhancedSecurity();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [securityAlert, setSecurityAlert] = useState<{
+    type: 'warning' | 'error';
+    message: string;
+    details?: string;
+  } | null>(null);
 
   // Force redirect for authenticated users
   useEffect(() => {
@@ -74,32 +82,83 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSecurityAlert(null);
     
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    console.log('Attempting login for:', email);
-    const { error } = await signIn(email, password);
+    console.log('Attempting secure login for:', email);
     
-    if (error) {
-      console.log('Login failed:', error.message);
+    try {
+      const result = await performSecureLogin(
+        email, 
+        password, 
+        undefined, // IP will be captured by the edge function
+        navigator.userAgent
+      );
+      
+      if (result.error) {
+        console.log('Login failed:', result.error);
+        
+        // Handle different types of security errors
+        if (result.locked_until) {
+          const lockoutTime = new Date(result.locked_until).toLocaleString();
+          setSecurityAlert({
+            type: 'error',
+            message: `Account temporarily locked`,
+            details: `Account locked until ${lockoutTime}. ${result.ban_reason || 'Too many failed login attempts.'}`
+          });
+        } else if (result.attempts_remaining !== undefined) {
+          setSecurityAlert({
+            type: 'warning',
+            message: `Login failed - ${result.attempts_remaining} attempts remaining`,
+            details: result.attempts_remaining === 0 ? 'Account will be locked after next failed attempt.' : undefined
+          });
+        } else {
+          setSecurityAlert({
+            type: 'error',
+            message: result.error,
+            details: undefined
+          });
+        }
+        
+        toast({
+          title: 'Sign In Failed',
+          description: result.error,
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+      } else if (result.user && result.session) {
+        console.log('Login successful! Session established.');
+        
+        // Clear any security alerts
+        setSecurityAlert(null);
+        
+        // Show success message
+        toast({
+          title: 'Welcome back!',
+          description: 'Login successful - redirecting to dashboard...',
+        });
+        
+        // The session is already set by performSecureLogin, navigate to dashboard
+        navigate('/dashboard', { replace: true });
+      } else {
+        throw new Error('Login succeeded but no session returned');
+      }
+    } catch (error: any) {
+      console.error('Secure login error:', error);
+      setSecurityAlert({
+        type: 'error',
+        message: 'Login failed',
+        details: error.message || 'An unexpected error occurred. Please try again.'
+      });
       toast({
-        title: 'Sign In Failed',
-        description: error.message || 'Invalid email or password',
+        title: 'Login Error',
+        description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       });
       setIsSubmitting(false);
-    } else {
-      console.log('Login successful! Session should be established automatically.');
-      
-      // Show success message - the useEffect will handle redirect
-      toast({
-        title: 'Welcome back!',
-        description: 'Login successful',
-      });
-      
-      // Don't set isSubmitting to false - let the redirect happen
     }
   };
 
@@ -289,6 +348,23 @@ const Auth = () => {
 
                 {!showDashboardButton && (
                   <>
+                    {/* Security Alert */}
+                    {securityAlert && (
+                      <Alert className={`mb-4 ${securityAlert.type === 'error' ? 'border-red-200 bg-red-50' : 'border-yellow-200 bg-yellow-50'}`}>
+                        {securityAlert.type === 'error' ? (
+                          <AlertTriangle className="h-4 w-4 text-red-600" />
+                        ) : (
+                          <Shield className="h-4 w-4 text-yellow-600" />
+                        )}
+                        <AlertDescription className={securityAlert.type === 'error' ? 'text-red-800' : 'text-yellow-800'}>
+                          <div className="font-medium">{securityAlert.message}</div>
+                          {securityAlert.details && (
+                            <div className="text-sm mt-1">{securityAlert.details}</div>
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     {/* Google Auth Button */}
                     <Button
                       type="button"

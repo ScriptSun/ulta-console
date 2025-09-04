@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SecurityDemo } from '@/components/security/SecurityDemo';
 
 export default function SecuritySettings() {
   const navigate = useNavigate();
@@ -296,6 +297,9 @@ export default function SecuritySettings() {
           )}
         </Button>
       </div>
+
+      {/* Security Testing Demo */}
+      <SecurityDemo />
     </div>
   );
 }

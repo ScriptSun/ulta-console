@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useEnhancedSecurity } from '@/hooks/useEnhancedSecurity';
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +12,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isSessionValid: boolean;
   securityStatus: any;
+  validatePassword?: (password: string) => Promise<{ valid: boolean; errors: string[] }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,28 +33,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Session heartbeat interval
   const [heartbeatInterval, setHeartbeatInterval] = useState<NodeJS.Timeout | null>(null);
   
-  // Use security enforcement hook - disabled temporarily to prevent loading issues
+  // Enhanced security integration
   const { 
     isSessionValid, 
     securityStatus, 
-    performSecureLogin 
-  } = {
-    isSessionValid: true,
-    securityStatus: null,
-    performSecureLogin: async (email: string, password: string) => {
-      // Fallback to direct Supabase auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        return { error: error.message };
-      }
-      
-      return { user: data.user, session: data.session };
-    }
-  };
+    performSecureLogin,
+    validatePassword 
+  } = useEnhancedSecurity();
 
   useEffect(() => {
     let mounted = true;
@@ -257,20 +244,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, username?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    console.log('SignUp called for:', email);
     
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          username: username || email.split('@')[0],
-          full_name: username || email.split('@')[0]
+    try {
+      // First validate the password against security policy
+      if (validatePassword) {
+        const validation = await validatePassword(password);
+        if (!validation.valid) {
+          return { 
+            error: { 
+              message: 'Password does not meet security requirements', 
+              details: validation.errors 
+            } 
+          };
         }
       }
-    });
-    return { error };
+
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            username: username || email.split('@')[0],
+            full_name: username || email.split('@')[0]
+          }
+        }
+      });
+      
+      if (error) {
+        console.error('Sign up error:', error.message);
+        return { error: { message: error.message } };
+      }
+      
+      console.log('Sign up successful for:', email);
+      return { error: null };
+      
+    } catch (error: any) {
+      console.error('Sign up failed:', error);
+      return { error: { message: 'Sign up failed. Please try again later.' } };
+    }
   };
 
   const signOut = async () => {
@@ -304,7 +319,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     isSessionValid,
-    securityStatus
+    securityStatus,
+    validatePassword
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
