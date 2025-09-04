@@ -7,9 +7,25 @@ interface AISettings {
   temperature: number;
 }
 
+interface APILimitSettings {
+  requests_per_minute: number;
+  requests_per_hour: number;
+  requests_per_day: number;
+  connection_timeout: number;
+  read_timeout: number;
+  write_timeout: number;
+  max_concurrent_requests: number;
+  max_concurrent_per_user: number;
+  enable_rate_limiting: boolean;
+  enable_request_logging: boolean;
+  enable_circuit_breaker: boolean;
+  failure_threshold: number;
+  recovery_timeout: number;
+}
+
 interface SystemSettings {
   ai_models: AISettings;
-  rate_limits: any;
+  rate_limits: APILimitSettings;
   security: any;
   notifications: any;
   upgrade_url: string;
@@ -137,6 +153,68 @@ class SystemSettingsService {
       this.settingsCache.upgrade_url = url;
     } catch (error) {
       console.error('Error setting upgrade URL:', error);
+      throw error;
+    }
+  }
+
+  public async getAPILimits(): Promise<APILimitSettings> {
+    await this.loadSettings();
+    
+    const rateLimits = this.settingsCache.rate_limits;
+    if (rateLimits && typeof rateLimits === 'object') {
+      return {
+        requests_per_minute: rateLimits.requests_per_minute || 100,
+        requests_per_hour: rateLimits.requests_per_hour || 1000,
+        requests_per_day: rateLimits.requests_per_day || 10000,
+        connection_timeout: rateLimits.connection_timeout || 30,
+        read_timeout: rateLimits.read_timeout || 60,
+        write_timeout: rateLimits.write_timeout || 60,
+        max_concurrent_requests: rateLimits.max_concurrent_requests || 50,
+        max_concurrent_per_user: rateLimits.max_concurrent_per_user || 10,
+        enable_rate_limiting: rateLimits.enable_rate_limiting !== false,
+        enable_request_logging: rateLimits.enable_request_logging !== false,
+        enable_circuit_breaker: rateLimits.enable_circuit_breaker || false,
+        failure_threshold: rateLimits.failure_threshold || 5,
+        recovery_timeout: rateLimits.recovery_timeout || 60,
+      };
+    }
+    
+    // Default fallback settings
+    return {
+      requests_per_minute: 100,
+      requests_per_hour: 1000,
+      requests_per_day: 10000,
+      connection_timeout: 30,
+      read_timeout: 60,
+      write_timeout: 60,
+      max_concurrent_requests: 50,
+      max_concurrent_per_user: 10,
+      enable_rate_limiting: true,
+      enable_request_logging: true,
+      enable_circuit_breaker: false,
+      failure_threshold: 5,
+      recovery_timeout: 60,
+    };
+  }
+
+  public async setAPILimits(settings: APILimitSettings): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({ 
+          setting_key: 'rate_limits',
+          setting_value: settings as any
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      // Update cache
+      this.settingsCache.rate_limits = settings;
+      this.lastCacheUpdate = Date.now();
+    } catch (error) {
+      console.error('Error setting API limits:', error);
       throw error;
     }
   }

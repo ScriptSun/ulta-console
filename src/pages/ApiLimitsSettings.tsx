@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { systemSettingsService } from '@/lib/systemSettingsService';
 import { 
   Zap, 
   Clock, 
@@ -25,6 +26,7 @@ export default function ApiLimitsSettings() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   
   // API Rate Limits
   const [requestsPerMinute, setRequestsPerMinute] = useState('100');
@@ -49,17 +51,67 @@ export default function ApiLimitsSettings() {
   const [failureThreshold, setFailureThreshold] = useState('5');
   const [recoveryTimeout, setRecoveryTimeout] = useState('60');
 
+  // Load settings on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await systemSettingsService.getAPILimits();
+        
+        setRequestsPerMinute(settings.requests_per_minute.toString());
+        setRequestsPerHour(settings.requests_per_hour.toString());
+        setRequestsPerDay(settings.requests_per_day.toString());
+        setConnectionTimeout(settings.connection_timeout.toString());
+        setReadTimeout(settings.read_timeout.toString());
+        setWriteTimeout(settings.write_timeout.toString());
+        setMaxConcurrentRequests(settings.max_concurrent_requests.toString());
+        setMaxConcurrentPerUser(settings.max_concurrent_per_user.toString());
+        setEnableRateLimiting(settings.enable_rate_limiting);
+        setEnableRequestLogging(settings.enable_request_logging);
+        setEnableCircuitBreaker(settings.enable_circuit_breaker);
+        setFailureThreshold(settings.failure_threshold.toString());
+        setRecoveryTimeout(settings.recovery_timeout.toString());
+      } catch (error) {
+        console.error('Failed to load API settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load API settings. Using defaults.",
+          variant: "destructive",
+        });
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [toast]);
+
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const settings = {
+        requests_per_minute: parseInt(requestsPerMinute) || 100,
+        requests_per_hour: parseInt(requestsPerHour) || 1000,
+        requests_per_day: parseInt(requestsPerDay) || 10000,
+        connection_timeout: parseInt(connectionTimeout) || 30,
+        read_timeout: parseInt(readTimeout) || 60,
+        write_timeout: parseInt(writeTimeout) || 60,
+        max_concurrent_requests: parseInt(maxConcurrentRequests) || 50,
+        max_concurrent_per_user: parseInt(maxConcurrentPerUser) || 10,
+        enable_rate_limiting: enableRateLimiting,
+        enable_request_logging: enableRequestLogging,
+        enable_circuit_breaker: enableCircuitBreaker,
+        failure_threshold: parseInt(failureThreshold) || 5,
+        recovery_timeout: parseInt(recoveryTimeout) || 60,
+      };
+
+      await systemSettingsService.setAPILimits(settings);
       
       toast({
         title: "Settings saved",
         description: "API limits and timeout settings have been updated successfully.",
       });
     } catch (error) {
+      console.error('Error saving settings:', error);
       toast({
         title: "Error",
         description: "Failed to save settings. Please try again.",
@@ -90,6 +142,35 @@ export default function ApiLimitsSettings() {
       description: "All settings have been reset to their default values.",
     });
   };
+
+  if (initialLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate('/system-settings')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to System Settings
+          </Button>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Zap className="h-8 w-8 text-orange-600" />
+            API & Rate Limits
+          </h1>
+          <p className="text-muted-foreground">
+            Loading API settings...
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
