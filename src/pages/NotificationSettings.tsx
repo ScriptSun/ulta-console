@@ -100,13 +100,14 @@ export default function NotificationSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
-  const [savingField, setSavingField] = useState<string | null>(null);
+  const [savingProvider, setSavingProvider] = useState<string | null>(null);
   const [checkingDomain, setCheckingDomain] = useState(false);
   const [domainInput, setDomainInput] = useState('');
   const [testEmail, setTestEmail] = useState('test@example.com');
-  const [providerConfigs, setProviderConfigs] = useState<{
-    sendgrid?: { fromEmail?: string; fromName?: string; };
-  }>({});
+  
+  // Local state for unsaved provider configurations
+  const [localConfigs, setLocalConfigs] = useState<{[providerId: string]: any}>({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<{[providerId: string]: boolean}>({});
 
   useEffect(() => {
     loadSettings();
@@ -379,7 +380,7 @@ export default function NotificationSettings() {
   };
 
   const updateEmailProvider = async (providerId: string, updates: Partial<EmailProvider>) => {
-    setSavingField(`${providerId}-saving`);
+    setSavingProvider(providerId);
     try {
       const { error } = await supabase
         .from('email_providers')
@@ -402,7 +403,7 @@ export default function NotificationSettings() {
         variant: "destructive",
       });
     } finally {
-      setTimeout(() => setSavingField(null), 500);
+      setTimeout(() => setSavingProvider(null), 500);
     }
   };
 
@@ -534,11 +535,61 @@ export default function NotificationSettings() {
     }
   };
 
-  const renderEmailProviderConfig = (provider: EmailProvider) => {
-    const updateConfig = (key: string, value: any) => {
-      updateEmailProvider(provider.id, {
-        config: { ...provider.config, [key]: value }
+  // Save provider configuration
+  const saveProviderConfig = async (providerId: string) => {
+    setSavingProvider(providerId);
+    try {
+      const config = localConfigs[providerId];
+      const { error } = await supabase
+        .from('email_providers')
+        .update({ config })
+        .eq('id', providerId);
+
+      if (error) throw error;
+
+      // Update settings state
+      setSettings(prev => ({
+        ...prev,
+        emailProviders: prev.emailProviders.map(p => 
+          p.id === providerId ? { ...p, config } : p
+        )
+      }));
+
+      // Clear unsaved changes
+      setHasUnsavedChanges(prev => ({
+        ...prev,
+        [providerId]: false
+      }));
+
+      toast({
+        title: "Provider saved",
+        description: "Configuration has been saved successfully.",
       });
+    } catch (error) {
+      console.error('Error saving provider:', error);
+      toast({
+        title: "Error saving provider",
+        description: "Failed to save configuration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingProvider(null);
+    }
+  };
+
+  const renderEmailProviderConfig = (provider: EmailProvider) => {
+    // Get current config (local if exists, otherwise from provider)
+    const currentConfig = localConfigs[provider.id] || provider.config;
+    
+    const updateLocalConfig = (key: string, value: any) => {
+      setLocalConfigs(prev => ({
+        ...prev,
+        [provider.id]: { ...currentConfig, [key]: value }
+      }));
+      setHasUnsavedChanges(prev => ({
+        ...prev,
+        [provider.id]: true
+      }));
     };
 
     switch (provider.type) {
@@ -548,24 +599,24 @@ export default function NotificationSettings() {
             <div>
               <Label>Host</Label>
               <Input
-                value={provider.config.host || ''}
-                onChange={(e) => updateConfig('host', e.target.value)}
+                value={currentConfig.host || ''}
+                onChange={(e) => updateLocalConfig('host', e.target.value)}
                 placeholder="smtp.gmail.com"
               />
             </div>
             <div>
               <Label>Port</Label>
               <Input
-                value={provider.config.port || ''}
-                onChange={(e) => updateConfig('port', e.target.value)}
+                value={currentConfig.port || ''}
+                onChange={(e) => updateLocalConfig('port', e.target.value)}
                 placeholder="587"
               />
             </div>
             <div>
               <Label>Username</Label>
               <Input
-                value={provider.config.username || ''}
-                onChange={(e) => updateConfig('username', e.target.value)}
+                value={currentConfig.username || ''}
+                onChange={(e) => updateLocalConfig('username', e.target.value)}
                 placeholder="your-email@example.com"
               />
             </div>
@@ -573,15 +624,15 @@ export default function NotificationSettings() {
               <Label>Password</Label>
               <Input
                 type="password"
-                value={provider.config.password || ''}
-                onChange={(e) => updateConfig('password', e.target.value)}
+                value={currentConfig.password || ''}
+                onChange={(e) => updateLocalConfig('password', e.target.value)}
                 placeholder="••••••••"
               />
             </div>
             <div className="col-span-2 flex items-center space-x-2">
               <Switch
-                checked={provider.config.tls || false}
-                onCheckedChange={(checked) => updateConfig('tls', checked)}
+                checked={currentConfig.tls || false}
+                onCheckedChange={(checked) => updateLocalConfig('tls', checked)}
               />
               <Label>Use TLS</Label>
             </div>
@@ -596,8 +647,8 @@ export default function NotificationSettings() {
               <Label>API Key</Label>
               <Input
                 type="password"
-                value={provider.config.apiKey || ''}
-                onChange={(e) => updateConfig('apiKey', e.target.value)}
+                value={currentConfig.apiKey || ''}
+                onChange={(e) => updateLocalConfig('apiKey', e.target.value)}
                 placeholder="••••••••"
               />
             </div>
@@ -609,8 +660,8 @@ export default function NotificationSettings() {
                     id="fromEmail"
                     type="email"
                     placeholder="noreply@yourdomain.com"
-                    value={provider.config.fromEmail || ''}
-                    onChange={(e) => updateConfig('fromEmail', e.target.value)}
+                    value={currentConfig.fromEmail || ''}
+                    onChange={(e) => updateLocalConfig('fromEmail', e.target.value)}
                   />
                   <p className="text-sm text-muted-foreground mt-1">
                     This must be a verified sender identity in your {provider.type} account.
@@ -646,8 +697,8 @@ export default function NotificationSettings() {
                     id="fromName"
                     type="text"
                     placeholder="Your App Name"
-                    value={provider.config.fromName || ''}
-                    onChange={(e) => updateConfig('fromName', e.target.value)}
+                    value={currentConfig.fromName || ''}
+                    onChange={(e) => updateLocalConfig('fromName', e.target.value)}
                   />
                 </div>
               </>
@@ -661,16 +712,16 @@ export default function NotificationSettings() {
             <div>
               <Label>Domain</Label>
               <Input
-                value={provider.config.domain || ''}
-                onChange={(e) => updateConfig('domain', e.target.value)}
+                value={currentConfig.domain || ''}
+                onChange={(e) => updateLocalConfig('domain', e.target.value)}
                 placeholder="mg.example.com"
               />
             </div>
             <div>
               <Label>Region</Label>
               <Select 
-                value={provider.config.region || 'us'} 
-                onValueChange={(value) => updateConfig('region', value)}
+                value={currentConfig.region || 'us'} 
+                onValueChange={(value) => updateLocalConfig('region', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -685,24 +736,24 @@ export default function NotificationSettings() {
               <Label>API Key</Label>
               <Input
                 type="password"
-                value={provider.config.apiKey || ''}
-                onChange={(e) => updateConfig('apiKey', e.target.value)}
+                value={currentConfig.apiKey || ''}
+                onChange={(e) => updateLocalConfig('apiKey', e.target.value)}
                 placeholder="key-••••••••••••••••••••••••••••••••"
               />
             </div>
             <div>
               <Label>From Email</Label>
               <Input
-                value={provider.config.fromEmail || ''}
-                onChange={(e) => updateConfig('fromEmail', e.target.value)}
+                value={currentConfig.fromEmail || ''}
+                onChange={(e) => updateLocalConfig('fromEmail', e.target.value)}
                 placeholder="noreply@yourdomain.com"
               />
             </div>
             <div>
               <Label>From Name</Label>
               <Input
-                value={provider.config.fromName || ''}
-                onChange={(e) => updateConfig('fromName', e.target.value)}
+                value={currentConfig.fromName || ''}
+                onChange={(e) => updateLocalConfig('fromName', e.target.value)}
                 placeholder="Your Company Name"
               />
             </div>
@@ -715,8 +766,8 @@ export default function NotificationSettings() {
             <div>
               <Label>Access Key</Label>
               <Input
-                value={provider.config.accessKey || ''}
-                onChange={(e) => updateConfig('accessKey', e.target.value)}
+                value={currentConfig.accessKey || ''}
+                onChange={(e) => updateLocalConfig('accessKey', e.target.value)}
                 placeholder="AKIA..."
               />
             </div>
@@ -724,16 +775,16 @@ export default function NotificationSettings() {
               <Label>Secret Key</Label>
               <Input
                 type="password"
-                value={provider.config.secretKey || ''}
-                onChange={(e) => updateConfig('secretKey', e.target.value)}
+                value={currentConfig.secretKey || ''}
+                onChange={(e) => updateLocalConfig('secretKey', e.target.value)}
                 placeholder="••••••••"
               />
             </div>
             <div className="col-span-2">
               <Label>Region</Label>
               <Select 
-                value={provider.config.region || 'us-east-1'} 
-                onValueChange={(value) => updateConfig('region', value)}
+                value={currentConfig.region || 'us-east-1'} 
+                onValueChange={(value) => updateLocalConfig('region', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -750,8 +801,8 @@ export default function NotificationSettings() {
             <div>
               <Label>From Email</Label>
               <Input
-                value={provider.config.fromEmail || ''}
-                onChange={(e) => updateConfig('fromEmail', e.target.value)}
+                value={currentConfig.fromEmail || ''}
+                onChange={(e) => updateLocalConfig('fromEmail', e.target.value)}
                 placeholder="noreply@yourdomain.com"
               />
               <p className="text-sm text-muted-foreground mt-1">
@@ -761,16 +812,16 @@ export default function NotificationSettings() {
             <div>
               <Label>From Name</Label>
               <Input
-                value={provider.config.fromName || ''}
-                onChange={(e) => updateConfig('fromName', e.target.value)}
+                value={currentConfig.fromName || ''}
+                onChange={(e) => updateLocalConfig('fromName', e.target.value)}
                 placeholder="Your Company Name"
               />
             </div>
             <div className="col-span-2">
               <Label>Configuration Set (Optional)</Label>
               <Input
-                value={provider.config.configurationSet || ''}
-                onChange={(e) => updateConfig('configurationSet', e.target.value)}
+                value={currentConfig.configurationSet || ''}
+                onChange={(e) => updateLocalConfig('configurationSet', e.target.value)}
                 placeholder="my-configuration-set"
               />
               <p className="text-sm text-muted-foreground mt-1">
@@ -787,8 +838,8 @@ export default function NotificationSettings() {
               <Label>Server Token</Label>
               <Input
                 type="password"
-                value={provider.config.serverToken || ''}
-                onChange={(e) => updateConfig('serverToken', e.target.value)}
+                value={currentConfig.serverToken || ''}
+                onChange={(e) => updateLocalConfig('serverToken', e.target.value)}
                 placeholder="••••••••"
               />
               <p className="text-sm text-muted-foreground mt-1">
@@ -798,8 +849,8 @@ export default function NotificationSettings() {
             <div>
               <Label>From Email</Label>
               <Input
-                value={provider.config.fromEmail || ''}
-                onChange={(e) => updateConfig('fromEmail', e.target.value)}
+                value={currentConfig.fromEmail || ''}
+                onChange={(e) => updateLocalConfig('fromEmail', e.target.value)}
                 placeholder="noreply@yourdomain.com"
               />
               <p className="text-sm text-muted-foreground mt-1">
@@ -809,16 +860,16 @@ export default function NotificationSettings() {
             <div>
               <Label>From Name</Label>
               <Input
-                value={provider.config.fromName || ''}
-                onChange={(e) => updateConfig('fromName', e.target.value)}
+                value={currentConfig.fromName || ''}
+                onChange={(e) => updateLocalConfig('fromName', e.target.value)}
                 placeholder="Your Company Name"
               />
             </div>
             <div>
               <Label>Message Stream</Label>
               <Select 
-                value={provider.config.messageStream || 'outbound'} 
-                onValueChange={(value) => updateConfig('messageStream', value)}
+                value={currentConfig.messageStream || 'outbound'} 
+                onValueChange={(value) => updateLocalConfig('messageStream', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -832,15 +883,15 @@ export default function NotificationSettings() {
             <div className="col-span-2 space-y-2">
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={provider.config.trackOpens || false}
-                  onCheckedChange={(checked) => updateConfig('trackOpens', checked)}
+                  checked={currentConfig.trackOpens || false}
+                  onCheckedChange={(checked) => updateLocalConfig('trackOpens', checked)}
                 />
                 <Label>Track Opens</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={provider.config.trackLinks || false}
-                  onCheckedChange={(checked) => updateConfig('trackLinks', checked)}
+                  checked={currentConfig.trackLinks || false}
+                  onCheckedChange={(checked) => updateLocalConfig('trackLinks', checked)}
                 />
                 <Label>Track Links</Label>
               </div>
@@ -1165,12 +1216,23 @@ export default function NotificationSettings() {
                 {provider.enabled && (
                   <CardContent className="space-y-4">
                     {renderEmailProviderConfig(provider)}
-                    {savingField === `${provider.id}-saving` && (
+                    
+                    {/* Unsaved changes indicator */}
+                    {hasUnsavedChanges[provider.id] && (
                       <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                        Auto-saving...
+                        <div className="w-2 h-2 bg-warning rounded-full"></div>
+                        Unsaved changes
                       </div>
                     )}
+                    
+                    {/* Saving indicator */}
+                    {savingProvider === provider.id && (
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                        Saving...
+                      </div>
+                    )}
+                    
                     <div className="flex gap-2 pt-4">
                       <Button 
                         variant="outline" 
@@ -1187,6 +1249,14 @@ export default function NotificationSettings() {
                         disabled={testingProvider === provider.id}
                       >
                         Send Test
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => saveProviderConfig(provider.id)}
+                        disabled={!hasUnsavedChanges[provider.id] || savingProvider === provider.id}
+                      >
+                        {savingProvider === provider.id ? 'Saving...' : 'Save'}
                       </Button>
                     </div>
                   </CardContent>
