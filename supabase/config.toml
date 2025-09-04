@@ -114,3 +114,6 @@ verify_jwt = false
 
 [functions.test-notification-providers]
 verify_jwt = true
+
+[functions.check-domain-health]
+verify_jwt = true

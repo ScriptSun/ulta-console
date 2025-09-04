@@ -61,9 +61,9 @@ interface ChannelProvider {
 
 interface DomainHealth {
   domain: string;
-  spf: { status: 'valid' | 'invalid' | 'missing'; record?: string };
-  dkim: { status: 'valid' | 'invalid' | 'missing'; record?: string };
-  dmarc: { status: 'valid' | 'invalid' | 'missing'; record?: string };
+  spf: { status: 'valid' | 'invalid' | 'missing'; record?: string; suggestion?: string };
+  dkim: { status: 'valid' | 'invalid' | 'missing'; record?: string; suggestion?: string };
+  dmarc: { status: 'valid' | 'invalid' | 'missing'; record?: string; suggestion?: string };
 }
 
 interface NotificationSettings {
@@ -85,6 +85,8 @@ export default function NotificationSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [checkingDomain, setCheckingDomain] = useState(false);
+  const [domainInput, setDomainInput] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -618,6 +620,67 @@ export default function NotificationSettings() {
     }
   };
 
+  const checkDomainHealth = async () => {
+    if (!domainInput.trim()) {
+      toast({
+        title: "Domain required",
+        description: "Please enter a domain name to check.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCheckingDomain(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('check-domain-health', {
+        body: {
+          domain: domainInput.trim()
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Domain check failed');
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Update settings with new domain health data
+      setSettings(prev => ({
+        ...prev,
+        domainHealth: [
+          ...prev.domainHealth.filter(d => d.domain !== data.domain),
+          data
+        ]
+      }));
+
+      toast({
+        title: "Domain check complete",
+        description: `Health check completed for ${data.domain}`,
+      });
+    } catch (error: any) {
+      console.error('Domain check error:', error);
+      toast({
+        title: "Domain check failed",
+        description: error.message || "Failed to check domain health.",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckingDomain(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Copied",
+        description: "Record copied to clipboard.",
+      });
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -901,49 +964,115 @@ export default function NotificationSettings() {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex gap-2">
-                  <Input placeholder="Enter domain (e.g., example.com)" />
-                  <Button>Check Domain</Button>
+                  <Input 
+                    placeholder="Enter domain (e.g., example.com)"
+                    value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)}
+                  />
+                  <Button 
+                    onClick={checkDomainHealth}
+                    disabled={checkingDomain}
+                  >
+                    {checkingDomain ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      'Check Domain'
+                    )}
+                  </Button>
                 </div>
                 
-                {/* Mock domain health display */}
-                <div className="border rounded-lg p-4 space-y-3">
-                  <div className="font-medium">example.com</div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        <span className="font-medium">SPF</span>
+                {/* Domain health results */}
+                {settings.domainHealth.map((domain, index) => (
+                  <div key={index} className="border rounded-lg p-4 space-y-3">
+                    <div className="font-medium">{domain.domain}</div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          {domain.spf.status === 'valid' ? (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          ) : domain.spf.status === 'invalid' ? (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-yellow-500" />
+                          )}
+                          <span className="font-medium">SPF</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground font-mono bg-muted p-2 rounded flex items-center justify-between">
+                          <span className="flex-1">
+                            {domain.spf.record || domain.spf.suggestion || 'Not configured'}
+                          </span>
+                          {(domain.spf.record || domain.spf.suggestion) && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="ml-2"
+                              onClick={() => copyToClipboard(domain.spf.record || domain.spf.suggestion || '')}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground font-mono bg-muted p-2 rounded">
-                        v=spf1 include:_spf.google.com ~all
-                        <Button variant="ghost" size="sm" className="ml-2">
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          {domain.dkim.status === 'valid' ? (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          ) : domain.dkim.status === 'invalid' ? (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-yellow-500" />
+                          )}
+                          <span className="font-medium">DKIM</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground font-mono bg-muted p-2 rounded flex items-center justify-between">
+                          <span className="flex-1">
+                            {domain.dkim.record || domain.dkim.suggestion || 'Not configured'}
+                          </span>
+                          {(domain.dkim.record || domain.dkim.suggestion) && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="ml-2"
+                              onClick={() => copyToClipboard(domain.dkim.record || domain.dkim.suggestion || '')}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-yellow-500" />
-                        <span className="font-medium">DKIM</span>
-                      </div>
-                      <div className="text-sm text-muted-foreground font-mono bg-muted p-2 rounded">
-                        Setup required
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        <span className="font-medium">DMARC</span>
-                      </div>
-                      <div className="text-sm text-muted-foreground font-mono bg-muted p-2 rounded">
-                        v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com
-                        <Button variant="ghost" size="sm" className="ml-2">
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          {domain.dmarc.status === 'valid' ? (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          ) : domain.dmarc.status === 'invalid' ? (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-yellow-500" />
+                          )}
+                          <span className="font-medium">DMARC</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground font-mono bg-muted p-2 rounded flex items-center justify-between">
+                          <span className="flex-1">
+                            {domain.dmarc.record || domain.dmarc.suggestion || 'Not configured'}
+                          </span>
+                          {(domain.dmarc.record || domain.dmarc.suggestion) && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="ml-2"
+                              onClick={() => copyToClipboard(domain.dmarc.record || domain.dmarc.suggestion || '')}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
