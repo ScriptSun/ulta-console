@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 interface SystemDocumentationProps {
   children: React.ReactNode;
@@ -15,6 +16,99 @@ interface SystemDocumentationProps {
 export function SystemDocumentation({ children }: SystemDocumentationProps) {
   const { toast } = useToast();
   const [showSensitiveInfo, setShowSensitiveInfo] = useState(false);
+
+  const exportToPDF = async () => {
+    try {
+      const pdf = new jsPDF();
+      let yPosition = 20;
+      
+      // Title
+      pdf.setFontSize(20);
+      pdf.text('Login Page Documentation', 20, yPosition);
+      yPosition += 15;
+      
+      // Security Features Section
+      pdf.setFontSize(16);
+      pdf.text('Enhanced Security System', 20, yPosition);
+      yPosition += 10;
+      
+      pdf.setFontSize(12);
+      const securityFeatures = [
+        '✓ Password complexity enforcement',
+        '✓ Brute force attack protection', 
+        '✓ Session security management',
+        '✓ Real-time security monitoring',
+        '✓ Configurable lockout policies',
+        '✓ Enhanced login flow with security alerts'
+      ];
+      
+      securityFeatures.forEach(feature => {
+        pdf.text(feature, 25, yPosition);
+        yPosition += 7;
+      });
+      
+      yPosition += 10;
+      
+      // Configuration Section
+      pdf.setFontSize(14);
+      pdf.text('Security Configuration:', 20, yPosition);
+      yPosition += 8;
+      
+      pdf.setFontSize(11);
+      const configItems = [
+        '• Maximum failed login attempts: 5',
+        '• Account lockout duration: 30 minutes',
+        '• Session timeout: 24 hours',
+        '• Password minimum length: 8 characters',
+        '• Special characters required: Yes',
+        '• Real-time session monitoring: Active'
+      ];
+      
+      configItems.forEach(item => {
+        pdf.text(item, 25, yPosition);
+        yPosition += 6;
+      });
+      
+      // Add new page for technical details
+      pdf.addPage();
+      yPosition = 20;
+      
+      pdf.setFontSize(16);
+      pdf.text('Technical Architecture', 20, yPosition);
+      yPosition += 15;
+      
+      pdf.setFontSize(12);
+      pdf.text('Technology Stack:', 20, yPosition);
+      yPosition += 8;
+      
+      const techStack = [
+        'Frontend: React 18, TypeScript, Tailwind CSS, Vite',
+        'Backend: Supabase, PostgreSQL, Edge Functions (Deno)',
+        'Security: JWT Authentication, RLS Policies, Session Management',
+        'Database: user_security_status, user_sessions, system_settings'
+      ];
+      
+      techStack.forEach(tech => {
+        pdf.text(tech, 25, yPosition);
+        yPosition += 8;
+      });
+      
+      // Save the PDF
+      pdf.save('login-page-documentation.pdf');
+      
+      toast({
+        title: "PDF exported successfully",
+        description: "Documentation has been downloaded as PDF.",
+      });
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting the PDF.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -57,10 +151,21 @@ export function SystemDocumentation({ children }: SystemDocumentationProps) {
       </DialogTrigger>
       <DialogContent className="max-w-6xl h-[80vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Login Page Documentation
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Login Page Documentation
+            </DialogTitle>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportToPDF}
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Export PDF
+            </Button>
+          </div>
         </DialogHeader>
         
         <ScrollArea className="h-full">
