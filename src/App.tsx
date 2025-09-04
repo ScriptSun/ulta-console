@@ -39,6 +39,7 @@ import RouterDemo from "./pages/_demo/Router";
 import WidgetTest from "./pages/WidgetTest";
 import ProfileSettings from "./pages/ProfileSettings";
 import SystemSettings from "./pages/SystemSettings";
+import ApiLimitsSettings from "./pages/ApiLimitsSettings";
 import BrandCenter from "./pages/BrandCenter";
 import { BrandTheme } from "./pages/BrandTheme";
 import EmailBranding from "./pages/EmailBranding";
@@ -294,7 +295,7 @@ const App = () => (
             <Route path="/system-settings/api-limits" element={
               <ProtectedRoute>
                 <RootLayout>
-                  <SystemSettings />
+                  <ApiLimitsSettings />
                 </RootLayout>
               </ProtectedRoute>
             } />
