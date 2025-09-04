@@ -15,7 +15,7 @@ interface CompanyLogoSettings {
 }
 
 export function useCompanyLogo() {
-  const { user } = useAuth();
+  const { user } = useAuth(); // user can be null on public pages
   const { toast } = useToast();
   const [logoSettings, setLogoSettings] = useState<CompanyLogoSettings>({
     logo_light_url: '',
@@ -93,7 +93,14 @@ export function useCompanyLogo() {
   };
 
   const uploadLogo = async (file: File, theme: 'light' | 'dark' | 'email' | 'favicon') => {
-    if (!user) return null;
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to upload logos.",
+        variant: "destructive",
+      });
+      return null;
+    }
 
     setUploading(prev => ({ ...prev, [theme]: true }));
 
@@ -126,7 +133,14 @@ export function useCompanyLogo() {
   };
 
   const saveLogoSettings = async (settings: Partial<CompanyLogoSettings>) => {
-    if (!user) return false;
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to save logo settings.",
+        variant: "destructive",
+      });
+      return false;
+    }
 
     setLoading(true);
 
@@ -191,7 +205,14 @@ export function useCompanyLogo() {
   };
 
   const removeLogo = async (theme: 'light' | 'dark') => {
-    if (!user) return false;
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to remove logos.",
+        variant: "destructive",
+      });
+      return false;
+    }
 
     try {
       const fileName = `${user.id}/logo-${theme}`;
