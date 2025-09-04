@@ -111,8 +111,36 @@ export default function NotificationSettings() {
         throw new Error('User not authenticated');
       }
 
-      // For now, use user ID as customer ID - this should be replaced with proper customer logic
-      const customerId = user.id;
+      // Get user's customer IDs from user_roles table
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('customer_id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (rolesError) throw rolesError;
+
+      let customerId: string;
+      
+      if (userRoles && userRoles.length > 0) {
+        // Use the first customer ID from user roles
+        customerId = userRoles[0].customer_id;
+      } else {
+        // Create a default customer ID and user role if none exists
+        customerId = '22222222-2222-2222-2222-222222222222'; // Use existing customer ID from the system
+        
+        // Insert user role for this customer
+        await supabase
+          .from('user_roles')
+          .insert({
+            user_id: user.id,
+            customer_id: customerId,
+            role: 'owner'
+          })
+          .select()
+          .single();
+      }
+      
       setCurrentCustomerId(customerId);
 
       // Load email providers
