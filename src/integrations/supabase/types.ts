@@ -3370,9 +3370,11 @@ export type Database = {
       get_security_settings: {
         Args: Record<PropertyKey, never>
         Returns: {
+          lockout_duration: number
           max_login_attempts: number
           password_min_length: number
           require_2fa: boolean
+          require_special_chars: boolean
           session_timeout_hours: number
         }[]
       }
@@ -3517,6 +3519,10 @@ export type Database = {
         Args: { _admin_id?: string; _user_id: string }
         Returns: boolean
       }
+      update_security_settings: {
+        Args: { _settings: Json }
+        Returns: boolean
+      }
       validate_api_key: {
         Args: { _api_key: string }
         Returns: {
@@ -3531,6 +3537,13 @@ export type Database = {
           is_valid: boolean
           missing_dependencies: string[]
           outdated_dependencies: string[]
+        }[]
+      }
+      validate_password_policy: {
+        Args: { _password: string }
+        Returns: {
+          errors: string[]
+          valid: boolean
         }[]
       }
       validate_variant_dependencies: {
