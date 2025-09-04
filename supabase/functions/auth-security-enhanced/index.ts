@@ -38,12 +38,16 @@ serve(async (req) => {
           )
         }
 
+        // Sanitize inputs - trim whitespace to prevent authentication failures
+        const cleanEmail = email.trim().toLowerCase()
+        const cleanPassword = password.trim()
+
         try {
           // First check if user is already banned
           const { data: banStatus } = await supabase
             .from('user_security_status')
             .select('is_banned, ban_reason, banned_until')
-            .eq('email', email)
+            .eq('email', cleanEmail)
             .single()
 
           if (banStatus?.is_banned) {
@@ -53,24 +57,26 @@ serve(async (req) => {
                 JSON.stringify({
                   error: 'Account is temporarily locked',
                   ban_reason: banStatus.ban_reason,
-                  locked_until: bannedUntil.toISOString()
+                  locked_until: bannedUntil.toISOString(),
+                  attempts_remaining: 0,
+                  is_banned: true
                 }),
-                { status: 423, headers: corsHeaders }
+                { status: 200, headers: corsHeaders } // Changed to 200 for consistent client handling
               )
             }
           }
 
-          // Attempt login
+          // Attempt login with cleaned credentials
           const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
+            email: cleanEmail,
+            password: cleanPassword,
           })
 
           // Track login attempt with enhanced tracking
           try {
             const { data: trackingResult } = await supabase
               .rpc('track_login_attempt_enhanced', {
-                _email: email,
+                _email: cleanEmail,
                 _user_id: authData?.user?.id || null,
                 _success: !authError,
                 _ip_address: ip_address || null,
@@ -84,9 +90,10 @@ serve(async (req) => {
                   JSON.stringify({
                     error: tracking.ban_reason,
                     locked_until: tracking.lockout_until,
-                    attempts_remaining: 0
+                    attempts_remaining: 0,
+                    is_banned: true
                   }),
-                  { status: 423, headers: corsHeaders }
+                  { status: 200, headers: corsHeaders } // Changed to 200 for consistent client handling
                 )
               }
 
@@ -95,7 +102,7 @@ serve(async (req) => {
                   error: 'Invalid credentials',
                   attempts_remaining: tracking?.attempts_remaining || 0
                 }),
-                { status: 401, headers: corsHeaders }
+                { status: 200, headers: corsHeaders } // Changed to 200 for consistent client handling
               )
             }
           } catch (trackingError) {
@@ -103,8 +110,11 @@ serve(async (req) => {
             // Continue with login even if tracking fails
             if (authError) {
               return new Response(
-                JSON.stringify({ error: 'Invalid credentials' }),
-                { status: 401, headers: corsHeaders }
+                JSON.stringify({ 
+                  error: 'Invalid credentials',
+                  attempts_remaining: 0 
+                }),
+                { status: 200, headers: corsHeaders } // Changed to 200 for consistent client handling
               )
             }
           }
@@ -120,7 +130,7 @@ serve(async (req) => {
           console.error('Login process error:', loginError)
           return new Response(
             JSON.stringify({ error: 'Login failed. Please try again.' }),
-            { status: 500, headers: corsHeaders }
+            { status: 200, headers: corsHeaders } // Changed to 200 for consistent client handling
           )
         }
       }
