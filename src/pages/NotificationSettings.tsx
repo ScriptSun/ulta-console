@@ -420,8 +420,8 @@ export default function NotificationSettings() {
           type: provider?.type, 
           testEmail,
           ...(provider?.type === 'sendgrid' && {
-            fromEmail: providerConfigs.sendgrid?.fromEmail,
-            fromName: providerConfigs.sendgrid?.fromName
+            fromEmail: provider.config.fromEmail,
+            fromName: provider.config.fromName
           })
         };
       } else {
@@ -583,16 +583,7 @@ export default function NotificationSettings() {
                     type="email"
                     placeholder="noreply@yourdomain.com"
                     value={provider.config.fromEmail || ''}
-                    onChange={(e) => {
-                      updateConfig('fromEmail', e.target.value);
-                      setProviderConfigs({
-                        ...providerConfigs,
-                        sendgrid: {
-                          ...providerConfigs.sendgrid,
-                          fromEmail: e.target.value
-                        }
-                      });
-                    }}
+                    onChange={(e) => updateConfig('fromEmail', e.target.value)}
                   />
                   <p className="text-sm text-muted-foreground mt-1">
                     This must be a verified sender identity in your SendGrid account.{' '}
@@ -613,16 +604,7 @@ export default function NotificationSettings() {
                     type="text"
                     placeholder="Your App Name"
                     value={provider.config.fromName || ''}
-                    onChange={(e) => {
-                      updateConfig('fromName', e.target.value);
-                      setProviderConfigs({
-                        ...providerConfigs,
-                        sendgrid: {
-                          ...providerConfigs.sendgrid,
-                          fromName: e.target.value
-                        }
-                      });
-                    }}
+                    onChange={(e) => updateConfig('fromName', e.target.value)}
                   />
                 </div>
               </>
