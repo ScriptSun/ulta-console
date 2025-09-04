@@ -123,16 +123,6 @@ const systemSections = [
     statsLine: 'Upgrade URL configuration',
     action: 'Configure',
     href: '/system-settings/upgrade'
-  },
-  {
-    title: 'Theme',
-    description: 'Customize application appearance',
-    icon: Palette,
-    color: 'text-pink-600',
-    bgColor: 'bg-pink-100',
-    statsLine: 'Colors, Company logo, Theme settings',
-    action: 'Customize',
-    href: '/system-settings/theme'
   }
 ];
 
