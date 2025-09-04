@@ -54,11 +54,14 @@ serve(async (req) => {
             console.error('Error getting security settings:', settingsError);
           }
           
-          // Extract max_login_attempts properly
-          let maxAttempts = 5; // Default fallback
-          if (securitySettings && typeof securitySettings === 'object' && securitySettings.max_login_attempts) {
-            maxAttempts = securitySettings.max_login_attempts;
-            console.log(`Using max_login_attempts from DB: ${maxAttempts}`);
+          // The RPC returns an array with: [max_login_attempts, session_timeout_hours, require_2fa, password_min_length, require_special_chars, lockout_duration]
+          let maxAttempts = 2; // Use your database default directly
+          if (securitySettings && Array.isArray(securitySettings) && securitySettings.length > 0) {
+            maxAttempts = securitySettings[0] || 2; // First element is max_login_attempts
+            console.log(`Using max_login_attempts from DB array: ${maxAttempts}`);
+          } else if (securitySettings && typeof securitySettings === 'object') {
+            maxAttempts = securitySettings.max_login_attempts || 2;
+            console.log(`Using max_login_attempts from DB object: ${maxAttempts}`);
           } else {
             console.warn('Failed to get max_login_attempts from DB, using default:', maxAttempts);
           }
