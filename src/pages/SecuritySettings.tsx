@@ -12,14 +12,17 @@ import {
   Loader2,
   AlertTriangle,
   CheckCircle,
-  ArrowLeft
+  ArrowLeft,
+  Info
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function SecuritySettings() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
     twoFactorRequired: false,
     sessionTimeout: 24,
@@ -29,24 +32,93 @@ export default function SecuritySettings() {
     lockoutDuration: 30
   });
 
-  const handleSave = async () => {
-    setLoading(true);
+  useEffect(() => {
+    loadSecuritySettings();
+  }, []);
+
+  const loadSecuritySettings = async () => {
     try {
-      // Save security settings to database
-      toast({
-        title: "Security settings saved",
-        description: "Your security configuration has been updated successfully.",
-      });
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'security')
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw error;
+      }
+
+      if (data?.setting_value) {
+        const savedSettings = data.setting_value as any;
+        setSettings({
+          twoFactorRequired: savedSettings.twoFactorRequired || false,
+          sessionTimeout: savedSettings.sessionTimeout || 24,
+          passwordMinLength: savedSettings.passwordMinLength || 8,
+          passwordRequireSpecialChars: savedSettings.passwordRequireSpecialChars !== false,
+          maxFailedLogins: savedSettings.maxFailedLogins || 5,
+          lockoutDuration: savedSettings.lockoutDuration || 30
+        });
+      }
     } catch (error) {
+      console.error('Error loading security settings:', error);
       toast({
         title: "Error",
-        description: "Failed to save security settings. Please try again.",
+        description: "Failed to load security settings. Using defaults.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.rpc('update_security_settings', {
+        _settings: {
+          twoFactorRequired: settings.twoFactorRequired,
+          sessionTimeout: settings.sessionTimeout,
+          passwordMinLength: settings.passwordMinLength,
+          passwordRequireSpecialChars: settings.passwordRequireSpecialChars,
+          maxFailedLogins: settings.maxFailedLogins,
+          lockoutDuration: settings.lockoutDuration
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Security settings saved",
+        description: "Your security configuration has been updated successfully. These settings will now be enforced for all users.",
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error('Error saving security settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save security settings. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Loading security settings...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -72,6 +144,14 @@ export default function SecuritySettings() {
           Configure security policies, authentication requirements, and access controls.
         </p>
       </div>
+
+      {/* Info Alert */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Important:</strong> These security settings are now fully functional and will be enforced for all user logins, password changes, and authentication attempts. Changes take effect immediately upon saving.
+        </AlertDescription>
+      </Alert>
 
       {/* Authentication Security */}
       <Card>
@@ -202,8 +282,8 @@ export default function SecuritySettings() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={loading} className="min-w-32">
-          {loading ? (
+        <Button onClick={handleSave} disabled={saving} className="min-w-32">
+          {saving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Saving...

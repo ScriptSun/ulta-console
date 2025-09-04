@@ -3507,6 +3507,21 @@ export type Database = {
           is_banned: boolean
         }[]
       }
+      track_login_attempt_enhanced: {
+        Args: {
+          _email: string
+          _ip_address?: unknown
+          _success?: boolean
+          _user_agent?: string
+          _user_id?: string
+        }
+        Returns: {
+          attempts_remaining: number
+          ban_reason: string
+          is_banned: boolean
+          lockout_until: string
+        }[]
+      }
       track_user_session: {
         Args: {
           client_ip?: unknown
