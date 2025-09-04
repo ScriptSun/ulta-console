@@ -631,12 +631,28 @@ export default function NotificationSettings() {
       return;
     }
 
+    // Clean the domain input by removing protocol, www, and trailing slashes
+    let cleanDomain = domainInput.trim()
+      .replace(/^https?:\/\//, '') // Remove protocol
+      .replace(/^www\./, '') // Remove www
+      .replace(/\/$/, '') // Remove trailing slash
+      .split('/')[0]; // Take only the domain part
+
+    if (!cleanDomain) {
+      toast({
+        title: "Invalid domain",
+        description: "Please enter a valid domain name (e.g., example.com).",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setCheckingDomain(true);
     
     try {
       const { data, error } = await supabase.functions.invoke('check-domain-health', {
         body: {
-          domain: domainInput.trim()
+          domain: cleanDomain
         }
       });
 
