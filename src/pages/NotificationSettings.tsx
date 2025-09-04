@@ -136,16 +136,17 @@ export default function NotificationSettings() {
         // Create a default customer ID and user role if none exists
         customerId = '22222222-2222-2222-2222-222222222222'; // Use existing customer ID from the system
         
-        // Insert user role for this customer
-        await supabase
+        // Insert user role for this customer (ignore if already exists)
+        const { error: roleError } = await supabase
           .from('user_roles')
-          .insert({
+          .upsert({
             user_id: user.id,
             customer_id: customerId,
             role: 'owner'
-          })
-          .select()
-          .single();
+          }, { 
+            onConflict: 'user_id,customer_id,role',
+            ignoreDuplicates: true 
+          });
       }
       
       setCurrentCustomerId(customerId);
@@ -359,6 +360,7 @@ export default function NotificationSettings() {
   };
 
   const updateEmailProvider = async (providerId: string, updates: Partial<EmailProvider>) => {
+    setSavingField(`${providerId}-saving`);
     try {
       const { error } = await supabase
         .from('email_providers')
@@ -380,6 +382,8 @@ export default function NotificationSettings() {
         description: "Failed to update email provider. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setTimeout(() => setSavingField(null), 500);
     }
   };
 
