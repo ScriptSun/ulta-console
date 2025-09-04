@@ -114,6 +114,9 @@ export default function NotificationSettings() {
         throw new Error('User not authenticated');
       }
 
+      // Set user's email as default test email
+      setTestEmail(user.email || 'test@example.com');
+
       // Get user's customer IDs from user_roles table
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
