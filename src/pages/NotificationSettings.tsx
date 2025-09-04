@@ -1040,8 +1040,11 @@ export default function NotificationSettings() {
                         <Badge variant="default">Primary</Badge>
                       )}
                       {provider.status && (
-                        <Badge variant={provider.status === 'connected' ? 'default' : 'destructive'}>
-                          {provider.status}
+                        <Badge 
+                          variant={provider.status === 'connected' ? 'default' : 'destructive'}
+                          className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                        >
+                          {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
                         </Badge>
                       )}
                     </div>
@@ -1136,8 +1139,11 @@ export default function NotificationSettings() {
                         <CardDescription>{provider.type.toUpperCase()}</CardDescription>
                       </div>
                       {provider.status && (
-                        <Badge variant={provider.status === 'connected' ? 'default' : 'destructive'}>
-                          {provider.status}
+                        <Badge 
+                          variant={provider.status === 'connected' ? 'default' : 'destructive'}
+                          className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                        >
+                          {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
                         </Badge>
                       )}
                     </div>
