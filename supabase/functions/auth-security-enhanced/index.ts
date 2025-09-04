@@ -78,6 +78,12 @@ serve(async (req) => {
             throw new Error('No security settings found in database');
           }
           
+          // CRITICAL: Ensure maxAttempts is a valid positive number
+          if (!maxAttempts || typeof maxAttempts !== 'number' || maxAttempts < 1) {
+            console.error('Invalid maxAttempts value:', maxAttempts);
+            throw new Error(`Invalid max_login_attempts value from database: ${maxAttempts}`);
+          }
+          
           console.log(`Successfully fetched maxAttempts from DB: ${maxAttempts}`);
 
           // Check current failed attempts count
@@ -125,7 +131,23 @@ serve(async (req) => {
             });
 
             const newFailedCount = currentAttempts + 1;
-            const attemptsRemaining = Math.max(0, maxAttempts - newFailedCount);
+            // Ensure calculation never returns null/undefined
+            const attemptsRemaining = Math.max(0, (maxAttempts || 2) - newFailedCount);
+            
+            // Validate the result
+            if (typeof attemptsRemaining !== 'number' || attemptsRemaining < 0) {
+              console.error('Invalid attemptsRemaining calculation:', { maxAttempts, currentAttempts, newFailedCount, attemptsRemaining });
+              const safeAttempts = Math.max(0, 2 - newFailedCount); // Emergency fallback
+              console.log(`Using emergency fallback attempts: ${safeAttempts}`);
+              
+              return new Response(
+                JSON.stringify({
+                  error: 'Invalid credentials',
+                  attempts_remaining: safeAttempts
+                }),
+                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
             
             console.log(`CALCULATION DEBUG - maxAttempts: ${maxAttempts}, currentAttempts: ${currentAttempts}, newFailedCount: ${newFailedCount}, attemptsRemaining: ${attemptsRemaining}`);
             
