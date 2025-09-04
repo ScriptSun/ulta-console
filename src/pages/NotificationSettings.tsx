@@ -200,6 +200,9 @@ export default function NotificationSettings() {
 
   const addEmailProvider = async (type: EmailProvider['type']) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('email_providers')
         .insert({
@@ -208,7 +211,9 @@ export default function NotificationSettings() {
           type,
           enabled: false,
           is_primary: settings.emailProviders.length === 0,
-          config: getDefaultConfig(type)
+          config: getDefaultConfig(type),
+          created_by: user.id,
+          updated_by: user.id
         })
         .select()
         .single();
@@ -241,6 +246,9 @@ export default function NotificationSettings() {
 
   const addChannelProvider = async (type: ChannelProvider['type']) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('channel_providers')
         .insert({
@@ -248,7 +256,9 @@ export default function NotificationSettings() {
           name: type.charAt(0).toUpperCase() + type.slice(1),
           type,
           enabled: false,
-          config: getDefaultChannelConfig(type)
+          config: getDefaultChannelConfig(type),
+          created_by: user.id,
+          updated_by: user.id
         })
         .select()
         .single();
