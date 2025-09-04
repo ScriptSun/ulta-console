@@ -45,13 +45,16 @@ serve(async (req) => {
         try {
           console.log(`Attempting login for: ${cleanEmail}`);
 
-          // First, check current failed attempts count
+          // Get security settings from database
+          const { data: securitySettings } = await supabase.rpc('get_security_settings');
+          const maxAttempts = securitySettings?.max_login_attempts || 5;
+
+          // Check current failed attempts count
           const { data: failedAttemptsData } = await supabase.rpc('get_failed_attempts_count', {
             email_address: cleanEmail
           });
           
           const currentAttempts = failedAttemptsData || 0;
-          const maxAttempts = 5;
           
           console.log(`Current failed attempts for ${cleanEmail}: ${currentAttempts}`);
 
