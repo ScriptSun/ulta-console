@@ -37,6 +37,7 @@ interface EmailProvider {
     accessKey?: string;
     secretKey?: string;
     serverToken?: string;
+    configurationSet?: string;
     // SendGrid specific
     fromEmail?: string;
     fromName?: string;
@@ -348,7 +349,7 @@ export default function NotificationSettings() {
       case 'mailgun':
         return { domain: '', region: 'us', apiKey: '', fromEmail: '', fromName: '' };
       case 'ses':
-        return { accessKey: '', secretKey: '', region: 'us-east-1' };
+        return { accessKey: '', secretKey: '', region: 'us-east-1', fromEmail: '', fromName: '', configurationSet: '' };
       case 'postmark':
         return { serverToken: '' };
       case 'resend':
@@ -737,8 +738,40 @@ export default function NotificationSettings() {
                   <SelectItem value="us-east-1">US East (N. Virginia)</SelectItem>
                   <SelectItem value="us-west-2">US West (Oregon)</SelectItem>
                   <SelectItem value="eu-west-1">EU (Ireland)</SelectItem>
+                  <SelectItem value="ap-southeast-1">Asia Pacific (Singapore)</SelectItem>
+                  <SelectItem value="ca-central-1">Canada (Central)</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>From Email</Label>
+              <Input
+                value={provider.config.fromEmail || ''}
+                onChange={(e) => updateConfig('fromEmail', e.target.value)}
+                placeholder="noreply@yourdomain.com"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Must be a verified email or domain in SES
+              </p>
+            </div>
+            <div>
+              <Label>From Name</Label>
+              <Input
+                value={provider.config.fromName || ''}
+                onChange={(e) => updateConfig('fromName', e.target.value)}
+                placeholder="Your Company Name"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label>Configuration Set (Optional)</Label>
+              <Input
+                value={provider.config.configurationSet || ''}
+                onChange={(e) => updateConfig('configurationSet', e.target.value)}
+                placeholder="my-configuration-set"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Optional: For tracking bounces, complaints, and delivery metrics
+              </p>
             </div>
           </div>
         );
