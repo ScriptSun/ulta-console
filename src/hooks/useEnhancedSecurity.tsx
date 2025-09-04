@@ -113,7 +113,7 @@ export function useEnhancedSecurity() {
 
       console.log('Calling auth-security-enhanced function...');
       
-      const { data, error } = await supabase.functions.invoke('auth-security-enhanced', {
+      const response = await supabase.functions.invoke('auth-security-enhanced', {
         body: {
           action: 'login',
           email,
@@ -123,16 +123,20 @@ export function useEnhancedSecurity() {
         }
       });
 
-      console.log('Raw function response:', { data, error });
+      console.log('Full function response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response error:', response.error);
 
-      if (error) {
-        console.error('Function invocation error:', error);
+      if (response.error) {
+        console.error('Function invocation error:', response.error);
         return {
           user: null,
           session: null,
-          error: error.message || 'Login failed'
+          error: response.error.message || 'Login failed'
         };
       }
+
+      const data = response.data;
 
       // Check if the response contains an error (business logic error)
       if (data?.error) {
@@ -148,32 +152,47 @@ export function useEnhancedSecurity() {
       }
 
       // Debug logging to see what we received
-      console.log('Login response successful');
-      console.log('User data:', data?.user);
-      console.log('Session data:', data?.session);
-      console.log('Has user:', !!data?.user);
-      console.log('Has session:', !!data?.session);
-      console.log('Has session tokens:', {
-        hasAccessToken: !!data?.session?.access_token,
-        hasRefreshToken: !!data?.session?.refresh_token
+      console.log('=== LOGIN DEBUG START ===');
+      console.log('data:', data);
+      console.log('data type:', typeof data);
+      console.log('data keys:', Object.keys(data || {}));
+      console.log('data.user:', data?.user);
+      console.log('data.session:', data?.session);
+      console.log('session keys:', data?.session ? Object.keys(data.session) : 'NO SESSION');
+      console.log('access_token:', data?.session?.access_token);
+      console.log('refresh_token:', data?.session?.refresh_token);
+      console.log('=== LOGIN DEBUG END ===');
+
+      // More robust validation - check for the actual tokens
+      const hasUser = data?.user && typeof data.user === 'object';
+      const hasSession = data?.session && typeof data.session === 'object';
+      const hasAccessToken = data?.session?.access_token && typeof data.session.access_token === 'string';
+      const hasRefreshToken = data?.session?.refresh_token && typeof data.session.refresh_token === 'string';
+
+      console.log('Validation results:', {
+        hasUser,
+        hasSession,
+        hasAccessToken,
+        hasRefreshToken
       });
 
-      // Check if we have both user and session data
-      if (data?.user && data?.session?.access_token && data?.session?.refresh_token) {
-        console.log('Setting session with tokens...');
+      if (hasUser && hasSession && hasAccessToken && hasRefreshToken) {
+        console.log('All validations passed - setting session...');
 
         // Set the session on successful login
-        const { error: sessionError } = await supabase.auth.setSession({
+        const sessionResult = await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
         });
 
-        if (sessionError) {
-          console.error('Failed to set session:', sessionError);
+        console.log('SetSession result:', sessionResult);
+
+        if (sessionResult.error) {
+          console.error('Failed to set session:', sessionResult.error);
           return {
             user: null,
             session: null,
-            error: 'Failed to establish session: ' + sessionError.message
+            error: 'Failed to establish session: ' + sessionResult.error.message
           };
         }
 
@@ -184,20 +203,19 @@ export function useEnhancedSecurity() {
         };
       }
 
-      // If we don't have both user and session, return error with detailed info
-      console.error('Missing required data in response:', { 
-        hasUser: !!data?.user, 
-        hasSession: !!data?.session,
-        hasAccessToken: !!data?.session?.access_token,
-        hasRefreshToken: !!data?.session?.refresh_token,
-        dataKeys: Object.keys(data || {}),
-        sessionKeys: data?.session ? Object.keys(data.session) : []
-      });
+      // Detailed error for debugging
+      const missingItems = [];
+      if (!hasUser) missingItems.push('user');
+      if (!hasSession) missingItems.push('session object');
+      if (!hasAccessToken) missingItems.push('access_token');
+      if (!hasRefreshToken) missingItems.push('refresh_token');
+
+      console.error('Login validation failed - missing:', missingItems.join(', '));
       
       return {
         user: null,
         session: null,
-        error: 'Login succeeded but session data is incomplete'
+        error: `Login succeeded but session data is incomplete: missing ${missingItems.join(', ')}`
       };
     } catch (error) {
       console.error('Secure login failed:', error);
