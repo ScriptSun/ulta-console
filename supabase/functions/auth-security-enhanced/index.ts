@@ -77,33 +77,35 @@ serve(async (req) => {
           
           console.log(`Final maxAttempts value: ${maxAttempts}`);
 
-          // Check current failed attempts count
-          const { data: failedAttemptsData } = await supabase.rpc('get_failed_attempts_count', {
-            email_address: cleanEmail
+          // Get lockout duration from security settings first
+          let lockoutDurationMinutes = 1; // Safe default matching your DB
+          
+          if (securitySettings) {
+            if (typeof securitySettings === 'object' && securitySettings.lockout_duration) {
+              lockoutDurationMinutes = securitySettings.lockout_duration;
+              console.log('Using lockout_duration from DB:', lockoutDurationMinutes);
+            } else if (Array.isArray(securitySettings) && securitySettings.length > 5) {
+              lockoutDurationMinutes = securitySettings[5]; // 6th element is lockout_duration
+              console.log('Using lockout_duration from DB array:', lockoutDurationMinutes);
+            } else {
+              console.log('Could not parse lockout_duration, using default:', lockoutDurationMinutes);
+            }
+          }
+
+          // Check current failed attempts WITHIN the lockout time window only
+          const lockoutWindowStart = new Date(Date.now() - lockoutDurationMinutes * 60 * 1000);
+          const { data: recentFailedAttemptsData } = await supabase.rpc('get_failed_attempts_count_since', {
+            email_address: cleanEmail,
+            since_time: lockoutWindowStart.toISOString()
           });
           
-          const currentAttempts = failedAttemptsData || 0;
+          const currentAttempts = recentFailedAttemptsData || 0;
           
-          console.log(`Current failed attempts for ${cleanEmail}: ${currentAttempts}`);
+          console.log(`Recent failed attempts for ${cleanEmail} in last ${lockoutDurationMinutes} minutes: ${currentAttempts}`);
 
-          // Check if user is already locked out
+          // Check if user is currently locked out (based on recent attempts only)
           if (currentAttempts >= maxAttempts) {
-            console.log(`Account locked for ${cleanEmail} - too many failed attempts`);
-            
-            // Calculate lockout duration from security settings - NO HARDCODED VALUES
-            let lockoutDurationMinutes = 1; // Safe default matching your DB
-            
-            if (securitySettings) {
-              if (typeof securitySettings === 'object' && securitySettings.lockout_duration) {
-                lockoutDurationMinutes = securitySettings.lockout_duration;
-                console.log('Using lockout_duration from DB:', lockoutDurationMinutes);
-              } else if (Array.isArray(securitySettings) && securitySettings.length > 5) {
-                lockoutDurationMinutes = securitySettings[5]; // 6th element is lockout_duration
-                console.log('Using lockout_duration from DB array:', lockoutDurationMinutes);
-              } else {
-                console.log('Could not parse lockout_duration, using default:', lockoutDurationMinutes);
-              }
-            }
+            console.log(`Account locked for ${cleanEmail} - ${currentAttempts} recent failed attempts >= ${maxAttempts}`);
             
             console.log(`Final lockout duration: ${lockoutDurationMinutes} minutes`);
             const lockoutUntil = new Date(Date.now() + lockoutDurationMinutes * 60 * 1000);
