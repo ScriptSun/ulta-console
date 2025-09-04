@@ -90,8 +90,22 @@ serve(async (req) => {
           if (currentAttempts >= maxAttempts) {
             console.log(`Account locked for ${cleanEmail} - too many failed attempts`);
             
-            // Calculate lockout duration from security settings
-            const lockoutDurationMinutes = securitySettings?.lockout_duration || 30;
+            // Calculate lockout duration from security settings - NO HARDCODED VALUES
+            let lockoutDurationMinutes = 1; // Safe default matching your DB
+            
+            if (securitySettings) {
+              if (typeof securitySettings === 'object' && securitySettings.lockout_duration) {
+                lockoutDurationMinutes = securitySettings.lockout_duration;
+                console.log('Using lockout_duration from DB:', lockoutDurationMinutes);
+              } else if (Array.isArray(securitySettings) && securitySettings.length > 5) {
+                lockoutDurationMinutes = securitySettings[5]; // 6th element is lockout_duration
+                console.log('Using lockout_duration from DB array:', lockoutDurationMinutes);
+              } else {
+                console.log('Could not parse lockout_duration, using default:', lockoutDurationMinutes);
+              }
+            }
+            
+            console.log(`Final lockout duration: ${lockoutDurationMinutes} minutes`);
             const lockoutUntil = new Date(Date.now() + lockoutDurationMinutes * 60 * 1000);
             
             return new Response(
