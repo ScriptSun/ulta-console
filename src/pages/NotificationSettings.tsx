@@ -95,6 +95,7 @@ export default function NotificationSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [savingField, setSavingField] = useState<string | null>(null);
   const [checkingDomain, setCheckingDomain] = useState(false);
   const [domainInput, setDomainInput] = useState('');
   const [testEmail, setTestEmail] = useState('test@example.com');
@@ -1035,6 +1036,12 @@ export default function NotificationSettings() {
                 {provider.enabled && (
                   <CardContent className="space-y-4">
                     {renderEmailProviderConfig(provider)}
+                    {savingField === `${provider.id}-saving` && (
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                        Auto-saving...
+                      </div>
+                    )}
                     <div className="flex gap-2 pt-4">
                       <Button 
                         variant="outline" 
