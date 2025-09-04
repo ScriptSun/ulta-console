@@ -895,6 +895,51 @@ export type Database = {
         }
         Relationships: []
       }
+      channel_providers: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string
+          customer_id: string
+          enabled: boolean
+          id: string
+          last_tested_at: string | null
+          name: string
+          status: string | null
+          type: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          enabled?: boolean
+          id?: string
+          last_tested_at?: string | null
+          name: string
+          status?: string | null
+          type: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          enabled?: boolean
+          id?: string
+          last_tested_at?: string | null
+          name?: string
+          status?: string | null
+          type?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           agent_id: string
@@ -1727,6 +1772,54 @@ export type Database = {
         }
         Relationships: []
       }
+      email_providers: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string
+          customer_id: string
+          enabled: boolean
+          id: string
+          is_primary: boolean
+          last_tested_at: string | null
+          name: string
+          status: string | null
+          type: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          enabled?: boolean
+          id?: string
+          is_primary?: boolean
+          last_tested_at?: string | null
+          name: string
+          status?: string | null
+          type: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          enabled?: boolean
+          id?: string
+          is_primary?: boolean
+          last_tested_at?: string | null
+          name?: string
+          status?: string | null
+          type?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
       email_template_versions: {
         Row: {
           category: string
@@ -1948,6 +2041,39 @@ export type Database = {
           ip_address?: string | null
           success?: boolean | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          created_at: string
+          created_by: string
+          customer_id: string
+          domain_health: Json | null
+          failover_order: Json | null
+          id: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          customer_id: string
+          domain_health?: Json | null
+          failover_order?: Json | null
+          id?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          domain_health?: Json | null
+          failover_order?: Json | null
+          id?: string
+          updated_at?: string
+          updated_by?: string
         }
         Relationships: []
       }

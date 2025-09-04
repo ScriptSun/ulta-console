@@ -18,10 +18,11 @@ import { useNavigate } from 'react-router-dom';
 
 interface EmailProvider {
   id: string;
+  customer_id: string;
   name: string;
   type: 'smtp' | 'sendgrid' | 'mailgun' | 'ses' | 'postmark' | 'resend';
   enabled: boolean;
-  primary: boolean;
+  is_primary: boolean;
   config: {
     // SMTP
     host?: string;
@@ -37,12 +38,15 @@ interface EmailProvider {
     secretKey?: string;
     serverToken?: string;
   };
-  status?: 'connected' | 'error' | 'testing';
-  lastTested?: string;
+  status?: 'connected' | 'error' | 'disconnected' | 'testing';
+  last_tested_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface ChannelProvider {
   id: string;
+  customer_id: string;
   name: string;
   type: 'slack' | 'telegram' | 'discord' | 'twilio';
   enabled: boolean;
@@ -55,8 +59,10 @@ interface ChannelProvider {
     authToken?: string;
     fromNumber?: string;
   };
-  status?: 'connected' | 'error' | 'testing';
-  lastTested?: string;
+  status?: 'connected' | 'error' | 'disconnected' | 'testing';
+  last_tested_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface DomainHealth {
@@ -82,6 +88,7 @@ export default function NotificationSettings() {
     failoverOrder: [],
     domainHealth: []
   });
+  const [currentCustomerId, setCurrentCustomerId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
@@ -98,49 +105,59 @@ export default function NotificationSettings() {
 
   const loadSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'notifications_v2')
+      // Get current user to determine customer_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // For now, use user ID as customer ID - this should be replaced with proper customer logic
+      const customerId = user.id;
+      setCurrentCustomerId(customerId);
+
+      // Load email providers
+      const { data: emailProviders, error: emailError } = await supabase
+        .from('email_providers')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: true });
+
+      if (emailError) throw emailError;
+
+      // Load channel providers
+      const { data: channelProviders, error: channelError } = await supabase
+        .from('channel_providers')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: true });
+
+      if (channelError) throw channelError;
+
+      // Load notification settings
+      const { data: notificationSettings, error: settingsError } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .eq('customer_id', customerId)
         .maybeSingle();
 
-      if (error) throw error;
+      if (settingsError) throw settingsError;
 
-      if (data?.setting_value) {
-        const notificationData = data.setting_value as Record<string, any>;
-        // Safely parse the data with fallbacks
-        setSettings({
-          emailProviders: notificationData.emailProviders || [],
-          channelProviders: notificationData.channelProviders || [],
-          failoverOrder: notificationData.failoverOrder || [],
-          domainHealth: notificationData.domainHealth || []
-        });
-      } else {
-        // Initialize with default providers
-        setSettings({
-          emailProviders: [
-            {
-              id: 'smtp-default',
-              name: 'SMTP',
-              type: 'smtp',
-              enabled: false,
-              primary: true,
-              config: { host: '', port: '587', username: '', password: '', tls: true }
-            }
-          ],
-          channelProviders: [
-            {
-              id: 'telegram-default',
-              name: 'Telegram',
-              type: 'telegram',
-              enabled: false,
-              config: { botToken: '', chatId: '' }
-            }
-          ],
-          failoverOrder: [],
-          domainHealth: []
-        });
-      }
+      setSettings({
+        emailProviders: (emailProviders || []).map(provider => ({
+          ...provider,
+          config: provider.config as EmailProvider['config'],
+          type: provider.type as EmailProvider['type'],
+          status: provider.status as EmailProvider['status']
+        })),
+        channelProviders: (channelProviders || []).map(provider => ({
+          ...provider,
+          config: provider.config as ChannelProvider['config'],
+          type: provider.type as ChannelProvider['type'],
+          status: provider.status as ChannelProvider['status']
+        })),
+        failoverOrder: (notificationSettings?.failover_order as string[]) || [],
+        domainHealth: (notificationSettings?.domain_health as unknown as DomainHealth[]) || []
+      });
     } catch (error) {
       console.error('Error loading notification settings:', error);
       toast({
@@ -156,15 +173,14 @@ export default function NotificationSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('system_settings')
+      // Save notification settings (failover order and domain health)
+      await supabase
+        .from('notification_settings')
         .upsert({
-          setting_key: 'notifications_v2',
-          setting_value: settings as any,
-          description: 'Advanced notification settings with multiple providers'
+          customer_id: currentCustomerId,
+          failover_order: settings.failoverOrder as any,
+          domain_health: settings.domainHealth as any
         });
-
-      if (error) throw error;
 
       toast({
         title: "Settings saved",
@@ -182,35 +198,85 @@ export default function NotificationSettings() {
     }
   };
 
-  const addEmailProvider = (type: EmailProvider['type']) => {
-    const newProvider: EmailProvider = {
-      id: `${type}-${Date.now()}`,
-      name: type.toUpperCase(),
-      type,
-      enabled: false,
-      primary: settings.emailProviders.length === 0,
-      config: getDefaultConfig(type)
-    };
-    
-    setSettings(prev => ({
-      ...prev,
-      emailProviders: [...prev.emailProviders, newProvider]
-    }));
+  const addEmailProvider = async (type: EmailProvider['type']) => {
+    try {
+      const { data, error } = await supabase
+        .from('email_providers')
+        .insert({
+          customer_id: currentCustomerId,
+          name: type.toUpperCase(),
+          type,
+          enabled: false,
+          is_primary: settings.emailProviders.length === 0,
+          config: getDefaultConfig(type)
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setSettings(prev => ({
+        ...prev,
+        emailProviders: [...prev.emailProviders, {
+          ...data,
+          config: data.config as EmailProvider['config'],
+          type: data.type as EmailProvider['type'],
+          status: data.status as EmailProvider['status']
+        }]
+      }));
+
+      toast({
+        title: "Provider added",
+        description: `${type.toUpperCase()} provider has been added successfully.`,
+      });
+    } catch (error) {
+      console.error('Error adding email provider:', error);
+      toast({
+        title: "Error adding provider",
+        description: "Failed to add email provider. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const addChannelProvider = (type: ChannelProvider['type']) => {
-    const newProvider: ChannelProvider = {
-      id: `${type}-${Date.now()}`,
-      name: type.charAt(0).toUpperCase() + type.slice(1),
-      type,
-      enabled: false,
-      config: getDefaultChannelConfig(type)
-    };
-    
-    setSettings(prev => ({
-      ...prev,
-      channelProviders: [...prev.channelProviders, newProvider]
-    }));
+  const addChannelProvider = async (type: ChannelProvider['type']) => {
+    try {
+      const { data, error } = await supabase
+        .from('channel_providers')
+        .insert({
+          customer_id: currentCustomerId,
+          name: type.charAt(0).toUpperCase() + type.slice(1),
+          type,
+          enabled: false,
+          config: getDefaultChannelConfig(type)
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setSettings(prev => ({
+        ...prev,
+        channelProviders: [...prev.channelProviders, {
+          ...data,
+          config: data.config as ChannelProvider['config'],
+          type: data.type as ChannelProvider['type'],
+          status: data.status as ChannelProvider['status']
+        }]
+      }));
+
+      toast({
+        title: "Provider added",
+        description: `${type.charAt(0).toUpperCase() + type.slice(1)} provider has been added successfully.`,
+      });
+    } catch (error) {
+      console.error('Error adding channel provider:', error);
+      toast({
+        title: "Error adding provider",
+        description: "Failed to add channel provider. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getDefaultConfig = (type: EmailProvider['type']) => {
@@ -247,22 +313,54 @@ export default function NotificationSettings() {
     }
   };
 
-  const updateEmailProvider = (providerId: string, updates: Partial<EmailProvider>) => {
-    setSettings(prev => ({
-      ...prev,
-      emailProviders: prev.emailProviders.map(p => 
-        p.id === providerId ? { ...p, ...updates } : p
-      )
-    }));
+  const updateEmailProvider = async (providerId: string, updates: Partial<EmailProvider>) => {
+    try {
+      const { error } = await supabase
+        .from('email_providers')
+        .update(updates)
+        .eq('id', providerId);
+
+      if (error) throw error;
+
+      setSettings(prev => ({
+        ...prev,
+        emailProviders: prev.emailProviders.map(p => 
+          p.id === providerId ? { ...p, ...updates } : p
+        )
+      }));
+    } catch (error) {
+      console.error('Error updating email provider:', error);
+      toast({
+        title: "Error updating provider",
+        description: "Failed to update email provider. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const updateChannelProvider = (providerId: string, updates: Partial<ChannelProvider>) => {
-    setSettings(prev => ({
-      ...prev,
-      channelProviders: prev.channelProviders.map(p => 
-        p.id === providerId ? { ...p, ...updates } : p
-      )
-    }));
+  const updateChannelProvider = async (providerId: string, updates: Partial<ChannelProvider>) => {
+    try {
+      const { error } = await supabase
+        .from('channel_providers')
+        .update(updates)
+        .eq('id', providerId);
+
+      if (error) throw error;
+
+      setSettings(prev => ({
+        ...prev,
+        channelProviders: prev.channelProviders.map(p => 
+          p.id === providerId ? { ...p, ...updates } : p
+        )
+      }));
+    } catch (error) {
+      console.error('Error updating channel provider:', error);
+      toast({
+        title: "Error updating provider",
+        description: "Failed to update channel provider. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const testProvider = async (providerId: string, type: 'email' | 'channel') => {
@@ -307,35 +405,35 @@ export default function NotificationSettings() {
         throw new Error(error.message || 'Test function failed');
       }
 
-      if (data.success) {
-        if (type === 'email') {
-          updateEmailProvider(providerId, { 
-            status: 'connected', 
-            lastTested: new Date().toISOString() 
-          });
-        } else {
-          updateChannelProvider(providerId, { 
-            status: 'connected', 
-            lastTested: new Date().toISOString() 
-          });
-        }
+        if (data.success) {
+          if (type === 'email') {
+            await updateEmailProvider(providerId, { 
+              status: 'connected', 
+              last_tested_at: new Date().toISOString() 
+            });
+          } else {
+            await updateChannelProvider(providerId, { 
+              status: 'connected', 
+              last_tested_at: new Date().toISOString() 
+            });
+          }
         
         toast({
           title: "Test successful",
           description: data.message || "Provider connection test passed.",
         });
-      } else {
-        if (type === 'email') {
-          updateEmailProvider(providerId, { 
-            status: 'error', 
-            lastTested: new Date().toISOString() 
-          });
         } else {
-          updateChannelProvider(providerId, { 
-            status: 'error', 
-            lastTested: new Date().toISOString() 
-          });
-        }
+          if (type === 'email') {
+            await updateEmailProvider(providerId, { 
+              status: 'error', 
+              last_tested_at: new Date().toISOString() 
+            });
+          } else {
+            await updateChannelProvider(providerId, { 
+              status: 'error', 
+              last_tested_at: new Date().toISOString() 
+            });
+          }
 
         toast({
           title: "Test failed",
@@ -347,14 +445,14 @@ export default function NotificationSettings() {
       console.error('Provider test error:', error);
       
       if (type === 'email') {
-        updateEmailProvider(providerId, { 
+        await updateEmailProvider(providerId, { 
           status: 'error', 
-          lastTested: new Date().toISOString() 
+          last_tested_at: new Date().toISOString() 
         });
       } else {
-        updateChannelProvider(providerId, { 
+        await updateChannelProvider(providerId, { 
           status: 'error', 
-          lastTested: new Date().toISOString() 
+          last_tested_at: new Date().toISOString() 
         });
       }
 
@@ -855,7 +953,7 @@ export default function NotificationSettings() {
                         <CardTitle>{provider.name}</CardTitle>
                         <CardDescription>{provider.type.toUpperCase()}</CardDescription>
                       </div>
-                      {provider.primary && (
+                      {provider.is_primary && (
                         <Badge variant="default">Primary</Badge>
                       )}
                       {provider.status && (
@@ -893,8 +991,8 @@ export default function NotificationSettings() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => updateEmailProvider(provider.id, { primary: true })}
-                        disabled={provider.primary}
+                        onClick={() => updateEmailProvider(provider.id, { is_primary: true })}
+                        disabled={provider.is_primary}
                       >
                         Set as Primary
                       </Button>
