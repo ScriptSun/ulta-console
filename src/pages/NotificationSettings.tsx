@@ -250,9 +250,6 @@ export default function NotificationSettings() {
         return;
       }
 
-      // Determine if this should be primary (only if no other primary providers exist)
-      const hasPrimaryProvider = settings.emailProviders.some(p => p.is_primary);
-      
       const { data, error } = await supabase
         .from('email_providers')
         .insert({
@@ -260,7 +257,7 @@ export default function NotificationSettings() {
           name: type.toUpperCase(),
           type,
           enabled: false,
-          is_primary: !hasPrimaryProvider, // Make primary only if no other primary exists
+          is_primary: false, // Always add new providers as non-primary
           config: getDefaultConfig(type),
           created_by: user.id,
           updated_by: user.id
