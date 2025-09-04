@@ -38,91 +38,91 @@ serve(async (req) => {
           )
         }
 
-        // First check if user is already banned
-        const { data: banStatus } = await supabase
-          .from('user_security_status')
-          .select('is_banned, ban_reason, banned_until')
-          .eq('email', email)
-          .single()
+        try {
+          // First check if user is already banned
+          const { data: banStatus } = await supabase
+            .from('user_security_status')
+            .select('is_banned, ban_reason, banned_until')
+            .eq('email', email)
+            .single()
 
-        if (banStatus?.is_banned) {
-          const bannedUntil = banStatus.banned_until ? new Date(banStatus.banned_until) : null
-          if (bannedUntil && bannedUntil > new Date()) {
-            return new Response(
-              JSON.stringify({
-                error: 'Account is temporarily locked',
-                ban_reason: banStatus.ban_reason,
-                locked_until: bannedUntil.toISOString()
-              }),
-              { status: 423, headers: corsHeaders }
-            )
+          if (banStatus?.is_banned) {
+            const bannedUntil = banStatus.banned_until ? new Date(banStatus.banned_until) : null
+            if (bannedUntil && bannedUntil > new Date()) {
+              return new Response(
+                JSON.stringify({
+                  error: 'Account is temporarily locked',
+                  ban_reason: banStatus.ban_reason,
+                  locked_until: bannedUntil.toISOString()
+                }),
+                { status: 423, headers: corsHeaders }
+              )
+            }
           }
-        }
 
-        // Validate password against security policies
-        const { data: passwordValidation, error: validationError } = await supabase
-          .rpc('validate_password_policy', { _password: password })
-
-        if (validationError) {
-          console.error('Password validation error:', validationError)
-        } else if (passwordValidation && passwordValidation.length > 0) {
-          const validation = passwordValidation[0]
-          if (!validation.valid) {
-            return new Response(
-              JSON.stringify({
-                error: 'Password does not meet security requirements',
-                errors: validation.errors
-              }),
-              { status: 400, headers: corsHeaders }
-            )
-          }
-        }
-
-        // Attempt login
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-
-        // Track login attempt with enhanced tracking
-        const { data: trackingResult } = await supabase
-          .rpc('track_login_attempt_enhanced', {
-            _email: email,
-            _user_id: authData?.user?.id || null,
-            _success: !authError,
-            _ip_address: ip_address || null,
-            _user_agent: user_agent || null
+          // Attempt login
+          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
           })
 
-        if (authError) {
-          const tracking = trackingResult?.[0]
-          if (tracking?.is_banned) {
-            return new Response(
-              JSON.stringify({
-                error: tracking.ban_reason,
-                locked_until: tracking.lockout_until,
-                attempts_remaining: 0
-              }),
-              { status: 423, headers: corsHeaders }
-            )
+          // Track login attempt with enhanced tracking
+          try {
+            const { data: trackingResult } = await supabase
+              .rpc('track_login_attempt_enhanced', {
+                _email: email,
+                _user_id: authData?.user?.id || null,
+                _success: !authError,
+                _ip_address: ip_address || null,
+                _user_agent: user_agent || null
+              })
+
+            if (authError) {
+              const tracking = trackingResult?.[0]
+              if (tracking?.is_banned) {
+                return new Response(
+                  JSON.stringify({
+                    error: tracking.ban_reason,
+                    locked_until: tracking.lockout_until,
+                    attempts_remaining: 0
+                  }),
+                  { status: 423, headers: corsHeaders }
+                )
+              }
+
+              return new Response(
+                JSON.stringify({
+                  error: 'Invalid credentials',
+                  attempts_remaining: tracking?.attempts_remaining || 0
+                }),
+                { status: 401, headers: corsHeaders }
+              )
+            }
+          } catch (trackingError) {
+            console.error('Login tracking error:', trackingError)
+            // Continue with login even if tracking fails
+            if (authError) {
+              return new Response(
+                JSON.stringify({ error: 'Invalid credentials' }),
+                { status: 401, headers: corsHeaders }
+              )
+            }
           }
 
           return new Response(
             JSON.stringify({
-              error: 'Invalid credentials',
-              attempts_remaining: tracking?.attempts_remaining || 0
+              user: authData.user,
+              session: authData.session
             }),
-            { status: 401, headers: corsHeaders }
+            { headers: corsHeaders }
+          )
+        } catch (loginError) {
+          console.error('Login process error:', loginError)
+          return new Response(
+            JSON.stringify({ error: 'Login failed. Please try again.' }),
+            { status: 500, headers: corsHeaders }
           )
         }
-
-        return new Response(
-          JSON.stringify({
-            user: authData.user,
-            session: authData.session
-          }),
-          { headers: corsHeaders }
-        )
       }
 
       case 'check_session': {
