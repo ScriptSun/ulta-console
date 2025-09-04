@@ -174,57 +174,81 @@ export function SecurityDemo() {
             </AlertDescription>
           </Alert>
 
-          {/* Password Validation Test */}
+          {/* Unified Security Testing */}
           <div className="space-y-4">
             <h4 className="font-medium text-lg flex items-center gap-2">
-              <Lock className="h-5 w-5" />
-              Password Policy Testing
+              <Shield className="h-5 w-5" />
+              Security Testing
             </h4>
-            <div className="space-y-2">
-              <Label htmlFor="test-password">Test Password Validation</Label>
-              <div className="relative">
-                <Input
-                  id="test-password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter a password to test against current security policies"
-                  value={testPassword}
-                  onChange={(e) => setTestPassword(e.target.value)}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="test-input">Test Password or Login (email:password format)</Label>
+                <div className="relative">
+                  <Input
+                    id="test-input"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter password OR email:password (e.g., test@example.com:wrongpass)"
+                    value={testPassword}
+                    onChange={(e) => setTestPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => {
+                    if (testPassword.includes(':')) {
+                      const [email, password] = testPassword.split(':');
+                      setTestEmail(email);
+                      setLoginTestPassword(password);
+                      handleTestLogin();
+                    } else {
+                      handleTestPassword();
+                    }
+                  }} 
+                  disabled={testing || loginTesting || !testPassword}
+                  className="flex items-center gap-2"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
+                  <Shield className="h-4 w-4" />
+                  {testing || loginTesting ? 'Testing...' : 'Test Security'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleResetAttempts}
+                  disabled={!testEmail}
+                  className="flex items-center gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset Attempts
+                </Button>
+                {(validationResult || loginResult) && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      clearTest();
+                      clearLoginTest();
+                    }}
+                  >
+                    Clear
+                  </Button>
+                )}
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleTestPassword} 
-                disabled={testing || !testPassword}
-                className="flex items-center gap-2"
-              >
-                <Lock className="h-4 w-4" />
-                {testing ? 'Testing...' : 'Test Password'}
-              </Button>
-              {validationResult && (
-                <Button 
-                  variant="outline" 
-                  onClick={clearTest}
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
-
-            {/* Validation Results */}
+            {/* Results */}
             {validationResult && (
               <Alert className={validationResult.valid ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
                 {validationResult.valid ? (
@@ -234,7 +258,7 @@ export function SecurityDemo() {
                 )}
                 <AlertDescription>
                   <div className={`font-medium ${validationResult.valid ? 'text-green-800' : 'text-red-800'}`}>
-                    {validationResult.valid ? 'Password meets all security requirements!' : 'Password does not meet security requirements:'}
+                    Password Policy: {validationResult.valid ? 'Valid ✓' : 'Invalid ✗'}
                   </div>
                   {!validationResult.valid && validationResult.errors.length > 0 && (
                     <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
@@ -246,82 +270,7 @@ export function SecurityDemo() {
                 </AlertDescription>
               </Alert>
             )}
-          </div>
 
-          {/* Login Security Test */}
-          <div className="space-y-4">
-            <h4 className="font-medium text-lg flex items-center gap-2">
-              <UserX className="h-5 w-5" />
-              Login Security & Lockout Testing
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="test-email">Test Email</Label>
-                <Input
-                  id="test-email"
-                  type="email"
-                  placeholder="test@example.com"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="login-test-password">Test Password</Label>
-                <div className="relative">
-                  <Input
-                    id="login-test-password"
-                    type={showLoginPassword ? 'text' : 'password'}
-                    placeholder="Enter wrong password to test lockout"
-                    value={loginTestPassword}
-                    onChange={(e) => setLoginTestPassword(e.target.value)}
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showLoginPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleTestLogin} 
-                disabled={loginTesting || !testEmail || !loginTestPassword}
-                className="flex items-center gap-2"
-              >
-                <UserX className="h-4 w-4" />
-                {loginTesting ? 'Testing...' : 'Test Login Attempt'}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleResetAttempts}
-                disabled={!testEmail}
-                className="flex items-center gap-2"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset Attempts
-              </Button>
-              {loginResult && (
-                <Button 
-                  variant="outline" 
-                  onClick={clearLoginTest}
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
-
-            {/* Login Test Results */}
             {loginResult && (
               <Alert className={loginResult.error ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
                 {loginResult.error ? (
@@ -331,7 +280,7 @@ export function SecurityDemo() {
                 )}
                 <AlertDescription>
                   <div className={`font-medium ${loginResult.error ? 'text-red-800' : 'text-green-800'}`}>
-                    {loginResult.error ? 'Login Failed' : 'Login Successful'}
+                    Login Security: {loginResult.error ? 'Failed ✗' : 'Success ✓'}
                   </div>
                   {loginResult.error && (
                     <div className="mt-2 text-sm text-red-700">
