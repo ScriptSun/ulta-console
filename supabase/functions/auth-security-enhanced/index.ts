@@ -104,8 +104,8 @@ serve(async (req) => {
             const newFailedCount = currentAttempts + 1;
             const attemptsRemaining = Math.max(0, maxAttempts - newFailedCount);
             
-            console.log(`Failed login recorded. New count: ${newFailedCount}, Remaining: ${attemptsRemaining}`);
-
+            console.log(`CALCULATION DEBUG - maxAttempts: ${maxAttempts}, currentAttempts: ${currentAttempts}, newFailedCount: ${newFailedCount}, attemptsRemaining: ${attemptsRemaining}`);
+            
             return new Response(
               JSON.stringify({
                 error: 'Invalid credentials',
