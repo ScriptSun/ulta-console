@@ -37,6 +37,9 @@ interface EmailProvider {
     accessKey?: string;
     secretKey?: string;
     serverToken?: string;
+    // SendGrid specific
+    fromEmail?: string;
+    fromName?: string;
   };
   status?: 'connected' | 'error' | 'disconnected' | 'testing';
   last_tested_at?: string;
@@ -579,14 +582,17 @@ export default function NotificationSettings() {
                     id="fromEmail"
                     type="email"
                     placeholder="noreply@yourdomain.com"
-                    value={providerConfigs.sendgrid?.fromEmail || ''}
-                    onChange={(e) => setProviderConfigs({
-                      ...providerConfigs,
-                      sendgrid: {
-                        ...providerConfigs.sendgrid,
-                        fromEmail: e.target.value
-                      }
-                    })}
+                    value={provider.config.fromEmail || ''}
+                    onChange={(e) => {
+                      updateConfig('fromEmail', e.target.value);
+                      setProviderConfigs({
+                        ...providerConfigs,
+                        sendgrid: {
+                          ...providerConfigs.sendgrid,
+                          fromEmail: e.target.value
+                        }
+                      });
+                    }}
                   />
                   <p className="text-sm text-muted-foreground mt-1">
                     This must be a verified sender identity in your SendGrid account.{' '}
@@ -606,14 +612,17 @@ export default function NotificationSettings() {
                     id="fromName"
                     type="text"
                     placeholder="Your App Name"
-                    value={providerConfigs.sendgrid?.fromName || ''}
-                    onChange={(e) => setProviderConfigs({
-                      ...providerConfigs,
-                      sendgrid: {
-                        ...providerConfigs.sendgrid,
-                        fromName: e.target.value
-                      }
-                    })}
+                    value={provider.config.fromName || ''}
+                    onChange={(e) => {
+                      updateConfig('fromName', e.target.value);
+                      setProviderConfigs({
+                        ...providerConfigs,
+                        sendgrid: {
+                          ...providerConfigs.sendgrid,
+                          fromName: e.target.value
+                        }
+                      });
+                    }}
                   />
                 </div>
               </>
