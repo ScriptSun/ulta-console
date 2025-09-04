@@ -45,28 +45,40 @@ serve(async (req) => {
         try {
           console.log(`Attempting login for: ${cleanEmail}`);
 
-          // Get security settings from database
+          // Get security settings from database - NEVER hardcode!
           console.log('About to call get_security_settings RPC...');
           const { data: securitySettings, error: settingsError } = await supabase.rpc('get_security_settings');
           console.log('Security settings RPC result:', { data: securitySettings, error: settingsError });
           
           if (settingsError) {
             console.error('Error getting security settings:', settingsError);
+            throw new Error('Failed to fetch security settings from database');
           }
           
-          // The RPC returns an array with: [max_login_attempts, session_timeout_hours, require_2fa, password_min_length, require_special_chars, lockout_duration]
-          let maxAttempts = 2; // Use your database default directly
-          if (securitySettings && Array.isArray(securitySettings) && securitySettings.length > 0) {
-            maxAttempts = securitySettings[0] || 2; // First element is max_login_attempts
-            console.log(`Using max_login_attempts from DB array: ${maxAttempts}`);
-          } else if (securitySettings && typeof securitySettings === 'object') {
-            maxAttempts = securitySettings.max_login_attempts || 2;
-            console.log(`Using max_login_attempts from DB object: ${maxAttempts}`);
+          let maxAttempts;
+          
+          // Parse the database response correctly
+          if (securitySettings) {
+            console.log('Raw securitySettings:', securitySettings);
+            console.log('Type of securitySettings:', typeof securitySettings);
+            
+            // Handle different possible response formats
+            if (typeof securitySettings === 'number') {
+              maxAttempts = securitySettings;
+            } else if (Array.isArray(securitySettings) && securitySettings.length > 0) {
+              maxAttempts = securitySettings[0]; // First element should be max_login_attempts
+            } else if (securitySettings && typeof securitySettings === 'object' && securitySettings.max_login_attempts) {
+              maxAttempts = securitySettings.max_login_attempts;
+            } else {
+              console.error('Unable to parse max_login_attempts from database response:', securitySettings);
+              throw new Error('Invalid security settings format from database');
+            }
           } else {
-            console.warn('Failed to get max_login_attempts from DB, using default:', maxAttempts);
+            console.error('No security settings returned from database');
+            throw new Error('No security settings found in database');
           }
           
-          console.log(`Final maxAttempts value: ${maxAttempts}`);
+          console.log(`Successfully fetched maxAttempts from DB: ${maxAttempts}`);
 
           // Check current failed attempts count
           const { data: failedAttemptsData } = await supabase.rpc('get_failed_attempts_count', {
