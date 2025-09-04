@@ -87,6 +87,7 @@ export default function NotificationSettings() {
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [checkingDomain, setCheckingDomain] = useState(false);
   const [domainInput, setDomainInput] = useState('');
+  const [testEmail, setTestEmail] = useState('test@example.com');
 
   useEffect(() => {
     loadSettings();
@@ -272,7 +273,7 @@ export default function NotificationSettings() {
       if (type === 'email') {
         provider = settings.emailProviders.find(p => p.id === providerId);
         providerType = provider?.type || 'unknown';
-        config = { ...provider?.config, type: provider?.type };
+        config = { ...provider?.config, type: provider?.type, testEmail };
       } else {
         provider = settings.channelProviders.find(p => p.id === providerId);
         providerType = provider?.type || 'unknown';
@@ -739,19 +740,32 @@ export default function NotificationSettings() {
               <h3 className="text-lg font-semibold">Email Providers</h3>
               <p className="text-sm text-muted-foreground">Configure multiple email providers with failover support</p>
             </div>
-            <Select onValueChange={(value) => addEmailProvider(value as EmailProvider['type'])}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Add Provider" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="smtp">SMTP</SelectItem>
-                <SelectItem value="sendgrid">SendGrid</SelectItem>
-                <SelectItem value="mailgun">Mailgun</SelectItem>
-                <SelectItem value="ses">Amazon SES</SelectItem>
-                <SelectItem value="postmark">Postmark</SelectItem>
-                <SelectItem value="resend">Resend</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="test-email" className="text-sm">Test Email:</Label>
+                <Input
+                  id="test-email"
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  className="w-48"
+                  placeholder="test@example.com"
+                />
+              </div>
+              <Select onValueChange={(value) => addEmailProvider(value as EmailProvider['type'])}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Add Provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="smtp">SMTP</SelectItem>
+                  <SelectItem value="sendgrid">SendGrid</SelectItem>
+                  <SelectItem value="mailgun">Mailgun</SelectItem>
+                  <SelectItem value="ses">Amazon SES</SelectItem>
+                  <SelectItem value="postmark">Postmark</SelectItem>
+                  <SelectItem value="resend">Resend</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid gap-4">

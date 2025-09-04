@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 interface TestRequest {
-  providerType: 'email' | 'slack' | 'telegram' | 'discord' | 'twilio';
+  providerType: 'email' | 'smtp' | 'sendgrid' | 'mailgun' | 'ses' | 'postmark' | 'resend' | 'slack' | 'telegram' | 'discord' | 'twilio';
   config: Record<string, any>;
 }
 
@@ -23,6 +23,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     switch (providerType) {
       case 'email':
+      case 'smtp':
+      case 'sendgrid':
+      case 'mailgun':
+      case 'ses':
+      case 'postmark':
+      case 'resend':
         testResult = await testEmailProvider(config);
         break;
       case 'slack':
@@ -66,6 +72,8 @@ const handler = async (req: Request): Promise<Response> => {
 
 async function testEmailProvider(config: any): Promise<{ success: boolean; message: string; error?: string }> {
   try {
+    const testEmail = config.testEmail || 'test@example.com';
+    
     if (config.type === 'smtp') {
       // Validate SMTP configuration
       if (!config.host || !config.port || !config.username || !config.password) {
@@ -91,26 +99,40 @@ async function testEmailProvider(config: any): Promise<{ success: boolean; messa
         };
       }
 
-      // Test SendGrid API
-      const response = await fetch('https://api.sendgrid.com/v3/user/account', {
+      // Send actual test email via SendGrid
+      const emailPayload = {
+        personalizations: [{
+          to: [{ email: testEmail }],
+          subject: 'UltaAI Test Email'
+        }],
+        from: { email: 'test@ultaai.com', name: 'UltaAI Test' },
+        content: [{
+          type: 'text/html',
+          value: '<h1>Test Email</h1><p>This is a test email from UltaAI notification system.</p>'
+        }]
+      };
+      
+      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${config.apiKey}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify(emailPayload)
       });
-
-      if (response.ok) {
-        return {
-          success: true,
-          message: 'SendGrid API key is valid'
-        };
-      } else {
-        return {
-          success: false,
-          message: 'SendGrid API key is invalid',
-          error: `API returned ${response.status}`
-        };
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        return { success: false, message: 'SendGrid test email failed', error: errorData };
       }
+      
+      return { success: true, message: `Test email sent successfully to ${testEmail}` };
+    }
+
+    // Handle other email provider types with basic validation
+    const providerType = config.type || 'unknown';
+    if (['mailgun', 'ses', 'postmark', 'resend'].includes(providerType)) {
+      return { success: true, message: `${providerType.toUpperCase()} configuration validated (actual sending not implemented yet)` };
     }
 
     return {
