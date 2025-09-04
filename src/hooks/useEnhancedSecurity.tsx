@@ -123,9 +123,14 @@ export function useEnhancedSecurity() {
         }
       });
 
-      console.log('Full function response:', response);
-      console.log('Response data:', response.data);
-      console.log('Response error:', response.error);
+      console.log('=== COMPLETE RESPONSE DEBUG ===');
+      console.log('Full response object:', response);
+      console.log('Response type:', typeof response);
+      console.log('Response keys:', Object.keys(response || {}));
+      console.log('response.data:', response.data);
+      console.log('response.data type:', typeof response.data);
+      console.log('response.error:', response.error);
+      console.log('=== END RESPONSE DEBUG ===');
 
       if (response.error) {
         console.error('Function invocation error:', response.error);
@@ -136,10 +141,21 @@ export function useEnhancedSecurity() {
         };
       }
 
-      const data = response.data;
+      // Handle the case where data might be null/undefined
+      let data = response.data;
+      
+      // If data is null but we have no error, there might be a parsing issue
+      if (!data) {
+        console.error('Response data is null/undefined despite no error');
+        return {
+          user: null,
+          session: null,
+          error: 'Invalid response format from authentication service'
+        };
+      }
 
       // Check if the response contains an error (business logic error)
-      if (data?.error) {
+      if (data.error) {
         console.log('Business logic error:', data.error);
         return {
           user: null,
@@ -151,35 +167,48 @@ export function useEnhancedSecurity() {
         };
       }
 
-      // Debug logging to see what we received
-      console.log('=== LOGIN DEBUG START ===');
+      // Comprehensive data validation
+      console.log('=== DATA VALIDATION DEBUG ===');
       console.log('data:', data);
       console.log('data type:', typeof data);
-      console.log('data keys:', Object.keys(data || {}));
+      console.log('data is object:', typeof data === 'object' && data !== null);
+      console.log('data keys:', data ? Object.keys(data) : 'NO DATA');
+      
+      // Check user
+      console.log('data.user exists:', 'user' in (data || {}));
       console.log('data.user:', data?.user);
+      console.log('data.user type:', typeof data?.user);
+      
+      // Check session
+      console.log('data.session exists:', 'session' in (data || {}));
       console.log('data.session:', data?.session);
-      console.log('session keys:', data?.session ? Object.keys(data.session) : 'NO SESSION');
-      console.log('access_token:', data?.session?.access_token);
-      console.log('refresh_token:', data?.session?.refresh_token);
-      console.log('=== LOGIN DEBUG END ===');
+      console.log('data.session type:', typeof data?.session);
+      
+      if (data?.session) {
+        console.log('session keys:', Object.keys(data.session));
+        console.log('access_token exists:', 'access_token' in data.session);
+        console.log('refresh_token exists:', 'refresh_token' in data.session);
+        console.log('access_token:', data.session.access_token ? '[TOKEN PRESENT]' : 'MISSING');
+        console.log('refresh_token:', data.session.refresh_token ? '[TOKEN PRESENT]' : 'MISSING');
+      }
+      console.log('=== END DATA VALIDATION DEBUG ===');
 
-      // More robust validation - check for the actual tokens
-      const hasUser = data?.user && typeof data.user === 'object';
-      const hasSession = data?.session && typeof data.session === 'object';
-      const hasAccessToken = data?.session?.access_token && typeof data.session.access_token === 'string';
-      const hasRefreshToken = data?.session?.refresh_token && typeof data.session.refresh_token === 'string';
+      // More robust validation
+      const hasValidUser = data?.user && typeof data.user === 'object' && data.user.id;
+      const hasValidSession = data?.session && typeof data.session === 'object';
+      const hasAccessToken = data?.session?.access_token && typeof data.session.access_token === 'string' && data.session.access_token.length > 0;
+      const hasRefreshToken = data?.session?.refresh_token && typeof data.session.refresh_token === 'string' && data.session.refresh_token.length > 0;
 
-      console.log('Validation results:', {
-        hasUser,
-        hasSession,
+      console.log('Final validation results:', {
+        hasValidUser,
+        hasValidSession,
         hasAccessToken,
         hasRefreshToken
       });
 
-      if (hasUser && hasSession && hasAccessToken && hasRefreshToken) {
+      if (hasValidUser && hasValidSession && hasAccessToken && hasRefreshToken) {
         console.log('All validations passed - setting session...');
 
-        // Set the session on successful login
         const sessionResult = await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
@@ -196,33 +225,34 @@ export function useEnhancedSecurity() {
           };
         }
 
-        console.log('Session set successfully');
+        console.log('Session set successfully - login complete');
         return {
           user: data.user,
           session: data.session
         };
       }
 
-      // Detailed error for debugging
+      // Build detailed error message
       const missingItems = [];
-      if (!hasUser) missingItems.push('user');
-      if (!hasSession) missingItems.push('session object');
+      if (!hasValidUser) missingItems.push('valid user object');
+      if (!hasValidSession) missingItems.push('valid session object');
       if (!hasAccessToken) missingItems.push('access_token');
       if (!hasRefreshToken) missingItems.push('refresh_token');
 
-      console.error('Login validation failed - missing:', missingItems.join(', '));
+      const errorMsg = `Authentication data validation failed. Missing: ${missingItems.join(', ')}`;
+      console.error(errorMsg);
       
       return {
         user: null,
         session: null,
-        error: `Login succeeded but session data is incomplete: missing ${missingItems.join(', ')}`
+        error: errorMsg
       };
     } catch (error) {
-      console.error('Secure login failed:', error);
+      console.error('Secure login exception:', error);
       return {
         user: null,
         session: null,
-        error: 'Login failed due to a network error: ' + (error as Error).message
+        error: 'Login failed due to an unexpected error: ' + (error as Error).message
       };
     } finally {
       setLoading(false);
