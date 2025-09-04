@@ -111,3 +111,6 @@ verify_jwt = true
 
 [functions.auth-security-enhanced]
 verify_jwt = false
+
+[functions.test-notification-providers]
+verify_jwt = true

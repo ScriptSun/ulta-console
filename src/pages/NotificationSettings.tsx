@@ -261,30 +261,92 @@ export default function NotificationSettings() {
 
   const testProvider = async (providerId: string, type: 'email' | 'channel') => {
     setTestingProvider(providerId);
+    
     try {
-      // Simulate test call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      let provider: EmailProvider | ChannelProvider | undefined;
+      let providerType: string;
+      let config: any;
+
+      if (type === 'email') {
+        provider = settings.emailProviders.find(p => p.id === providerId);
+        providerType = provider?.type || 'unknown';
+        config = { ...provider?.config, type: provider?.type };
+      } else {
+        provider = settings.channelProviders.find(p => p.id === providerId);
+        providerType = provider?.type || 'unknown';
+        config = provider?.config;
+      }
+
+      if (!provider) {
+        throw new Error('Provider not found');
+      }
+
+      // Call the test edge function
+      const { data, error } = await supabase.functions.invoke('test-notification-providers', {
+        body: {
+          providerType,
+          config
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Test function failed');
+      }
+
+      if (data.success) {
+        if (type === 'email') {
+          updateEmailProvider(providerId, { 
+            status: 'connected', 
+            lastTested: new Date().toISOString() 
+          });
+        } else {
+          updateChannelProvider(providerId, { 
+            status: 'connected', 
+            lastTested: new Date().toISOString() 
+          });
+        }
+        
+        toast({
+          title: "Test successful",
+          description: data.message || "Provider connection test passed.",
+        });
+      } else {
+        if (type === 'email') {
+          updateEmailProvider(providerId, { 
+            status: 'error', 
+            lastTested: new Date().toISOString() 
+          });
+        } else {
+          updateChannelProvider(providerId, { 
+            status: 'error', 
+            lastTested: new Date().toISOString() 
+          });
+        }
+
+        toast({
+          title: "Test failed",
+          description: data.error || data.message || "Provider connection test failed.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Provider test error:', error);
       
       if (type === 'email') {
         updateEmailProvider(providerId, { 
-          status: 'connected', 
+          status: 'error', 
           lastTested: new Date().toISOString() 
         });
       } else {
         updateChannelProvider(providerId, { 
-          status: 'connected', 
+          status: 'error', 
           lastTested: new Date().toISOString() 
         });
       }
-      
-      toast({
-        title: "Test successful",
-        description: "Provider connection test passed.",
-      });
-    } catch (error) {
+
       toast({
         title: "Test failed",
-        description: "Provider connection test failed.",
+        description: error.message || "Provider connection test failed.",
         variant: "destructive",
       });
     } finally {
