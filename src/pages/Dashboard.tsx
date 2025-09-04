@@ -1,5 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { FileText } from 'lucide-react';
 import { DateRangeFilter } from '@/components/dashboard/DateRangeFilter';
 import { RevenueOverview } from '@/components/dashboard/RevenueOverview';
 import { ErrorRatesCard } from '@/components/dashboard/ErrorRatesCard';
@@ -7,6 +9,7 @@ import { AIInsightsCard } from '@/components/dashboard/AIInsightsCard';
 import { RecentLoginsCard } from '@/components/dashboard/RecentLoginsCard';
 import { TopActiveAgents } from '@/components/dashboard/TopActiveAgents';
 import { PermissionAwareSection } from '@/components/dashboard/PermissionAwareSection';
+import { SystemDocumentation } from '@/components/dashboard/SystemDocumentation';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useAIInsights } from '@/hooks/useDashboardData';
@@ -32,6 +35,12 @@ export default function Dashboard() {
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
           />
+          <SystemDocumentation>
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Documentation
+            </Button>
+          </SystemDocumentation>
         </div>
       </div>
 
