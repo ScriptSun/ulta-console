@@ -121,6 +121,11 @@ export function useEnhancedSecurity() {
           ip_address: ipAddress,
           user_agent: userAgent || navigator.userAgent
         }
+      }).catch(error => {
+        console.error('Edge function call failed:', error);
+        // If edge function fails, fallback to regular Supabase auth
+        console.log('Falling back to regular Supabase auth...');
+        return supabase.auth.signInWithPassword({ email, password });
       });
 
       console.log('=== COMPLETE RESPONSE DEBUG ===');
