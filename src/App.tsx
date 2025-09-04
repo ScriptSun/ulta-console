@@ -46,6 +46,7 @@ import BrandCenter from "./pages/BrandCenter";
 import { BrandTheme } from "./pages/BrandTheme";
 import EmailBranding from "./pages/EmailBranding";
 import EmailTemplateEdit from "./pages/EmailTemplateEdit";
+import NotificationSettings from "./pages/NotificationSettings";
 import AiSettings from "./pages/AiSettings";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
@@ -312,7 +313,7 @@ const App = () => (
             <Route path="/system-settings/notifications" element={
               <ProtectedRoute>
                 <RootLayout>
-                  <SystemSettings />
+                  <NotificationSettings />
                 </RootLayout>
               </ProtectedRoute>
             } />
