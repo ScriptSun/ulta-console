@@ -121,11 +121,27 @@ export function useEnhancedSecurity() {
           ip_address: ipAddress,
           user_agent: userAgent || navigator.userAgent
         }
-      }).catch(error => {
+      }).catch(async (error) => {
         console.error('Edge function call failed:', error);
-        // If edge function fails, fallback to regular Supabase auth
         console.log('Falling back to regular Supabase auth...');
-        return supabase.auth.signInWithPassword({ email, password });
+        
+        // Fallback to regular Supabase auth
+        const fallbackResult = await supabase.auth.signInWithPassword({ 
+          email: email.trim().toLowerCase(), 
+          password: password.trim() 
+        });
+        
+        if (fallbackResult.error) {
+          throw new Error(fallbackResult.error.message);
+        }
+        
+        return {
+          data: {
+            user: fallbackResult.data.user,
+            session: fallbackResult.data.session
+          },
+          error: null
+        };
       });
 
       console.log('=== COMPLETE RESPONSE DEBUG ===');

@@ -108,3 +108,6 @@ verify_jwt = false
 
 [functions.check-email-dns]
 verify_jwt = true
+
+[functions.auth-security-enhanced]
+verify_jwt = false
