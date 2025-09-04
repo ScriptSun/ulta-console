@@ -41,6 +41,10 @@ interface EmailProvider {
     // SendGrid specific
     fromEmail?: string;
     fromName?: string;
+    // Postmark specific
+    messageStream?: string;
+    trackOpens?: boolean;
+    trackLinks?: boolean;
   };
   status?: 'connected' | 'error' | 'disconnected' | 'testing';
   last_tested_at?: string;
@@ -778,14 +782,69 @@ export default function NotificationSettings() {
       
       case 'postmark':
         return (
-          <div>
-            <Label>Server Token</Label>
-            <Input
-              type="password"
-              value={provider.config.serverToken || ''}
-              onChange={(e) => updateConfig('serverToken', e.target.value)}
-              placeholder="••••••••"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <Label>Server Token</Label>
+              <Input
+                type="password"
+                value={provider.config.serverToken || ''}
+                onChange={(e) => updateConfig('serverToken', e.target.value)}
+                placeholder="••••••••"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Your Postmark Server API Token
+              </p>
+            </div>
+            <div>
+              <Label>From Email</Label>
+              <Input
+                value={provider.config.fromEmail || ''}
+                onChange={(e) => updateConfig('fromEmail', e.target.value)}
+                placeholder="noreply@yourdomain.com"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Must be a verified sender signature in Postmark
+              </p>
+            </div>
+            <div>
+              <Label>From Name</Label>
+              <Input
+                value={provider.config.fromName || ''}
+                onChange={(e) => updateConfig('fromName', e.target.value)}
+                placeholder="Your Company Name"
+              />
+            </div>
+            <div>
+              <Label>Message Stream</Label>
+              <Select 
+                value={provider.config.messageStream || 'outbound'} 
+                onValueChange={(value) => updateConfig('messageStream', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="outbound">Outbound</SelectItem>
+                  <SelectItem value="broadcast">Broadcast</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={provider.config.trackOpens || false}
+                  onCheckedChange={(checked) => updateConfig('trackOpens', checked)}
+                />
+                <Label>Track Opens</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={provider.config.trackLinks || false}
+                  onCheckedChange={(checked) => updateConfig('trackLinks', checked)}
+                />
+                <Label>Track Links</Label>
+              </div>
+            </div>
           </div>
         );
       
