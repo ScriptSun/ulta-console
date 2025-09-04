@@ -140,8 +140,18 @@ export function useEnhancedSecurity() {
         };
       }
 
+      // Debug logging to see what we received
+      console.log('Login response data:', data);
+      console.log('Has user:', !!data?.user);
+      console.log('Has session:', !!data?.session);
+
       // Check if we have both user and session data
       if (data?.user && data?.session) {
+        console.log('Setting session with tokens:', {
+          hasAccessToken: !!data.session.access_token,
+          hasRefreshToken: !!data.session.refresh_token
+        });
+
         // Set the session on successful login
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
@@ -157,6 +167,7 @@ export function useEnhancedSecurity() {
           };
         }
 
+        console.log('Session set successfully');
         return {
           user: data.user,
           session: data.session
@@ -164,6 +175,11 @@ export function useEnhancedSecurity() {
       }
 
       // If we don't have both user and session, return error
+      console.error('Missing user or session in response:', { 
+        hasUser: !!data?.user, 
+        hasSession: !!data?.session,
+        data: data 
+      });
       return {
         user: null,
         session: null,
