@@ -6,13 +6,16 @@ import { Label } from '@/components/ui/label';
 import { useEnhancedSecurity } from '@/hooks/useEnhancedSecurity';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Lock, Eye, EyeOff, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { Shield, Lock, Eye, EyeOff, CheckCircle, AlertTriangle, Info, UserX, RotateCcw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
 export function SecurityDemo() {
-  const { validatePassword } = useEnhancedSecurity();
+  const { validatePassword, performSecureLogin } = useEnhancedSecurity();
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Password validation states
   const [testPassword, setTestPassword] = useState('');
   const [validationResult, setValidationResult] = useState<{
     valid: boolean;
@@ -20,6 +23,88 @@ export function SecurityDemo() {
   } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [testing, setTesting] = useState(false);
+  
+  // Login test states
+  const [testEmail, setTestEmail] = useState('test@example.com');
+  const [loginTestPassword, setLoginTestPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [loginTesting, setLoginTesting] = useState(false);
+  const [loginResult, setLoginResult] = useState<any>(null);
+
+  const handleTestLogin = async () => {
+    if (!testEmail || !loginTestPassword) {
+      toast({
+        title: "Fields Required",
+        description: "Please enter both email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoginTesting(true);
+    try {
+      const result = await performSecureLogin(testEmail, loginTestPassword);
+      setLoginResult(result);
+      
+      if (result.error) {
+        toast({
+          title: "Login Test Result",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Test Successful",
+          description: "Test login succeeded!",
+        });
+      }
+    } catch (error) {
+      console.error('Login test error:', error);
+      toast({
+        title: "Test Error",
+        description: "Failed to test login. Please try again.",
+        variant: "destructive",
+      });
+    }
+    setLoginTesting(false);
+  };
+
+  const handleResetAttempts = async () => {
+    try {
+      const session = await supabase.auth.getSession();
+      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/auth-security-enhanced`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.data.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'reset_attempts',
+          email: testEmail
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      toast({
+        title: "Attempts Reset",
+        description: "Failed login attempts have been cleared for this email.",
+      });
+      
+      setLoginResult(null);
+    } catch (error) {
+      console.error('Reset attempts error:', error);
+      toast({
+        title: "Reset Error",
+        description: "Failed to reset attempts. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleTestPassword = async () => {
     if (!testPassword) {
@@ -64,6 +149,11 @@ export function SecurityDemo() {
     setValidationResult(null);
   };
 
+  const clearLoginTest = () => {
+    setLoginTestPassword('');
+    setLoginResult(null);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -73,26 +163,30 @@ export function SecurityDemo() {
             Enhanced Security System Demo
           </CardTitle>
           <CardDescription>
-            Test the password validation and security features that are now active in your system.
+            Test all security policies including password validation, login attempts, and account lockouts.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              <strong>System Status:</strong> Enhanced security is now fully active! All login attempts, password validation, and account lockout policies are enforced based on your security settings.
+              <strong>System Status:</strong> Enhanced security is now fully active! All policies from your security settings are enforced in real-time.
             </AlertDescription>
           </Alert>
 
           {/* Password Validation Test */}
           <div className="space-y-4">
+            <h4 className="font-medium text-lg flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Password Policy Testing
+            </h4>
             <div className="space-y-2">
               <Label htmlFor="test-password">Test Password Validation</Label>
               <div className="relative">
                 <Input
                   id="test-password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter a password to test against security policies"
+                  placeholder="Enter a password to test against current security policies"
                   value={testPassword}
                   onChange={(e) => setTestPassword(e.target.value)}
                   className="pr-10"
@@ -154,6 +248,111 @@ export function SecurityDemo() {
             )}
           </div>
 
+          {/* Login Security Test */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-lg flex items-center gap-2">
+              <UserX className="h-5 w-5" />
+              Login Security & Lockout Testing
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="test-email">Test Email</Label>
+                <Input
+                  id="test-email"
+                  type="email"
+                  placeholder="test@example.com"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="login-test-password">Test Password</Label>
+                <div className="relative">
+                  <Input
+                    id="login-test-password"
+                    type={showLoginPassword ? 'text' : 'password'}
+                    placeholder="Enter wrong password to test lockout"
+                    value={loginTestPassword}
+                    onChange={(e) => setLoginTestPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showLoginPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleTestLogin} 
+                disabled={loginTesting || !testEmail || !loginTestPassword}
+                className="flex items-center gap-2"
+              >
+                <UserX className="h-4 w-4" />
+                {loginTesting ? 'Testing...' : 'Test Login Attempt'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleResetAttempts}
+                disabled={!testEmail}
+                className="flex items-center gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset Attempts
+              </Button>
+              {loginResult && (
+                <Button 
+                  variant="outline" 
+                  onClick={clearLoginTest}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            {/* Login Test Results */}
+            {loginResult && (
+              <Alert className={loginResult.error ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
+                {loginResult.error ? (
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                )}
+                <AlertDescription>
+                  <div className={`font-medium ${loginResult.error ? 'text-red-800' : 'text-green-800'}`}>
+                    {loginResult.error ? 'Login Failed' : 'Login Successful'}
+                  </div>
+                  {loginResult.error && (
+                    <div className="mt-2 text-sm text-red-700">
+                      <p>{loginResult.error}</p>
+                      {typeof loginResult.attempts_remaining === 'number' && (
+                        <p className="mt-1">
+                          <strong>Attempts remaining:</strong> {loginResult.attempts_remaining}
+                        </p>
+                      )}
+                      {loginResult.locked_until && (
+                        <p className="mt-1">
+                          <strong>Account locked until:</strong> {new Date(loginResult.locked_until).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
           {/* Current Security Features */}
           <div className="space-y-3">
             <h4 className="font-medium text-sm text-gray-700">Active Security Features:</h4>
@@ -187,13 +386,33 @@ export function SecurityDemo() {
 
           {/* Instructions */}
           <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h4 className="font-medium text-blue-900">How to Test:</h4>
-            <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-              <li>Try passwords that are too short (less than 8 characters)</li>
-              <li>Test passwords without special characters if required</li>
-              <li>Attempt login with wrong credentials multiple times to trigger lockout</li>
-              <li>Modify security settings and see immediate effects</li>
-            </ol>
+            <h4 className="font-medium text-blue-900">How to Test Security Policies:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+              <div>
+                <p className="font-medium mb-2">Password Testing:</p>
+                <ul className="space-y-1 list-disc list-inside">
+                  <li>Try passwords shorter than required length</li>
+                  <li>Test without special characters (if required)</li>
+                  <li>Test without numbers (if required)</li>
+                  <li>Check minimum length enforcement</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium mb-2">Login Security Testing:</p>
+                <ul className="space-y-1 list-disc list-inside">
+                  <li>Use wrong password to trigger failed attempts</li>
+                  <li>Exceed max attempts to test account lockout</li>
+                  <li>Wait for lockout period to expire</li>
+                  <li>Reset attempts to clear lockout</li>
+                </ul>
+              </div>
+            </div>
+            <Alert className="mt-4">
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-blue-900">
+                <strong>Note:</strong> All settings from your Security Settings page are applied here. Changes take effect immediately.
+              </AlertDescription>
+            </Alert>
           </div>
         </CardContent>
       </Card>

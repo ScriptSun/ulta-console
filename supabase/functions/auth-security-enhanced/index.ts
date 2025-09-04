@@ -255,12 +255,36 @@ serve(async (req) => {
           )
         }
 
-        return new Response(
-          JSON.stringify({
-            validation: { valid: true, errors: [] }
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        try {
+          // Use the database function to validate password
+          const { data: validationResult, error: validationError } = await supabase.rpc('validate_password_policy', {
+            _password: password
+          });
+
+          if (validationError) {
+            console.error('Password validation error:', validationError);
+            return new Response(
+              JSON.stringify({ error: 'Password validation failed' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
+          return new Response(
+            JSON.stringify({
+              validation: {
+                valid: validationResult?.[0]?.valid || false,
+                errors: validationResult?.[0]?.errors || []
+              }
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        } catch (error) {
+          console.error('Password validation exception:', error);
+          return new Response(
+            JSON.stringify({ error: 'Password validation failed' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
       }
 
       case 'reset_attempts': {
