@@ -29,6 +29,7 @@ export default function SecuritySettings() {
     sessionTimeout: 24,
     passwordMinLength: 8,
     passwordRequireSpecialChars: true,
+    passwordRequireNumbers: true,
     maxFailedLogins: 5,
     lockoutDuration: 30
   });
@@ -57,6 +58,7 @@ export default function SecuritySettings() {
           sessionTimeout: savedSettings.sessionTimeout || 24,
           passwordMinLength: savedSettings.passwordMinLength || 8,
           passwordRequireSpecialChars: savedSettings.passwordRequireSpecialChars !== false,
+          passwordRequireNumbers: savedSettings.passwordRequireNumbers !== false,
           maxFailedLogins: savedSettings.maxFailedLogins || 5,
           lockoutDuration: savedSettings.lockoutDuration || 30
         });
@@ -82,6 +84,7 @@ export default function SecuritySettings() {
           sessionTimeout: settings.sessionTimeout,
           passwordMinLength: settings.passwordMinLength,
           passwordRequireSpecialChars: settings.passwordRequireSpecialChars,
+          passwordRequireNumbers: settings.passwordRequireNumbers,
           maxFailedLogins: settings.maxFailedLogins,
           lockoutDuration: settings.lockoutDuration
         }
@@ -232,6 +235,21 @@ export default function SecuritySettings() {
               checked={settings.passwordRequireSpecialChars}
               onCheckedChange={(checked) => 
                 setSettings(prev => ({ ...prev, passwordRequireSpecialChars: checked }))
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label>Require Numbers</Label>
+              <p className="text-sm text-muted-foreground">
+                Passwords must contain at least one numeric digit
+              </p>
+            </div>
+            <Switch
+              checked={settings.passwordRequireNumbers}
+              onCheckedChange={(checked) => 
+                setSettings(prev => ({ ...prev, passwordRequireNumbers: checked }))
               }
             />
           </div>
