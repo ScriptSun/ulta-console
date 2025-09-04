@@ -69,11 +69,16 @@ serve(async (req) => {
           // Check if user is already locked out
           if (currentAttempts >= maxAttempts) {
             console.log(`Account locked for ${cleanEmail} - too many failed attempts`);
+            
+            // Calculate lockout duration from security settings
+            const lockoutDurationMinutes = securitySettings?.lockout_duration || 30;
+            const lockoutUntil = new Date(Date.now() + lockoutDurationMinutes * 60 * 1000);
+            
             return new Response(
               JSON.stringify({
                 error: 'Account temporarily locked due to too many failed login attempts',
                 attempts_remaining: 0,
-                locked_until: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minutes from now
+                locked_until: lockoutUntil.toISOString()
               }),
               { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
