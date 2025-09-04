@@ -239,6 +239,17 @@ export default function NotificationSettings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Check if provider already exists
+      const existingProvider = settings.emailProviders.find(p => p.type === type);
+      if (existingProvider) {
+        toast({
+          title: "Provider already exists",
+          description: `${type.toUpperCase()} provider is already configured.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('email_providers')
         .insert({
@@ -246,7 +257,7 @@ export default function NotificationSettings() {
           name: type.toUpperCase(),
           type,
           enabled: false,
-          is_primary: settings.emailProviders.length === 0,
+          is_primary: false, // Always add as non-primary to avoid conflicts
           config: getDefaultConfig(type),
           created_by: user.id,
           updated_by: user.id
