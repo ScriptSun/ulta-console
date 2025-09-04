@@ -7,7 +7,7 @@ const corsHeaders = {
 }
 
 interface AuthRequest {
-  action: 'login' | 'check_session' | 'check_ban_status' | 'unban_user' | 'validate_password';
+  action: 'login' | 'check_session' | 'check_ban_status' | 'unban_user' | 'validate_password' | 'reset_attempts';
   email?: string;
   password?: string;
   user_id?: string;
@@ -199,6 +199,31 @@ serve(async (req) => {
           JSON.stringify({
             validation: { valid: true, errors: [] }
           }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      case 'reset_attempts': {
+        if (!email) {
+          return new Response(
+            JSON.stringify({ error: 'Email is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        const cleanEmail = email.trim().toLowerCase();
+        console.log(`Resetting failed attempts for: ${cleanEmail}`);
+        
+        // Clear all failed login attempts for this email
+        await supabase.from('login_attempts')
+          .delete()
+          .eq('email', cleanEmail)
+          .eq('success', false);
+          
+        console.log(`Failed attempts cleared for: ${cleanEmail}`);
+
+        return new Response(
+          JSON.stringify({ success: true, message: 'Login attempts reset successfully' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
