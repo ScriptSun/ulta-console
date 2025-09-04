@@ -3397,6 +3397,10 @@ export type Database = {
         Args: { email_address: string }
         Returns: number
       }
+      get_failed_attempts_count_since: {
+        Args: { email_address: string; since_time: string }
+        Returns: number
+      }
       get_next_batch_version: {
         Args: { _batch_id: string }
         Returns: number
