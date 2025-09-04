@@ -136,11 +136,51 @@ async function testEmailProvider(config: any): Promise<{ success: boolean; messa
       }
       
       return { success: true, message: `Test email sent successfully to ${testEmail}` };
+    } else if (config.type === 'resend') {
+      if (!config.apiKey) {
+        return {
+          success: false,
+          message: 'Resend API key is required',
+          error: 'API key missing'
+        };
+      }
+
+      if (!config.fromEmail) {
+        return {
+          success: false,
+          message: 'From email address is required for Resend',
+          error: 'You must provide a verified from email address'
+        };
+      }
+
+      // Send actual test email via Resend
+      const emailPayload = {
+        from: `${config.fromName || 'UltaAI Test'} <${config.fromEmail}>`,
+        to: [testEmail],
+        subject: 'UltaAI Test Email',
+        html: '<h1>Test Email</h1><p>This is a test email from UltaAI notification system using Resend.</p>'
+      };
+      
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(emailPayload)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        return { success: false, message: 'Resend test email failed', error: errorData };
+      }
+      
+      return { success: true, message: `Test email sent successfully to ${testEmail} via Resend` };
     }
 
     // Handle other email provider types with basic validation
     const providerType = config.type || 'unknown';
-    if (['mailgun', 'ses', 'postmark', 'resend'].includes(providerType)) {
+    if (['mailgun', 'ses', 'postmark'].includes(providerType)) {
       return { success: true, message: `${providerType.toUpperCase()} configuration validated (actual sending not implemented yet)` };
     }
 

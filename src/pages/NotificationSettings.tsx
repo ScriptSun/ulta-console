@@ -336,7 +336,7 @@ export default function NotificationSettings() {
       case 'postmark':
         return { serverToken: '' };
       case 'resend':
-        return { apiKey: '' };
+        return { apiKey: '', fromEmail: '', fromName: '' };
       default:
         return {};
     }
@@ -422,10 +422,10 @@ export default function NotificationSettings() {
           ...provider?.config, 
           type: provider?.type, 
           testEmail,
-          ...(provider?.type === 'sendgrid' && {
+          ...(provider?.type === 'sendgrid' || provider?.type === 'resend') && {
             fromEmail: provider.config.fromEmail,
             fromName: provider.config.fromName
-          })
+          }
         };
       } else {
         provider = settings.channelProviders.find(p => p.id === providerId);
@@ -577,10 +577,10 @@ export default function NotificationSettings() {
                 placeholder="••••••••"
               />
             </div>
-            {provider.type === 'sendgrid' && (
+            {(provider.type === 'sendgrid' || provider.type === 'resend') && (
               <>
                 <div>
-                  <Label htmlFor="fromEmail">From Email Address (must be verified in SendGrid)</Label>
+                  <Label htmlFor="fromEmail">From Email Address (must be verified)</Label>
                   <Input
                     id="fromEmail"
                     type="email"
@@ -589,15 +589,31 @@ export default function NotificationSettings() {
                     onChange={(e) => updateConfig('fromEmail', e.target.value)}
                   />
                   <p className="text-sm text-muted-foreground mt-1">
-                    This must be a verified sender identity in your SendGrid account.{' '}
-                    <a
-                      href="https://app.sendgrid.com/settings/sender_auth"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      Verify your sender identity here
-                    </a>
+                    This must be a verified sender identity in your {provider.type} account.
+                    {provider.type === 'sendgrid' && (
+                      <>{' '}
+                        <a
+                          href="https://app.sendgrid.com/settings/sender_auth"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          Verify your sender identity here
+                        </a>
+                      </>
+                    )}
+                    {provider.type === 'resend' && (
+                      <>{' '}
+                        <a
+                          href="https://resend.com/domains"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          Verify your domain here
+                        </a>
+                      </>
+                    )}
                   </p>
                 </div>
                 <div>
