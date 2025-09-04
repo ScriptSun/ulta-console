@@ -40,6 +40,7 @@ import WidgetTest from "./pages/WidgetTest";
 import ProfileSettings from "./pages/ProfileSettings";
 import SystemSettings from "./pages/SystemSettings";
 import ApiLimitsSettings from "./pages/ApiLimitsSettings";
+import SecuritySettings from "./pages/SecuritySettings";
 import BrandCenter from "./pages/BrandCenter";
 import { BrandTheme } from "./pages/BrandTheme";
 import EmailBranding from "./pages/EmailBranding";
@@ -302,7 +303,7 @@ const App = () => (
             <Route path="/system-settings/security" element={
               <ProtectedRoute>
                 <RootLayout>
-                  <SystemSettings />
+                  <SecuritySettings />
                 </RootLayout>
               </ProtectedRoute>
             } />
