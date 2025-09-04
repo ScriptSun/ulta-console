@@ -1921,6 +1921,36 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          attempt_time: string | null
+          created_at: string | null
+          email: string
+          id: string
+          ip_address: string | null
+          success: boolean | null
+          user_agent: string | null
+        }
+        Insert: {
+          attempt_time?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+        }
+        Update: {
+          attempt_time?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       policy_history: {
         Row: {
           action: string
@@ -3330,6 +3360,10 @@ export type Database = {
           limit_amount: number
         }[]
       }
+      cleanup_old_login_attempts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       complete_batch_run: {
         Args: {
           _raw_stderr?: string
@@ -3358,6 +3392,10 @@ export type Database = {
       get_agent_tenant_id: {
         Args: { agent_uuid: string }
         Returns: string
+      }
+      get_failed_attempts_count: {
+        Args: { email_address: string }
+        Returns: number
       }
       get_next_batch_version: {
         Args: { _batch_id: string }

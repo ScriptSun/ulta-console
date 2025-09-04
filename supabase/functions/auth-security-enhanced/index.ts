@@ -45,6 +45,29 @@ serve(async (req) => {
         try {
           console.log(`Attempting login for: ${cleanEmail}`);
 
+          // First, check current failed attempts count
+          const { data: failedAttemptsData } = await supabase.rpc('get_failed_attempts_count', {
+            email_address: cleanEmail
+          });
+          
+          const currentAttempts = failedAttemptsData || 0;
+          const maxAttempts = 5;
+          
+          console.log(`Current failed attempts for ${cleanEmail}: ${currentAttempts}`);
+
+          // Check if user is already locked out
+          if (currentAttempts >= maxAttempts) {
+            console.log(`Account locked for ${cleanEmail} - too many failed attempts`);
+            return new Response(
+              JSON.stringify({
+                error: 'Account temporarily locked due to too many failed login attempts',
+                attempts_remaining: 0,
+                locked_until: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minutes from now
+              }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
           // Attempt login with cleaned credentials
           const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
             email: cleanEmail,
@@ -53,16 +76,42 @@ serve(async (req) => {
 
           if (authError) {
             console.error('Auth error:', authError);
+            
+            // Record failed attempt
+            await supabase.from('login_attempts').insert({
+              email: cleanEmail,
+              ip_address: ip_address,
+              user_agent: user_agent,
+              success: false
+            });
+
+            const newFailedCount = currentAttempts + 1;
+            const attemptsRemaining = Math.max(0, maxAttempts - newFailedCount);
+            
+            console.log(`Failed login recorded. New count: ${newFailedCount}, Remaining: ${attemptsRemaining}`);
+
             return new Response(
               JSON.stringify({
                 error: 'Invalid credentials',
-                attempts_remaining: 5
+                attempts_remaining: attemptsRemaining
               }),
               { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
           }
 
           console.log('Login successful for:', cleanEmail);
+          
+          // Record successful attempt and clean up old failed attempts
+          await supabase.from('login_attempts').insert({
+            email: cleanEmail,
+            ip_address: ip_address,
+            user_agent: user_agent,
+            success: true
+          });
+
+          // Clean up old failed attempts for this email (older than 24 hours)
+          await supabase.rpc('cleanup_old_login_attempts');
+
           return new Response(
             JSON.stringify({
               user: authData.user,
