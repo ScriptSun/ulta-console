@@ -140,17 +140,34 @@ export function useEnhancedSecurity() {
         };
       }
 
-      // Set the session on successful login
-      if (data?.session) {
-        await supabase.auth.setSession({
+      // Check if we have both user and session data
+      if (data?.user && data?.session) {
+        // Set the session on successful login
+        const { error: sessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
         });
+
+        if (sessionError) {
+          console.error('Failed to set session:', sessionError);
+          return {
+            user: null,
+            session: null,
+            error: 'Failed to establish session'
+          };
+        }
+
+        return {
+          user: data.user,
+          session: data.session
+        };
       }
 
+      // If we don't have both user and session, return error
       return {
-        user: data?.user || null,
-        session: data?.session || null
+        user: null,
+        session: null,
+        error: 'Login succeeded but no session returned'
       };
     } catch (error) {
       console.error('Secure login failed:', error);
