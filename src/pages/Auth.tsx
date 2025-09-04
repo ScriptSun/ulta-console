@@ -110,6 +110,7 @@ const Auth = () => {
             details: `Account locked until ${lockoutTime}. ${result.ban_reason || 'Too many failed login attempts.'}`
           });
         } else if (result.attempts_remaining !== undefined) {
+          console.log('Setting security alert with attempts_remaining:', result.attempts_remaining);
           setSecurityAlert({
             type: 'warning',
             message: `Login failed - ${result.attempts_remaining} attempts remaining`,
