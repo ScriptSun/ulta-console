@@ -47,7 +47,9 @@ serve(async (req) => {
 
           // Get security settings from database
           const { data: securitySettings } = await supabase.rpc('get_security_settings');
+          console.log('Security settings from DB:', securitySettings);
           const maxAttempts = securitySettings?.max_login_attempts || 5;
+          console.log(`Max attempts set to: ${maxAttempts}`);
 
           // Check current failed attempts count
           const { data: failedAttemptsData } = await supabase.rpc('get_failed_attempts_count', {
