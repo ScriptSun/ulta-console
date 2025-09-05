@@ -46,20 +46,96 @@ export type EventInfo = {
 
 // Available template variables
 export const TEMPLATE_VARIABLES = {
+  // Organization variables
   'org.name': 'Organization name',
   'org.url': 'Organization URL',
+  'org.supportEmail': 'Organization support email',
+  'org.phone': 'Organization phone number',
+  'org.address': 'Organization address',
+  
+  // User variables
   'user.name': 'User name',
   'user.email': 'User email',
+  'user.firstName': 'User first name',
+  'user.lastName': 'User last name',
+  'user.role': 'User role',
+  'user.id': 'User ID',
+  'user.createdAt': 'User account creation date',
+  'user.lastLogin': 'User last login time',
+  
+  // Account/Team variables
+  'account.name': 'Account name',
+  'account.plan': 'Account plan type',
+  'account.billingEmail': 'Account billing email',
+  'team.name': 'Team name',
+  'team.memberCount': 'Team member count',
+  
+  // Event and notification variables
   'event.time': 'Event timestamp',
+  'event.type': 'Event type',
+  'event.description': 'Event description',
+  'event.severity': 'Event severity level',
+  'event.id': 'Event ID',
+  'notification.type': 'Notification type',
+  'notification.priority': 'Notification priority',
+  
+  // Action variables
   'action.url': 'Action URL',
+  'action.name': 'Action name',
+  'action.description': 'Action description',
+  'action.buttonText': 'Action button text',
+  'confirmation.url': 'Confirmation URL',
+  'reset.url': 'Password reset URL',
+  'login.url': 'Login URL',
+  
+  // Agent/System variables
   'agent.name': 'Agent name',
+  'agent.id': 'Agent ID',
+  'agent.status': 'Agent status',
+  'agent.version': 'Agent version',
+  'system.status': 'System status',
+  'system.version': 'System version',
+  
+  // API and security variables
   'api.key.prefix': 'API key prefix',
-  'invoice.id': 'Invoice ID',
-  'invoice.amount': 'Invoice amount',
+  'api.key.name': 'API key name',
+  'api.endpoint': 'API endpoint',
   'security.banCount': 'Security ban count',
   'security.window': 'Security time window',
+  'security.ipAddress': 'IP address',
+  'security.location': 'Login location',
+  'security.deviceInfo': 'Device information',
+  
+  // Billing variables
+  'invoice.id': 'Invoice ID',
+  'invoice.amount': 'Invoice amount',
+  'invoice.date': 'Invoice date',
+  'invoice.dueDate': 'Invoice due date',
+  'invoice.status': 'Invoice status',
+  'subscription.plan': 'Subscription plan',
+  'subscription.status': 'Subscription status',
+  'subscription.renewalDate': 'Subscription renewal date',
+  'subscription.price': 'Subscription price',
+  
+  // Usage and limits
+  'usage.current': 'Current usage',
+  'usage.limit': 'Usage limit',
+  'usage.percentage': 'Usage percentage',
+  'quota.remaining': 'Remaining quota',
+  'limit.type': 'Limit type',
+  
+  // Asset variables
   'assets.emailLogo': 'Email logo URL',
-  'year': 'Current year'
+  'assets.favicon': 'Favicon URL',
+  'assets.brandLogo': 'Brand logo URL',
+  
+  // Date/Time variables
+  'year': 'Current year',
+  'month': 'Current month',
+  'date': 'Current date',
+  'time': 'Current time',
+  'timestamp': 'Current timestamp',
+  'timezone': 'Current timezone'
 };
 
 // HTML skeleton for all templates
