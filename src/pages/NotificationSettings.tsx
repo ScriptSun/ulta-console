@@ -556,7 +556,7 @@ export default function NotificationSettings() {
   };
 
   // Save provider configuration
-  const saveProviderConfig = async (providerId: string) => {
+  const saveProviderConfig = async (providerId: string, type: 'email' | 'channel' = 'email') => {
     setSavingProvider(providerId);
     try {
       const config = localConfigs[providerId];
@@ -925,10 +925,18 @@ export default function NotificationSettings() {
   };
 
   const renderChannelProviderConfig = (provider: ChannelProvider) => {
+    // Get current config (local if exists, otherwise from provider)
+    const currentConfig = localConfigs[provider.id] || provider.config;
+    
     const updateConfig = (key: string, value: any) => {
-      updateChannelProvider(provider.id, {
-        config: { ...provider.config, [key]: value }
-      });
+      setLocalConfigs(prev => ({
+        ...prev,
+        [provider.id]: { ...currentConfig, [key]: value }
+      }));
+      setHasUnsavedChanges(prev => ({
+        ...prev,
+        [provider.id]: true
+      }));
     };
 
     switch (provider.type) {
@@ -938,7 +946,7 @@ export default function NotificationSettings() {
             <div>
               <Label>Webhook URL *</Label>
               <Input
-                value={provider.config.webhookUrl || ''}
+                value={currentConfig.webhookUrl || ''}
                 onChange={(e) => updateConfig('webhookUrl', e.target.value)}
                 placeholder="https://hooks.slack.com/services/..."
                 required
@@ -950,7 +958,7 @@ export default function NotificationSettings() {
             <div>
               <Label>Channel (optional)</Label>
               <Input
-                value={provider.config.channel || ''}
+                value={currentConfig.channel || ''}
                 onChange={(e) => updateConfig('channel', e.target.value)}
                 placeholder="#alerts"
               />
@@ -961,7 +969,7 @@ export default function NotificationSettings() {
             <div>
               <Label>Username (optional)</Label>
               <Input
-                value={provider.config.username || ''}
+                value={currentConfig.username || ''}
                 onChange={(e) => updateConfig('username', e.target.value)}
                 placeholder="UltaAI Bot"
               />
@@ -976,7 +984,7 @@ export default function NotificationSettings() {
               <Label>Bot Token *</Label>
               <Input
                 type="password"
-                value={provider.config.botToken || ''}
+                value={currentConfig.botToken || ''}
                 onChange={(e) => updateConfig('botToken', e.target.value)}
                 placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
                 required
@@ -988,7 +996,7 @@ export default function NotificationSettings() {
             <div>
               <Label>Chat ID *</Label>
               <Input
-                value={provider.config.chatId || ''}
+                value={currentConfig.chatId || ''}
                 onChange={(e) => updateConfig('chatId', e.target.value)}
                 placeholder="-1001234567890"
                 required
@@ -1000,7 +1008,7 @@ export default function NotificationSettings() {
             <div>
               <Label>Parse Mode (optional)</Label>
               <select
-                value={provider.config.parseMode || 'HTML'}
+                value={currentConfig.parseMode || 'HTML'}
                 onChange={(e) => updateConfig('parseMode', e.target.value)}
                 className="w-full px-3 py-2 border border-input bg-background rounded-md"
               >
@@ -1018,7 +1026,7 @@ export default function NotificationSettings() {
             <div>
               <Label>Webhook URL *</Label>
               <Input
-                value={provider.config.webhookUrl || ''}
+                value={currentConfig.webhookUrl || ''}
                 onChange={(e) => updateConfig('webhookUrl', e.target.value)}
                 placeholder="https://discord.com/api/webhooks/..."
                 required
@@ -1030,7 +1038,7 @@ export default function NotificationSettings() {
             <div>
               <Label>Username (optional)</Label>
               <Input
-                value={provider.config.username || ''}
+                value={currentConfig.username || ''}
                 onChange={(e) => updateConfig('username', e.target.value)}
                 placeholder="UltaAI Bot"
               />
@@ -1038,7 +1046,7 @@ export default function NotificationSettings() {
             <div>
               <Label>Avatar URL (optional)</Label>
               <Input
-                value={provider.config.avatarUrl || ''}
+                value={currentConfig.avatarUrl || ''}
                 onChange={(e) => updateConfig('avatarUrl', e.target.value)}
                 placeholder="https://example.com/avatar.png"
               />
@@ -1052,7 +1060,7 @@ export default function NotificationSettings() {
             <div>
               <Label>Account SID *</Label>
               <Input
-                value={provider.config.accountSid || ''}
+                value={currentConfig.accountSid || ''}
                 onChange={(e) => updateConfig('accountSid', e.target.value)}
                 placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                 required
@@ -1065,7 +1073,7 @@ export default function NotificationSettings() {
               <Label>Auth Token *</Label>
               <Input
                 type="password"
-                value={provider.config.authToken || ''}
+                value={currentConfig.authToken || ''}
                 onChange={(e) => updateConfig('authToken', e.target.value)}
                 placeholder="••••••••••••••••••••••••••••••••"
                 required
@@ -1077,7 +1085,7 @@ export default function NotificationSettings() {
             <div>
               <Label>From Number *</Label>
               <Input
-                value={provider.config.fromNumber || ''}
+                value={currentConfig.fromNumber || ''}
                 onChange={(e) => updateConfig('fromNumber', e.target.value)}
                 placeholder="+1234567890"
                 required
@@ -1089,7 +1097,7 @@ export default function NotificationSettings() {
             <div>
               <Label>To Number (for testing)</Label>
               <Input
-                value={provider.config.toNumber || ''}
+                value={currentConfig.toNumber || ''}
                 onChange={(e) => updateConfig('toNumber', e.target.value)}
                 placeholder="+1987654321"
               />
@@ -1374,7 +1382,7 @@ export default function NotificationSettings() {
                         <Button
                           variant="default"
                           size="sm"
-                          onClick={() => saveProviderConfig(provider.id)}
+                          onClick={() => saveProviderConfig(provider.id, 'email')}
                           disabled={!hasUnsavedChanges[provider.id] || savingProvider === provider.id}
                         >
                           {savingProvider === provider.id ? 'Saving...' : 'Save'}
@@ -1469,14 +1477,14 @@ export default function NotificationSettings() {
                       >
                         Send Test
                       </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => saveProviderConfig(provider.id)}
-                        disabled={!hasUnsavedChanges[provider.id] || savingProvider === provider.id}
-                      >
-                        {savingProvider === provider.id ? 'Saving...' : 'Save'}
-                      </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => saveProviderConfig(provider.id, 'channel')}
+                          disabled={!hasUnsavedChanges[provider.id] || savingProvider === provider.id}
+                        >
+                          {savingProvider === provider.id ? 'Saving...' : 'Save'}
+                        </Button>
                     </div>
                   </CardContent>
                 )}
