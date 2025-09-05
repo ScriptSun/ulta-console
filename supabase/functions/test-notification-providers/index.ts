@@ -19,6 +19,10 @@ const handler = async (req: Request): Promise<Response> => {
     const { providerType, config }: TestRequest = await req.json();
     console.log(`Testing ${providerType} provider with config:`, config);
 
+    // Get domain URL from request headers
+    const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://your-domain.com';
+    const domainUrl = new URL(origin).hostname;
+
     let testResult: { success: boolean; message: string; error?: string };
 
     switch (providerType) {
@@ -29,19 +33,19 @@ const handler = async (req: Request): Promise<Response> => {
       case 'ses':
       case 'postmark':
       case 'resend':
-        testResult = await testEmailProvider(config);
+        testResult = await testEmailProvider(config, domainUrl);
         break;
       case 'slack':
-        testResult = await testSlackProvider(config);
+        testResult = await testSlackProvider(config, domainUrl);
         break;
       case 'telegram':
-        testResult = await testTelegramProvider(config);
+        testResult = await testTelegramProvider(config, domainUrl);
         break;
       case 'discord':
-        testResult = await testDiscordProvider(config);
+        testResult = await testDiscordProvider(config, domainUrl);
         break;
       case 'twilio':
-        testResult = await testTwilioProvider(config);
+        testResult = await testTwilioProvider(config, domainUrl);
         break;
       default:
         throw new Error(`Unsupported provider type: ${providerType}`);
@@ -70,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-async function testEmailProvider(config: any): Promise<{ success: boolean; message: string; error?: string }> {
+async function testEmailProvider(config: any, domainUrl: string): Promise<{ success: boolean; message: string; error?: string }> {
   try {
     const testEmail = config.testEmail || 'test@example.com';
     
@@ -334,7 +338,7 @@ async function testEmailProvider(config: any): Promise<{ success: boolean; messa
   }
 }
 
-async function testSlackProvider(config: any): Promise<{ success: boolean; message: string; error?: string }> {
+async function testSlackProvider(config: any, domainUrl: string): Promise<{ success: boolean; message: string; error?: string }> {
   try {
     if (!config.webhookUrl) {
       return {
@@ -381,7 +385,7 @@ async function testSlackProvider(config: any): Promise<{ success: boolean; messa
   }
 }
 
-async function testTelegramProvider(config: any): Promise<{ success: boolean; message: string; error?: string }> {
+async function testTelegramProvider(config: any, domainUrl: string): Promise<{ success: boolean; message: string; error?: string }> {
   try {
     if (!config.botToken || !config.chatId) {
       return {
@@ -391,8 +395,15 @@ async function testTelegramProvider(config: any): Promise<{ success: boolean; me
       };
     }
 
-    // Test Telegram bot API
-    const testMessage = "🧪 Test message from UltaAI Notification System";
+    // Test Telegram bot API with proper test message including domain
+    const testMessage = `🧪 This is a test message from ${domainUrl}
+
+✅ Your Telegram notification integration is working correctly!
+📧 You will receive important notifications from your UltaAI system here.
+
+Domain: ${domainUrl}
+Timestamp: ${new Date().toISOString()}`;
+    
     const telegramUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
 
     const response = await fetch(telegramUrl, {
@@ -402,7 +413,8 @@ async function testTelegramProvider(config: any): Promise<{ success: boolean; me
       },
       body: JSON.stringify({
         chat_id: config.chatId,
-        text: testMessage
+        text: testMessage,
+        parse_mode: 'Markdown'
       })
     });
 
@@ -411,7 +423,7 @@ async function testTelegramProvider(config: any): Promise<{ success: boolean; me
     if (response.ok && result.ok) {
       return {
         success: true,
-        message: 'Telegram bot test successful'
+        message: 'Telegram bot test successful - check your chat for the test message'
       };
     } else {
       return {
@@ -429,7 +441,7 @@ async function testTelegramProvider(config: any): Promise<{ success: boolean; me
   }
 }
 
-async function testDiscordProvider(config: any): Promise<{ success: boolean; message: string; error?: string }> {
+async function testDiscordProvider(config: any, domainUrl: string): Promise<{ success: boolean; message: string; error?: string }> {
   try {
     if (!config.webhookUrl) {
       return {
@@ -475,7 +487,7 @@ async function testDiscordProvider(config: any): Promise<{ success: boolean; mes
   }
 }
 
-async function testTwilioProvider(config: any): Promise<{ success: boolean; message: string; error?: string }> {
+async function testTwilioProvider(config: any, domainUrl: string): Promise<{ success: boolean; message: string; error?: string }> {
   try {
     if (!config.accountSid || !config.authToken || !config.fromNumber) {
       return {
