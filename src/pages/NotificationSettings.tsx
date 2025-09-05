@@ -1564,19 +1564,46 @@ export default function NotificationSettings() {
                   {isEnabled && provider && (
                     <CardContent className="space-y-4">
                       {renderChannelProviderConfig(provider)}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => testProvider(provider.id, 'channel')}
-                        disabled={testingProvider === provider.id}
-                      >
-                        {testingProvider === provider.id ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <TestTube className="h-4 w-4 mr-2" />
-                        )}
-                        Test
-                      </Button>
+                      
+                      {/* Unsaved changes indicator */}
+                      {hasUnsavedChanges[provider.id] && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <div className="w-2 h-2 bg-warning rounded-full"></div>
+                          Unsaved changes
+                        </div>
+                      )}
+                      
+                      {/* Saving indicator */}
+                      {savingProvider === provider.id && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                          Saving...
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2 pt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => testProvider(provider.id, 'channel')}
+                          disabled={testingProvider === provider.id}
+                        >
+                          {testingProvider === provider.id ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <TestTube className="h-4 w-4 mr-2" />
+                          )}
+                          Test Connection
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => saveProviderConfig(provider.id, 'channel')}
+                          disabled={!hasUnsavedChanges[provider.id] || savingProvider === provider.id}
+                        >
+                          {savingProvider === provider.id ? 'Saving...' : 'Save'}
+                        </Button>
+                      </div>
                     </CardContent>
                   )}
                 </Card>
@@ -1615,19 +1642,46 @@ export default function NotificationSettings() {
                 {provider.enabled && (
                   <CardContent className="space-y-4">
                     {renderChannelProviderConfig(provider)}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => testProvider(provider.id, 'channel')}
-                      disabled={testingProvider === provider.id}
-                    >
-                      {testingProvider === provider.id ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <TestTube className="h-4 w-4 mr-2" />
-                      )}
-                      Test
-                    </Button>
+                    
+                    {/* Unsaved changes indicator */}
+                    {hasUnsavedChanges[provider.id] && (
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <div className="w-2 h-2 bg-warning rounded-full"></div>
+                        Unsaved changes
+                      </div>
+                    )}
+                    
+                    {/* Saving indicator */}
+                    {savingProvider === provider.id && (
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                        Saving...
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-2 pt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => testProvider(provider.id, 'channel')}
+                        disabled={testingProvider === provider.id}
+                      >
+                        {testingProvider === provider.id ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <TestTube className="h-4 w-4 mr-2" />
+                        )}
+                        Test Connection
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => saveProviderConfig(provider.id, 'channel')}
+                        disabled={!hasUnsavedChanges[provider.id] || savingProvider === provider.id}
+                      >
+                        {savingProvider === provider.id ? 'Saving...' : 'Save'}
+                      </Button>
+                    </div>
                   </CardContent>
                 )}
               </Card>
