@@ -17,6 +17,7 @@ import {
   Zap
 } from 'lucide-react';
 import { DatabaseExporter } from '@/lib/migration/databaseExport';
+import { FunctionExporter } from '@/lib/migration/functionExporter';
 import { toast } from '@/hooks/use-toast';
 
 interface MigrationStep {
@@ -31,6 +32,8 @@ interface MigrationStep {
 const MigrationDashboard: React.FC = () => {
   const [exportProgress, setExportProgress] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
+  const [isFunctionExporting, setIsFunctionExporting] = useState(false);
+  const [functionExportProgress, setFunctionExportProgress] = useState(0);
   const [stepStatuses, setStepStatuses] = useState<{[key: string]: MigrationStep['status']}>({
     'abstraction-layers': 'completed'
   });
@@ -146,6 +149,12 @@ const MigrationDashboard: React.FC = () => {
         ...prev,
         [stepId]: 'completed'
       }));
+    } else if (stepId === 'function-migration') {
+      await handleFunctionMigration();
+      setStepStatuses(prev => ({
+        ...prev,
+        [stepId]: 'completed'
+      }));
     } else {
       // For other steps, simulate completion after 3 seconds
       setTimeout(() => {
@@ -221,6 +230,101 @@ const MigrationDashboard: React.FC = () => {
     }
   };
 
+  const handleFunctionMigration = async () => {
+    setIsFunctionExporting(true);
+    setFunctionExportProgress(0);
+    
+    try {
+      const exporter = new FunctionExporter();
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setFunctionExportProgress(prev => Math.min(prev + 15, 90));
+      }, 800);
+
+      await exporter.scanSupabaseFunctions();
+      setFunctionExportProgress(100);
+      clearInterval(progressInterval);
+      
+      toast({
+        title: "Function Migration Ready",
+        description: `Found ${exporter.getFunctionCount()} functions ready for export`
+      });
+    } catch (error) {
+      toast({
+        title: "Function Migration Failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    } finally {
+      setIsFunctionExporting(false);
+    }
+  };
+
+  const handleFunctionExportZip = async () => {
+    try {
+      const exporter = new FunctionExporter();
+      await exporter.exportAsZip();
+      
+      toast({
+        title: "Functions Exported as ZIP",
+        description: "All functions packaged with migration guide"
+      });
+    } catch (error) {
+      toast({
+        title: "ZIP Export Failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleFunctionExportIndividual = async () => {
+    try {
+      const exporter = new FunctionExporter();
+      await exporter.exportAsIndividualFiles();
+      
+      toast({
+        title: "Functions Exported Individually",
+        description: "Each function downloaded as separate file"
+      });
+    } catch (error) {
+      toast({
+        title: "Individual Export Failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleFunctionMigrationReport = async () => {
+    try {
+      const exporter = new FunctionExporter();
+      const report = await exporter.generateMigrationReport();
+      
+      const blob = new Blob([report], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'function-migration-report.md';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Migration Report Generated",
+        description: "Detailed analysis downloaded as markdown"
+      });
+    } catch (error) {
+      toast({
+        title: "Report Generation Failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    }
+  };
+
   const overallProgress = migrationSteps.reduce((acc, step) => acc + step.progress, 0) / migrationSteps.length;
 
   return (
@@ -276,6 +380,7 @@ const MigrationDashboard: React.FC = () => {
         <TabsList>
           <TabsTrigger value="steps">Migration Steps</TabsTrigger>
           <TabsTrigger value="export">Database Export</TabsTrigger>
+          <TabsTrigger value="functions">Function Export</TabsTrigger>
           <TabsTrigger value="config">Configuration</TabsTrigger>
         </TabsList>
 
@@ -391,6 +496,102 @@ const MigrationDashboard: React.FC = () => {
                   <FileText className="h-4 w-4" />
                   <span>Export as SQL</span>
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="functions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Zap className="h-5 w-5" />
+                <span>Function Migration</span>
+              </CardTitle>
+              <CardDescription>
+                Export your Supabase Edge Functions for migration to other platforms
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isFunctionExporting && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Scanning functions...</span>
+                    <span className="text-sm text-muted-foreground">{functionExportProgress}%</span>
+                  </div>
+                  <Progress value={functionExportProgress} />
+                </div>
+              )}
+
+              <Alert>
+                <Code className="h-4 w-4" />
+                <AlertDescription>
+                  Export options: Individual TypeScript files or complete ZIP package with migration guide. 
+                  The ZIP includes deployment scripts for popular platforms.
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h4 className="font-medium">Export Format</h4>
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={handleFunctionExportZip}
+                      disabled={isFunctionExporting}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export as ZIP Package
+                    </Button>
+                    <Button 
+                      onClick={handleFunctionExportIndividual}
+                      disabled={isFunctionExporting}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Export Individual Files
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-medium">Migration Tools</h4>
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={handleFunctionMigrationReport}
+                      disabled={isFunctionExporting}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generate Migration Report
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                <h4 className="font-medium">Target Platform Support:</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div className="p-3 border rounded-lg">
+                    <div className="font-medium">Vercel</div>
+                    <div className="text-muted-foreground">Edge Functions</div>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="font-medium">Netlify</div>
+                    <div className="text-muted-foreground">Functions</div>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="font-medium">AWS Lambda</div>
+                    <div className="text-muted-foreground">Serverless</div>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="font-medium">Self-hosted</div>
+                    <div className="text-muted-foreground">Node.js/Express</div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
