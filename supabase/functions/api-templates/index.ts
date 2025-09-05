@@ -260,16 +260,13 @@ const handler = async (req: Request): Promise<Response> => {
         subject = subject.replace(regex, String(value));
       });
 
-      // Send test email via sendgrid-email function
-      const { error: emailError } = await supabaseAdmin.functions.invoke('sendgrid-email', {
+      // Send test email via new dynamic email system
+      const { error: emailError } = await supabaseAdmin.functions.invoke('dynamic-email-send', {
         body: {
-          type: 'test',
+          templateKey: template.key,
           to,
-          subject: `[TEST] ${subject}`,
-          data: {
-            html,
-            variables
-          }
+          variables: variables || {},
+          customer_id: template.customer_id
         }
       });
 

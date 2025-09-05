@@ -2235,6 +2235,45 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          email_logo_url: string | null
+          id: string
+          organization_name: string
+          support_email: string | null
+          updated_at: string
+          updated_by: string | null
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          email_logo_url?: string | null
+          id?: string
+          organization_name?: string
+          support_email?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          email_logo_url?: string | null
+          id?: string
+          organization_name?: string
+          support_email?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       policy_history: {
         Row: {
           action: string
@@ -3806,6 +3845,19 @@ export type Database = {
           _team_id: string
         }
         Returns: undefined
+      }
+      render_email_template: {
+        Args: {
+          _customer_id?: string
+          _template_key: string
+          _variables?: Json
+        }
+        Returns: {
+          error_message: string
+          html: string
+          subject: string
+          success: boolean
+        }[]
       }
       reset_user_security_status: {
         Args: { _email: string }
