@@ -1195,7 +1195,7 @@ export default function NotificationSettings() {
               };
 
               return (
-                <Card key={providerType} className={`transition-all ${!isEnabled ? 'opacity-60' : ''}`}>
+                <Card key={providerType} className={`bg-gradient-to-br from-card to-muted/50 border border-border/50 rounded-lg shadow-sm transition-all ${!isEnabled ? 'opacity-60' : ''}`}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -1299,7 +1299,7 @@ export default function NotificationSettings() {
             
             {/* Legacy providers that might exist but aren't in the predefined list */}
             {settings.emailProviders.filter(p => !['smtp', 'sendgrid', 'mailgun', 'ses', 'postmark', 'resend'].includes(p.type)).map((provider) => (
-              <Card key={provider.id}>
+              <Card key={provider.id} className="bg-gradient-to-br from-card to-muted/50 border border-border/50 rounded-lg shadow-sm">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1422,7 +1422,7 @@ export default function NotificationSettings() {
               }[providerType];
 
               return (
-                <Card key={providerType} className={`transition-all ${!isEnabled ? 'opacity-60' : ''}`}>
+                <Card key={providerType} className={`bg-gradient-to-br from-card to-muted/50 border border-border/50 rounded-lg shadow-sm transition-all ${!isEnabled ? 'opacity-60' : ''}`}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -1486,7 +1486,7 @@ export default function NotificationSettings() {
             
             {/* Legacy providers that might exist but aren't in the predefined list */}
             {settings.channelProviders.filter(p => !['slack', 'telegram', 'discord', 'twilio'].includes(p.type)).map((provider) => (
-              <Card key={provider.id}>
+              <Card key={provider.id} className="bg-gradient-to-br from-card to-muted/50 border border-border/50 rounded-lg shadow-sm">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1537,7 +1537,7 @@ export default function NotificationSettings() {
 
         {/* Failover Tab */}
         <TabsContent value="failover" className="space-y-6">
-          <Card>
+          <Card className="bg-gradient-to-br from-card to-muted/50 border border-border/50 rounded-lg shadow-sm">
             <CardHeader>
               <CardTitle>Email Failover Configuration</CardTitle>
               <CardDescription>Configure primary, secondary, and tertiary email providers</CardDescription>
@@ -1596,7 +1596,7 @@ export default function NotificationSettings() {
 
         {/* Domain Health Tab */}
         <TabsContent value="domain" className="space-y-6">
-          <Card>
+          <Card className="bg-gradient-to-br from-card to-muted/50 border border-border/50 rounded-lg shadow-sm">
             <CardHeader>
               <CardTitle>Domain Health</CardTitle>
               <CardDescription>SPF, DKIM, and DMARC status for your sending domains</CardDescription>
