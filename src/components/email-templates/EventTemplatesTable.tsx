@@ -263,7 +263,12 @@ export default function EventTemplatesTable({
                 </TableCell>
                 <TableCell>
                   <div className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(template.updatedAt), { addSuffix: true })}
+                    {(() => {
+                      if (!template.updatedAt) return 'Never';
+                      const date = new Date(template.updatedAt);
+                      if (isNaN(date.getTime())) return 'Invalid date';
+                      return formatDistanceToNow(date, { addSuffix: true });
+                    })()}
                   </div>
                 </TableCell>
                 <TableCell>

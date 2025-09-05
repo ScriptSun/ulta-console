@@ -335,11 +335,25 @@ export function ConversationViewer({
             </div>
             <div>
               <span className="text-muted-foreground">Started:</span>
-              <span className="ml-2">{formatDistanceToNow(new Date(conversation.started_at), { addSuffix: true })}</span>
+              <span className="ml-2">
+                {(() => {
+                  if (!conversation.started_at) return 'Never';
+                  const date = new Date(conversation.started_at);
+                  if (isNaN(date.getTime())) return 'Invalid date';
+                  return formatDistanceToNow(date, { addSuffix: true });
+                })()}
+              </span>
             </div>
             <div>
               <span className="text-muted-foreground">Updated:</span>
-              <span className="ml-2">{formatDistanceToNow(new Date(conversation.updated_at), { addSuffix: true })}</span>
+              <span className="ml-2">
+                {(() => {
+                  if (!conversation.updated_at) return 'Never';
+                  const date = new Date(conversation.updated_at);
+                  if (isNaN(date.getTime())) return 'Invalid date';
+                  return formatDistanceToNow(date, { addSuffix: true });
+                })()}
+              </span>
             </div>
             {conversation.last_intent && (
               <div>
@@ -403,7 +417,12 @@ export function ConversationViewer({
                               {(item as Message).role}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                              {(() => {
+                                if (!item.created_at) return 'Never';
+                                const date = new Date(item.created_at);
+                                if (isNaN(date.getTime())) return 'Invalid date';
+                                return formatDistanceToNow(date, { addSuffix: true });
+                              })()}
                             </span>
                             {(item as Message).tokens && (
                               <Badge variant="outline" className="text-xs">
@@ -437,9 +456,14 @@ export function ConversationViewer({
                              <span className="font-medium">
                                {(item as Event).type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                              </span>
-                             <span className="text-xs text-muted-foreground">
-                               {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
-                             </span>
+                              <span className="text-xs text-muted-foreground">
+                                {(() => {
+                                  if (!item.created_at) return 'Never';
+                                  const date = new Date(item.created_at);
+                                  if (isNaN(date.getTime())) return 'Invalid date';
+                                  return formatDistanceToNow(date, { addSuffix: true });
+                                })()}
+                              </span>
                              {/* Show run_id link for task events */}
                              {(item as Event).ref_id && (item as Event).type.startsWith('task_') && (
                                <Button

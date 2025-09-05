@@ -386,7 +386,12 @@ export function ConversationTable({
                   onClick={() => onConversationSelect(conversation)}
                 >
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(conversation.started_at), { addSuffix: true })}
+                    {(() => {
+                      if (!conversation.started_at) return 'Never';
+                      const date = new Date(conversation.started_at);
+                      if (isNaN(date.getTime())) return 'Invalid date';
+                      return formatDistanceToNow(date, { addSuffix: true });
+                    })()}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
