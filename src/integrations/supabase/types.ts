@@ -2044,6 +2044,90 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_event_logs: {
+        Row: {
+          created_at: string
+          customer_id: string
+          environment: string
+          event_key: string
+          id: string
+          occurred_at: string
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          environment?: string
+          event_key: string
+          id?: string
+          occurred_at?: string
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          environment?: string
+          event_key?: string
+          id?: string
+          occurred_at?: string
+          payload?: Json | null
+        }
+        Relationships: []
+      }
+      notification_policies: {
+        Row: {
+          category: string
+          channels: Json
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          enabled: boolean
+          environment: string
+          escalation: Json | null
+          event_key: string
+          event_name: string
+          failover: Json | null
+          id: string
+          severity: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string
+          channels?: Json
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          enabled?: boolean
+          environment?: string
+          escalation?: Json | null
+          event_key: string
+          event_name: string
+          failover?: Json | null
+          id?: string
+          severity?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          channels?: Json
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          enabled?: boolean
+          environment?: string
+          escalation?: Json | null
+          event_key?: string
+          event_name?: string
+          failover?: Json | null
+          id?: string
+          severity?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       notification_settings: {
         Row: {
           created_at: string
