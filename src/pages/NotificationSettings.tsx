@@ -531,20 +531,33 @@ export default function NotificationSettings() {
     setSavingProvider(providerId);
     try {
       const config = localConfigs[providerId];
+      
+      // Use the correct table based on provider type
+      const tableName = type === 'email' ? 'email_providers' : 'channel_providers';
+      
       const { error } = await supabase
-        .from('email_providers')
+        .from(tableName)
         .update({ config })
         .eq('id', providerId);
 
       if (error) throw error;
 
-      // Update settings state
-      setSettings(prev => ({
-        ...prev,
-        emailProviders: prev.emailProviders.map(p => 
-          p.id === providerId ? { ...p, config } : p
-        )
-      }));
+      // Update settings state based on provider type
+      if (type === 'email') {
+        setSettings(prev => ({
+          ...prev,
+          emailProviders: prev.emailProviders.map(p => 
+            p.id === providerId ? { ...p, config } : p
+          )
+        }));
+      } else {
+        setSettings(prev => ({
+          ...prev,
+          channelProviders: prev.channelProviders.map(p => 
+            p.id === providerId ? { ...p, config } : p
+          )
+        }));
+      }
 
       // Clear unsaved changes
       setHasUnsavedChanges(prev => ({
