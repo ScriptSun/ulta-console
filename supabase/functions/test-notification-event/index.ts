@@ -38,6 +38,7 @@ serve(async (req) => {
     // Get the current user's email from the authorization header
     const authHeader = req.headers.get('authorization');
     let userEmail = 'test@example.com'; // fallback
+    let userId = null;
     
     if (authHeader) {
       try {
@@ -56,6 +57,7 @@ serve(async (req) => {
         const { data: { user } } = await userClient.auth.getUser();
         if (user?.email) {
           userEmail = user.email;
+          userId = user.id;
           console.log(`Sending test email to logged-in user: ${userEmail}`);
         }
       } catch (error) {
@@ -112,19 +114,19 @@ serve(async (req) => {
             console.log(`Sending test email for event: ${eventKey}`);
             try {
               const emailResult = await supabase.functions.invoke('sendgrid-email', {
-                 body: {
-                   to: userEmail,
-                   subject: `🔔 Test: ${policy.event_name}`,
-                  text: `This is a test notification for the event: ${policy.event_name}\n\nSeverity: ${policy.severity}\nCategory: ${policy.category}\n\nThis is a test from your notification system.`,
-                  html: `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                      <h2 style="color: #333;">🔔 Test Notification</h2>
-                      <p><strong>Event:</strong> ${policy.event_name}</p>
-                      <p><strong>Severity:</strong> ${policy.severity}</p>
-                      <p><strong>Category:</strong> ${policy.category}</p>
-                      <p>This is a test notification from your notification system.</p>
-                    </div>
-                  `
+                body: {
+                  type: 'notification',
+                  to: userEmail,
+                  subject: `🔔 Test: ${policy.event_name}`,
+                  data: {
+                    title: `Test: ${policy.event_name}`,
+                    message: `This is a test notification for the event: ${policy.event_name}`,
+                    severity: policy.severity,
+                    category: policy.category,
+                    event_key: eventKey,
+                    test_note: 'This is a test from your notification system.'
+                  },
+                  user_id: userId
                 }
               });
               
