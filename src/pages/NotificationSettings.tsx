@@ -59,13 +59,21 @@ interface ChannelProvider {
   type: 'slack' | 'telegram' | 'discord' | 'twilio';
   enabled: boolean;
   config: {
+    // Slack
     webhookUrl?: string;
     channel?: string;
+    username?: string;
+    // Telegram
     botToken?: string;
     chatId?: string;
+    parseMode?: string;
+    // Discord
+    avatarUrl?: string;
+    // Twilio SMS
     accountSid?: string;
     authToken?: string;
     fromNumber?: string;
+    toNumber?: string;
   };
   status?: 'connected' | 'error' | 'disconnected' | 'testing';
   last_tested_at?: string;
@@ -928,19 +936,34 @@ export default function NotificationSettings() {
         return (
           <div className="space-y-4">
             <div>
-              <Label>Webhook URL</Label>
+              <Label>Webhook URL *</Label>
               <Input
                 value={provider.config.webhookUrl || ''}
                 onChange={(e) => updateConfig('webhookUrl', e.target.value)}
                 placeholder="https://hooks.slack.com/services/..."
+                required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Create a webhook in your Slack app settings
+              </p>
             </div>
             <div>
-              <Label>Channel</Label>
+              <Label>Channel (optional)</Label>
               <Input
                 value={provider.config.channel || ''}
                 onChange={(e) => updateConfig('channel', e.target.value)}
                 placeholder="#alerts"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                If not specified, messages will be sent to the webhook's default channel
+              </p>
+            </div>
+            <div>
+              <Label>Username (optional)</Label>
+              <Input
+                value={provider.config.username || ''}
+                onChange={(e) => updateConfig('username', e.target.value)}
+                placeholder="UltaAI Bot"
               />
             </div>
           </div>
@@ -950,34 +973,76 @@ export default function NotificationSettings() {
         return (
           <div className="space-y-4">
             <div>
-              <Label>Bot Token</Label>
+              <Label>Bot Token *</Label>
               <Input
                 type="password"
                 value={provider.config.botToken || ''}
                 onChange={(e) => updateConfig('botToken', e.target.value)}
-                placeholder="••••••••"
+                placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Get this from @BotFather on Telegram
+              </p>
             </div>
             <div>
-              <Label>Chat ID</Label>
+              <Label>Chat ID *</Label>
               <Input
                 value={provider.config.chatId || ''}
                 onChange={(e) => updateConfig('chatId', e.target.value)}
                 placeholder="-1001234567890"
+                required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                For groups/channels, use negative IDs. For users, use positive IDs.
+              </p>
+            </div>
+            <div>
+              <Label>Parse Mode (optional)</Label>
+              <select
+                value={provider.config.parseMode || 'HTML'}
+                onChange={(e) => updateConfig('parseMode', e.target.value)}
+                className="w-full px-3 py-2 border border-input bg-background rounded-md"
+              >
+                <option value="HTML">HTML</option>
+                <option value="Markdown">Markdown</option>
+                <option value="">None</option>
+              </select>
             </div>
           </div>
         );
       
       case 'discord':
         return (
-          <div>
-            <Label>Webhook URL</Label>
-            <Input
-              value={provider.config.webhookUrl || ''}
-              onChange={(e) => updateConfig('webhookUrl', e.target.value)}
-              placeholder="https://discord.com/api/webhooks/..."
-            />
+          <div className="space-y-4">
+            <div>
+              <Label>Webhook URL *</Label>
+              <Input
+                value={provider.config.webhookUrl || ''}
+                onChange={(e) => updateConfig('webhookUrl', e.target.value)}
+                placeholder="https://discord.com/api/webhooks/..."
+                required
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Create a webhook in your Discord channel settings
+              </p>
+            </div>
+            <div>
+              <Label>Username (optional)</Label>
+              <Input
+                value={provider.config.username || ''}
+                onChange={(e) => updateConfig('username', e.target.value)}
+                placeholder="UltaAI Bot"
+              />
+            </div>
+            <div>
+              <Label>Avatar URL (optional)</Label>
+              <Input
+                value={provider.config.avatarUrl || ''}
+                onChange={(e) => updateConfig('avatarUrl', e.target.value)}
+                placeholder="https://example.com/avatar.png"
+              />
+            </div>
           </div>
         );
       
@@ -985,29 +1050,52 @@ export default function NotificationSettings() {
         return (
           <div className="space-y-4">
             <div>
-              <Label>Account SID</Label>
+              <Label>Account SID *</Label>
               <Input
                 value={provider.config.accountSid || ''}
                 onChange={(e) => updateConfig('accountSid', e.target.value)}
-                placeholder="AC..."
+                placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Find this in your Twilio Console Dashboard
+              </p>
             </div>
             <div>
-              <Label>Auth Token</Label>
+              <Label>Auth Token *</Label>
               <Input
                 type="password"
                 value={provider.config.authToken || ''}
                 onChange={(e) => updateConfig('authToken', e.target.value)}
-                placeholder="••••••••"
+                placeholder="••••••••••••••••••••••••••••••••"
+                required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Find this in your Twilio Console Dashboard
+              </p>
             </div>
             <div>
-              <Label>From Number</Label>
+              <Label>From Number *</Label>
               <Input
                 value={provider.config.fromNumber || ''}
                 onChange={(e) => updateConfig('fromNumber', e.target.value)}
                 placeholder="+1234567890"
+                required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Must be a Twilio phone number or short code
+              </p>
+            </div>
+            <div>
+              <Label>To Number (for testing)</Label>
+              <Input
+                value={provider.config.toNumber || ''}
+                onChange={(e) => updateConfig('toNumber', e.target.value)}
+                placeholder="+1987654321"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Phone number to receive test messages
+              </p>
             </div>
           </div>
         );
