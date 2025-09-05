@@ -1523,26 +1523,10 @@ export default function NotificationSettings() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={isEnabled}
-                          onCheckedChange={(checked) => toggleChannelProvider(providerType, checked)}
-                        />
-                        {provider && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => testProvider(provider.id, 'channel')}
-                            disabled={testingProvider === provider.id || !isEnabled}
-                          >
-                            {testingProvider === provider.id ? (
-                              'Testing...'
-                            ) : (
-                              'Test'
-                            )}
-                          </Button>
-                        )}
-                      </div>
+                      <Switch
+                        checked={isEnabled}
+                        onCheckedChange={(checked) => toggleChannelProvider(providerType, checked)}
+                      />
                     </div>
                   </CardHeader>
                   {isEnabled && provider && (
