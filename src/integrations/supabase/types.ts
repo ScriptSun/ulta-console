@@ -1927,6 +1927,69 @@ export type Database = {
         }
         Relationships: []
       }
+      event_email_templates: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          html: string
+          id: string
+          key: string
+          locale: string
+          name: string
+          preheader: string | null
+          provider: Json | null
+          status: string
+          subject: string
+          text: string | null
+          updated_at: string
+          updated_by: string | null
+          variables: string[]
+          version: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          html: string
+          id?: string
+          key: string
+          locale?: string
+          name: string
+          preheader?: string | null
+          provider?: Json | null
+          status?: string
+          subject: string
+          text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          variables?: string[]
+          version?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          html?: string
+          id?: string
+          key?: string
+          locale?: string
+          name?: string
+          preheader?: string | null
+          provider?: Json | null
+          status?: string
+          subject?: string
+          text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          variables?: string[]
+          version?: number
+        }
+        Relationships: []
+      }
       exec_events: {
         Row: {
           agent_id: string | null
@@ -2081,6 +2144,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_id: string
+          email_template_id: string | null
           enabled: boolean
           environment: string
           escalation: Json | null
@@ -2098,6 +2162,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id: string
+          email_template_id?: string | null
           enabled?: boolean
           environment?: string
           escalation?: Json | null
@@ -2115,6 +2180,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string
+          email_template_id?: string | null
           enabled?: boolean
           environment?: string
           escalation?: Json | null
@@ -2126,7 +2192,15 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_notification_policies_email_template"
+            columns: ["email_template_id"]
+            isOneToOne: false
+            referencedRelation: "event_email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_settings: {
         Row: {

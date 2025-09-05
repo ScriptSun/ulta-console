@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useEventTemplates } from '@/hooks/useEventTemplates';
 import { 
   Save, 
   Send, 
@@ -24,7 +25,9 @@ import {
   Plus,
   Trash2,
   GripVertical,
-  TestTube
+  TestTube,
+  Mail,
+  AlertOctagon
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,6 +48,7 @@ interface NotificationPolicy {
     webhook: boolean;
     inapp: boolean;
   };
+  email_template_id?: string; // Add template ID field
   escalation?: {
     enabled: boolean;
     threshold: { count: number; windowMinutes: number };
@@ -103,6 +107,9 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
   const [testEvent, setTestEvent] = useState('');
   const [testPayload, setTestPayload] = useState('{}');
   const [testing, setTesting] = useState(false);
+
+  // Add template management
+  const { templates: eventTemplates, getTemplatesForCategory } = useEventTemplates();
 
   useEffect(() => {
     loadPolicies();
@@ -189,6 +196,16 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
       }
     }
 
+    // If email is being enabled, check for template requirement
+    if (channelUpdates.email === true && !policy.email_template_id) {
+      toast({
+        title: "Template Required",
+        description: "Please select an email template before enabling email notifications.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     updatePolicy(policyId, { channels: updatedChannels });
   };
 
@@ -243,6 +260,23 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+
+      // Validate: Check that all email-enabled policies have templates
+      const validationErrors = [];
+      for (const policy of policies) {
+        if (policy.channels.email && !policy.email_template_id) {
+          validationErrors.push(`${policy.event_name} has email enabled but no template selected`);
+        }
+      }
+
+      if (validationErrors.length > 0) {
+        toast({
+          title: "Validation Failed",
+          description: `Please fix the following issues:\n${validationErrors.join('\n')}`,
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Update all modified policies
       const updates = policies.map(policy => ({
@@ -347,6 +381,85 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
     
     return activeChannels.length > 0 ? `Routed to: ${activeChannels.join(', ')}` : 'No channels';
   };
+
+  const updateTemplate = (policyId: string, templateId: string) => {
+    updatePolicy(policyId, { email_template_id: templateId });
+  };
+
+  const getTemplateSelector = (policy: NotificationPolicy) => {
+    if (!policy.channels.email) {
+      return <span className="text-xs text-muted-foreground">Email disabled</span>;
+    }
+
+    const categoryTemplates = getTemplatesForCategory(policy.category);
+    
+    if (categoryTemplates.length === 0) {
+      return (
+        <div className="flex items-center gap-2">
+          <Badge variant="destructive" className="text-xs">
+            <AlertOctagon className="h-3 w-3 mr-1" />
+            No templates
+          </Badge>
+        </div>
+      );
+    }
+
+    if (!policy.email_template_id) {
+      return (
+        <div className="flex items-center gap-2">
+          <Badge variant="destructive" className="text-xs">
+            <Mail className="h-3 w-3 mr-1" />
+            Missing template
+          </Badge>
+          <Select onValueChange={(templateId) => updateTemplate(policy.id, templateId)}>
+            <SelectTrigger className="w-32 h-6 text-xs">
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              {categoryTemplates.map(template => (
+                <SelectItem key={template.id} value={template.id}>
+                  {template.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+
+    const selectedTemplate = categoryTemplates.find(t => t.id === policy.email_template_id);
+    
+    return (
+      <div className="flex items-center gap-2">
+        <Select value={policy.email_template_id} onValueChange={(templateId) => updateTemplate(policy.id, templateId)}>
+          <SelectTrigger className="w-40 h-6 text-xs">
+            <SelectValue>
+              {selectedTemplate ? (
+                <div className="flex items-center gap-1">
+                  <Mail className="h-3 w-3" />
+                  {selectedTemplate.name}
+                </div>
+              ) : 'Select template...'}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {categoryTemplates.map(template => (
+              <SelectItem key={template.id} value={template.id}>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className={template.status === 'active' ? 'border-green-500' : 'border-yellow-500'}>
+                    {template.status}
+                  </Badge>
+                  {template.name}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  };
+
+  const hasEmailEnabled = filteredPolicies.some(policy => policy.channels.email);
 
   if (loading) {
     return (
@@ -570,17 +683,18 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
                       }}
                     />
                   </th>
-                  <th className="text-left p-4 min-w-64">Event</th>
-                  <th className="text-left p-4 w-32">Severity</th>
-                  <th className="text-center p-4 w-20">Email</th>
-                  <th className="text-center p-4 w-20">Telegram</th>
-                  <th className="text-center p-4 w-20">Slack</th>
-                  <th className="text-center p-4 w-20">Discord</th>
-                  <th className="text-center p-4 w-20">SMS</th>
-                  <th className="text-center p-4 w-20">Webhook</th>
-                  <th className="text-center p-4 w-20">In-App</th>
-                  <th className="text-left p-4 w-48">Escalation</th>
-                  <th className="text-left p-4 w-48">Failover</th>
+                   <th className="text-left p-4 min-w-64">Event</th>
+                   <th className="text-left p-4 w-32">Severity</th>
+                   <th className="text-center p-4 w-20">Email</th>
+                   {hasEmailEnabled && <th className="text-left p-4 w-48">Template</th>}
+                   <th className="text-center p-4 w-20">Telegram</th>
+                   <th className="text-center p-4 w-20">Slack</th>
+                   <th className="text-center p-4 w-20">Discord</th>
+                   <th className="text-center p-4 w-20">SMS</th>
+                   <th className="text-center p-4 w-20">Webhook</th>
+                   <th className="text-center p-4 w-20">In-App</th>
+                   <th className="text-left p-4 w-48">Escalation</th>
+                   <th className="text-left p-4 w-48">Failover</th>
                 </tr>
               </thead>
               <tbody>
@@ -628,19 +742,33 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
                           ))}
                         </SelectContent>
                       </Select>
-                    </td>
-                    {Object.entries(channelAvailability).map(([channel, available]) => (
-                      <td key={channel} className="p-4 text-center">
-                        <Checkbox
-                          checked={policy.channels[channel as keyof NotificationPolicy['channels']]}
-                          disabled={!available}
-                          onCheckedChange={(checked) => 
-                            updateChannels(policy.id, { [channel]: checked })
-                          }
-                        />
-                      </td>
-                    ))}
-                    <td className="p-4">
+                     </td>
+                     <td className="p-4 text-center">
+                       <Checkbox
+                         checked={policy.channels.email}
+                         disabled={!channelAvailability.email}
+                         onCheckedChange={(checked) => 
+                           updateChannels(policy.id, { email: !!checked })
+                         }
+                       />
+                     </td>
+                     {hasEmailEnabled && (
+                       <td className="p-4">
+                         {getTemplateSelector(policy)}
+                       </td>
+                     )}
+                     {Object.entries(channelAvailability).filter(([channel]) => channel !== 'email').map(([channel, available]) => (
+                       <td key={channel} className="p-4 text-center">
+                         <Checkbox
+                           checked={policy.channels[channel as keyof NotificationPolicy['channels']]}
+                           disabled={!available}
+                         onCheckedChange={(checked) => 
+                           updateChannels(policy.id, { [channel]: !!checked })
+                         }
+                         />
+                       </td>
+                     ))}
+                     <td className="p-4">
                       <div className="text-xs text-muted-foreground">
                         {policy.escalation?.enabled ? 
                           `${policy.escalation.threshold.count} in ${policy.escalation.threshold.windowMinutes}m → ${policy.escalation.channels.join(', ')}` : 
