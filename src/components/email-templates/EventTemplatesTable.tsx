@@ -68,9 +68,9 @@ export default function EventTemplatesTable({
 }: EventTemplatesTableProps) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedLocale, setSelectedLocale] = useState<string>('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedLocale, setSelectedLocale] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
 
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = !searchQuery || 
@@ -78,9 +78,9 @@ export default function EventTemplatesTable({
       template.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
       template.subject.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesCategory = !selectedCategory || template.category === selectedCategory;
-    const matchesLocale = !selectedLocale || template.locale === selectedLocale;
-    const matchesStatus = !selectedStatus || template.status === selectedStatus;
+    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
+    const matchesLocale = selectedLocale === 'all' || template.locale === selectedLocale;
+    const matchesStatus = selectedStatus === 'all' || template.status === selectedStatus;
     
     return matchesSearch && matchesCategory && matchesLocale && matchesStatus;
   });
@@ -147,7 +147,7 @@ export default function EventTemplatesTable({
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {CATEGORIES.map(category => (
                 <SelectItem key={category.key} value={category.key}>
                   {category.label}
@@ -160,7 +160,7 @@ export default function EventTemplatesTable({
               <SelectValue placeholder="Locale" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Locales</SelectItem>
+              <SelectItem value="all">All Locales</SelectItem>
               {availableLocales.map(locale => (
                 <SelectItem key={locale} value={locale}>
                   {locale.toUpperCase()}
@@ -173,7 +173,7 @@ export default function EventTemplatesTable({
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Status</SelectItem>
+              <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="archived">Archived</SelectItem>
