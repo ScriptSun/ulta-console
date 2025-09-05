@@ -1536,9 +1536,9 @@ export default function NotificationSettings() {
                             disabled={testingProvider === provider.id || !isEnabled}
                           >
                             {testingProvider === provider.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              'Testing...'
                             ) : (
-                              <TestTube className="h-4 w-4" />
+                              'Test'
                             )}
                           </Button>
                         )}
@@ -1573,11 +1573,10 @@ export default function NotificationSettings() {
                           disabled={testingProvider === provider.id}
                         >
                           {testingProvider === provider.id ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            'Testing...'
                           ) : (
-                            <TestTube className="h-4 w-4 mr-2" />
+                            'Test Connection'
                           )}
-                          Test Connection
                         </Button>
                         <Button
                           variant="default"
@@ -1651,11 +1650,10 @@ export default function NotificationSettings() {
                         disabled={testingProvider === provider.id}
                       >
                         {testingProvider === provider.id ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          'Testing...'
                         ) : (
-                          <TestTube className="h-4 w-4 mr-2" />
+                          'Test Connection'
                         )}
-                        Test Connection
                       </Button>
                       <Button
                         variant="default"
