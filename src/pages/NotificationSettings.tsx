@@ -104,7 +104,8 @@ export default function NotificationSettings() {
     failoverOrder: [],
     domainHealth: []
   });
-  const [currentCustomerId, setCurrentCustomerId] = useState<string>('');
+  // System-wide customer ID for organizational notification settings
+  const SYSTEM_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
@@ -140,25 +141,13 @@ export default function NotificationSettings() {
       // Set user's email as default test email
       setTestEmail(user.email || 'test@example.com');
 
-      // Use the new database function to get/ensure user's customer setup
-      const { data: customerIdResult, error: customerError } = await supabase
-        .rpc('ensure_user_customer_setup', { 
-          _user_id: user.id, 
-          _user_email: user.email 
-        });
-
-      if (customerError) throw customerError;
-      
-      const customerId = customerIdResult;
-      console.log('Using customer ID:', customerId, 'for user:', user.email);
-      
-      setCurrentCustomerId(customerId);
+      console.log('Loading system-wide notification settings for customer ID:', SYSTEM_CUSTOMER_ID);
 
       // Load email providers
       const { data: emailProviders, error: emailError } = await supabase
         .from('email_providers')
         .select('*')
-        .eq('customer_id', customerId)
+        .eq('customer_id', SYSTEM_CUSTOMER_ID)
         .order('created_at', { ascending: true });
 
       if (emailError) throw emailError;
@@ -167,7 +156,7 @@ export default function NotificationSettings() {
       const { data: channelProviders, error: channelError } = await supabase
         .from('channel_providers')
         .select('*')
-        .eq('customer_id', customerId)
+        .eq('customer_id', SYSTEM_CUSTOMER_ID)
         .order('created_at', { ascending: true });
 
       if (channelError) throw channelError;
@@ -176,7 +165,7 @@ export default function NotificationSettings() {
       const { data: notificationSettings, error: settingsError } = await supabase
         .from('notification_settings')
         .select('*')
-        .eq('customer_id', customerId)
+        .eq('customer_id', SYSTEM_CUSTOMER_ID)
         .maybeSingle();
 
       if (settingsError) throw settingsError;
@@ -216,7 +205,7 @@ export default function NotificationSettings() {
       await supabase
         .from('notification_settings')
         .upsert({
-          customer_id: currentCustomerId,
+        customer_id: SYSTEM_CUSTOMER_ID,
           failover_order: settings.failoverOrder as any,
           domain_health: settings.domainHealth as any
         });
@@ -255,7 +244,7 @@ export default function NotificationSettings() {
         const { data, error } = await supabase
           .from('email_providers')
           .insert({
-            customer_id: currentCustomerId,
+            customer_id: SYSTEM_CUSTOMER_ID,
             name: type.toUpperCase(),
             type,
             enabled: true,
@@ -310,7 +299,7 @@ export default function NotificationSettings() {
         const { data, error } = await supabase
           .from('channel_providers')
           .insert({
-            customer_id: currentCustomerId,
+            customer_id: SYSTEM_CUSTOMER_ID,
             name: type.charAt(0).toUpperCase() + type.slice(1),
             type,
             enabled: true,
