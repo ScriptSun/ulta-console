@@ -20,7 +20,6 @@ import { useEventTemplates } from '@/hooks/useEventTemplates';
 import { SenderIdentityCard } from '@/components/email-branding/SenderIdentityCard';
 import { EmailTemplatesTable } from '@/components/email-branding/EmailTemplatesTable';
 import EventTemplatesTable from '@/components/email-templates/EventTemplatesTable';
-import EventTemplateEditor from '@/components/email-templates/EventTemplateEditor';
 import { EmailTemplate } from '@/types/eventTypes';
 
 export default function EmailBranding() {
@@ -47,20 +46,13 @@ export default function EmailBranding() {
   } = useEventTemplates();
 
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
-  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
 
   const handleEditTemplate = (template: EmailTemplate | {}) => {
     if ('id' in template) {
-      setSelectedTemplate(template as EmailTemplate);
+      navigate(`/system-settings/brand/email/events/edit/${template.id}`);
     } else {
-      setSelectedTemplate(null);
+      navigate('/system-settings/brand/email/events/edit/new');
     }
-    setShowTemplateEditor(true);
-  };
-
-  const handleCloseEditor = () => {
-    setShowTemplateEditor(false);
-    setSelectedTemplate(null);
   };
 
   const handleSaveTemplate = async (template: Partial<EmailTemplate>) => {
@@ -121,15 +113,28 @@ export default function EmailBranding() {
             </TabsList>
             
             <TabsContent value="event-templates" className="mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-medium">Event Email Templates</h3>
+                  <p className="text-sm text-muted-foreground">
+                    HTML templates for notification events with variable support
+                  </p>
+                </div>
+                <Button 
+                  variant="outline"
+                  onClick={() => navigate('/system-settings/brand/email/events/edit/new')}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Template
+                </Button>
+              </div>
               <EventTemplatesTable
                 templates={eventTemplates}
                 onEdit={handleEditTemplate}
                 onDuplicate={duplicateEventTemplate}
                 onArchive={archiveTemplate}
                 onTest={(template) => {
-                  // Open test dialog
-                  setSelectedTemplate(template);
-                  setShowTemplateEditor(true);
+                  navigate(`/system-settings/brand/email/events/edit/${template.id}`);
                 }}
                 onSeedTemplates={seedTemplates}
                 loading={templatesLoading}
@@ -161,15 +166,6 @@ export default function EmailBranding() {
           </Tabs>
         </CardContent>
       </Card>
-
-      {/* Template Editor */}
-      <EventTemplateEditor
-        template={selectedTemplate || undefined}
-        open={showTemplateEditor}
-        onClose={handleCloseEditor}
-        onSave={handleSaveTemplate}
-        onTest={testTemplate}
-      />
     </div>
   );
 }

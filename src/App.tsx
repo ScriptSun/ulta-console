@@ -46,6 +46,7 @@ import BrandCenter from "./pages/BrandCenter";
 import { BrandTheme } from "./pages/BrandTheme";
 import EmailBranding from "./pages/EmailBranding";
 import EmailTemplateEdit from "./pages/EmailTemplateEdit";
+import EventTemplateEdit from "./pages/EventTemplateEdit";
 import NotificationSettings from "./pages/NotificationSettings";
 import AiSettings from "./pages/AiSettings";
 import NotFound from "./pages/NotFound";
@@ -357,6 +358,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <EmailTemplateEdit />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/system-settings/brand/email/events/edit/:templateId" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <EventTemplateEdit />
                 </RootLayout>
               </ProtectedRoute>
             } />

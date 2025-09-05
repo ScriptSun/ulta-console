@@ -279,7 +279,7 @@ export default function EventTemplatesTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(template)}>
+                      <DropdownMenuItem onClick={() => navigate(`/system-settings/brand/email/events/edit/${template.id}`)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
