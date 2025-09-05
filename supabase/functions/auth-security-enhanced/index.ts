@@ -212,13 +212,93 @@ serve(async (req) => {
           )
         }
 
-        return new Response(
-          JSON.stringify({
-            valid: true,
-            session_extended: true
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        try {
+          // Check if user's session is still valid
+          const { data: securityStatus, error: statusError } = await supabase
+            .from('user_security_status')
+            .select('session_expires_at, is_banned, ban_reason')
+            .eq('user_id', user_id)
+            .single();
+
+          if (statusError) {
+            console.log('No security status found, creating new one with 24h expiry');
+            // Create a new security status with 24-hour expiry
+            await supabase.from('user_security_status').upsert({
+              user_id: user_id,
+              session_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+              failed_login_count: 0,
+              is_banned: false
+            });
+            
+            return new Response(
+              JSON.stringify({
+                valid: true,
+                session_extended: true
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
+          // Check if banned
+          if (securityStatus.is_banned) {
+            return new Response(
+              JSON.stringify({
+                valid: false,
+                reason: 'banned',
+                ban_reason: securityStatus.ban_reason
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
+          // Check if session expired
+          const now = new Date();
+          const expiresAt = new Date(securityStatus.session_expires_at);
+          
+          if (expiresAt <= now) {
+            console.log(`Session expired for user ${user_id}: ${expiresAt} <= ${now}`);
+            
+            // Instead of immediately invalidating, extend the session for active users
+            const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            await supabase.from('user_security_status')
+              .update({
+                session_expires_at: newExpiry.toISOString(),
+                updated_at: now.toISOString()
+              })
+              .eq('user_id', user_id);
+            
+            console.log(`Session extended for user ${user_id} until ${newExpiry}`);
+            
+            return new Response(
+              JSON.stringify({
+                valid: true,
+                session_extended: true,
+                new_expiry: newExpiry.toISOString()
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+
+          // Session is still valid
+          return new Response(
+            JSON.stringify({
+              valid: true,
+              expires_at: securityStatus.session_expires_at
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        } catch (error) {
+          console.error('Session check error:', error);
+          
+          // On error, assume session is valid to prevent unnecessary logouts
+          return new Response(
+            JSON.stringify({
+              valid: true,
+              error: 'Session check failed, assuming valid'
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
       }
 
       case 'check_ban_status': {
