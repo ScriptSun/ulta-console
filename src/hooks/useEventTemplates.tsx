@@ -18,15 +18,26 @@ export function useEventTemplates() {
     try {
       // Load templates and events in parallel
       const [templatesResult, eventsResult] = await Promise.all([
-        supabase.functions.invoke('api-templates'),
-        supabase.functions.invoke('api-notify-events')
+        fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+            'Content-Type': 'application/json'
+          }
+        }).then(res => res.json()),
+        fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-notify-events/api/notify/events', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+            'Content-Type': 'application/json'
+          }
+        }).then(res => res.json())
       ]);
 
-      if (templatesResult.error) throw templatesResult.error;
-      if (eventsResult.error) throw eventsResult.error;
-
-      setTemplates(templatesResult.data || []);
-      setEvents(eventsResult.data || []);
+      setTemplates(templatesResult || []);
+      setEvents(eventsResult || []);
     } catch (error) {
       console.error('Error loading templates and events:', error);
       toast({
@@ -42,11 +53,19 @@ export function useEventTemplates() {
   const saveTemplate = async (template: Partial<EmailTemplate>) => {
     setSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke('api-templates', {
-        body: template
+      const session = await supabase.auth.getSession();
+      const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.data.session?.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(template)
       });
 
-      if (error) throw error;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to save template');
 
       if (template.id) {
         // Update existing template
@@ -81,11 +100,19 @@ export function useEventTemplates() {
   const duplicateTemplate = async (templateId: string) => {
     setSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke('api-templates/duplicate', {
-        body: { templateId }
+      const session = await supabase.auth.getSession();
+      const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates/duplicate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.data.session?.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ templateId })
       });
 
-      if (error) throw error;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to duplicate template');
 
       setTemplates(prev => [...prev, data.template]);
       toast({
@@ -110,8 +137,14 @@ export function useEventTemplates() {
   const archiveTemplate = async (templateId: string) => {
     setSaving(true);
     try {
-      const response = await fetch(`/api/templates/${templateId}`, {
-        method: 'DELETE'
+      const session = await supabase.auth.getSession();
+      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates/${templateId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.data.session?.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'Content-Type': 'application/json'
+        }
       });
 
       const result = await response.json();
@@ -144,11 +177,19 @@ export function useEventTemplates() {
   const testTemplate = async (templateId: string, to: string, variables: Record<string, any>) => {
     setSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke('api-templates/test', {
-        body: { templateId, to, variables }
+      const session = await supabase.auth.getSession();
+      const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates/test', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.data.session?.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ templateId, to, variables })
       });
 
-      if (error) throw error;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to send test email');
 
       toast({
         title: "Test email sent",
@@ -170,11 +211,20 @@ export function useEventTemplates() {
   const seedTemplates = async () => {
     setSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke('api-templates/seed');
+      const session = await supabase.auth.getSession();
+      const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates/seed', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.data.session?.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'Content-Type': 'application/json'
+        }
+      });
 
-      if (error) throw error;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to seed templates');
 
-      if (data.created.length > 0) {
+      if (data.created && data.created.length > 0) {
         await loadData(); // Reload templates
         toast({
           title: "Templates seeded",
@@ -187,7 +237,7 @@ export function useEventTemplates() {
         });
       }
 
-      return data.created;
+      return data.created || [];
     } catch (error) {
       console.error('Error seeding templates:', error);
       toast({
