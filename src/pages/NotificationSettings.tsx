@@ -1161,6 +1161,10 @@ export default function NotificationSettings() {
             {(['smtp', 'sendgrid', 'mailgun', 'ses', 'postmark', 'resend'] as const).map((providerType) => {
               const provider = settings.emailProviders.find(p => p.type === providerType);
               const isEnabled = provider?.enabled || false;
+              const hasEnabledProviders = settings.emailProviders.some(p => p.enabled);
+              const shouldShowAsPrimary = provider?.is_primary && isEnabled;
+              const shouldShowAsDefaultPrimary = !hasEnabledProviders && providerType === 'smtp';
+              
               const providerLabels = {
                 smtp: 'SMTP Server',
                 sendgrid: 'SendGrid',
@@ -1179,8 +1183,13 @@ export default function NotificationSettings() {
                         <div>
                           <CardTitle className="flex items-center gap-2">
                             {providerLabels[providerType]}
-                            {provider?.is_primary && (
+                            {shouldShowAsPrimary && (
                               <Badge variant="default">Primary</Badge>
+                            )}
+                            {shouldShowAsDefaultPrimary && (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                Primary - Needs Configuration
+                              </Badge>
                             )}
                           </CardTitle>
                           <CardDescription>{providerType.toUpperCase()}</CardDescription>
