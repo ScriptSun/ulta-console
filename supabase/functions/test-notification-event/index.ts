@@ -35,6 +35,34 @@ serve(async (req) => {
 
     console.log(`Testing event: ${eventKey} in ${environment}`);
 
+    // Get the current user's email from the authorization header
+    const authHeader = req.headers.get('authorization');
+    let userEmail = 'test@example.com'; // fallback
+    
+    if (authHeader) {
+      try {
+        const userClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          {
+            global: {
+              headers: {
+                authorization: authHeader,
+              },
+            },
+          }
+        );
+        
+        const { data: { user } } = await userClient.auth.getUser();
+        if (user?.email) {
+          userEmail = user.email;
+          console.log(`Sending test email to logged-in user: ${userEmail}`);
+        }
+      } catch (error) {
+        console.error('Error getting user email:', error);
+      }
+    }
+
     // Get the notification policy for this event
     const { data: policy, error: policyError } = await supabase
       .from('notification_policies')
@@ -84,9 +112,9 @@ serve(async (req) => {
             console.log(`Sending test email for event: ${eventKey}`);
             try {
               const emailResult = await supabase.functions.invoke('sendgrid-email', {
-                body: {
-                  to: 'test@example.com', // Test email - you can customize this
-                  subject: `🔔 Test: ${policy.event_name}`,
+                 body: {
+                   to: userEmail,
+                   subject: `🔔 Test: ${policy.event_name}`,
                   text: `This is a test notification for the event: ${policy.event_name}\n\nSeverity: ${policy.severity}\nCategory: ${policy.category}\n\nThis is a test from your notification system.`,
                   html: `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
