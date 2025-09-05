@@ -3503,6 +3503,10 @@ export type Database = {
         Args: { _ip_address: string; _user_agent: string }
         Returns: string
       }
+      ensure_user_customer_setup: {
+        Args: { _user_email: string; _user_id: string }
+        Returns: string
+      }
       extend_user_session: {
         Args: { _user_id: string }
         Returns: string
@@ -3557,6 +3561,10 @@ export type Database = {
       get_user_customer_ids: {
         Args: Record<PropertyKey, never>
         Returns: string[]
+      }
+      get_user_primary_customer_id: {
+        Args: { _user_id: string }
+        Returns: string
       }
       get_user_role_in_customer: {
         Args: {

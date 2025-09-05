@@ -140,37 +140,17 @@ export default function NotificationSettings() {
       // Set user's email as default test email
       setTestEmail(user.email || 'test@example.com');
 
-      // Get user's customer IDs from user_roles table
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('customer_id, role')
-        .eq('user_id', user.id)
-        .order('role', { ascending: false }); // Prioritize admin/owner roles
+      // Use the new database function to get/ensure user's customer setup
+      const { data: customerIdResult, error: customerError } = await supabase
+        .rpc('ensure_user_customer_setup', { 
+          _user_id: user.id, 
+          _user_email: user.email 
+        });
 
-      if (rolesError) throw rolesError;
-
-      let customerId: string;
+      if (customerError) throw customerError;
       
-      if (userRoles && userRoles.length > 0) {
-        // Use the first customer ID (prioritized by role)
-        customerId = userRoles[0].customer_id;
-        console.log('Using customer ID:', customerId, 'with role:', userRoles[0].role);
-      } else {
-        // Create a default customer ID and user role if none exists
-        customerId = '00000000-0000-0000-0000-000000000001'; // Use system default customer ID
-        
-        // Insert user role for this customer (ignore if already exists)
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .upsert({
-            user_id: user.id,
-            customer_id: customerId,
-            role: 'admin'
-          }, { 
-            onConflict: 'user_id,customer_id,role',
-            ignoreDuplicates: true 
-          });
-      }
+      const customerId = customerIdResult;
+      console.log('Using customer ID:', customerId, 'for user:', user.email);
       
       setCurrentCustomerId(customerId);
 
