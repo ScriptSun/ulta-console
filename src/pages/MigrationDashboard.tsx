@@ -31,21 +31,24 @@ interface MigrationStep {
 const MigrationDashboard: React.FC = () => {
   const [exportProgress, setExportProgress] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
+  const [stepStatuses, setStepStatuses] = useState<{[key: string]: MigrationStep['status']}>({
+    'abstraction-layers': 'completed'
+  });
 
   const migrationSteps: MigrationStep[] = [
     {
       id: 'database-export',
       title: 'Database Export',
       description: 'Export all tables, data, functions, and policies from Supabase',
-      status: 'pending',
-      progress: 0
+      status: stepStatuses['database-export'] || 'pending',
+      progress: stepStatuses['database-export'] === 'completed' ? 100 : 0
     },
     {
       id: 'abstraction-layers',
       title: 'Abstraction Layers',
       description: 'Create database and function abstraction layers',
-      status: 'completed',
-      progress: 100
+      status: stepStatuses['abstraction-layers'] || 'completed',
+      progress: stepStatuses['abstraction-layers'] === 'completed' ? 100 : 0
     },
     {
       id: 'target-setup',
@@ -128,6 +131,33 @@ const MigrationDashboard: React.FC = () => {
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const handleStartStep = async (stepId: string) => {
+    setStepStatuses(prev => ({
+      ...prev,
+      [stepId]: 'in-progress'
+    }));
+
+    if (stepId === 'database-export') {
+      await handleDatabaseExport();
+      setStepStatuses(prev => ({
+        ...prev,
+        [stepId]: 'completed'
+      }));
+    } else {
+      // For other steps, simulate completion after 3 seconds
+      setTimeout(() => {
+        setStepStatuses(prev => ({
+          ...prev,
+          [stepId]: 'completed'
+        }));
+        toast({
+          title: "Step Complete",
+          description: `${migrationSteps.find(s => s.id === stepId)?.title} has been completed`
+        });
+      }, 3000);
     }
   };
 
@@ -258,35 +288,56 @@ const MigrationDashboard: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {migrationSteps.map((step, index) => (
-                <div key={step.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0">
-                      {getStatusIcon(step.status)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-medium">{step.title}</h3>
-                        <Badge className={getStatusColor(step.status)}>
-                          {step.status.replace('-', ' ')}
-                        </Badge>
+              {migrationSteps.map((step, index) => {
+                const canStart = !step.dependencies || step.dependencies.every(dep => 
+                  stepStatuses[dep] === 'completed'
+                );
+                const isInProgress = stepStatuses[step.id] === 'in-progress';
+                
+                return (
+                  <div key={step.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div className="flex-shrink-0">
+                        {getStatusIcon(step.status)}
                       </div>
-                      <p className="text-sm text-muted-foreground">{step.description}</p>
-                      {step.dependencies && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Depends on: {step.dependencies.join(', ')}
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-medium">{step.title}</h3>
+                          <Badge className={getStatusColor(step.status)}>
+                            {step.status.replace('-', ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{step.description}</p>
+                        {step.dependencies && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Depends on: {step.dependencies.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
+                      <div className="w-24">
+                        <Progress value={step.progress} />
+                        <p className="text-xs text-muted-foreground text-center mt-1">
+                          {step.progress}%
                         </p>
+                      </div>
+                      
+                      {step.status === 'pending' && canStart && (
+                        <Button
+                          onClick={() => handleStartStep(step.id)}
+                          disabled={isInProgress}
+                          size="sm"
+                          variant="outline"
+                        >
+                          {isInProgress ? 'Starting...' : 'Start'}
+                        </Button>
                       )}
                     </div>
                   </div>
-                  <div className="w-24">
-                    <Progress value={step.progress} />
-                    <p className="text-xs text-muted-foreground text-center mt-1">
-                      {step.progress}%
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         </TabsContent>
