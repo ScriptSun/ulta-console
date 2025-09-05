@@ -1185,7 +1185,7 @@ export default function NotificationSettings() {
                           </CardTitle>
                           <CardDescription>{providerType.toUpperCase()}</CardDescription>
                         </div>
-                        {provider?.status && (
+                        {provider?.status && isEnabled && (
                           <Badge 
                             variant={provider.status === 'connected' ? 'default' : 'destructive'}
                             className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
@@ -1402,7 +1402,7 @@ export default function NotificationSettings() {
                           <CardTitle>{providerLabels[providerType]}</CardTitle>
                           <CardDescription>{providerType.toUpperCase()}</CardDescription>
                         </div>
-                        {provider?.status && (
+                        {provider?.status && isEnabled && (
                           <Badge 
                             variant={provider.status === 'connected' ? 'default' : 'destructive'}
                             className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
