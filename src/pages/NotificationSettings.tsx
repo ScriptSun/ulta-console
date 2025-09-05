@@ -113,6 +113,14 @@ export default function NotificationSettings() {
     loadSettings();
   }, []);
 
+  // Auto-set primary provider when only one is enabled
+  useEffect(() => {
+    const enabledProviders = settings.emailProviders.filter(p => p.enabled);
+    if (enabledProviders.length === 1 && !enabledProviders[0].is_primary) {
+      updateEmailProvider(enabledProviders[0].id, { is_primary: true });
+    }
+  }, [settings.emailProviders]);
+
   const loadSettings = async () => {
     try {
       // Get current user to determine customer_id
@@ -1158,12 +1166,24 @@ export default function NotificationSettings() {
           </div>
 
           <div className="grid gap-4">
-            {(['smtp', 'sendgrid', 'mailgun', 'ses', 'postmark', 'resend'] as const).map((providerType) => {
-              const provider = settings.emailProviders.find(p => p.type === providerType);
-              const hasEnabledProviders = settings.emailProviders.some(p => p.enabled);
-              const isEnabled = provider?.enabled || (!hasEnabledProviders && providerType === 'smtp');
-              const shouldShowAsPrimary = provider?.is_primary && isEnabled;
-              const shouldShowAsDefaultPrimary = !hasEnabledProviders && providerType === 'smtp';
+            {(['smtp', 'sendgrid', 'mailgun', 'ses', 'postmark', 'resend'] as const)
+              .map((providerType) => {
+                const provider = settings.emailProviders.find(p => p.type === providerType);
+                const hasEnabledProviders = settings.emailProviders.some(p => p.enabled);
+                const isEnabled = provider?.enabled || (!hasEnabledProviders && providerType === 'smtp');
+                const enabledProviders = settings.emailProviders.filter(p => p.enabled);
+                const shouldShowAsPrimary = (provider?.is_primary && isEnabled) || (enabledProviders.length === 1 && isEnabled);
+                const shouldShowAsDefaultPrimary = !hasEnabledProviders && providerType === 'smtp';
+                
+                return { providerType, provider, isEnabled, shouldShowAsPrimary, shouldShowAsDefaultPrimary };
+              })
+              .sort((a, b) => {
+                // Sort by primary first, then by original order
+                if (a.shouldShowAsPrimary && !b.shouldShowAsPrimary) return -1;
+                if (!a.shouldShowAsPrimary && b.shouldShowAsPrimary) return 1;
+                return 0;
+              })
+              .map(({ providerType, provider, isEnabled, shouldShowAsPrimary, shouldShowAsDefaultPrimary }) => {
               
               const providerLabels = {
                 smtp: 'SMTP Server',
