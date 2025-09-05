@@ -16,7 +16,8 @@ import {
   Rocket,
   Brain,
   FileText,
-  Command
+  Command,
+  Database
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import {
@@ -59,7 +60,7 @@ const toolsItems = [
   { title: 'Integrations', url: '/integrations', icon: Puzzle, pageKey: 'integrations' },
   { title: 'AI Settings', url: '/ai-settings', icon: Brain, pageKey: 'ai-settings' },
   { title: 'Router Logs', url: '/router-logs', icon: FileText, pageKey: 'router-logs' },
-  
+  { title: 'Migration Dashboard', url: '/migration', icon: Database, pageKey: 'migration' },
 ]
 
 // AppSidebar Component - Navigation menu with Winster Hub inspired design

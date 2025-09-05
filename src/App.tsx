@@ -52,6 +52,7 @@ import AiSettings from "./pages/AiSettings";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
 import RouterLogs from "./pages/RouterLogs";
+import MigrationDashboard from "./pages/MigrationDashboard";
 
 const queryClient = new QueryClient();
 
@@ -379,6 +380,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <RouterLogs />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/migration" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <MigrationDashboard />
                 </RootLayout>
               </ProtectedRoute>
             } />
