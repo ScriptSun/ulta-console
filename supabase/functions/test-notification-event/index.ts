@@ -118,8 +118,10 @@ serve(async (req) => {
             try {
               const telegramResult = await supabase.functions.invoke('send-telegram-notification', {
                 body: {
-                  message: `🔔 Test Notification\n\nEvent: ${policy.event_name}\nSeverity: ${policy.severity}\nCategory: ${policy.category}\n\nThis is a test notification from your system.`,
-                  customerId: policy.customer_id
+                  notification_type: mapEventToTelegramType(eventKey),
+                  message: getExpertTelegramMessage(eventKey),
+                  details: getExpertNotificationData(eventKey, payload),
+                  tenant_id: policy.customer_id
                 }
               });
               
@@ -230,3 +232,102 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper functions for expert notification messages
+function getExpertNotificationSubject(eventKey: string): string {
+  const subjects = {
+    'api.key.created': '🔑 New API Key Created - Keep It Secure',
+    'security.login.failed': '🔒 Security Alert: Failed Login Attempts',
+    'security.login.blocked': '🚨 Account Temporarily Locked',
+    'security.password.changed': '✅ Password Successfully Updated',
+    'security.2fa.enabled': '🛡️ Two-Factor Authentication Activated',
+    'account.created': '🎉 Welcome to UltaAI!',
+    'account.verified': '✅ Email Verification Complete',
+    'agent.deployed': '🤖 Agent Successfully Deployed',
+    'agent.offline': '🔴 Agent Connection Lost',
+    'agent.error': '🚨 Agent Execution Error',
+    'agent.task.completed': '✅ Task Completed Successfully',
+    'system.maintenance.scheduled': '🔧 Scheduled Maintenance Window',
+    'system.update.available': '🆕 New System Update Available',
+    'system.outage.detected': '🚨 Service Disruption Detected',
+    'billing.payment.success': '💳 Payment Processed Successfully',
+    'billing.payment.failed': '❌ Payment Processing Failed',
+    'billing.usage.limit': '⚠️ Approaching Usage Limit'
+  };
+  return subjects[eventKey as keyof typeof subjects] || `Notification: ${eventKey}`;
+}
+
+function getExpertTelegramMessage(eventKey: string): string {
+  const messages = {
+    'api.key.created': '🔑 New API key created. Keep it secure and never share publicly!',
+    'security.login.failed': '🔒 SECURITY ALERT: Multiple failed login attempts detected. Review your account security now.',
+    'security.login.blocked': '🚨 ACCOUNT LOCKED: Account temporarily blocked due to suspicious activity. Contact support for assistance.',
+    'security.password.changed': '✅ Password successfully updated for your account. If this wasn\'t you, contact support immediately.',
+    'security.2fa.enabled': '🛡️ 2FA Enabled: Two-factor authentication activated successfully. Your account is now more secure!',
+    'account.created': '🎉 Welcome to UltaAI! Your account is ready. Start exploring your new dashboard!',
+    'account.verified': '✅ Email verified successfully! You now have full access to all UltaAI features.',
+    'agent.deployed': '🤖 Agent deployed successfully and is now online and ready for action!',
+    'agent.offline': '🔴 Agent offline: Currently offline. Investigating connectivity issues.',
+    'agent.error': '🚨 Agent Error: Agent encountered an error. Check the logs for details.',
+    'agent.task.completed': '✅ Task completed successfully by agent.',
+    'system.maintenance.scheduled': '🔧 Scheduled Maintenance: Service maintenance window starting soon.',
+    'system.update.available': '🆕 System Update: New features and improvements are now available!',
+    'system.outage.detected': '🚨 Service Outage: Disruption detected. Team is investigating.',
+    'billing.payment.success': '💳 Payment Successful: Payment processed successfully. Thank you!',
+    'billing.payment.failed': '❌ Payment Failed: Please update your payment method to continue service.',
+    'billing.usage.limit': '⚠️ Usage Alert: Approaching your plan limit. Consider upgrading for continued service.'
+  };
+  return messages[eventKey as keyof typeof messages] || `Notification for event: ${eventKey}`;
+}
+
+function getExpertNotificationData(eventKey: string, payload: any) {
+  const baseData = {
+    eventType: eventKey,
+    timestamp: new Date().toISOString(),
+    ...payload
+  };
+
+  switch (eventKey) {
+    case 'api.key.created':
+      return {
+        ...baseData,
+        message: 'A new API key has been created for your account. Keep it secure and never share it publicly.',
+        key_name: payload?.key_name || 'Test API Key',
+        user_email: payload?.user_email || 'test@example.com'
+      };
+    case 'security.login.failed':
+      return {
+        ...baseData,
+        message: 'Multiple failed login attempts detected on your account. If this wasn\'t you, please secure your account immediately.',
+        location: payload?.location || 'Unknown Location',
+        attempts: payload?.attempts || 3
+      };
+    case 'agent.deployed':
+      return {
+        ...baseData,
+        message: 'Agent has been successfully deployed and is now ready to handle tasks.',
+        agent_name: payload?.agent_name || 'Test Agent',
+        version: payload?.version || '1.0.0'
+      };
+    case 'billing.payment.failed':
+      return {
+        ...baseData,
+        message: 'Your payment could not be processed. Please update your payment method to continue service.',
+        amount: payload?.amount || '$29.99',
+        reason: payload?.reason || 'Card declined'
+      };
+    default:
+      return {
+        ...baseData,
+        message: `Expert notification for ${eventKey} event.`
+      };
+  }
+}
+
+function mapEventToTelegramType(eventKey: string): string {
+  if (eventKey.startsWith('security.')) return 'security_event';
+  if (eventKey.startsWith('agent.')) return 'agent_error';
+  if (eventKey.startsWith('system.')) return 'system_alert';
+  if (eventKey.startsWith('billing.')) return 'system_alert';
+  return 'system_alert';
+}
