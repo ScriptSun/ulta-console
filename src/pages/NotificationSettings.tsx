@@ -240,106 +240,110 @@ export default function NotificationSettings() {
     }
   };
 
-  const addEmailProvider = async (type: EmailProvider['type']) => {
+  const toggleEmailProvider = async (type: EmailProvider['type'], enabled: boolean) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Check if provider already exists
       const existingProvider = settings.emailProviders.find(p => p.type === type);
-      if (existingProvider) {
-        toast({
-          title: "Provider already exists",
-          description: `${type.toUpperCase()} provider is already configured.`,
-          variant: "destructive",
-        });
+      
+      if (existingProvider && !enabled) {
+        // Disable existing provider
+        await updateEmailProvider(existingProvider.id, { enabled: false });
         return;
       }
+      
+      if (!existingProvider && enabled) {
+        // Create new provider
+        const { data, error } = await supabase
+          .from('email_providers')
+          .insert({
+            customer_id: currentCustomerId,
+            name: type.toUpperCase(),
+            type,
+            enabled: true,
+            is_primary: settings.emailProviders.length === 0, // First provider is primary
+            config: getDefaultConfig(type),
+            created_by: user.id,
+            updated_by: user.id
+          })
+          .select()
+          .single();
 
-      const { data, error } = await supabase
-        .from('email_providers')
-        .insert({
-          customer_id: currentCustomerId,
-          name: type.toUpperCase(),
-          type,
-          enabled: false,
-          is_primary: false, // Always add new providers as non-primary
-          config: getDefaultConfig(type),
-          created_by: user.id,
-          updated_by: user.id
-        })
-        .select()
-        .single();
+        if (error) throw error;
 
-      if (error) {
-        console.error('Error adding email provider:', error);
-        throw error;
+        setSettings(prev => ({
+          ...prev,
+          emailProviders: [...prev.emailProviders, {
+            ...data,
+            config: data.config as EmailProvider['config'],
+            type: data.type as EmailProvider['type'],
+            status: data.status as EmailProvider['status']
+          }]
+        }));
+      } else if (existingProvider) {
+        // Enable existing provider
+        await updateEmailProvider(existingProvider.id, { enabled: true });
       }
-
-      setSettings(prev => ({
-        ...prev,
-        emailProviders: [...prev.emailProviders, {
-          ...data,
-          config: data.config as EmailProvider['config'],
-          type: data.type as EmailProvider['type'],
-          status: data.status as EmailProvider['status']
-        }]
-      }));
-
-      toast({
-        title: "Provider added",
-        description: `${type.toUpperCase()} provider has been added successfully.`,
-      });
     } catch (error) {
-      console.error('Error adding email provider:', error);
+      console.error('Error toggling email provider:', error);
       toast({
-        title: "Error adding provider",
-        description: "Failed to add email provider. Please try again.",
+        title: "Error updating provider",
+        description: "Failed to update email provider. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  const addChannelProvider = async (type: ChannelProvider['type']) => {
+  const toggleChannelProvider = async (type: ChannelProvider['type'], enabled: boolean) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
-        .from('channel_providers')
-        .insert({
-          customer_id: currentCustomerId,
-          name: type.charAt(0).toUpperCase() + type.slice(1),
-          type,
-          enabled: false,
-          config: getDefaultChannelConfig(type),
-          created_by: user.id,
-          updated_by: user.id
-        })
-        .select()
-        .single();
+      const existingProvider = settings.channelProviders.find(p => p.type === type);
+      
+      if (existingProvider && !enabled) {
+        // Disable existing provider
+        await updateChannelProvider(existingProvider.id, { enabled: false });
+        return;
+      }
+      
+      if (!existingProvider && enabled) {
+        // Create new provider
+        const { data, error } = await supabase
+          .from('channel_providers')
+          .insert({
+            customer_id: currentCustomerId,
+            name: type.charAt(0).toUpperCase() + type.slice(1),
+            type,
+            enabled: true,
+            config: getDefaultChannelConfig(type),
+            created_by: user.id,
+            updated_by: user.id
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setSettings(prev => ({
-        ...prev,
-        channelProviders: [...prev.channelProviders, {
-          ...data,
-          config: data.config as ChannelProvider['config'],
-          type: data.type as ChannelProvider['type'],
-          status: data.status as ChannelProvider['status']
-        }]
-      }));
-
-      toast({
-        title: "Provider added",
-        description: `${type.charAt(0).toUpperCase() + type.slice(1)} provider has been added successfully.`,
-      });
+        setSettings(prev => ({
+          ...prev,
+          channelProviders: [...prev.channelProviders, {
+            ...data,
+            config: data.config as ChannelProvider['config'],
+            type: data.type as ChannelProvider['type'],
+            status: data.status as ChannelProvider['status']
+          }]
+        }));
+      } else if (existingProvider) {
+        // Enable existing provider
+        await updateChannelProvider(existingProvider.id, { enabled: true });
+      }
     } catch (error) {
-      console.error('Error adding channel provider:', error);
+      console.error('Error toggling channel provider:', error);
       toast({
-        title: "Error adding provider",
-        description: "Failed to add channel provider. Please try again.",
+        title: "Error updating provider",
+        description: "Failed to update channel provider. Please try again.",
         variant: "destructive",
       });
     }
@@ -1140,36 +1144,132 @@ export default function NotificationSettings() {
               <h3 className="text-lg font-semibold">Email Providers</h3>
               <p className="text-sm text-muted-foreground">Configure multiple email providers with failover support</p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="test-email" className="text-sm">Test Email:</Label>
-                <Input
-                  id="test-email"
-                  type="email"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  className="w-48"
-                  placeholder="test@example.com"
-                />
-              </div>
-              <Select onValueChange={(value) => addEmailProvider(value as EmailProvider['type'])}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Add Provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="smtp">SMTP</SelectItem>
-                  <SelectItem value="sendgrid">SendGrid</SelectItem>
-                  <SelectItem value="mailgun">Mailgun</SelectItem>
-                  <SelectItem value="ses">Amazon SES</SelectItem>
-                  <SelectItem value="postmark">Postmark</SelectItem>
-                  <SelectItem value="resend">Resend</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="test-email" className="text-sm">Test Email:</Label>
+              <Input
+                id="test-email"
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                className="w-48"
+                placeholder="test@example.com"
+              />
             </div>
           </div>
 
           <div className="grid gap-4">
-            {settings.emailProviders.map((provider) => (
+            {(['smtp', 'sendgrid', 'mailgun', 'ses', 'postmark', 'resend'] as const).map((providerType) => {
+              const provider = settings.emailProviders.find(p => p.type === providerType);
+              const isEnabled = provider?.enabled || false;
+              const providerLabels = {
+                smtp: 'SMTP Server',
+                sendgrid: 'SendGrid',
+                mailgun: 'Mailgun',
+                ses: 'Amazon SES',
+                postmark: 'Postmark',
+                resend: 'Resend'
+              };
+
+              return (
+                <Card key={providerType} className={`transition-all ${!isEnabled ? 'opacity-60' : ''}`}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-5 w-5 text-primary" />
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            {providerLabels[providerType]}
+                            {provider?.is_primary && (
+                              <Badge variant="default">Primary</Badge>
+                            )}
+                          </CardTitle>
+                          <CardDescription>{providerType.toUpperCase()}</CardDescription>
+                        </div>
+                        {provider?.status && (
+                          <Badge 
+                            variant={provider.status === 'connected' ? 'default' : 'destructive'}
+                            className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                          >
+                            {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={isEnabled}
+                          onCheckedChange={(checked) => toggleEmailProvider(providerType, checked)}
+                        />
+                        {provider && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => testProvider(provider.id, 'email')}
+                            disabled={testingProvider === provider.id || !isEnabled}
+                          >
+                            {testingProvider === provider.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <TestTube className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  {isEnabled && provider && (
+                    <CardContent className="space-y-4">
+                      {renderEmailProviderConfig(provider)}
+                      
+                      {/* Unsaved changes indicator */}
+                      {hasUnsavedChanges[provider.id] && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <div className="w-2 h-2 bg-warning rounded-full"></div>
+                          Unsaved changes
+                        </div>
+                      )}
+                      
+                      {/* Saving indicator */}
+                      {savingProvider === provider.id && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                          Saving...
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2 pt-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => updateEmailProvider(provider.id, { is_primary: true })}
+                          disabled={provider.is_primary}
+                        >
+                          Set as Primary
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => testProvider(provider.id, 'email')}
+                          disabled={testingProvider === provider.id}
+                        >
+                          Send Test
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => saveProviderConfig(provider.id)}
+                          disabled={!hasUnsavedChanges[provider.id] || savingProvider === provider.id}
+                        >
+                          {savingProvider === provider.id ? 'Saving...' : 'Save'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+            
+            {/* Legacy providers that might exist but aren't in the predefined list */}
+            {settings.emailProviders.filter(p => !['smtp', 'sendgrid', 'mailgun', 'ses', 'postmark', 'resend'].includes(p.type)).map((provider) => (
               <Card key={provider.id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -1273,29 +1373,95 @@ export default function NotificationSettings() {
               <h3 className="text-lg font-semibold">Notification Channels</h3>
               <p className="text-sm text-muted-foreground">Configure Slack, Telegram, Discord, and Twilio channels</p>
             </div>
-            <Select onValueChange={(value) => addChannelProvider(value as ChannelProvider['type'])}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Add Channel" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="slack">Slack</SelectItem>
-                <SelectItem value="telegram">Telegram</SelectItem>
-                <SelectItem value="discord">Discord</SelectItem>
-                <SelectItem value="twilio">Twilio SMS</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="grid gap-4">
-            {settings.channelProviders.map((provider) => (
+            {(['slack', 'telegram', 'discord', 'twilio'] as const).map((providerType) => {
+              const provider = settings.channelProviders.find(p => p.type === providerType);
+              const isEnabled = provider?.enabled || false;
+              const providerLabels = {
+                slack: 'Slack',
+                telegram: 'Telegram',
+                discord: 'Discord',
+                twilio: 'Twilio SMS'
+              };
+              const ProviderIcon = {
+                slack: Slack,
+                telegram: Send,
+                discord: MessageSquare,
+                twilio: Phone
+              }[providerType];
+
+              return (
+                <Card key={providerType} className={`transition-all ${!isEnabled ? 'opacity-60' : ''}`}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <ProviderIcon className="h-5 w-5 text-primary" />
+                        <div>
+                          <CardTitle>{providerLabels[providerType]}</CardTitle>
+                          <CardDescription>{providerType.toUpperCase()}</CardDescription>
+                        </div>
+                        {provider?.status && (
+                          <Badge 
+                            variant={provider.status === 'connected' ? 'default' : 'destructive'}
+                            className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                          >
+                            {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={isEnabled}
+                          onCheckedChange={(checked) => toggleChannelProvider(providerType, checked)}
+                        />
+                        {provider && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => testProvider(provider.id, 'channel')}
+                            disabled={testingProvider === provider.id || !isEnabled}
+                          >
+                            {testingProvider === provider.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <TestTube className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  {isEnabled && provider && (
+                    <CardContent className="space-y-4">
+                      {renderChannelProviderConfig(provider)}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => testProvider(provider.id, 'channel')}
+                        disabled={testingProvider === provider.id}
+                      >
+                        {testingProvider === provider.id ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <TestTube className="h-4 w-4 mr-2" />
+                        )}
+                        Test
+                      </Button>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+            
+            {/* Legacy providers that might exist but aren't in the predefined list */}
+            {settings.channelProviders.filter(p => !['slack', 'telegram', 'discord', 'twilio'].includes(p.type)).map((provider) => (
               <Card key={provider.id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      {provider.type === 'slack' && <Slack className="h-5 w-5 text-primary" />}
-                      {provider.type === 'telegram' && <Send className="h-5 w-5 text-primary" />}
-                      {provider.type === 'discord' && <MessageSquare className="h-5 w-5 text-primary" />}
-                      {provider.type === 'twilio' && <Phone className="h-5 w-5 text-primary" />}
+                      <MessageCircle className="h-5 w-5 text-primary" />
                       <div>
                         <CardTitle>{provider.name}</CardTitle>
                         <CardDescription>{provider.type.toUpperCase()}</CardDescription>
