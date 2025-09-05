@@ -143,20 +143,21 @@ export default function NotificationSettings() {
       // Get user's customer IDs from user_roles table
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
-        .select('customer_id')
+        .select('customer_id, role')
         .eq('user_id', user.id)
-        .limit(1);
+        .order('role', { ascending: false }); // Prioritize admin/owner roles
 
       if (rolesError) throw rolesError;
 
       let customerId: string;
       
       if (userRoles && userRoles.length > 0) {
-        // Use the first customer ID from user roles
+        // Use the first customer ID (prioritized by role)
         customerId = userRoles[0].customer_id;
+        console.log('Using customer ID:', customerId, 'with role:', userRoles[0].role);
       } else {
         // Create a default customer ID and user role if none exists
-        customerId = '22222222-2222-2222-2222-222222222222'; // Use existing customer ID from the system
+        customerId = '00000000-0000-0000-0000-000000000001'; // Use system default customer ID
         
         // Insert user role for this customer (ignore if already exists)
         const { error: roleError } = await supabase
@@ -164,7 +165,7 @@ export default function NotificationSettings() {
           .upsert({
             user_id: user.id,
             customer_id: customerId,
-            role: 'owner'
+            role: 'admin'
           }, { 
             onConflict: 'user_id,customer_id,role',
             ignoreDuplicates: true 
