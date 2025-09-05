@@ -47,18 +47,19 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    // Get notification settings from database
-    const { data: settings, error: settingsError } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('setting_key', 'notifications')
+    // Get Telegram configuration from channel_providers table
+    const { data: telegramProvider, error: providerError } = await supabase
+      .from('channel_providers')
+      .select('config, enabled')
+      .eq('type', 'telegram')
+      .eq('enabled', true)
       .single();
 
-    if (settingsError || !settings) {
-      console.error('Failed to get notification settings:', settingsError);
+    if (providerError || !telegramProvider) {
+      console.error('Failed to get Telegram provider config:', providerError);
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to get notification settings' 
+          error: 'Telegram provider not configured or not enabled' 
         }),
         { 
           status: 500, 
@@ -67,43 +68,7 @@ serve(async (req: Request) => {
       );
     }
 
-    const notificationConfig = settings.setting_value;
-
-    // Check if Telegram notifications are enabled
-    if (!notificationConfig.telegram_enabled) {
-      return new Response(
-        JSON.stringify({ 
-          message: 'Telegram notifications are disabled' 
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Check if this specific notification type is enabled
-    const typeMapping = {
-      'agent_error': 'agent_errors',
-      'system_alert': 'system_alerts',
-      'security_event': 'security_events',
-      'batch_completion': 'batch_completions'
-    };
-
-    const settingKey = typeMapping[notification_type];
-    if (!notificationConfig.telegram_notifications?.[settingKey]) {
-      return new Response(
-        JSON.stringify({ 
-          message: `Telegram notifications for ${notification_type} are disabled` 
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    const { telegram_bot_token, telegram_chat_id } = notificationConfig;
+    const { botToken: telegram_bot_token, chatId: telegram_chat_id } = telegramProvider.config;
 
     if (!telegram_bot_token || !telegram_chat_id) {
       return new Response(

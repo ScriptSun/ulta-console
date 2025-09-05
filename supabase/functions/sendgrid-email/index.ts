@@ -42,11 +42,26 @@ serve(async (req: Request) => {
       );
     }
 
-    const sendgridApiKey = Deno.env.get('SENDGRID_API_KEY');
-    if (!sendgridApiKey) {
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
+
+    // Get SendGrid configuration from email_providers table
+    const { data: emailProviders, error: providerError } = await supabase
+      .from('email_providers')
+      .select('config, from_email, from_name')
+      .eq('type', 'sendgrid')
+      .eq('enabled', true)
+      .eq('is_primary', true)
+      .single();
+
+    if (providerError || !emailProviders) {
+      console.error('Failed to get SendGrid provider config:', providerError);
       return new Response(
         JSON.stringify({ 
-          error: 'SendGrid API key not configured' 
+          error: 'SendGrid provider not configured or not enabled' 
         }),
         { 
           status: 500, 
@@ -55,11 +70,18 @@ serve(async (req: Request) => {
       );
     }
 
-    // Initialize Supabase client for user preferences check
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+    const sendgridApiKey = emailProviders.config?.apiKey;
+    if (!sendgridApiKey) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'SendGrid API key not found in provider configuration' 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
     // Check user email preferences if user_id is provided
     if (user_id) {
@@ -119,8 +141,8 @@ serve(async (req: Request) => {
         },
       ],
       from: {
-        email: "noreply@yourdomain.com",
-        name: "UltaAI System"
+        email: emailProviders.from_email || "noreply@yourdomain.com",
+        name: emailProviders.from_name || "UltaAI System"
       },
       content: [
         {
