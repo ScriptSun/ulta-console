@@ -1,0 +1,57 @@
+-- Update existing policies with expert event names and add new ones
+INSERT INTO notification_policies (
+  customer_id, 
+  event_key, 
+  event_name,
+  category,
+  severity,
+  channels, 
+  environment,
+  enabled,
+  created_by,
+  updated_by
+) VALUES 
+-- Security Events
+('00000000-0000-0000-0000-000000000001', 'security.login.failed', 'Multiple Failed Login Attempts', 'security', 'warning', '{"email": true, "telegram": true, "slack": true, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'security.login.blocked', 'Account Temporarily Locked', 'security', 'critical', '{"email": true, "telegram": true, "slack": true, "inapp": true, "discord": false, "sms": true, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'security.password.changed', 'Password Successfully Updated', 'security', 'info', '{"email": true, "telegram": true, "slack": false, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'security.2fa.enabled', 'Two-Factor Authentication Activated', 'security', 'info', '{"email": true, "telegram": true, "slack": false, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+-- Account Events  
+('00000000-0000-0000-0000-000000000001', 'account.created', 'Welcome! Account Created Successfully', 'account', 'info', '{"email": true, "telegram": false, "slack": false, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'account.verified', 'Email Verification Completed', 'account', 'info', '{"email": true, "telegram": false, "slack": false, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+-- Agent Events
+('00000000-0000-0000-0000-000000000001', 'agent.deployed', 'Agent Successfully Deployed', 'agent', 'info', '{"email": true, "telegram": true, "slack": true, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'agent.offline', 'Agent Connection Lost', 'agent', 'warning', '{"email": true, "telegram": true, "slack": true, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'agent.error', 'Agent Execution Error', 'agent', 'critical', '{"email": true, "telegram": true, "slack": true, "inapp": true, "discord": false, "sms": false, "webhook": true}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'agent.task.completed', 'Task Completed Successfully', 'agent', 'info', '{"email": false, "telegram": true, "slack": false, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+-- System Events
+('00000000-0000-0000-0000-000000000001', 'system.maintenance.scheduled', 'Scheduled Maintenance Window', 'system', 'warning', '{"email": true, "telegram": true, "slack": true, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'system.update.available', 'New System Update Deployed', 'system', 'info', '{"email": true, "telegram": false, "slack": false, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'system.outage.detected', 'Service Disruption Detected', 'system', 'critical', '{"email": true, "telegram": true, "slack": true, "inapp": true, "discord": false, "sms": true, "webhook": true}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+-- Billing Events
+('00000000-0000-0000-0000-000000000001', 'billing.payment.success', 'Payment Processed Successfully', 'billing', 'info', '{"email": true, "telegram": false, "slack": false, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'billing.payment.failed', 'Payment Processing Failed', 'billing', 'critical', '{"email": true, "telegram": true, "slack": false, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
+
+('00000000-0000-0000-0000-000000000001', 'billing.usage.limit', 'Approaching Usage Limit', 'billing', 'warning', '{"email": true, "telegram": true, "slack": false, "inapp": true, "discord": false, "sms": false, "webhook": false}', 'prod', true, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001')
+
+ON CONFLICT (customer_id, event_key) DO UPDATE SET
+  event_name = EXCLUDED.event_name,
+  category = EXCLUDED.category,
+  severity = EXCLUDED.severity,
+  channels = EXCLUDED.channels,
+  updated_at = now(),
+  updated_by = EXCLUDED.updated_by;
