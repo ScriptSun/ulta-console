@@ -12,9 +12,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   Bell, Mail, MessageCircle, Webhook, ArrowLeft, Save, Loader2, 
   TestTube, Shield, CheckCircle, AlertCircle, Copy, Settings,
-  Slack, Send, MessageSquare, Phone
+  Slack, Send, MessageSquare, Phone, Route
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import EventRouting from '@/components/notification/EventRouting';
 
 interface EmailProvider {
   id: string;
@@ -1221,6 +1222,7 @@ export default function NotificationSettings() {
         <TabsList>
           <TabsTrigger value="email">Email Providers</TabsTrigger>
           <TabsTrigger value="channels">Channels</TabsTrigger>
+          <TabsTrigger value="routing">Routing</TabsTrigger>
           <TabsTrigger value="failover">Failover</TabsTrigger>
           <TabsTrigger value="domain">Domain Health</TabsTrigger>
         </TabsList>
@@ -1653,6 +1655,19 @@ export default function NotificationSettings() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        {/* Routing Tab */}
+        <TabsContent value="routing" className="space-y-6">
+          <EventRouting channelAvailability={{
+            email: settings.emailProviders.some(p => p.enabled),
+            telegram: settings.channelProviders.some(p => p.type === 'telegram' && p.enabled),
+            slack: settings.channelProviders.some(p => p.type === 'slack' && p.enabled),
+            discord: settings.channelProviders.some(p => p.type === 'discord' && p.enabled),
+            sms: settings.channelProviders.some(p => p.type === 'twilio' && p.enabled),
+            webhook: true, // Webhooks are always available
+            inapp: true, // In-app notifications are always available
+          }} />
         </TabsContent>
 
         {/* Failover Tab */}
