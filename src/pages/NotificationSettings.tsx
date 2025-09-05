@@ -1160,8 +1160,8 @@ export default function NotificationSettings() {
           <div className="grid gap-4">
             {(['smtp', 'sendgrid', 'mailgun', 'ses', 'postmark', 'resend'] as const).map((providerType) => {
               const provider = settings.emailProviders.find(p => p.type === providerType);
-              const isEnabled = provider?.enabled || false;
               const hasEnabledProviders = settings.emailProviders.some(p => p.enabled);
+              const isEnabled = provider?.enabled || (!hasEnabledProviders && providerType === 'smtp');
               const shouldShowAsPrimary = provider?.is_primary && isEnabled;
               const shouldShowAsDefaultPrimary = !hasEnabledProviders && providerType === 'smtp';
               
