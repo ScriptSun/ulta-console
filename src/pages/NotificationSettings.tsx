@@ -475,7 +475,8 @@ export default function NotificationSettings() {
       } else {
         provider = settings.channelProviders.find(p => p.id === providerId);
         providerType = provider?.type || 'unknown';
-        config = provider?.config;
+        // Use local config if available (unsaved changes), otherwise use saved config
+        config = localConfigs[providerId] || provider?.config || {};
       }
 
       if (!provider) {
