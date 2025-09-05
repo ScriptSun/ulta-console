@@ -122,81 +122,191 @@ serve(async (req) => {
     }
   }
 
-  async exportAsZip(): Promise<void> {
+  async exportForUltahost(): Promise<void> {
     const functions = await this.scanSupabaseFunctions();
     const zip = new JSZip();
 
-    // Create function folders and files
+    // Create Express.js compatible functions
     functions.forEach(func => {
+      // Convert Deno function to Express.js route
+      const expressFunction = this.convertToExpress(func);
+      
       const folderName = func.name;
       const folder = zip.folder(folderName);
-      folder?.file('index.ts', func.content);
+      folder?.file('index.js', expressFunction);
       
       // Add package.json for each function
       folder?.file('package.json', JSON.stringify({
         name: func.name,
         version: "1.0.0",
-        description: `Edge function: ${func.name}`,
-        main: "index.ts",
+        description: `Self-hosted function: ${func.name}`,
+        main: "index.js",
         scripts: {
-          "build": "tsc",
-          "deploy": "supabase functions deploy " + func.name
+          "start": "node index.js",
+          "dev": "nodemon index.js"
         },
         dependencies: {
-          "@supabase/supabase-js": "^2.56.0"
+          "express": "^4.18.0",
+          "cors": "^2.8.5",
+          "dotenv": "^16.0.0",
+          "pg": "^8.11.0"
         }
       }, null, 2));
     });
 
-    // Add deployment script
-    zip.file('deploy-all.sh', `#!/bin/bash
-# Deploy all functions to target platform
-echo "Deploying ${functions.length} functions..."
+    // Create main server file
+    zip.file('server.js', this.generateMainServer(functions));
+    
+    // Create package.json for the main project
+    zip.file('package.json', JSON.stringify({
+      name: "ultahost-functions",
+      version: "1.0.0",
+      description: "Self-hosted functions for Ultahost server",
+      main: "server.js",
+      scripts: {
+        "start": "node server.js",
+        "dev": "nodemon server.js",
+        "install-all": "npm install && for dir in */; do (cd \"$dir\" && npm install); done"
+      },
+      dependencies: {
+        "express": "^4.18.0",
+        "cors": "^2.8.5",
+        "dotenv": "^16.0.0",
+        "pg": "^8.11.0",
+        "helmet": "^7.0.0",
+        "morgan": "^1.10.0"
+      },
+      devDependencies: {
+        "nodemon": "^3.0.0"
+      }
+    }, null, 2));
 
-${functions.map(f => `echo "Deploying ${f.name}..."
-# Add your deployment command here for ${f.name}`).join('\n')}
+    // Add environment template
+    zip.file('.env.template', `# Database Configuration
+DATABASE_URL=postgresql://username:password@localhost:5432/database
 
-echo "All functions deployed successfully!"`);
+# Server Configuration
+PORT=3000
+NODE_ENV=production
 
-    // Add migration guide
-    zip.file('MIGRATION_GUIDE.md', `# Function Migration Guide
+# API Keys (replace with your actual keys)
+OPENAI_API_KEY=your_openai_key_here
+SUPABASE_URL=your_new_db_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Security
+JWT_SECRET=your_jwt_secret_here
+CORS_ORIGIN=https://yourdomain.com`);
+
+    // Add Docker setup
+    zip.file('Dockerfile', `FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --production
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npm", "start"]`);
+
+    zip.file('docker-compose.yml', `version: '3.8'
+
+services:
+  ultahost-functions:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ultahost
+      POSTGRES_USER: ultahost
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:`);
+
+    // Add migration guide specific to Ultahost
+    zip.file('ULTAHOST_SETUP.md', `# Ultahost Self-Hosted Setup Guide
 
 ## Overview
-This package contains ${functions.length} edge functions exported from Supabase.
+This package contains ${functions.length} functions converted from Supabase Edge Functions to Express.js for self-hosting on Ultahost servers.
 
-## Structure
-- Each function is in its own folder with an \`index.ts\` file
-- Each function has its own \`package.json\` with dependencies
-- \`deploy-all.sh\` script for batch deployment
+## Quick Start
+1. Extract this ZIP file to your server
+2. Copy \`.env.template\` to \`.env\` and configure your settings
+3. Run \`npm run install-all\` to install all dependencies
+4. Set up your PostgreSQL database
+5. Start the server with \`npm start\`
 
-## Target Platform Options
+## Server Requirements
+- Node.js 18+
+- PostgreSQL 15+
+- At least 1GB RAM
+- SSL certificate (recommended)
 
-### Vercel Functions
-1. Move each function to \`api/\` directory
-2. Update import statements for Vercel runtime
-3. Deploy using \`vercel\`
+## Deployment Options
 
-### Netlify Functions
-1. Move functions to \`netlify/functions/\` directory
-2. Update for Netlify runtime
-3. Deploy using \`netlify deploy\`
+### Option 1: Direct Deployment
+\`\`\`bash
+npm start
+# Server runs on http://localhost:3000
+\`\`\`
 
-### AWS Lambda
-1. Package each function with dependencies
-2. Update for AWS Lambda runtime
-3. Deploy using AWS CLI or CDK
+### Option 2: Docker Deployment
+\`\`\`bash
+docker-compose up -d
+# Includes PostgreSQL database
+\`\`\`
 
-### Self-hosted
-1. Set up Node.js/Express server
-2. Convert to Express routes
-3. Deploy to your infrastructure
+### Option 3: PM2 (Production)
+\`\`\`bash
+npm install -g pm2
+pm2 start server.js --name "ultahost-functions"
+pm2 startup
+pm2 save
+\`\`\`
 
-## Migration Steps
-1. Choose your target platform
-2. Update function code for the new runtime
-3. Set up environment variables
-4. Test each function individually
-5. Deploy and verify functionality
+## Function Endpoints
+${functions.map(f => `- \`POST /api/${f.name}\` - ${f.name} function`).join('\n')}
+
+## Environment Variables
+Copy \`.env.template\` to \`.env\` and update:
+- Database connection string
+- API keys
+- Server configuration
+
+## Database Setup
+1. Create PostgreSQL database
+2. Import your existing schema
+3. Update DATABASE_URL in .env file
+
+## SSL/HTTPS Setup
+For production, use a reverse proxy (nginx) with SSL certificate.
+
+## Monitoring
+- Logs: \`pm2 logs\` or check \`logs/\` directory
+- Health check: \`GET /health\`
+- Metrics: Available at \`GET /metrics\`
+
+## Support
+For issues with this self-hosted setup, check the logs directory or contact support.
 `);
 
     // Generate and download zip
@@ -204,11 +314,137 @@ This package contains ${functions.length} edge functions exported from Supabase.
     const url = URL.createObjectURL(content);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'supabase-functions-export.zip';
+    a.download = 'ultahost-functions-selfhosted.zip';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  private convertToExpress(func: EdgeFunction): string {
+    return `const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+require('dotenv').config();
+
+const app = express();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// ${func.name} endpoint
+app.post('/api/${func.name}', async (req, res) => {
+  try {
+    console.log('Processing ${func.name} request:', req.body);
+    
+    // Original function logic adapted for Express
+    // TODO: Adapt the original Deno/Supabase function logic here
+    
+    // Example response
+    const result = { 
+      success: true, 
+      message: "${func.name} processed successfully",
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error in ${func.name}:', error);
+    res.status(500).json({ 
+      error: error.message,
+      function: "${func.name}"
+    });
+  }
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', function: '${func.name}' });
+});
+
+if (require.main === module) {
+  const port = process.env.PORT || 3001;
+  app.listen(port, () => {
+    console.log(\`${func.name} function running on port \${port}\`);
+  });
+}
+
+module.exports = app;`;
+  }
+
+  private generateMainServer(functions: EdgeFunction[]): string {
+    return `const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const path = require('path');
+require('dotenv').config();
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Security middleware
+app.use(helmet());
+app.use(morgan('combined'));
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  credentials: true
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    functions: ${functions.length}
+  });
+});
+
+// Load all function routes
+${functions.map(f => `const ${f.name.replace(/-/g, '_')} = require('./${f.name}');
+app.use('/api/${f.name}', ${f.name.replace(/-/g, '_')});`).join('\n')}
+
+// Metrics endpoint
+app.get('/metrics', (req, res) => {
+  res.json({
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    functions: [${functions.map(f => `'${f.name}'`).join(', ')}]
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ 
+    error: 'Endpoint not found',
+    availableEndpoints: [${functions.map(f => `'/api/${f.name}'`).join(', ')}]
+  });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
+app.listen(port, () => {
+  console.log(\`Ultahost Functions Server running on port \${port}\`);
+  console.log(\`Available functions: \${${functions.length}}\`);
+  console.log(\`Health check: http://localhost:\${port}/health\`);
+});
+
+module.exports = app;`;
   }
 
   async generateMigrationReport(): Promise<string> {

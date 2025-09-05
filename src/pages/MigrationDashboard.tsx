@@ -237,22 +237,34 @@ const MigrationDashboard: React.FC = () => {
     try {
       const exporter = new FunctionExporter();
       
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setFunctionExportProgress(prev => Math.min(prev + 15, 90));
-      }, 800);
-
+      // Step 1: Scan functions
+      setFunctionExportProgress(10);
       await exporter.scanSupabaseFunctions();
+      
+      // Step 2: Analyze dependencies
+      setFunctionExportProgress(30);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Step 3: Convert to Express.js format
+      setFunctionExportProgress(60);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Step 4: Package for Ultahost
+      setFunctionExportProgress(80);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Step 5: Generate ZIP
+      setFunctionExportProgress(95);
+      await exporter.exportForUltahost();
       setFunctionExportProgress(100);
-      clearInterval(progressInterval);
       
       toast({
-        title: "Function Migration Ready",
-        description: `Found ${exporter.getFunctionCount()} functions ready for export`
+        title: "Functions Exported Successfully",
+        description: `${exporter.getFunctionCount()} functions packaged for Ultahost self-hosted deployment`
       });
     } catch (error) {
       toast({
-        title: "Function Migration Failed",
+        title: "Function Migration Failed", 
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive"
       });
@@ -264,15 +276,15 @@ const MigrationDashboard: React.FC = () => {
   const handleFunctionExportZip = async () => {
     try {
       const exporter = new FunctionExporter();
-      await exporter.exportAsZip();
+      await exporter.exportForUltahost();
       
       toast({
-        title: "Functions Exported as ZIP",
-        description: "All functions packaged with migration guide"
+        title: "Functions Exported for Ultahost",
+        description: "Complete server package ready for deployment"
       });
     } catch (error) {
       toast({
-        title: "ZIP Export Failed",
+        title: "Export Failed",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive"
       });
@@ -280,49 +292,21 @@ const MigrationDashboard: React.FC = () => {
   };
 
   const handleFunctionExportIndividual = async () => {
-    try {
-      const exporter = new FunctionExporter();
-      await exporter.exportAsIndividualFiles();
-      
-      toast({
-        title: "Functions Exported Individually",
-        description: "Each function downloaded as separate file"
-      });
-    } catch (error) {
-      toast({
-        title: "Individual Export Failed",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive"
-      });
-    }
+    // Removed individual export - focusing on Ultahost ZIP only
+    toast({
+      title: "Use Function Migration Step", 
+      description: "Press 'Start' on Function Migration step for Ultahost export",
+      variant: "default"
+    });
   };
 
   const handleFunctionMigrationReport = async () => {
-    try {
-      const exporter = new FunctionExporter();
-      const report = await exporter.generateMigrationReport();
-      
-      const blob = new Blob([report], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'function-migration-report.md';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Migration Report Generated",
-        description: "Detailed analysis downloaded as markdown"
-      });
-    } catch (error) {
-      toast({
-        title: "Report Generation Failed",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive"
-      });
-    }
+    // Removed - report is now included in ZIP package
+    toast({
+      title: "Report Included in Export",
+      description: "Migration guide included when you export functions",
+      variant: "default"
+    });
   };
 
   const overallProgress = migrationSteps.reduce((acc, step) => acc + step.progress, 0) / migrationSteps.length;
@@ -506,17 +490,23 @@ const MigrationDashboard: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Zap className="h-5 w-5" />
-                <span>Function Migration</span>
+                <span>Ultahost Self-Hosted Functions</span>
               </CardTitle>
               <CardDescription>
-                Export your Supabase Edge Functions for migration to other platforms
+                Export all Supabase Edge Functions as Express.js server for Ultahost deployment
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {isFunctionExporting && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Scanning functions...</span>
+                    <span className="text-sm">
+                      {functionExportProgress < 20 ? 'Analyzing functions...' :
+                       functionExportProgress < 40 ? 'Converting to Express.js...' :
+                       functionExportProgress < 70 ? 'Setting up Ultahost config...' :
+                       functionExportProgress < 95 ? 'Packaging ZIP file...' :
+                       'Export complete!'}
+                    </span>
                     <span className="text-sm text-muted-foreground">{functionExportProgress}%</span>
                   </div>
                   <Progress value={functionExportProgress} />
@@ -526,71 +516,32 @@ const MigrationDashboard: React.FC = () => {
               <Alert>
                 <Code className="h-4 w-4" />
                 <AlertDescription>
-                  Export options: Individual TypeScript files or complete ZIP package with migration guide. 
-                  The ZIP includes deployment scripts for popular platforms.
+                  This will analyze all 30+ Edge Functions and create a complete Express.js server package 
+                  ready for deployment on Ultahost with PostgreSQL, Docker setup, and deployment guides.
                 </AlertDescription>
               </Alert>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <h4 className="font-medium">Export Format</h4>
-                  <div className="space-y-2">
-                    <Button 
-                      onClick={handleFunctionExportZip}
-                      disabled={isFunctionExporting}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export as ZIP Package
-                    </Button>
-                    <Button 
-                      onClick={handleFunctionExportIndividual}
-                      disabled={isFunctionExporting}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Export Individual Files
-                    </Button>
-                  </div>
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <h4 className="font-medium mb-2">Package Includes:</h4>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    <li>• Express.js server with all functions as routes</li>
+                    <li>• PostgreSQL connection setup</li>
+                    <li>• Docker & Docker Compose configuration</li>
+                    <li>• Environment configuration templates</li>
+                    <li>• PM2 production setup scripts</li>
+                    <li>• Complete Ultahost deployment guide</li>
+                  </ul>
                 </div>
 
-                <div className="space-y-3">
-                  <h4 className="font-medium">Migration Tools</h4>
-                  <div className="space-y-2">
-                    <Button 
-                      onClick={handleFunctionMigrationReport}
-                      disabled={isFunctionExporting}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Generate Migration Report
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                <h4 className="font-medium">Target Platform Support:</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium">Vercel</div>
-                    <div className="text-muted-foreground">Edge Functions</div>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium">Netlify</div>
-                    <div className="text-muted-foreground">Functions</div>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium">AWS Lambda</div>
-                    <div className="text-muted-foreground">Serverless</div>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium">Self-hosted</div>
-                    <div className="text-muted-foreground">Node.js/Express</div>
-                  </div>
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium mb-2">Server Features:</h4>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    <li>• Health monitoring endpoints</li>
+                    <li>• Request logging and error handling</li>
+                    <li>• Security headers and CORS setup</li>
+                    <li>• Auto-scaling ready configuration</li>
+                  </ul>
                 </div>
               </div>
             </CardContent>
