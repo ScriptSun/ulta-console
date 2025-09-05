@@ -41,7 +41,6 @@ serve(async (req) => {
       .select('*')
       .eq('customer_id', '00000000-0000-0000-0000-000000000001')
       .eq('event_key', eventKey)
-      .eq('environment', environment)
       .eq('enabled', true)
       .single();
 
@@ -73,55 +72,99 @@ serve(async (req) => {
       .insert({
         customer_id: policy.customer_id,
         event_key: eventKey,
-        environment,
         payload: JSON.stringify(payload)
       });
 
-    // Simulate sending to each active channel
+    // Send to each active channel (actual notifications, not simulation)
     const results = [];
     for (const channel of activeChannels) {
       try {
         switch (channel) {
           case 'email':
-            // In a real implementation, this would send via the configured email provider
-            console.log(`Would send email for event: ${eventKey}`);
-            results.push({ channel: 'email', status: 'success', message: 'Email notification sent' });
+            console.log(`Sending test email for event: ${eventKey}`);
+            try {
+              const emailResult = await supabase.functions.invoke('sendgrid-email', {
+                body: {
+                  to: 'test@example.com', // Test email - you can customize this
+                  subject: `🔔 Test: ${policy.event_name}`,
+                  text: `This is a test notification for the event: ${policy.event_name}\n\nSeverity: ${policy.severity}\nCategory: ${policy.category}\n\nThis is a test from your notification system.`,
+                  html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                      <h2 style="color: #333;">🔔 Test Notification</h2>
+                      <p><strong>Event:</strong> ${policy.event_name}</p>
+                      <p><strong>Severity:</strong> ${policy.severity}</p>
+                      <p><strong>Category:</strong> ${policy.category}</p>
+                      <p>This is a test notification from your notification system.</p>
+                    </div>
+                  `
+                }
+              });
+              
+              if (emailResult.error) {
+                console.error('Email sending error:', emailResult.error);
+                results.push({ channel: 'email', status: 'error', message: `Email failed: ${emailResult.error.message}` });
+              } else {
+                console.log('Email sent successfully');
+                results.push({ channel: 'email', status: 'success', message: 'Email notification sent' });
+              }
+            } catch (emailError: any) {
+              console.error('Email error:', emailError);
+              results.push({ channel: 'email', status: 'error', message: `Email error: ${emailError.message}` });
+            }
             break;
 
           case 'telegram':
-            // In a real implementation, this would send via Telegram bot API
-            console.log(`Would send Telegram message for event: ${eventKey}`);
-            results.push({ channel: 'telegram', status: 'success', message: 'Telegram notification sent' });
+            console.log(`Sending test Telegram message for event: ${eventKey}`);
+            try {
+              const telegramResult = await supabase.functions.invoke('send-telegram-notification', {
+                body: {
+                  message: `🔔 Test Notification\n\nEvent: ${policy.event_name}\nSeverity: ${policy.severity}\nCategory: ${policy.category}\n\nThis is a test notification from your system.`,
+                  customerId: policy.customer_id
+                }
+              });
+              
+              if (telegramResult.error) {
+                console.error('Telegram sending error:', telegramResult.error);
+                results.push({ channel: 'telegram', status: 'error', message: `Telegram failed: ${telegramResult.error.message}` });
+              } else {
+                console.log('Telegram message sent successfully');
+                results.push({ channel: 'telegram', status: 'success', message: 'Telegram notification sent' });
+              }
+            } catch (telegramError: any) {
+              console.error('Telegram error:', telegramError);
+              results.push({ channel: 'telegram', status: 'error', message: `Telegram error: ${telegramError.message}` });
+            }
             break;
 
           case 'slack':
-            // In a real implementation, this would send via Slack webhook
-            console.log(`Would send Slack message for event: ${eventKey}`);
-            results.push({ channel: 'slack', status: 'success', message: 'Slack notification sent' });
+            // For now, simulate Slack until it's implemented
+            console.log(`Would send Slack message for event: ${eventKey} (not yet implemented)`);
+            results.push({ channel: 'slack', status: 'success', message: 'Slack notification simulated (not implemented)' });
             break;
 
           case 'discord':
-            // In a real implementation, this would send via Discord webhook
-            console.log(`Would send Discord message for event: ${eventKey}`);
-            results.push({ channel: 'discord', status: 'success', message: 'Discord notification sent' });
+            // For now, simulate Discord until it's implemented
+            console.log(`Would send Discord message for event: ${eventKey} (not yet implemented)`);
+            results.push({ channel: 'discord', status: 'success', message: 'Discord notification simulated (not implemented)' });
             break;
 
           case 'sms':
-            // In a real implementation, this would send via SMS provider (Twilio)
-            console.log(`Would send SMS for event: ${eventKey}`);
-            results.push({ channel: 'sms', status: 'success', message: 'SMS notification sent' });
+            // For now, simulate SMS until it's implemented
+            console.log(`Would send SMS for event: ${eventKey} (not yet implemented)`);
+            results.push({ channel: 'sms', status: 'success', message: 'SMS notification simulated (not implemented)' });
             break;
 
           case 'webhook':
-            // In a real implementation, this would send to configured webhooks
-            console.log(`Would send webhook for event: ${eventKey}`);
-            results.push({ channel: 'webhook', status: 'success', message: 'Webhook notification sent' });
+            // For now, simulate webhook until it's implemented
+            console.log(`Would send webhook for event: ${eventKey} (not yet implemented)`);
+            results.push({ channel: 'webhook', status: 'success', message: 'Webhook notification simulated (not implemented)' });
             break;
 
           case 'inapp':
-            // In a real implementation, this would create in-app notifications
-            console.log(`Would create in-app notification for event: ${eventKey}`);
-            results.push({ channel: 'inapp', status: 'success', message: 'In-app notification created' });
+            console.log(`Creating test in-app notification for event: ${eventKey}`);
+            // For in-app notifications, we'd need a user_notifications table
+            // For now, simulate it
+            results.push({ channel: 'inapp', status: 'success', message: 'In-app notification simulated' });
             break;
 
           default:
@@ -145,7 +188,6 @@ serve(async (req) => {
         .select('id')
         .eq('customer_id', policy.customer_id)
         .eq('event_key', eventKey)
-        .eq('environment', environment)
         .gte('occurred_at', windowStart.toISOString());
 
       if (!countError && recentEvents && recentEvents.length >= threshold.count) {
