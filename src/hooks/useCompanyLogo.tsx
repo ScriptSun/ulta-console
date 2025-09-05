@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,9 @@ interface CompanyLogoSettings {
   created_by?: string;
 }
 
+const CACHE_KEY = 'company_logo_settings';
+const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
+
 export function useCompanyLogo() {
   const { user } = useAuth(); // user can be null on public pages
   const { toast } = useToast();
@@ -25,70 +28,152 @@ export function useCompanyLogo() {
     logo_width: 120,
     logo_height: 40
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState({ light: false, dark: false, email: false, favicon: false });
 
-  const loadLogoSettings = async () => {
+  // Load cached data immediately
+  const loadFromCache = useCallback(() => {
     try {
-      setLoading(true);
-      console.log('Loading logo settings...');
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_EXPIRY) {
+          console.log('Loading logo settings from cache');
+          setLogoSettings(data);
+          setLoading(false);
+          return true;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load from cache:', err);
+    }
+    return false;
+  }, []);
+
+  // Save to cache
+  const saveToCache = useCallback((data: CompanyLogoSettings) => {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data,
+        timestamp: Date.now()
+      }));
+    } catch (err) {
+      console.warn('Failed to save to cache:', err);
+    }
+  }, []);
+
+  // Retry with exponential backoff
+  const retryWithBackoff = useCallback(async (fn: () => Promise<any>, maxRetries = 3) => {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        lastError = error;
+        
+        // Don't retry on certain errors
+        if (error.message?.includes('JWT') || error.code === 'PGRST116') {
+          throw error;
+        }
+        
+        if (attempt < maxRetries - 1) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+          console.log(`Retry attempt ${attempt + 1} in ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    throw lastError;
+  }, []);
+
+  const loadLogoSettings = async (background = false) => {
+    try {
+      if (!background) {
+        setLoading(true);
+      }
       
-      // Load public company logos - get the first active theme (for public display on login)
-      const { data, error } = await supabase
-        .from('company_themes')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      console.log('Loading logo settings from database...');
+      
+      const fetchData = async () => {
+        // Use Promise.race for timeout instead of AbortController
+        const queryPromise = supabase
+          .from('company_themes')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout - slow network connection')), 15000);
+        });
+
+        return await Promise.race([queryPromise, timeoutPromise]) as any;
+      };
+
+      const { data, error } = await retryWithBackoff(fetchData);
 
       console.log('Logo query result:', { data, error });
 
       if (error && error.code !== 'PGRST116') {
         console.error('Database error:', error);
-        // Don't throw on network errors, just log them
-        if (!error.message?.includes('timeout') && !error.message?.includes('Network connection failed')) {
-          throw error;
+        
+        // Show user-friendly error only if not background loading
+        if (!background) {
+          toast({
+            title: "Connection issue",
+            description: "Using cached logos. Will try to refresh in background.",
+            variant: "default",
+          });
         }
         return;
       }
 
-      if (data) {
-        // Use type assertion since we know the migration will add these columns
-        const themeData = data as any;
-        console.log('Setting logo data:', themeData);
-        setLogoSettings({
-          id: themeData.id,
-          logo_light_url: themeData.logo_light_url || '',
-          logo_dark_url: themeData.logo_dark_url || '',
-          email_logo_url: themeData.email_logo_url || '',
-          favicon_source_url: themeData.favicon_source_url || '',
-          logo_width: themeData.logo_width || 120,
-          logo_height: themeData.logo_height || 40,
-          created_by: themeData.created_by
-        });
-      } else {
-        console.log('No active company theme found - creating default state');
-        // Set default state if no data found
-        setLogoSettings({
-          logo_light_url: '',
-          logo_dark_url: '',
-          email_logo_url: '',
-          favicon_source_url: '',
-          logo_width: 120,
-          logo_height: 40
-        });
-      }
+      const logoData = data ? {
+        id: data.id,
+        logo_light_url: data.logo_light_url || '',
+        logo_dark_url: data.logo_dark_url || '',
+        email_logo_url: data.email_logo_url || '',
+        favicon_source_url: data.favicon_source_url || '',
+        logo_width: data.logo_width || 120,
+        logo_height: data.logo_height || 40,
+        created_by: data.created_by
+      } : {
+        logo_light_url: '',
+        logo_dark_url: '',
+        email_logo_url: '',
+        favicon_source_url: '',
+        logo_width: 120,
+        logo_height: 40
+      };
+
+      console.log('Setting logo data:', logoData);
+      setLogoSettings(logoData);
+      saveToCache(logoData);
+
     } catch (err: any) {
       console.error('Error loading logo settings:', err);
-      // Show user-friendly error message
-      toast({
-        title: "Loading error",
-        description: "Failed to load logos. Please refresh the page.",
-        variant: "destructive",
-      });
+      
+      // Only show error if not background loading and no cache available
+      if (!background && !loadFromCache()) {
+        const isNetworkError = err.message?.includes('fetch') || 
+                              err.message?.includes('network') || 
+                              err.message?.includes('timeout');
+        
+        toast({
+          title: isNetworkError ? "Network issue" : "Loading error",
+          description: isNetworkError ? 
+            "Slow connection detected. Using default logos." : 
+            "Failed to load logos. Please refresh the page.",
+          variant: "destructive",
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!background) {
+        setLoading(false);
+      }
     }
   };
 
@@ -236,15 +321,29 @@ export function useCompanyLogo() {
   };
 
   useEffect(() => {
-    // Load logo settings for public display (doesn't require authentication)
-    loadLogoSettings();
+    // Load from cache first for immediate display
+    const hasCachedData = loadFromCache();
+    
+    // Always try to load fresh data
+    loadLogoSettings(hasCachedData);
+    
+    // Background refresh every 30 minutes
+    const refreshInterval = setInterval(() => {
+      loadLogoSettings(true);
+    }, 30 * 60 * 1000);
+    
+    return () => clearInterval(refreshInterval);
+  }, [loadFromCache, retryWithBackoff, saveToCache]);
+
+  const refreshLogoSettings = useCallback(() => {
+    loadLogoSettings(true);
   }, []);
 
   return {
     logoSettings,
     loading,
     uploading,
-    loadLogoSettings,
+    loadLogoSettings: refreshLogoSettings,
     uploadLogo,
     saveLogoSettings,
     removeLogo
