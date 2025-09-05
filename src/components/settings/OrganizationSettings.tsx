@@ -216,7 +216,7 @@ export function OrganizationSettings() {
         <Separator />
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 ClassName="font-medium text-blue-900 mb-2">Email Template Variables</h4>
+          <h4 className="font-medium text-blue-900 mb-2">Email Template Variables</h4>
           <p className="text-sm text-blue-800 mb-3">
             These settings will automatically populate the following variables in your email templates:
           </p>

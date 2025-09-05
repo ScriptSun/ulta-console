@@ -21,6 +21,7 @@ import { SenderIdentityCard } from '@/components/email-branding/SenderIdentityCa
 import { EmailTemplatesTable } from '@/components/email-branding/EmailTemplatesTable';
 import EventTemplatesTable from '@/components/email-templates/EventTemplatesTable';
 import { EmailTemplate } from '@/types/eventTypes';
+import { OrganizationSettings } from '@/components/settings/OrganizationSettings';
 
 export default function EmailBranding() {
   const navigate = useNavigate();
@@ -86,6 +87,9 @@ export default function EmailBranding() {
           Configure sender identity and manage email templates for notification events
         </p>
       </div>
+
+      {/* Organization Settings */}
+      <OrganizationSettings />
 
       {/* Sender Identity Card */}
       <SenderIdentityCard 
