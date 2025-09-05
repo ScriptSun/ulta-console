@@ -178,7 +178,7 @@ export default function EventTemplateEditor({
   return (
     <>
       <Sheet open={open} onOpenChange={() => onClose()}>
-        <SheetContent className="w-full max-w-4xl overflow-y-auto">
+        <SheetContent className="w-[40%] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>
               {template ? 'Edit Template' : 'New Template'}
