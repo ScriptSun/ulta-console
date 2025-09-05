@@ -21,7 +21,7 @@ import {
   Loader2,
   FileText,
   Variable,
-  Plus,
+  Copy,
   X
 } from 'lucide-react';
 import { EmailTemplate, TEMPLATE_VARIABLES } from '@/types/eventTypes';
@@ -440,15 +440,20 @@ export default function EventTemplateEdit() {
                       <div 
                         key={key} 
                         className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                        onClick={() => {
+                        onClick={async () => {
                           const variable = `{{${key}}}`;
-                          const textarea = document.querySelector('textarea[name="html"]') as HTMLTextAreaElement;
-                          if (textarea && editedTemplate.html !== undefined) {
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const currentContent = editedTemplate.html || '';
-                            const newContent = currentContent.substring(0, start) + variable + currentContent.substring(end);
-                            setEditedTemplate(prev => ({ ...prev, html: newContent }));
+                          try {
+                            await navigator.clipboard.writeText(variable);
+                            toast({
+                              title: "Copied to clipboard",
+                              description: `Variable ${variable} copied successfully`
+                            });
+                          } catch (error) {
+                            toast({
+                              title: "Copy failed",
+                              description: "Unable to copy to clipboard",
+                              variant: "destructive"
+                            });
                           }
                         }}
                       >
@@ -460,7 +465,7 @@ export default function EventTemplateEdit() {
                             {description}
                           </span>
                         </div>
-                        <Plus className="h-4 w-4 text-muted-foreground" />
+                        <Copy className="h-4 w-4 text-muted-foreground" />
                       </div>
                     ))}
                   </div>
