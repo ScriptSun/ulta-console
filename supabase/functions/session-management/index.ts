@@ -45,9 +45,19 @@ function getDeviceType(userAgent: string): string {
 }
 
 async function getLocationFromIP(ip: string): Promise<string> {
+  // Create AbortController with 5-second timeout
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 5000)
+
   try {
-    // Using ipapi.co for IP geolocation (free tier available)
-    const response = await fetch(`https://ipapi.co/${ip}/json/`)
+    // Try primary service with timeout
+    const response = await fetch(`https://ipapi.co/${ip}/json/`, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Session-Management/1.0' }
+    })
+    
+    clearTimeout(timeoutId)
+    
     if (response.ok) {
       const data = await response.json()
       if (data.city && data.country_name) {
@@ -58,9 +68,50 @@ async function getLocationFromIP(ip: string): Promise<string> {
       }
     }
   } catch (error) {
-    console.log('Location lookup failed:', error)
+    clearTimeout(timeoutId)
+    console.log('Primary location lookup failed:', error)
+    
+    // Try fallback service with timeout
+    try {
+      const fallbackController = new AbortController()
+      const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 3000)
+      
+      const fallbackResponse = await fetch(`https://ip-api.com/json/${ip}?fields=city,country`, {
+        signal: fallbackController.signal
+      })
+      
+      clearTimeout(fallbackTimeoutId)
+      
+      if (fallbackResponse.ok) {
+        const data = await fallbackResponse.json()
+        if (data.city && data.country) {
+          return `${data.city}, ${data.country}`
+        }
+        if (data.country) {
+          return data.country
+        }
+      }
+    } catch (fallbackError) {
+      console.log('Fallback location lookup failed:', fallbackError)
+    }
   }
+  
   return 'Unknown Location'
+}
+
+// Non-blocking location updater
+async function updateLocationInBackground(sessionId: string, ip: string, supabase: any) {
+  try {
+    const location = await getLocationFromIP(ip)
+    if (location !== 'Unknown Location') {
+      await supabase
+        .from('user_sessions')
+        .update({ location })
+        .eq('id', sessionId)
+    }
+  } catch (error) {
+    console.log('Background location update failed:', error)
+  }
 }
 
 serve(async (req) => {
@@ -346,18 +397,20 @@ serve(async (req) => {
         }
 
         if (existingSession) {
-          // Update existing session with new heartbeat
+          // Update existing session with new heartbeat (non-blocking)
           console.log('Updating existing session:', existingSession.id)
           
           const { data: updatedSession, error: updateError } = await supabase
             .from('user_sessions')
             .update({
-              updated_at: new Date().toISOString(),
-              location: await getLocationFromIP(clientIP)
+              updated_at: new Date().toISOString()
             })
             .eq('id', existingSession.id)
             .select()
             .single()
+          
+          // Update location in background (non-blocking)
+          updateLocationInBackground(existingSession.id, clientIP, supabase)
 
           if (updateError) {
             console.error('Error updating session:', updateError)
@@ -371,10 +424,8 @@ serve(async (req) => {
         } else {
           // Create new session for this device (with better duplicate prevention)
           console.log('Creating new session for device')
-          
-          const location = await getLocationFromIP(clientIP)
 
-          // Try to create session, but handle race conditions gracefully
+          // Try to create session immediately without blocking on location
           const { data: newSession, error: createError } = await supabase
             .from('user_sessions')
             .insert({
@@ -382,13 +433,18 @@ serve(async (req) => {
               ip_address: clientIP,
               user_agent: userAgent,
               device_type: deviceType,
-              location,
+              location: 'Loading...', // Default while location loads
               is_active: true,
               session_start: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
             .select()
             .single()
+          
+          // Update location in background after session is created
+          if (newSession) {
+            updateLocationInBackground(newSession.id, clientIP, supabase)
+          }
 
           if (createError) {
             console.error('Error creating session:', createError)

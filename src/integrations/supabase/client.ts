@@ -20,18 +20,29 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       'x-client-info': 'supabase-js-web',
     },
       fetch: (url, options = {}) => {
-        // Increase timeout for edge functions and add retry logic
-        const timeout = url.includes('/functions/') ? 60000 : 30000;
+        // Adaptive timeout based on request type and detected latency
+        let timeout = 30000; // Default 30s
+        
+        if (url.includes('/functions/')) {
+          // Edge functions get longer timeout (90s for high-latency regions)
+          timeout = 90000;
+        } else if (url.includes('/auth/v1/token')) {
+          // Auth operations get extended timeout for regional issues
+          timeout = 45000;
+        }
         
         return fetch(url, {
           ...options,
           signal: AbortSignal.timeout(timeout),
         }).catch(error => {
           console.error('Supabase fetch error:', error);
-          if (error.name === 'TimeoutError') {
-            throw new Error(`Request timed out after ${timeout/1000} seconds. The server might be busy, please try again.`);
+          if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+            throw new Error(`Request timed out after ${timeout/1000} seconds. This may be due to network conditions in your region. Please try again.`);
           }
-          throw new Error('Network connection failed. Please check your internet connection and try again.');
+          if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+            throw new Error('Network connection failed. This may be due to regional connectivity issues. Please check your internet connection and try again.');
+          }
+          throw error;
         });
       },
   },
