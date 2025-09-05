@@ -86,8 +86,6 @@ const SEVERITIES = [
   { key: 'critical', label: 'Critical', icon: AlertCircle, color: 'bg-red-100 text-red-800' },
 ];
 
-const ENVIRONMENTS = ['prod', 'staging', 'dev'];
-
 const SYSTEM_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
 
 export default function EventRouting({ channelAvailability }: EventRoutingProps) {
@@ -96,7 +94,6 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
   const [filteredPolicies, setFilteredPolicies] = useState<NotificationPolicy[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [selectedEnvironment, setSelectedEnvironment] = useState('prod');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('');
@@ -109,7 +106,7 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
 
   useEffect(() => {
     loadPolicies();
-  }, [selectedEnvironment]);
+  }, []);
 
   useEffect(() => {
     applyFilters();
@@ -121,7 +118,6 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
         .from('notification_policies')
         .select('*')
         .eq('customer_id', SYSTEM_CUSTOMER_ID)
-        .eq('environment', selectedEnvironment)
         .order('category', { ascending: true })
         .order('event_name', { ascending: true });
 
@@ -293,8 +289,7 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
       const { error } = await supabase.functions.invoke('test-notification-event', {
         body: {
           eventKey: testEvent,
-          payload,
-          environment: selectedEnvironment
+          payload
         }
       });
 
@@ -373,19 +368,6 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
           <p className="text-sm text-muted-foreground">Configure which events send to which channels with escalation and failover</p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={selectedEnvironment} onValueChange={setSelectedEnvironment}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ENVIRONMENTS.map(env => (
-                <SelectItem key={env} value={env}>
-                  {env.charAt(0).toUpperCase() + env.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
