@@ -1203,25 +1203,26 @@ export default function NotificationSettings() {
                         <div>
                           <CardTitle className="flex items-center gap-2">
                             {providerLabels[providerType]}
-                            {shouldShowAsPrimary && (
-                              <Badge variant="default">Primary</Badge>
-                            )}
-                            {shouldShowAsDefaultPrimary && (
-                              <Badge variant="outline" className="text-muted-foreground">
-                                Primary - Needs Configuration
-                              </Badge>
-                            )}
                           </CardTitle>
-                          <CardDescription>{providerType.toUpperCase()}</CardDescription>
                         </div>
-                        {provider?.status && isEnabled && (
-                          <Badge 
-                            variant={provider.status === 'connected' ? 'default' : 'destructive'}
-                            className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
-                          >
-                            {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {shouldShowAsPrimary && (
+                            <Badge variant="default">Primary</Badge>
+                          )}
+                          {shouldShowAsDefaultPrimary && (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              Primary - Needs Configuration
+                            </Badge>
+                          )}
+                          {provider?.status && isEnabled && (
+                            <Badge 
+                              variant={provider.status === 'connected' ? 'default' : 'destructive'}
+                              className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                            >
+                              {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Switch
@@ -1306,19 +1307,20 @@ export default function NotificationSettings() {
                       <Mail className="h-5 w-5 text-primary" />
                       <div>
                         <CardTitle>{provider.name}</CardTitle>
-                        <CardDescription>{provider.type.toUpperCase()}</CardDescription>
                       </div>
-                      {provider.is_primary && (
-                        <Badge variant="default">Primary</Badge>
-                      )}
-                      {provider.status && (
-                        <Badge 
-                          variant={provider.status === 'connected' ? 'default' : 'destructive'}
-                          className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
-                        >
-                          {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {provider.is_primary && (
+                          <Badge variant="default">Primary</Badge>
+                        )}
+                        {provider.status && (
+                          <Badge 
+                            variant={provider.status === 'connected' ? 'default' : 'destructive'}
+                            className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                          >
+                            {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Switch
@@ -1429,16 +1431,17 @@ export default function NotificationSettings() {
                         <ProviderIcon className="h-5 w-5 text-primary" />
                         <div>
                           <CardTitle>{providerLabels[providerType]}</CardTitle>
-                          <CardDescription>{providerType.toUpperCase()}</CardDescription>
                         </div>
-                        {provider?.status && isEnabled && (
-                          <Badge 
-                            variant={provider.status === 'connected' ? 'default' : 'destructive'}
-                            className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
-                          >
-                            {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {provider?.status && isEnabled && (
+                            <Badge 
+                              variant={provider.status === 'connected' ? 'default' : 'destructive'}
+                              className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                            >
+                              {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Switch
@@ -1493,16 +1496,17 @@ export default function NotificationSettings() {
                       <MessageCircle className="h-5 w-5 text-primary" />
                       <div>
                         <CardTitle>{provider.name}</CardTitle>
-                        <CardDescription>{provider.type.toUpperCase()}</CardDescription>
                       </div>
-                      {provider.status && (
-                        <Badge 
-                          variant={provider.status === 'connected' ? 'default' : 'destructive'}
-                          className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
-                        >
-                          {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {provider.status && (
+                          <Badge 
+                            variant={provider.status === 'connected' ? 'default' : 'destructive'}
+                            className={provider.status === 'connected' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+                          >
+                            {provider.status.charAt(0).toUpperCase() + provider.status.slice(1)}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <Switch
                       checked={provider.enabled}
