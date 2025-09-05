@@ -24,7 +24,7 @@ import {
   Plus,
   X
 } from 'lucide-react';
-import { EmailTemplate } from '@/types/eventTypes';
+import { EmailTemplate, TEMPLATE_VARIABLES } from '@/types/eventTypes';
 import { useEventTemplates } from '@/hooks/useEventTemplates';
 import { useToast } from '@/hooks/use-toast';
 
@@ -428,22 +428,62 @@ export default function EventTemplateEdit() {
             </TabsContent>
 
             <TabsContent value="variables" className="space-y-6">
+              {/* Available Variables */}
               <Card>
                 <CardHeader>
                   <CardTitle>Available Template Variables</CardTitle>
-                  <CardDescription>Variables detected in your template content</CardDescription>
+                  <CardDescription>Click any variable to insert it into your template</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {Object.entries(TEMPLATE_VARIABLES).map(([key, description]) => (
+                      <div 
+                        key={key} 
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => {
+                          const variable = `{{${key}}}`;
+                          const textarea = document.querySelector('textarea[name="html"]') as HTMLTextAreaElement;
+                          if (textarea && editedTemplate.html !== undefined) {
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const currentContent = editedTemplate.html || '';
+                            const newContent = currentContent.substring(0, start) + variable + currentContent.substring(end);
+                            setEditedTemplate(prev => ({ ...prev, html: newContent }));
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge variant="secondary" className="font-mono text-xs">
+                            {`{{${key}}}`}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {description}
+                          </span>
+                        </div>
+                        <Plus className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Variables Used in Template */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Variables Used in Template</CardTitle>
+                  <CardDescription>Variables detected in your current template content</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {extractedVariables.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {extractedVariables.map(variable => (
-                        <div key={variable} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div key={variable} className="flex items-center justify-between p-3 border rounded-lg bg-green-50 border-green-200">
                           <div className="flex items-center gap-3">
-                            <Badge variant="secondary" className="font-mono">
+                            <Badge variant="secondary" className="font-mono bg-green-100 text-green-800">
                               {`{{${variable}}}`}
                             </Badge>
-                            <span className="text-sm text-muted-foreground">
-                              {variable.charAt(0).toUpperCase() + variable.slice(1).replace(/[_-]/g, ' ')}
+                            <span className="text-sm text-green-700">
+                              {TEMPLATE_VARIABLES[variable] || variable.charAt(0).toUpperCase() + variable.slice(1).replace(/[_.-]/g, ' ')}
                             </span>
                           </div>
                         </div>
@@ -453,7 +493,7 @@ export default function EventTemplateEdit() {
                     <div className="text-center py-8 text-muted-foreground">
                       <Variable className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p>No variables detected in your template content</p>
-                      <p className="text-sm">Add variables using the format: <code className="bg-muted px-1 rounded">{'{{variable_name}}'}</code></p>
+                      <p className="text-sm">Click any variable above to insert it into your template</p>
                     </div>
                   )}
                 </CardContent>
