@@ -258,14 +258,14 @@ export default function NotificationSettings() {
 
         if (error) throw error;
 
-        if (data?.data) {
+        if (data) {
           setSettings(prev => ({
             ...prev,
             emailProviders: [...prev.emailProviders, {
-              ...data.data,
-              config: data.data.config as EmailProvider['config'],
-              type: data.data.type as EmailProvider['type'],
-              status: data.data.status as EmailProvider['status']
+              ...data,
+              config: data.config as EmailProvider['config'],
+              type: data.type as EmailProvider['type'],
+              status: data.status as EmailProvider['status']
             }]
           }));
         }
@@ -314,14 +314,14 @@ export default function NotificationSettings() {
 
         if (error) throw error;
 
-        if (data?.data) {
+        if (data) {
           setSettings(prev => ({
             ...prev,
             channelProviders: [...prev.channelProviders, {
-              ...data.data,
-              config: data.data.config as ChannelProvider['config'],
-              type: data.data.type as ChannelProvider['type'],
-              status: data.data.status as ChannelProvider['status']
+              ...data,
+              config: data.config as ChannelProvider['config'],
+              type: data.type as ChannelProvider['type'],
+              status: data.status as ChannelProvider['status']
             }]
           }));
         }
