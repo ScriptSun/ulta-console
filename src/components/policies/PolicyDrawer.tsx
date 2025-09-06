@@ -63,10 +63,120 @@ const defaultFormData: PolicyFormData = {
   match_value: '',
   risk: 'medium',
   timeout_sec: 300,
-  param_schema: '{\n  "type": "object",\n  "properties": {}\n}',
+  param_schema: '{\n  "type": "object",\n  "properties": {\n    "path": {\n      "type": "string",\n      "description": "File or directory path",\n      "pattern": "^(/[^/\\\\0]+)*/?$"\n    },\n    "force": {\n      "type": "boolean",\n      "description": "Force operation without confirmation",\n      "default": false\n    },\n    "timeout": {\n      "type": "integer",\n      "description": "Timeout in seconds",\n      "minimum": 1,\n      "maximum": 3600,\n      "default": 30\n    }\n  },\n  "required": ["path"],\n  "additionalProperties": false\n}',
   confirm_message: '',
   active: true,
 };
+
+const schemaPresets = [
+  {
+    name: 'File Operations',
+    schema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'File or directory path',
+          pattern: '^(/[^/\\\\0]+)*/?$'
+        },
+        force: {
+          type: 'boolean',
+          description: 'Force operation without confirmation',
+          default: false
+        },
+        recursive: {
+          type: 'boolean',
+          description: 'Apply recursively',
+          default: false
+        }
+      },
+      required: ['path'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'System Commands',
+    schema: {
+      type: 'object',
+      properties: {
+        command: {
+          type: 'string',
+          description: 'Command to execute',
+          minLength: 1
+        },
+        args: {
+          type: 'array',
+          description: 'Command arguments',
+          items: { type: 'string' },
+          maxItems: 20
+        },
+        timeout: {
+          type: 'integer',
+          description: 'Timeout in seconds',
+          minimum: 1,
+          maximum: 3600,
+          default: 30
+        }
+      },
+      required: ['command'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'Network Operations',
+    schema: {
+      type: 'object',
+      properties: {
+        host: {
+          type: 'string',
+          description: 'Target hostname or IP',
+          pattern: '^[a-zA-Z0-9.-]+$'
+        },
+        port: {
+          type: 'integer',
+          description: 'Port number',
+          minimum: 1,
+          maximum: 65535
+        },
+        protocol: {
+          type: 'string',
+          description: 'Protocol to use',
+          enum: ['tcp', 'udp', 'http', 'https']
+        }
+      },
+      required: ['host'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'User Management',
+    schema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'Username',
+          pattern: '^[a-zA-Z0-9_-]+$',
+          minLength: 3,
+          maxLength: 32
+        },
+        groups: {
+          type: 'array',
+          description: 'User groups',
+          items: { type: 'string' },
+          uniqueItems: true
+        },
+        shell: {
+          type: 'string',
+          description: 'Default shell',
+          default: '/bin/bash'
+        }
+      },
+      required: ['username'],
+      additionalProperties: false
+    }
+  }
+];
 
 export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawerProps) {
   const [formData, setFormData] = useState<PolicyFormData>(defaultFormData);
@@ -107,6 +217,11 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
 
   const handleInputChange = (field: keyof PolicyFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const applySchemaPreset = (preset: any) => {
+    const schemaString = JSON.stringify(preset.schema, null, 2);
+    handleInputChange('param_schema', schemaString);
   };
 
   const handleSave = async () => {
@@ -355,10 +470,22 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Parameter Schema</h3>
-              <Button variant="outline" size="sm">
-                <Eye className="mr-2 h-4 w-4" />
-                Preview
-              </Button>
+              <div className="flex gap-2">
+                {schemaPresets.map((preset, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => applySchemaPreset(preset)}
+                  >
+                    {preset.name}
+                  </Button>
+                ))}
+                <Button variant="outline" size="sm">
+                  <Eye className="mr-2 h-4 w-4" />
+                  Preview
+                </Button>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
