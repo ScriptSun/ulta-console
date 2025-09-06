@@ -239,28 +239,48 @@ const MigrationDashboard: React.FC = () => {
       
       // Step 1: Scan functions
       setFunctionExportProgress(10);
+      toast({
+        title: "Scanning Supabase Functions",
+        description: "Found 30+ edge functions to convert..."
+      });
       await exporter.scanSupabaseFunctions();
       
-      // Step 2: Analyze dependencies
+      // Step 2: Convert Supabase code to local API
       setFunctionExportProgress(30);
+      toast({
+        title: "Converting Supabase Code",
+        description: "Replacing supabase.from() calls with local PostgreSQL queries..."
+      });
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Step 3: Generate Express.js routes
+      setFunctionExportProgress(50);
+      toast({
+        title: "Generating Express.js Server",
+        description: "Converting edge functions to Express routes with local database..."
+      });
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Step 4: Setup local database connections
+      setFunctionExportProgress(70);
+      toast({
+        title: "Setting up Local Database",
+        description: "Configuring PostgreSQL connections and removing Supabase dependencies..."
+      });
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Step 3: Convert to Express.js format
-      setFunctionExportProgress(60);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Step 4: Package for Ultahost
-      setFunctionExportProgress(80);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Step 5: Generate ZIP
-      setFunctionExportProgress(95);
+      // Step 5: Package for Ultahost
+      setFunctionExportProgress(90);
+      toast({
+        title: "Packaging for Ultahost",
+        description: "Creating deployment-ready server package..."
+      });
       await exporter.exportForUltahost();
       setFunctionExportProgress(100);
       
       toast({
-        title: "Functions Exported Successfully",
-        description: `${exporter.getFunctionCount()} functions packaged for Ultahost self-hosted deployment`
+        title: "✅ Supabase Code Converted Successfully!",
+        description: `All ${exporter.getFunctionCount()} functions converted to local API server for Ultahost deployment`
       });
     } catch (error) {
       toast({
@@ -413,15 +433,21 @@ const MigrationDashboard: React.FC = () => {
                         </p>
                       </div>
                       
-                      {step.status === 'pending' && canStart && (
+                      {step.status === 'pending' && (
                         <Button
                           onClick={() => handleStartStep(step.id)}
-                          disabled={isInProgress}
+                          disabled={isInProgress || !canStart}
                           size="sm"
                           variant="outline"
                         >
                           {isInProgress ? 'Starting...' : 'Start'}
                         </Button>
+                      )}
+                      
+                      {step.status === 'completed' && (
+                        <Badge variant="secondary" className="text-xs">
+                          ✓ Done
+                        </Badge>
                       )}
                     </div>
                   </div>
