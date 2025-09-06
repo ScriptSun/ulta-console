@@ -235,22 +235,20 @@ export default function NotificationSettings() {
       
       if (!existingProvider && enabled) {
         // Create new provider
-        const { data, error } = await api
-          .from('email_providers')
-          .insert({
-            customer_id: SYSTEM_CUSTOMER_ID,
-            name: type.toUpperCase(),
-            type,
-            enabled: true,
-            is_primary: settings.emailProviders.length === 0, // First provider is primary
-            config: getDefaultConfig(type),
-            created_by: user.id,
-            updated_by: user.id
-          })
-          .select()
-          .single();
+        const result = await api.insert('email_providers', {
+          customer_id: SYSTEM_CUSTOMER_ID,
+          name: type.toUpperCase(),
+          type,
+          enabled: true,
+          is_primary: settings.emailProviders.length === 0, // First provider is primary
+          config: getDefaultConfig(type),
+          created_by: user.id,
+          updated_by: user.id
+        });
 
-        if (error) throw error;
+        if (!result.success) throw new Error(result.error);
+        const data = result.data;
+
 
         if (data) {
           setSettings(prev => ({
@@ -292,21 +290,19 @@ export default function NotificationSettings() {
       
       if (!existingProvider && enabled) {
         // Create new provider
-        const { data, error } = await api
-          .from('channel_providers')
-          .insert({
-            customer_id: SYSTEM_CUSTOMER_ID,
-            name: type.charAt(0).toUpperCase() + type.slice(1),
-            type,
-            enabled: true,
-            config: getDefaultChannelConfig(type),
-            created_by: user.id,
-            updated_by: user.id
-          })
-          .select()
-          .single();
+        const result = await api.insert('channel_providers', {
+          customer_id: SYSTEM_CUSTOMER_ID,
+          name: type.charAt(0).toUpperCase() + type.slice(1),
+          type,
+          enabled: true,
+          config: getDefaultChannelConfig(type),
+          created_by: user.id,
+          updated_by: user.id
+        });
 
-        if (error) throw error;
+        if (!result.success) throw new Error(result.error);
+        const data = result.data;
+
 
         if (data) {
           setSettings(prev => ({
@@ -370,12 +366,8 @@ export default function NotificationSettings() {
   const updateEmailProvider = async (providerId: string, updates: Partial<EmailProvider>) => {
     setSavingProvider(providerId);
     try {
-      const { error } = await api
-        .from('email_providers')
-        .update(updates)
-        .eq('id', providerId);
-
-      if (error) throw error;
+      const result = await api.update('email_providers', { id: providerId }, updates);
+      if (!result.success) throw new Error(result.error);
 
       setSettings(prev => ({
         ...prev,
@@ -397,12 +389,8 @@ export default function NotificationSettings() {
 
   const updateChannelProvider = async (providerId: string, updates: Partial<ChannelProvider>) => {
     try {
-      const { error } = await api
-        .from('channel_providers')
-        .update(updates)
-        .eq('id', providerId);
-
-      if (error) throw error;
+      const result = await api.update('channel_providers', { id: providerId }, updates);
+      if (!result.success) throw new Error(result.error);
 
       setSettings(prev => ({
         ...prev,
