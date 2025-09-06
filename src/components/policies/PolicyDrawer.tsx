@@ -495,7 +495,7 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
                   id="param_schema"
                   value={formData.param_schema}
                   onChange={(e) => handleInputChange('param_schema', e.target.value)}
-                  className="font-mono text-sm"
+                  className="font-mono text-sm h-[300px] resize-none"
                   rows={8}
                 />
                 {schemaError && (
@@ -505,13 +505,13 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
 
               <div className="space-y-2">
                 <Label>Preview</Label>
-                <Card>
+                <Card className="h-[300px]">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm">Schema Preview</CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 h-[calc(100%-60px)] overflow-auto">
                     {schemaPreview ? (
-                      <pre className="text-xs bg-muted p-3 rounded overflow-auto">
+                      <pre className="text-xs bg-muted p-3 rounded overflow-auto h-full">
                         {JSON.stringify(schemaPreview, null, 2)}
                       </pre>
                     ) : (
