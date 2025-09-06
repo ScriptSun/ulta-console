@@ -24,7 +24,6 @@ interface PolicyFormData {
   mode: 'auto' | 'confirm' | 'forbid';
   match_type: 'exact' | 'regex' | 'wildcard';
   match_value: string;
-  os_whitelist: string[];
   risk: 'low' | 'medium' | 'high' | 'critical';
   timeout_sec: number | null;
   param_schema: string;
@@ -59,22 +58,12 @@ const defaultFormData: PolicyFormData = {
   mode: 'confirm',
   match_type: 'exact',
   match_value: '',
-  os_whitelist: [],
   risk: 'medium',
   timeout_sec: 300,
   param_schema: '{\n  "type": "object",\n  "properties": {}\n}',
   confirm_message: '',
   active: true,
 };
-
-const osOptions = [
-  { value: 'ubuntu', label: 'Ubuntu' },
-  { value: 'debian', label: 'Debian' },
-  { value: 'centos', label: 'CentOS' },
-  { value: 'rhel', label: 'RHEL' },
-  { value: 'windows', label: 'Windows' },
-  { value: 'macos', label: 'macOS' },
-];
 
 export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawerProps) {
   const [formData, setFormData] = useState<PolicyFormData>(defaultFormData);
@@ -90,7 +79,6 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
         mode: policy.mode,
         match_type: policy.match_type,
         match_value: policy.match_value,
-        os_whitelist: policy.os_whitelist || [],
         risk: policy.risk,
         timeout_sec: policy.timeout_sec,
         param_schema: policy.param_schema ? JSON.stringify(policy.param_schema, null, 2) : defaultFormData.param_schema,
@@ -115,14 +103,6 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
 
   const handleInputChange = (field: keyof PolicyFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleOSToggle = (os: string) => {
-    const newOsList = formData.os_whitelist.includes(os)
-      ? formData.os_whitelist.filter(item => item !== os)
-      : [...formData.os_whitelist, os];
-    
-    handleInputChange('os_whitelist', newOsList);
   };
 
   const handleSave = () => {
@@ -259,31 +239,6 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
                 rows={3}
               />
             </div>
-          </div>
-
-          <Separator />
-
-          {/* OS Whitelist */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">OS Whitelist</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {osOptions.map((os) => (
-                <div
-                  key={os.value}
-                  onClick={() => handleOSToggle(os.value)}
-                  className={`cursor-pointer p-3 rounded-lg border transition-colors ${
-                    formData.os_whitelist.includes(os.value)
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:bg-muted'
-                  }`}
-                >
-                  <div className="text-sm font-medium">{os.label}</div>
-                </div>
-              ))}
-            </div>
-            {formData.os_whitelist.length === 0 && (
-              <p className="text-sm text-muted-foreground">No OS restrictions (applies to all)</p>
-            )}
           </div>
 
           <Separator />
