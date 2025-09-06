@@ -41,12 +41,17 @@ export default function UserEdit() {
     queryFn: async () => {
       if (!userId) throw new Error('User ID is required');
       
+      console.log('Fetching user with ID:', userId);
+      
       const response = await api.selectSingle('admin_profiles', '*', { id: userId });
+      
+      console.log('User fetch response:', response);
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to fetch user');
       }
       
+      console.log('User data fetched:', response.data);
       return response.data;
     },
     enabled: !!userId,
@@ -117,17 +122,24 @@ export default function UserEdit() {
 
   // Initialize form data when user changes
   useEffect(() => {
+    console.log('User data changed:', user);
+    console.log('Security status changed:', userSecurityStatus);
+    
     if (user) {
-      setFormData({
+      const newFormData = {
         email: user.email || '',
         full_name: user.full_name || '',
         is_active: !userSecurityStatus?.is_banned,
-      });
+      };
+      
+      console.log('Setting form data:', newFormData);
+      setFormData(newFormData);
       setValidationErrors({});
     }
   }, [user, userSecurityStatus]);
 
   const validateForm = () => {
+    console.log('Validating form with data:', formData);
     const errors: Record<string, string> = {};
     
     if (!formData.email.trim()) {
@@ -140,17 +152,41 @@ export default function UserEdit() {
       errors.full_name = 'Full name is required';
     }
     
+    console.log('Validation errors:', errors);
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSave = async () => {
-    if (!user || !validateForm()) return;
+    console.log('Save button clicked!');
+    console.log('Current form data:', formData);
+    console.log('User data:', user);
     
+    if (!user) {
+      console.log('No user data available');
+      toast({
+        title: 'Error',
+        description: 'No user data available',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!validateForm()) {
+      console.log('Form validation failed');
+      return;
+    }
+    
+    console.log('Starting save process...');
     setIsLoading(true);
     
     try {
       // Update user profile in admin_profiles table
+      console.log('Updating profile with data:', {
+        full_name: formData.full_name,
+        email: formData.email,
+      });
+      
       const profileResponse = await api.update('admin_profiles', 
         { id: user.id }, 
         {
@@ -159,14 +195,18 @@ export default function UserEdit() {
         }
       );
 
+      console.log('Profile update response:', profileResponse);
+
       if (!profileResponse.success) {
         throw new Error(profileResponse.error || 'Failed to update profile');
       }
 
       // Update user security status if needed
       const shouldUpdateSecurityStatus = userSecurityStatus?.is_banned !== !formData.is_active;
+      console.log('Should update security status:', shouldUpdateSecurityStatus);
       
       if (shouldUpdateSecurityStatus) {
+        console.log('Updating security status...');
         const securityResponse = await api.upsert('user_security_status', {
           user_id: user.id,
           email: formData.email,
@@ -176,11 +216,15 @@ export default function UserEdit() {
           updated_at: new Date().toISOString(),
         });
 
+        console.log('Security update response:', securityResponse);
+
         if (!securityResponse.success) {
           console.warn('Security status update failed:', securityResponse.error);
         }
       }
 
+      console.log('Save successful!');
+      
       // Show success message
       toast({
         title: 'Success',
