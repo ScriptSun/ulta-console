@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Brain, Settings, MessageSquare, Zap, Bot } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { AvailableModelsTab } from '@/components/ai/AvailableModelsTab';
 import { ModelConfigurationTab } from '@/components/ai/ModelConfigurationTab';
 import { SystemPromptTab } from '@/components/ai/SystemPromptTab';
@@ -34,7 +34,7 @@ export default function AiSettings() {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from('console_team_members')
         .select('role')
         .eq('admin_id', user.id)
@@ -57,7 +57,7 @@ export default function AiSettings() {
   const migrateOldSettings = async () => {
     try {
       // Check if migration has already been completed
-      const { data: migrationCheck } = await supabase
+      const { data: migrationCheck } = await api
         .from('system_settings')
         .select('*')
         .eq('setting_key', 'ai_migration_complete')
@@ -69,7 +69,7 @@ export default function AiSettings() {
       }
 
       // Check if old ai_models setting exists
-      const { data: oldSettings, error } = await supabase
+      const { data: oldSettings, error } = await api
         .from('system_settings')
         .select('*')
         .eq('setting_key', 'ai_models')
@@ -101,7 +101,7 @@ export default function AiSettings() {
         ];
 
         for (const newSetting of newKeys) {
-          await supabase
+          await api
             .from('system_settings')
             .upsert({
               setting_key: newSetting.key,
@@ -112,7 +112,7 @@ export default function AiSettings() {
         }
 
         // Mark migration complete
-        await supabase
+        await api
           .from('system_settings')
           .upsert({
             setting_key: 'ai_migration_complete',

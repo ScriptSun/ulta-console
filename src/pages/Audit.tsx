@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import {
   Popover,
   PopoverContent,
@@ -74,7 +74,7 @@ export default function Audit() {
   const fetchAuditLogs = async () => {
     setLoading(true);
     try {
-      let query = supabase
+      let query = api
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })

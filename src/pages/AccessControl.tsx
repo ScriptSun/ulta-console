@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -61,7 +61,7 @@ export default function AccessControl() {
   const { data: teamMembers, isLoading: membersLoading } = useQuery({
     queryKey: ['console-team-members'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from('console_team_members')
         .select(`
           *,
@@ -92,7 +92,7 @@ export default function AccessControl() {
   const { data: pages } = useQuery({
     queryKey: ['console-pages'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from('console_pages')
         .select('*')
         .order('category', { ascending: true })
@@ -107,7 +107,7 @@ export default function AccessControl() {
   const { data: roleTemplates } = useQuery({
     queryKey: ['console-role-templates'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from('console_role_templates')
         .select('*')
         .order('role', { ascending: false });
@@ -121,7 +121,7 @@ export default function AccessControl() {
   const { data: reportRoleTemplates } = useQuery({
     queryKey: ['console-role-report-templates'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from('console_role_report_templates')
         .select('*')
         .order('role', { ascending: false });
@@ -135,7 +135,7 @@ export default function AccessControl() {
   const { data: reports } = useQuery({
     queryKey: ['console-reports'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from('console_reports')
         .select('*')
         .order('category', { ascending: true });
@@ -395,7 +395,7 @@ export default function AccessControl() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {reports && (
+               {reports && Array.isArray(reports) && (
                 <div className="space-y-6">
                   {Object.entries(
                     reports.reduce((acc, report) => {
@@ -410,7 +410,7 @@ export default function AccessControl() {
                         {category.charAt(0).toUpperCase() + category.slice(1)} Reports
                       </h3>
                       <div className="grid gap-3">
-                        {categoryReports.map((report) => (
+                        {(categoryReports as any[]).map((report) => (
                           <div key={report.id} className="flex items-center justify-between p-3 border rounded-lg bg-card/20">
                             <div>
                               <h4 className="font-medium">{report.label}</h4>

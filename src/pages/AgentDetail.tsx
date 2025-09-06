@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +43,7 @@ export default function AgentDetail() {
   const { data: agent, isLoading: agentLoading } = useQuery({
     queryKey: ['agent', agentId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from('agents')
         .select(`
           *,
@@ -68,7 +68,7 @@ export default function AgentDetail() {
       if (!agentId) return null;
       
       // Get current usage for today
-      const { data: usage } = await supabase
+      const { data: usage } = await api
         .from('agent_usage')
         .select('usage_type, count')
         .eq('agent_id', agentId)
