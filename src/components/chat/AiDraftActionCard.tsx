@@ -105,11 +105,29 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
   };
 
   const handleParamChange = (key: string, value: string) => {
-    setParamValues(prev => ({ ...prev, [key]: value }));
-    // Clear error for this field when user starts typing
-    if (paramErrors[key]) {
-      setParamErrors(prev => ({ ...prev, [key]: '' }));
-    }
+    const newValues = { ...paramValues, [key]: value };
+    setParamValues(newValues);
+    
+    // Validate in real-time
+    const errors: Record<string, string> = {};
+    const missingParams = (decision as any).missing_params || [];
+    
+    missingParams.forEach((param: any) => {
+      const fieldValue = newValues[param.key] || '';
+      
+      if (param.required && !fieldValue.trim()) {
+        errors[param.key] = `${param.label} is required`;
+      } else if (fieldValue) {
+        if (param.minLength && fieldValue.length < param.minLength) {
+          errors[param.key] = `${param.label} must be at least ${param.minLength} characters`;
+        }
+        if (param.maxLength && fieldValue.length > param.maxLength) {
+          errors[param.key] = `${param.label} must not exceed ${param.maxLength} characters`;
+        }
+      }
+    });
+    
+    setParamErrors(errors);
   };
 
   const handleConfirm = () => {
@@ -445,7 +463,7 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
             <Button
               size="sm"
               onClick={handleConfirm}
-              disabled={disabled || ((decision as any).missing_params && (decision as any).missing_params.length > 0 && Object.keys(paramErrors).length > 0)}
+              disabled={disabled || Object.keys(paramErrors).length > 0}
               aria-label="Confirm and execute action"  
             >
               <CheckCircle className="h-4 w-4 mr-1" />
