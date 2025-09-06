@@ -396,9 +396,6 @@ const MigrationDashboard: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {migrationSteps.map((step, index) => {
-                const canStart = !step.dependencies || step.dependencies.every(dep => 
-                  stepStatuses[dep] === 'completed'
-                );
                 const isInProgress = stepStatuses[step.id] === 'in-progress';
                 
                 return (
@@ -434,7 +431,7 @@ const MigrationDashboard: React.FC = () => {
                       {step.status === 'pending' && (
                         <Button
                           onClick={() => handleStartStep(step.id)}
-                          disabled={isInProgress || !canStart}
+                          disabled={isInProgress}
                           size="sm"
                           variant="outline"
                         >
