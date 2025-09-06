@@ -26,6 +26,7 @@ import ScriptsTemplates from "./pages/ScriptsTemplates";
 import ScriptDetail from "./pages/ScriptDetail";
 import ScriptsBatches from "./pages/ScriptsBatches";
 import ScriptsSettings from "./pages/ScriptsSettings";
+import Batches from "./pages/Batches";
 import CommandPolicies from "./pages/CommandPolicies";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -49,6 +50,7 @@ import EmailTemplateEdit from "./pages/EmailTemplateEdit";
 import EventTemplateEdit from "./pages/EventTemplateEdit";
 import NotificationSettings from "./pages/NotificationSettings";
 import AiSettings from "./pages/AiSettings";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
 import RouterLogs from "./pages/RouterLogs";
@@ -210,6 +212,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <ScriptsBatches />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/batches" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Batches />
                 </RootLayout>
               </ProtectedRoute>
             } />
@@ -387,6 +396,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <MigrationDashboard />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <Settings />
                 </RootLayout>
               </ProtectedRoute>
             } />

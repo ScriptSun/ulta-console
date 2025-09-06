@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/layouts/PageHeader';
 import { Loader2, Plus, Filter, Search, AlertTriangle, RefreshCw, Server, Activity, Zap, Cpu } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -323,21 +324,30 @@ export default function Agents() {
     );
   }
 
+  const pageActions = (
+    <>
+      <Button variant="outline" onClick={fetchAgents} disabled={loading}>
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+        ) : (
+          <RefreshCw className="h-4 w-4 mr-2" />
+        )}
+        Refresh
+      </Button>
+      <Button onClick={() => setDeployModalOpen(true)}>
+        <Plus className="h-4 w-4 mr-2" />
+        Deploy New Agent
+      </Button>
+    </>
+  );
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Agents</h1>
-          <p className="text-muted-foreground mt-1">
-            Monitor and manage your AI agents
-          </p>
-        </div>
-        <Button onClick={() => setDeployModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Deploy New Agent
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Agents"
+        description="Monitor and manage your AI agents across your infrastructure"
+        actions={pageActions}
+      />
 
       {/* Connection Error Alert */}
       {connectionError && (
