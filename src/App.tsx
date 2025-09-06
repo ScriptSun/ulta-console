@@ -10,6 +10,7 @@ import RootLayout from "./components/layouts/RootLayout";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import UserDetail from "./pages/UserDetail";
+import UserEdit from "./pages/UserEdit";
 import AgentDetail from "./pages/AgentDetail";
 import Agents from "./pages/Agents";
 import Tasks from "./pages/Tasks";
@@ -103,6 +104,13 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <UserDetail />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/users/:userId/edit" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <UserEdit />
                 </RootLayout>
               </ProtectedRoute>
             } />
