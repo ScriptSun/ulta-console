@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,20 +156,20 @@ export default function ProfileSettings() {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      const response = await api
         .from('console_team_members')
         .select('role')
         .eq('admin_id', user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error checking user role:', error);
+      if (!response.success) {
+        console.error('Error checking user role:', response.error);
         return;
       }
 
-      if (data) {
-        setUserRole(data.role);
-        setIsOwnerOrAdmin(['Owner', 'Admin'].includes(data.role));
+      if (response.data) {
+        setUserRole(response.data.role);
+        setIsOwnerOrAdmin(['Owner', 'Admin'].includes(response.data.role));
       }
     } catch (error) {
       console.error('Error checking user role:', error);
@@ -177,21 +178,17 @@ export default function ProfileSettings() {
 
   const loadProfile = async () => {
     try {
-      const { data, error } = await supabase
+      const response = await api
         .from('admin_profiles')
         .select('*')
         .eq('id', user?.id)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (data) {
+      if (response.success && response.data) {
         setProfile({
-          full_name: data.full_name || '',
-          email: data.email || user?.email || '',
-          avatar_url: data.avatar_url || '',
+          full_name: response.data.full_name || '',
+          email: response.data.email || user?.email || '',
+          avatar_url: response.data.avatar_url || '',
         });
       }
     } catch (error) {
@@ -201,23 +198,19 @@ export default function ProfileSettings() {
 
   const loadPreferences = async () => {
     try {
-      const { data, error } = await supabase
+      const response = await api
         .from('user_preferences')
         .select('*')
         .eq('user_id', user?.id)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (data) {
+      if (response.success && response.data) {
         setPreferences({
-          email_alerts: data.email_alerts,
-          system_updates: data.system_updates,
-          security_alerts: data.security_alerts,
-          agent_notifications: data.agent_notifications,
-          theme_preference: data.theme_preference,
+          email_alerts: response.data.email_alerts,
+          system_updates: response.data.system_updates,
+          security_alerts: response.data.security_alerts,
+          agent_notifications: response.data.agent_notifications,
+          theme_preference: response.data.theme_preference,
         });
         
         // Sync theme with user preference (removed - handled by ThemeContext)
@@ -279,7 +272,7 @@ export default function ProfileSettings() {
       }
 
       // Update profile in admin_profiles table
-      const { error } = await supabase
+      const response = await api
         .from('admin_profiles')
         .upsert({
           id: user.id,
@@ -288,7 +281,7 @@ export default function ProfileSettings() {
           avatar_url: profile.avatar_url,
         });
 
-      if (error) throw error;
+      if (!response.success) throw new Error(response.error || 'Failed to update profile');
 
       toast({
         title: 'Profile Updated',
@@ -366,7 +359,7 @@ export default function ProfileSettings() {
       const timestampedUrl = `${publicUrl}?t=${Date.now()}`;
 
       // Update profile in database immediately
-      const { error: updateError } = await supabase
+      const updateResponse = await api
         .from('admin_profiles')
         .upsert({
           id: user.id,
@@ -375,7 +368,7 @@ export default function ProfileSettings() {
           avatar_url: timestampedUrl,
         });
 
-      if (updateError) throw updateError;
+      if (!updateResponse.success) throw new Error(updateResponse.error || 'Failed to update avatar');
 
       // Update local state
       setProfile(prev => ({ ...prev, avatar_url: timestampedUrl }));
@@ -415,7 +408,7 @@ export default function ProfileSettings() {
       }
 
       // Update database immediately
-      const { error } = await supabase
+      const response = await api
         .from('admin_profiles')
         .upsert({
           id: user.id,
@@ -424,7 +417,7 @@ export default function ProfileSettings() {
           avatar_url: '',
         });
 
-      if (error) throw error;
+      if (!response.success) throw new Error(response.error || 'Failed to remove avatar');
 
       // Update local state
       setProfile(prev => ({ ...prev, avatar_url: '' }));
@@ -453,14 +446,14 @@ export default function ProfileSettings() {
     
     setLoading(true);
     try {
-      const { error } = await supabase
+      const response = await api
         .from('user_preferences')
         .upsert({
           user_id: user.id,
           ...preferences,
         });
 
-      if (error) throw error;
+      if (!response.success) throw new Error(response.error || 'Failed to update preferences');
 
       toast({
         title: 'Preferences Updated',

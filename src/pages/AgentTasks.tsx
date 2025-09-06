@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import * as XLSX from 'xlsx';
@@ -84,14 +84,14 @@ export default function AgentTasks() {
     const fetchData = async () => {
       try {
         // Fetch agent details
-        const { data: agentData, error: agentError } = await supabase
+        const agentResponse = await api
           .from('agents')
           .select('*')
           .eq('id', agentId)
-          .single();
+          .maybeSingle();
 
-        if (agentError) {
-          console.error('Error fetching agent:', agentError);
+        if (!agentResponse.success) {
+          console.error('Error fetching agent:', agentResponse.error);
           toast({
             title: 'Error',
             description: 'Failed to fetch agent details',
@@ -100,17 +100,27 @@ export default function AgentTasks() {
           return;
         }
 
-        setAgent(agentData);
+        if (!agentResponse.data) {
+          console.error('Agent not found');
+          toast({
+            title: 'Error',
+            description: 'Agent not found',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        setAgent(agentResponse.data);
 
         // Fetch agent tasks
-        const { data: tasksData, error: tasksError } = await supabase
+        const tasksResponse = await api
           .from('agent_tasks')
           .select('*')
           .eq('agent_id', agentId)
           .order('created_at', { ascending: false });
 
-        if (tasksError) {
-          console.error('Error fetching tasks:', tasksError);
+        if (!tasksResponse.success) {
+          console.error('Error fetching tasks:', tasksResponse.error);
           toast({
             title: 'Error',
             description: 'Failed to fetch agent tasks',
@@ -119,7 +129,7 @@ export default function AgentTasks() {
           return;
         }
 
-        setTasks(tasksData || []);
+        setTasks(tasksResponse.data || []);
       } catch (error) {
         console.error('Unexpected error:', error);
         toast({
