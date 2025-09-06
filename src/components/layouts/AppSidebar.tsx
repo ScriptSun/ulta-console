@@ -42,7 +42,6 @@ const mainItems = [
   { title: 'Users', url: '/users', icon: Users, pageKey: 'users' },
   { title: 'Agents', url: '/agents', icon: Bot, pageKey: 'agents' },
   { title: 'Templates & Scripts', url: '/scripts/batches', icon: Package, pageKey: 'scripts' },
-  { title: 'Tasks', url: '/tasks', icon: CheckSquare, pageKey: 'tasks' },
 ]
 
 const reportsItems = [
