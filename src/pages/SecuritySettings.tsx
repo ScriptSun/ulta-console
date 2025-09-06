@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,7 +41,7 @@ export default function SecuritySettings() {
   const loadSecuritySettings = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from('system_settings')
         .select('setting_value')
         .eq('setting_key', 'security')
@@ -78,7 +78,7 @@ export default function SecuritySettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase.rpc('update_security_settings', {
+      const { error } = await api.rpc('update_security_settings', {
         _settings: {
           twoFactorRequired: settings.twoFactorRequired,
           sessionTimeout: settings.sessionTimeout,

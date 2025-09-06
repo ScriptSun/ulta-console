@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { useTheme } from 'next-themes';
 import { Loader2, Eye, EyeOff, CheckCircle, ArrowLeft } from 'lucide-react';
+import { api } from '@/lib/api-wrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 

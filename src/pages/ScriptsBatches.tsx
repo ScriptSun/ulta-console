@@ -30,6 +30,7 @@ import {
 import { BatchDrawer } from '@/components/scripts/BatchDrawer';
 import { BatchDetailDrawer } from '@/components/scripts/BatchDetailDrawer';
 import { BatchQuickRunModal } from '@/components/scripts/BatchQuickRunModal';
+import { api } from '@/lib/api-wrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -134,7 +135,7 @@ export default function ScriptsBatches() {
       setLoading(true);
       
       // First, fetch batches without requiring versions
-      let { data: batchData, error: batchError } = await supabase
+      let { data: batchData, error: batchError } = await api
         .from('script_batches')
         .select('*')
         .order('updated_at', { ascending: false });
@@ -150,14 +151,14 @@ export default function ScriptsBatches() {
       const processedBatches: ScriptBatch[] = [];
       
       for (const batch of batchData || []) {
-        const { data: versions } = await supabase
+        const { data: versions } = await api
           .from('script_batch_versions')
           .select('version, sha256, status')
           .eq('batch_id', batch.id)
           .order('version', { ascending: false });
 
         // Fetch dependencies count and preview
-        const { data: dependencies } = await supabase
+        const { data: dependencies } = await api
           .from('batch_dependencies')
           .select(`
             min_version,
@@ -270,11 +271,9 @@ export default function ScriptsBatches() {
 
   const handleDuplicateBatch = async (batch: ScriptBatch) => {
     try {
-      const { error } = await supabase.functions.invoke('script-batches', {
-        body: {
-          action: 'duplicate',
-          batch_id: batch.id
-        }
+      const { error } = await api.invokeFunction('script-batches', {
+        action: 'duplicate',
+        batch_id: batch.id
       });
 
       if (error) throw error;
@@ -301,7 +300,7 @@ export default function ScriptsBatches() {
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await api
         .from('script_batches')
         .delete()
         .eq('id', batch.id);
@@ -346,7 +345,7 @@ export default function ScriptsBatches() {
     
     try {
       // Both activation and deactivation now use direct database updates  
-      const { error } = await supabase
+      const { error } = await api
         .from('script_batches')
         .update({ 
           active_version: newStatus,

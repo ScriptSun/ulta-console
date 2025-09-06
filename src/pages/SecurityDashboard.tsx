@@ -25,7 +25,7 @@ import {
   Eye
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api-wrapper";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -95,7 +95,7 @@ export default function SecurityDashboard() {
       setLoading(true);
       
       // Fetch security events (last 24 hours)
-      const { data: eventsData, error: eventsError } = await supabase
+      const { data: eventsData, error: eventsError } = await api
         .from('audit_logs') // Using audit_logs as fallback since security_events may not exist yet
         .select('*')
         .in('action', ['security_event', 'invalid_ticket', 'origin_mismatch', 'replay_attempt', 'csrf_fail'])
@@ -108,7 +108,7 @@ export default function SecurityDashboard() {
       }
 
       // Fetch audit logs (last 100)
-      const { data: auditData, error: auditError } = await supabase
+      const { data: auditData, error: auditError } = await api
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
@@ -117,7 +117,7 @@ export default function SecurityDashboard() {
       if (auditError) throw auditError;
 
       // Fetch widget metrics (last 7 days)
-      const { data: metricsData, error: metricsError } = await supabase
+      const { data: metricsData, error: metricsError } = await api
         .from('widget_metrics')
         .select('*')
         .gte('date_bucket', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])

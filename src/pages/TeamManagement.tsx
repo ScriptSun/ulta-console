@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,7 +79,7 @@ export default function TeamManagement() {
     queryKey: ['all-users', defaultCustomerId],
     queryFn: async () => {
       // Get all admin profiles
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error: profilesError } = await api
         .from('admin_profiles')
         .select('id, email, full_name')
         .order('email');
@@ -89,7 +89,7 @@ export default function TeamManagement() {
       // Get user roles for each profile
       const usersWithRoles = await Promise.all(
         (profiles || []).map(async (profile) => {
-          const { data: userRoles } = await supabase
+          const { data: userRoles } = await api
             .from('user_roles')
             .select('role')
             .eq('user_id', profile.id)
@@ -123,7 +123,7 @@ export default function TeamManagement() {
   const { data: pageAccessCounts } = useQuery({
     queryKey: ['user-page-access-counts'],
     queryFn: async () => {
-      const { data: totalPages } = await supabase
+      const { data: totalPages } = await api
         .from('console_pages')
         .select('key');
 
@@ -136,13 +136,13 @@ export default function TeamManagement() {
       await Promise.all(
         users.map(async (user) => {
           // Get explicit permissions
-          const { data: userPermissions } = await supabase
+          const { data: userPermissions } = await api
             .from('user_page_permissions')
             .select('page_key, can_view')
             .eq('user_id', user.id);
 
           // Get role templates for fallback
-          const { data: roleTemplates } = await supabase
+          const { data: roleTemplates } = await api
             .from('console_role_templates')
             .select('page_key, can_view')
             .eq('role', user.role); // Use display role
@@ -170,7 +170,7 @@ export default function TeamManagement() {
   const addUserMutation = useMutation({
     mutationFn: async ({ email, role }: { email: string; role: string }) => {
       // First check if user exists in auth.users by trying to find their profile
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile } = await api
         .from('admin_profiles')
         .select('id')
         .eq('email', email)
@@ -182,7 +182,7 @@ export default function TeamManagement() {
 
       // Set user role
       const enumRole = ROLE_MAPPING[role as keyof typeof ROLE_MAPPING];
-      const { error: roleError } = await supabase
+      const { error: roleError } = await api
         .from('user_roles')
         .upsert({ 
           user_id: existingProfile.id, 
@@ -218,7 +218,7 @@ export default function TeamManagement() {
   const removeUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       // Remove user role
-      const { error: roleError } = await supabase
+      const { error: roleError } = await api
         .from('user_roles')
         .delete()
         .eq('user_id', userId)
@@ -227,7 +227,7 @@ export default function TeamManagement() {
       if (roleError) throw roleError;
 
       // Remove user permissions
-      const { error: permError } = await supabase
+      const { error: permError } = await api
         .from('user_page_permissions')
         .delete()
         .eq('user_id', userId);
@@ -256,7 +256,7 @@ export default function TeamManagement() {
       if (!newEnumRole) throw new Error('Invalid role');
 
       // Delete existing roles for this user and customer
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await api
         .from('user_roles')
         .delete()
         .eq('user_id', userId)
@@ -265,7 +265,7 @@ export default function TeamManagement() {
       if (deleteError) throw deleteError;
 
       // Insert new role
-      const { error: insertError } = await supabase
+      const { error: insertError } = await api
         .from('user_roles')
         .insert({ 
           user_id: userId, 
@@ -276,13 +276,13 @@ export default function TeamManagement() {
       if (insertError) throw insertError;
 
       // Get role templates for the new display role
-      const { data: roleTemplates } = await supabase
+      const { data: roleTemplates } = await api
         .from('console_role_templates')
         .select('*')
         .eq('role', newDisplayRole);
 
       // Get existing explicit permissions
-      const { data: existingPermissions } = await supabase
+      const { data: existingPermissions } = await api
         .from('user_page_permissions')
         .select('page_key')
         .eq('user_id', userId);
@@ -301,7 +301,7 @@ export default function TeamManagement() {
       })) || [];
 
       if (newPermissions.length > 0) {
-        const { error: permError } = await supabase
+        const { error: permError } = await api
           .from('user_page_permissions')
           .upsert(newPermissions);
 

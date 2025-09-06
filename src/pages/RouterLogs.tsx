@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { RefreshCw, Eye, EyeOff, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
 interface RouterEvent {
@@ -25,7 +25,7 @@ const RouterLogs = () => {
 
   const fetchEvents = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from('router_events')
         .select('*')
         .order('created_at', { ascending: false })
