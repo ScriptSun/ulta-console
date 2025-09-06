@@ -143,7 +143,7 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[75vw] max-w-none overflow-hidden">
+      <SheetContent side="right" className="!w-1/2 !max-w-none overflow-hidden">
         <SheetHeader className="border-b pb-4">
           <SheetTitle>
             {isEditing ? 'Edit Policy' : 'New Policy'}
