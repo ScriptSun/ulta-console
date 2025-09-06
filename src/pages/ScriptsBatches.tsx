@@ -135,30 +135,32 @@ export default function ScriptsBatches() {
       setLoading(true);
       
       // First, fetch batches without requiring versions
-      let { data: batchData, error: batchError } = await api
+      const batchResponse = await api
         .from('script_batches')
         .select('*')
         .order('updated_at', { ascending: false });
 
-      console.log('Batches query result:', { data: batchData?.length, error: batchError });
+      console.log('Batches query result:', { data: batchResponse.data?.length, error: batchResponse.error });
 
-      if (batchError) {
-        console.error('Supabase query error:', batchError);
-        throw batchError;
+      if (!batchResponse.success) {
+        console.error('Query error:', batchResponse.error);
+        throw new Error(batchResponse.error);
       }
+
+      const batchData = batchResponse.data;
 
       // Now fetch version information and dependencies for each batch
       const processedBatches: ScriptBatch[] = [];
       
       for (const batch of batchData || []) {
-        const { data: versions } = await api
+        const versionsResponse = await api
           .from('script_batch_versions')
           .select('version, sha256, status')
           .eq('batch_id', batch.id)
           .order('version', { ascending: false });
 
         // Fetch dependencies count and preview
-        const { data: dependencies } = await api
+        const dependenciesResponse = await api
           .from('batch_dependencies')
           .select(`
             min_version,
@@ -166,6 +168,9 @@ export default function ScriptsBatches() {
           `)
           .eq('batch_id', batch.id)
           .limit(3);
+
+        const versions = versionsResponse.data;
+        const dependencies = dependenciesResponse.data;
 
         const latestVersion = versions?.[0] || null;
         const dependenciesCount = dependencies?.length || 0;
@@ -344,17 +349,18 @@ export default function ScriptsBatches() {
     }
     
     try {
-      // Both activation and deactivation now use direct database updates  
-      const { error } = await api
+      // Both activation and deactivation now use direct database updates
+      const currentUser = await supabase.auth.getUser();
+      const response = await api
         .from('script_batches')
         .update({ 
           active_version: newStatus,
-          updated_by: (await supabase.auth.getUser()).data.user?.id,
+          updated_by: currentUser.data.user?.id,
           updated_at: new Date().toISOString()
         })
         .eq('id', batch.id);
 
-      if (error) throw error;
+      if (!response.success) throw new Error(response.error);
 
       const successMessage = actionType === 'activate' ? 'Batch Activated' : 'Batch Deactivated';
       const description = `${batch.name} has been ${actionType}d successfully`;
