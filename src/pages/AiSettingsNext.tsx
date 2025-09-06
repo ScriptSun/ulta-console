@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Brain, Settings, MessageSquare, Zap, Bot } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { AvailableModelsTab } from '@/components/ai/AvailableModelsTab';
 import { ModelConfigurationTab } from '@/components/ai/ModelConfigurationTab';
 import { SystemPromptTab } from '@/components/ai/SystemPromptTab';
@@ -39,20 +39,16 @@ export default function AiSettingsNext() {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
-        .from('console_team_members')
-        .select('role')
-        .eq('admin_id', user.id)
-        .maybeSingle();
+      const response = await api.selectOne('console_team_members', 'role', { admin_id: user.id });
 
-      if (error) {
-        console.error('Error checking user role:', error);
+      if (!response.success) {
+        console.error('Error checking user role:', response.error);
         return;
       }
 
-      if (data) {
-        setUserRole(data.role);
-        setIsOwnerOrAdmin(['Owner', 'Admin'].includes(data.role));
+      if (response.data) {
+        setUserRole(response.data.role);
+        setIsOwnerOrAdmin(['Owner', 'Admin'].includes(response.data.role));
       }
     } catch (error) {
       console.error('Error checking user role:', error);
@@ -62,31 +58,23 @@ export default function AiSettingsNext() {
   const migrateOldSettings = async () => {
     try {
       // Check if migration has already been completed
-      const { data: migrationCheck } = await supabase
-        .from('system_settings')
-        .select('*')
-        .eq('setting_key', 'ai_migration_complete')
-        .maybeSingle();
+      const migrationCheck = await api.selectOne('system_settings', '*', { setting_key: 'ai_migration_complete' });
 
-      if (migrationCheck) {
+      if (migrationCheck.data) {
         // Migration already completed, skip
         return;
       }
 
       // Check if old ai_models setting exists
-      const { data: oldSettings, error } = await supabase
-        .from('system_settings')
-        .select('*')
-        .eq('setting_key', 'ai_models')
-        .maybeSingle();
+      const oldSettingsResponse = await api.selectOne('system_settings', '*', { setting_key: 'ai_models' });
 
-      if (error && error.code !== 'PGRST116') { // Not found error is ok
-        console.error('Error checking old settings:', error);
+      if (!oldSettingsResponse.success && oldSettingsResponse.error !== 'No data found') {
+        console.error('Error checking old settings:', oldSettingsResponse.error);
         return;
       }
 
-      if (oldSettings) {
-        const oldValue = oldSettings.setting_value as any;
+      if (oldSettingsResponse.data) {
+        const oldValue = oldSettingsResponse.data.setting_value as any;
         
         // Migrate to new storage keys
         const newKeys = [
@@ -106,25 +94,17 @@ export default function AiSettingsNext() {
         ];
 
         for (const newSetting of newKeys) {
-          await supabase
-            .from('system_settings')
-            .upsert({
-              setting_key: newSetting.key,
-              setting_value: newSetting.value,
-            }, {
-              onConflict: 'setting_key'
-            });
+          await api.upsert('system_settings', {
+            setting_key: newSetting.key,
+            setting_value: newSetting.value,
+          });
         }
 
         // Mark migration complete
-        await supabase
-          .from('system_settings')
-          .upsert({
-            setting_key: 'ai_migration_complete',
-            setting_value: { migrated_at: new Date().toISOString() }
-          }, {
-            onConflict: 'setting_key'
-          });
+        await api.upsert('system_settings', {
+          setting_key: 'ai_migration_complete',
+          setting_value: { migrated_at: new Date().toISOString() }
+        });
 
         toast({
           title: 'AI Settings Migrated',
