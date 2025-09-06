@@ -34,9 +34,7 @@ const MigrationDashboard: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isFunctionExporting, setIsFunctionExporting] = useState(false);
   const [functionExportProgress, setFunctionExportProgress] = useState(0);
-  const [stepStatuses, setStepStatuses] = useState<{[key: string]: MigrationStep['status']}>({
-    'abstraction-layers': 'completed'
-  });
+  const [stepStatuses, setStepStatuses] = useState<{[key: string]: MigrationStep['status']}>({});
 
   const migrationSteps: MigrationStep[] = [
     {
@@ -50,7 +48,7 @@ const MigrationDashboard: React.FC = () => {
       id: 'abstraction-layers',
       title: 'Abstraction Layers',
       description: 'Create database and function abstraction layers',
-      status: stepStatuses['abstraction-layers'] || 'completed',
+      status: stepStatuses['abstraction-layers'] || 'pending',
       progress: stepStatuses['abstraction-layers'] === 'completed' ? 100 : 0
     },
     {
