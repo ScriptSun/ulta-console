@@ -117,22 +117,6 @@ export function SystemPromptTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Prompt Info */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Brain className="h-5 w-5" />
-                {routerPrompt.name}
-              </h3>
-              <p className="text-sm text-muted-foreground">{routerPrompt.description}</p>
-              <div className="flex flex-wrap gap-1">
-                {routerPrompt.usedBy.map((func) => (
-                  <Badge key={func} variant="secondary" className="text-xs">
-                    {func}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
             {/* Editor */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
