@@ -102,23 +102,33 @@ export function useOSTargets() {
 
   const updateOSTarget = async (id: string, updates: Partial<OSTarget>) => {
     try {
+      console.log('updateOSTarget called with:', { id, updates });
+      
       const result = await api.update<OSTarget>(
         'os_targets',
         { id },
         updates
       );
 
+      console.log('API update result:', result);
+
       if (!result.success) {
         throw new Error(result.error);
       }
 
       const updatedTargets = result.data;
+      console.log('Updated targets from API:', updatedTargets);
+      
       if (updatedTargets && updatedTargets.length > 0) {
         const updatedTarget = updatedTargets[0];
-        setOSTargets(prev => 
-          prev.map(target => target.id === id ? updatedTarget : target)
-            .sort((a, b) => a.sort_order - b.sort_order)
-        );
+        console.log('Updated target:', updatedTarget);
+        
+        setOSTargets(prev => {
+          const newTargets = prev.map(target => target.id === id ? updatedTarget : target)
+            .sort((a, b) => a.sort_order - b.sort_order);
+          console.log('New targets state:', newTargets);
+          return newTargets;
+        });
 
         toast({
           title: 'OS target updated',
@@ -126,6 +136,8 @@ export function useOSTargets() {
         });
 
         return updatedTarget;
+      } else {
+        console.warn('No updated targets returned from API');
       }
     } catch (error) {
       console.error('Error updating OS target:', error);

@@ -99,9 +99,15 @@ export function OSTargetsManager({ open, onClose }: OSTargetsManagerProps) {
 
   const handleSubmit = async () => {
     try {
+      console.log('Submitting form data:', formData);
+      console.log('Editing target:', editingTarget);
+      
       if (editingTarget) {
-        await updateOSTarget(editingTarget.id, formData);
+        console.log('Updating target with ID:', editingTarget.id);
+        const result = await updateOSTarget(editingTarget.id, formData);
+        console.log('Update result:', result);
       } else {
+        console.log('Adding new target');
         await addOSTarget({
           ...formData,
           is_active: true,
@@ -110,6 +116,7 @@ export function OSTargetsManager({ open, onClose }: OSTargetsManagerProps) {
       setShowAddDialog(false);
       resetForm();
     } catch (error) {
+      console.error('Submit error:', error);
       // Error handled in hook
     }
   };
