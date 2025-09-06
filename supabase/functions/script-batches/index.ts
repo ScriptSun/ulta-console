@@ -176,6 +176,21 @@ async function handleCreateVariant(req: Request, batchId: string) {
 
     const version = nextVersionData as number
 
+    // Get user ID from auth header
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    )
+    
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    )
+
+    if (authError || !user) {
+      Logger.error('Auth error in create variant', { error: authError })
+      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+    }
+
     // Create the variant
     const { data: variant, error } = await supabase
       .from('script_batch_variants')
@@ -188,7 +203,8 @@ async function handleCreateVariant(req: Request, batchId: string) {
         source,
         notes,
         min_os_version,
-        active: false
+        active: false,
+        updated_by: user.id
       })
       .select()
       .single()
@@ -242,6 +258,21 @@ async function handleCreateVariantVersion(req: Request, batchId: string, os: str
 
     const version = nextVersionData as number
 
+    // Get user ID from auth header
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    )
+    
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    )
+
+    if (authError || !user) {
+      Logger.error('Auth error in create variant version', { error: authError })
+      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+    }
+
     // Create the version
     const { data: variant, error } = await supabase
       .from('script_batch_variants')
@@ -254,7 +285,8 @@ async function handleCreateVariantVersion(req: Request, batchId: string, os: str
         source,
         notes,
         min_os_version,
-        active: false
+        active: false,
+        updated_by: user.id
       })
       .select()
       .single()
