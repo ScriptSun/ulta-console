@@ -470,8 +470,7 @@ class APIWrapper {
   }
 
   /**
-   * Get current session
-   */
+   * Sign out current user
    */
   async signOut(): Promise<ApiResponse<void>> {
     try {
