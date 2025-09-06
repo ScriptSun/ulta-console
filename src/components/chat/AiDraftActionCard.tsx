@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Copy, Terminal, FileText, X, CheckCircle, Shield, XCircle, Info } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Copy, Terminal, FileText, X, CheckCircle, Shield, XCircle, Info, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEventBus } from '@/hooks/useEventBus';
 import { AiDraftAction } from '@/types/routerTypes';
@@ -12,7 +14,7 @@ import { TaskDetailsDialog } from './TaskDetailsDialog';
 
 interface AiDraftActionCardProps {
   decision: AiDraftAction;
-  onConfirm: () => void;
+  onConfirm: (params?: Record<string, any>) => void;
   onCancel: () => void;
   disabled?: boolean;
   run_id?: string;
@@ -25,6 +27,8 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
   const [isExpanded, setIsExpanded] = useState(true);
   const [internalStatus, setInternalStatus] = useState<'queued' | 'running' | 'completed' | 'failed' | null>(executionStatus || null);
   const [failureDetails, setFailureDetails] = useState<string>('');
+  const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [paramErrors, setParamErrors] = useState<Record<string, string>>({});
 
   // Listen for execution events if run_id is provided
   useEffect(() => {
@@ -65,6 +69,58 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
       setInternalStatus(executionStatus);
     }
   }, [executionStatus]);
+
+  // Initialize form values with default values
+  useEffect(() => {
+    if ((decision as any).missing_params) {
+      const initialValues: Record<string, string> = {};
+      (decision as any).missing_params.forEach((param: any) => {
+        initialValues[param.key] = param.defaultValue || '';
+      });
+      setParamValues(initialValues);
+    }
+  }, [decision]);
+
+  const validateParams = () => {
+    const errors: Record<string, string> = {};
+    const missingParams = (decision as any).missing_params || [];
+    
+    missingParams.forEach((param: any) => {
+      const value = paramValues[param.key] || '';
+      
+      if (param.required && !value.trim()) {
+        errors[param.key] = `${param.label} is required`;
+      } else if (value) {
+        if (param.minLength && value.length < param.minLength) {
+          errors[param.key] = `${param.label} must be at least ${param.minLength} characters`;
+        }
+        if (param.maxLength && value.length > param.maxLength) {
+          errors[param.key] = `${param.label} must not exceed ${param.maxLength} characters`;
+        }
+      }
+    });
+    
+    setParamErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleParamChange = (key: string, value: string) => {
+    setParamValues(prev => ({ ...prev, [key]: value }));
+    // Clear error for this field when user starts typing
+    if (paramErrors[key]) {
+      setParamErrors(prev => ({ ...prev, [key]: '' }));
+    }
+  };
+
+  const handleConfirm = () => {
+    if ((decision as any).missing_params && (decision as any).missing_params.length > 0) {
+      if (validateParams()) {
+        onConfirm(paramValues);
+      }
+    } else {
+      onConfirm();
+    }
+  };
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -327,6 +383,40 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
           </div>
         ) : null}
 
+        {/* Missing Parameters Form */}
+        {(decision as any).missing_params && (decision as any).missing_params.length > 0 && (
+          <div className="bg-muted/10 border border-muted-foreground/20 rounded-md p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle className="h-4 w-4 text-primary" />
+              <h4 className="font-medium text-sm">Required Parameters</h4>
+            </div>
+            <div className="space-y-4">
+              {(decision as any).missing_params.map((param: any) => (
+                <div key={param.key} className="space-y-2">
+                  <Label htmlFor={param.key} className="text-sm font-medium">
+                    {param.label}
+                    {param.required && <span className="text-destructive ml-1">*</span>}
+                  </Label>
+                  <Input
+                    id={param.key}
+                    type={param.masked ? "password" : "text"}
+                    value={paramValues[param.key] || ''}
+                    onChange={(e) => handleParamChange(param.key, e.target.value)}
+                    placeholder={param.description}
+                    className={paramErrors[param.key] ? "border-destructive" : ""}
+                  />
+                  {paramErrors[param.key] && (
+                    <p className="text-sm text-destructive">{paramErrors[param.key]}</p>
+                  )}
+                  {param.helpText && !paramErrors[param.key] && (
+                    <p className="text-xs text-muted-foreground">{param.helpText}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <Separator />
 
         {/* Action Buttons */}
@@ -354,8 +444,8 @@ export function AiDraftActionCard({ decision, onConfirm, onCancel, disabled = fa
             </Button>
             <Button
               size="sm"
-              onClick={onConfirm}
-              disabled={disabled}
+              onClick={handleConfirm}
+              disabled={disabled || ((decision as any).missing_params && (decision as any).missing_params.length > 0 && Object.keys(paramErrors).length > 0)}
               aria-label="Confirm and execute action"  
             >
               <CheckCircle className="h-4 w-4 mr-1" />
