@@ -130,9 +130,15 @@ export function OSTargetsManager({ open, onClose }: OSTargetsManagerProps) {
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Configure OS Targets
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Configure OS Targets
+              </div>
+              <Button onClick={handleAdd}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add OS Target
+              </Button>
             </DialogTitle>
             <DialogDescription>
               Manage operating system targets available for batch scripts
@@ -140,18 +146,6 @@ export function OSTargetsManager({ open, onClose }: OSTargetsManagerProps) {
           </DialogHeader>
 
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">Operating System Targets</h3>
-                <p className="text-sm text-muted-foreground">
-                  Configure which operating systems are available for batch scripts
-                </p>
-              </div>
-              <Button onClick={handleAdd}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add OS Target
-              </Button>
-            </div>
 
             {loading ? (
               <div className="flex justify-center py-8">
