@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api } from '@/lib/api-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +17,7 @@ export default function UserDetail() {
     queryFn: async () => {
       if (!userId) throw new Error('User ID is required');
       
-      const response = await api.selectSingle('admin_profiles', '*', { id: userId });
+      const response = await api.selectOne('admin_profiles', '*', { id: userId });
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to fetch user');
@@ -33,11 +33,7 @@ export default function UserDetail() {
     queryFn: async () => {
       if (!userId) return [];
       
-      const response = await api.query('agents', {
-        select: '*',
-        filters: { user_id: userId },
-        orderBy: { column: 'created_at', ascending: false }
-      });
+      const response = await api.select('agents', '*', { user_id: userId });
       
       if (!response.success) {
         console.warn('Failed to fetch user agents:', response.error);

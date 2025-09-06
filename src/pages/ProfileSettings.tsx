@@ -156,11 +156,9 @@ export default function ProfileSettings() {
     if (!user) return;
     
     try {
-      const response = await api
-        .from('console_team_members')
-        .select('role')
-        .eq('admin_id', user.id)
-        .maybeSingle();
+      const response = await api.selectOne('console_team_members', 'role', {
+        admin_id: user.id
+      });
 
       if (!response.success) {
         console.error('Error checking user role:', response.error);
@@ -178,11 +176,9 @@ export default function ProfileSettings() {
 
   const loadProfile = async () => {
     try {
-      const response = await api
-        .from('admin_profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .maybeSingle();
+      const response = await api.selectOne('admin_profiles', '*', {
+        id: user?.id
+      });
 
       if (response.success && response.data) {
         setProfile({
@@ -198,11 +194,9 @@ export default function ProfileSettings() {
 
   const loadPreferences = async () => {
     try {
-      const response = await api
-        .from('user_preferences')
-        .select('*')
-        .eq('user_id', user?.id)
-        .maybeSingle();
+      const response = await api.selectOne('user_preferences', '*', {
+        user_id: user?.id
+      });
 
       if (response.success && response.data) {
         setPreferences({
@@ -272,14 +266,12 @@ export default function ProfileSettings() {
       }
 
       // Update profile in admin_profiles table
-      const response = await api
-        .from('admin_profiles')
-        .upsert({
-          id: user.id,
-          email: profile.email,
-          full_name: profile.full_name,
-          avatar_url: profile.avatar_url,
-        });
+      const response = await api.upsert('admin_profiles', {
+        id: user.id,
+        email: profile.email,
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url,
+      });
 
       if (!response.success) throw new Error(response.error || 'Failed to update profile');
 
@@ -359,14 +351,12 @@ export default function ProfileSettings() {
       const timestampedUrl = `${publicUrl}?t=${Date.now()}`;
 
       // Update profile in database immediately
-      const updateResponse = await api
-        .from('admin_profiles')
-        .upsert({
-          id: user.id,
-          email: profile.email || user.email,
-          full_name: profile.full_name,
-          avatar_url: timestampedUrl,
-        });
+      const updateResponse = await api.upsert('admin_profiles', {
+        id: user.id,
+        email: profile.email || user.email,
+        full_name: profile.full_name,
+        avatar_url: timestampedUrl,
+      });
 
       if (!updateResponse.success) throw new Error(updateResponse.error || 'Failed to update avatar');
 
@@ -408,14 +398,12 @@ export default function ProfileSettings() {
       }
 
       // Update database immediately
-      const response = await api
-        .from('admin_profiles')
-        .upsert({
-          id: user.id,
-          email: profile.email || user.email,
-          full_name: profile.full_name,
-          avatar_url: '',
-        });
+      const response = await api.upsert('admin_profiles', {
+        id: user.id,
+        email: profile.email || user.email,
+        full_name: profile.full_name,
+        avatar_url: '',
+      });
 
       if (!response.success) throw new Error(response.error || 'Failed to remove avatar');
 
@@ -446,12 +434,10 @@ export default function ProfileSettings() {
     
     setLoading(true);
     try {
-      const response = await api
-        .from('user_preferences')
-        .upsert({
-          user_id: user.id,
-          ...preferences,
-        });
+      const response = await api.upsert('user_preferences', {
+        user_id: user.id,
+        ...preferences,
+      });
 
       if (!response.success) throw new Error(response.error || 'Failed to update preferences');
 

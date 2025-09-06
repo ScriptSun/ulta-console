@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api } from '@/lib/api-wrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,7 +43,7 @@ export default function UserEdit() {
       
       console.log('Fetching user with ID:', userId);
       
-      const response = await api.selectSingle('admin_profiles', '*', { id: userId });
+      const response = await api.selectOne('admin_profiles', '*', { id: userId });
       
       console.log('User fetch response:', response);
       
@@ -63,7 +63,7 @@ export default function UserEdit() {
     queryFn: async () => {
       if (!userId) return null;
       
-      const response = await api.selectSingle('user_security_status', '*', { user_id: userId });
+      const response = await api.selectOne('user_security_status', '*', { user_id: userId });
       
       // Return null if no security status found (user may not have one)
       if (!response.success) {
@@ -81,11 +81,7 @@ export default function UserEdit() {
     queryFn: async () => {
       if (!userId) return [];
       
-      const response = await api.query('agents', {
-        select: 'id, hostname, status, agent_type, created_at',
-        filters: { user_id: userId },
-        orderBy: { column: 'created_at', ascending: false }
-      });
+      const response = await api.select('agents', 'id, hostname, status, agent_type, created_at', { user_id: userId });
       
       if (!response.success) {
         console.warn('Failed to fetch user agents:', response.error);
@@ -103,12 +99,7 @@ export default function UserEdit() {
     queryFn: async () => {
       if (!userId) return [];
       
-      const response = await api.query('user_sessions', {
-        select: '*',
-        filters: { user_id: userId },
-        orderBy: { column: 'session_start', ascending: false },
-        limit: 5
-      });
+      const response = await api.select('user_sessions', '*', { user_id: userId });
       
       if (!response.success) {
         console.warn('Failed to fetch user sessions:', response.error);
