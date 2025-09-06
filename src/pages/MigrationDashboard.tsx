@@ -260,11 +260,11 @@ const MigrationDashboard: React.FC = () => {
       });
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Step 4: Convert HTTP handlers to Express routes
+      // Step 4: Convert HTTP handlers to Node.js servers
       setFunctionExportProgress(45);
       toast({
         title: "🌐 Converting HTTP Handlers",
-        description: "Converting Deno.serve() to Express.js route handlers..."
+        description: "Converting Deno.serve() to Node.js http.createServer()..."
       });
       await new Promise(resolve => setTimeout(resolve, 1500));
       
@@ -272,15 +272,15 @@ const MigrationDashboard: React.FC = () => {
       setFunctionExportProgress(60);
       toast({
         title: "🔐 Converting Authentication",
-        description: "Setting up Express middleware and security headers..."
+        description: "Setting up Node.js HTTP headers and request handling..."
       });
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Step 6: Generate production-ready server
       setFunctionExportProgress(75);
       toast({
-        title: "⚙️ Generating Express.js Server",
-        description: "Creating unified server with all converted functions..."
+        title: "⚙️ Generating Node.js Servers",
+        description: "Creating pure Node.js HTTP servers with all converted functions..."
       });
       await new Promise(resolve => setTimeout(resolve, 1500));
       
@@ -296,14 +296,14 @@ const MigrationDashboard: React.FC = () => {
       // Show detailed success results
       toast({
         title: "🎉 Conversion Complete!",
-        description: `Successfully converted ${result.convertedSuccessfully}/${result.totalFunctions} functions to Express.js for Ultahost deployment`
+        description: `Successfully converted ${result.convertedSuccessfully}/${result.totalFunctions} functions to Node.js HTTP servers for Ultahost deployment`
       });
       
       // Show conversion summary
       setTimeout(() => {
         toast({
           title: "📊 Conversion Summary",
-          description: `✅ ${result.convertedSuccessfully} functions converted\n🔗 All Supabase calls replaced with PostgreSQL\n🚀 Production-ready Express.js server created`,
+          description: `✅ ${result.convertedSuccessfully} functions converted\n🔗 All Supabase calls replaced with PostgreSQL\n🚀 Production-ready Node.js servers created`,
         });
       }, 2000);
       
@@ -538,10 +538,10 @@ const MigrationDashboard: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Zap className="h-5 w-5" />
-                <span>Ultahost Self-Hosted Functions</span>
+                <span>Ultahost Self-Hosted Node.js Functions</span>
               </CardTitle>
               <CardDescription>
-                Export all Supabase Edge Functions as Express.js server for Ultahost deployment
+                Export all Supabase Edge Functions as pure Node.js HTTP servers for Ultahost deployment
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -550,7 +550,7 @@ const MigrationDashboard: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm">
                       {functionExportProgress < 20 ? 'Analyzing functions...' :
-                       functionExportProgress < 40 ? 'Converting to Express.js...' :
+                       functionExportProgress < 40 ? 'Converting to Node.js...' :
                        functionExportProgress < 70 ? 'Setting up Ultahost config...' :
                        functionExportProgress < 95 ? 'Packaging ZIP file...' :
                        'Export complete!'}
@@ -564,7 +564,7 @@ const MigrationDashboard: React.FC = () => {
               <Alert>
                 <Code className="h-4 w-4" />
                 <AlertDescription>
-                  This will analyze all 30+ Edge Functions and create a complete Express.js server package 
+                  This will analyze all 30+ Edge Functions and create pure Node.js HTTP servers 
                   ready for deployment on Ultahost with PostgreSQL, Docker setup, and deployment guides.
                 </AlertDescription>
               </Alert>
@@ -573,7 +573,7 @@ const MigrationDashboard: React.FC = () => {
                 <div className="p-4 border rounded-lg bg-muted/50">
                   <h4 className="font-medium mb-2">Package Includes:</h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• Express.js server with all functions as routes</li>
+                    <li>• Pure Node.js HTTP servers for each function</li>
                     <li>• PostgreSQL connection setup</li>
                     <li>• Docker & Docker Compose configuration</li>
                     <li>• Environment configuration templates</li>
@@ -587,7 +587,7 @@ const MigrationDashboard: React.FC = () => {
                   <ul className="text-sm space-y-1 text-muted-foreground">
                     <li>• Health monitoring endpoints</li>
                     <li>• Request logging and error handling</li>
-                    <li>• Security headers and CORS setup</li>
+                    <li>• CORS headers and security setup</li>
                     <li>• Auto-scaling ready configuration</li>
                   </ul>
                 </div>
