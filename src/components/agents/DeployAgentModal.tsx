@@ -28,8 +28,7 @@ import {
   User,
   CreditCard
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { api } from '@/lib/api';
+import { api } from '@/lib/api-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -88,27 +87,26 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
     setLoadingPrerequisites(true);
     try {
       // Load users
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select('id, email, full_name')
-        .order('full_name');
+      const usersResult = await api.select('users', 'id, email, full_name', {
+        order: { column: 'full_name', ascending: true }
+      });
 
-      if (usersError) throw usersError;
+      if (!usersResult.success) throw new Error(usersResult.error);
 
       // Load subscription plans
-      const { data: plansData, error: plansError } = await supabase
-        .from('subscription_plans')
-        .select('id, name, key, monthly_ai_requests, monthly_server_events')
-        .eq('active', true)
-        .order('name');
+      const plansResult = await api.select('subscription_plans', 
+        'id, name, key, monthly_ai_requests, monthly_server_events', {
+        active: true,
+        order: { column: 'name', ascending: true }
+      });
 
-      if (plansError) throw plansError;
+      if (!plansResult.success) throw new Error(plansResult.error);
 
-      setUsers(usersData || []);
-      setPlans(plansData || []);
+      setUsers(usersResult.data || []);
+      setPlans(plansResult.data || []);
 
       // Set default free plan if available
-      const freePlan = plansData?.find(plan => 
+      const freePlan = plansResult.data?.find(plan => 
         plan.name.toLowerCase().includes('free') || 
         plan.name.toLowerCase().includes('basic')
       );
@@ -162,14 +160,14 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
 
     setLoading(true);
     try {
-      const response = await api.callFunction('agent-deploy', { 
+      const response = await api.invokeFunction('agent-deploy', { 
         action: 'generate_token',
         user_id: selectedUserId,
         plan_key: plans.find(p => p.id === selectedPlanId)?.key || 'free_plan'
       });
 
-      if (!response.success) {
-        throw new Error(response.error);
+      if (response.error) {
+        throw new Error(response.error || 'Failed to generate token');
       }
 
       setToken(response.data);
@@ -243,14 +241,14 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
 
     setSshDeploying(true);
     try {
-      const response = await api.callFunction('agent-deploy', { 
+      const response = await api.invokeFunction('agent-deploy', { 
         action: 'deploy_ssh',
         token: token.token,
         ssh: sshForm
       });
 
-      if (!response.success) {
-        throw new Error(response.error);
+      if (response.error) {
+        throw new Error(response.error || 'SSH deployment failed');
       }
 
       toast({

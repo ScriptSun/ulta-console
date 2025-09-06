@@ -41,8 +41,7 @@ import {
   Copy,
   CheckCircle
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { api } from '@/lib/api';
+import { api } from '@/lib/api-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -149,22 +148,20 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
     
     setLoading(true);
     try {
-      const { data: tasksData } = await supabase
-        .from('agent_tasks')
-        .select('*')
-        .eq('agent_id', agent.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const tasksResult = await api.select('agent_tasks', '*', { 
+        agent_id: agent.id,
+        order: { column: 'created_at', ascending: false },
+        limit: 50
+      });
 
-      const { data: logsData } = await supabase
-        .from('agent_logs')
-        .select('*')
-        .eq('agent_id', agent.id)
-        .order('timestamp', { ascending: false })
-        .limit(100);
+      const logsResult = await api.select('agent_logs', '*', {
+        agent_id: agent.id,
+        order: { column: 'timestamp', ascending: false },
+        limit: 100
+      });
 
-      setTasks((tasksData || []) as AgentTask[]);
-      setLogs((logsData || []) as AgentLog[]);
+      setTasks((tasksResult.success ? tasksResult.data : []) as AgentTask[]);
+      setLogs((logsResult.success ? logsResult.data : []) as AgentLog[]);
     } catch (error) {
       console.error('Error fetching agent data:', error);
       toast({
@@ -218,12 +215,9 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
     }
 
     try {
-      const { error } = await supabase
-        .from('agents')
-        .delete()
-        .eq('id', agent.id);
+      const result = await api.delete('agents', { id: agent.id });
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error);
 
       toast({
         title: 'Agent Deregistered',

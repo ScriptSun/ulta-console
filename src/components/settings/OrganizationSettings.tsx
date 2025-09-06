@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Building, Mail, Globe, Upload, Save, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api-wrapper';
 import { supabase } from '@/integrations/supabase/client';
 
 interface OrganizationSettings {
@@ -73,26 +74,15 @@ export function OrganizationSettings() {
         updated_at: new Date().toISOString()
       };
 
-      const { data, error } = await supabase
-        .from('organization_settings')
-        .upsert(updateData, {
-          onConflict: 'customer_id'
-        })
-        .select()
-        .single();
+      const result = await api.upsert('organization_settings', updateData);
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error || 'Failed to save settings');
 
-      if (data) {
-        setSettings({
-          ...settings,
-          id: data.id
-        });
-      }
+      setSettings({ ...settings, ...updateData });
 
       toast({
-        title: "Settings saved",
-        description: "Organization settings have been updated successfully. These will be used in your email templates.",
+        title: 'Settings Saved',
+        description: 'Organization settings have been updated successfully.'
       });
     } catch (error) {
       console.error('Error saving settings:', error);

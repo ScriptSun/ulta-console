@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SHABadge } from '@/components/scripts/SHABadge';
 import { X, CheckCircle, AlertCircle, Shield, Info, Eye } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 
 interface Script {
   id: string;
@@ -283,12 +283,10 @@ export function NewCommandDrawer({ open, onOpenChange, onSuccess, editCommand }:
         sampleParams = { example: 'test_value' };
       }
 
-      const { data, error } = await supabase.functions.invoke('validate-command', {
-        body: {
+      const { data, error } = await api.invokeFunction('validate-command', {
           command_name: commandName,
           params: sampleParams,
           agent_snapshot: agentSnapshot
-        }
       });
 
       if (error) {

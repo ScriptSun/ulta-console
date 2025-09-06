@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api-wrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useEventTemplates } from '@/hooks/useEventTemplates';
 import { 
@@ -121,16 +122,17 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
 
   const loadPolicies = async () => {
     try {
-      const { data, error } = await supabase
-        .from('notification_policies')
-        .select('*')
-        .eq('customer_id', SYSTEM_CUSTOMER_ID)
-        .order('category', { ascending: true })
-        .order('event_name', { ascending: true });
+      const result = await api.select('notification_policies', '*', {
+        customer_id: SYSTEM_CUSTOMER_ID,
+        order: [
+          { column: 'category', ascending: true },
+          { column: 'event_name', ascending: true }
+        ]
+      });
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error || 'Failed to load policies');
 
-      setPolicies((data || []).map(policy => ({
+      setPolicies((result.data || []).map(policy => ({
         ...policy,
         severity: policy.severity as 'info' | 'warning' | 'critical',
         channels: policy.channels as NotificationPolicy['channels'],
@@ -285,11 +287,9 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
         updated_at: new Date().toISOString()
       }));
 
-      const { error } = await supabase
-        .from('notification_policies')
-        .upsert(updates);
+      const result = await api.upsert('notification_policies', updates);
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error || 'Failed to save policies');
 
       setHasChanges(false);
       toast({
@@ -320,11 +320,9 @@ export default function EventRouting({ channelAvailability }: EventRoutingProps)
         payload = {};
       }
 
-      const { error } = await supabase.functions.invoke('test-notification-event', {
-        body: {
-          eventKey: testEvent,
-          payload
-        }
+      const { error } = await api.invokeFunction('test-notification-event', {
+        eventKey: testEvent,
+        payload
       });
 
       if (error) throw error;
