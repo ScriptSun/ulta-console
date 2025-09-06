@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { api } from '../_shared/api-wrapper.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,10 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseClient = api.getClient();
 
     // Get the user from the request
     const authHeader = req.headers.get('Authorization')!;
@@ -40,11 +37,12 @@ serve(async (req) => {
     }
 
     // Get the agent and verify permissions
-    const { data: agent, error: agentError } = await supabaseClient
-      .from('agents')
-      .select('*, customer_id')
-      .eq('id', agent_id)
-      .single();
+    const agentResult = await api.select('agents', '*, customer_id', {
+      eq: { id: agent_id },
+      single: true
+    });
+    const agent = agentResult.data;
+    const agentError = agentResult.success ? null : { message: agentResult.error };
 
     if (agentError || !agent) {
       return new Response(
@@ -54,12 +52,14 @@ serve(async (req) => {
     }
 
     // Check if user has permission to control this agent
-    const { data: hasPermission } = await supabaseClient.rpc('get_user_role_in_customer', {
+    const permissionResult = await api.rpc('get_user_role_in_customer', {
       _customer_id: agent.customer_id,
       _role: 'approver'
     });
+    const hasPermission = permissionResult.data;
 
-    const { data: isAdmin } = await supabaseClient.rpc('is_admin');
+    const adminResult = await api.rpc('is_admin');
+    const isAdmin = adminResult.data;
 
     if (!hasPermission && !isAdmin) {
       return new Response(
@@ -116,14 +116,14 @@ serve(async (req) => {
     }
 
     // Update the agent status
-    const { error: updateError } = await supabaseClient
-      .from('agents')
-      .update({
-        status: newStatus,
-        updated_by: user.id,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', agent_id);
+    const updateResult = await api.update('agents', {
+      status: newStatus,
+      updated_by: user.id,
+      updated_at: new Date().toISOString()
+    }, {
+      eq: { id: agent_id }
+    });
+    const updateError = updateResult.success ? null : { message: updateResult.error };
 
     if (updateError) {
       console.error('Error updating agent:', updateError);
@@ -134,34 +134,30 @@ serve(async (req) => {
     }
 
     // Log the action in audit logs
-    await supabaseClient
-      .from('audit_logs')
-      .insert({
-        customer_id: agent.customer_id,
-        actor: user.email || user.id,
-        action: `agent_${action}`,
-        target: `agent:${agent.name}`,
-        meta: {
-          agent_id: agent_id,
-          previous_status: agent.status,
-          new_status: newStatus,
-          user_id: user.id
-        }
-      });
+    await api.insert('audit_logs', {
+      customer_id: agent.customer_id,
+      actor: user.email || user.id,
+      action: `agent_${action}`,
+      target: `agent:${agent.name}`,
+      meta: {
+        agent_id: agent_id,
+        previous_status: agent.status,
+        new_status: newStatus,
+        user_id: user.id
+      }
+    });
 
     // Create a log entry for the agent
-    await supabaseClient
-      .from('agent_logs')
-      .insert({
-        agent_id: agent_id,
-        level: 'info',
-        message: `Agent ${actionDescription} by ${user.email || 'system'}`,
-        metadata: {
-          action: action,
-          user_id: user.id,
-          previous_status: agent.status
-        }
-      });
+    await api.insert('agent_logs', {
+      agent_id: agent_id,
+      level: 'info',
+      message: `Agent ${actionDescription} by ${user.email || 'system'}`,
+      metadata: {
+        action: action,
+        user_id: user.id,
+        previous_status: agent.status
+      }
+    });
 
     // In a real implementation, you would also send a command to the actual agent
     // This could be done via a message queue, webhook, or direct API call

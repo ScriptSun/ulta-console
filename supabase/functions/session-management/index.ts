@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { api } from '../_shared/api-wrapper.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -121,10 +121,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabase = api.getClient()
 
     // Get user from JWT token
     const authHeader = req.headers.get('Authorization')
@@ -158,18 +155,15 @@ serve(async (req) => {
       
       // Clean up inactive sessions first - delete sessions inactive for more than 1 hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-      await supabase
-        .from('user_sessions')
-        .delete()
-        .eq('user_id', user.id)
-        .lt('updated_at', oneHourAgo)
+      await api.delete('user_sessions', {
+        eq: { user_id: user.id },
+        lt: { updated_at: oneHourAgo }
+      })
       
       console.log('Fetching sessions for user:', user.id)
       
       // Get only active sessions - only needed fields  
-      const { data: userSessions, error: sessionsError } = await supabase
-        .from('user_sessions')
-        .select(`
+      const sessionsResult = await api.select('user_sessions', `
           id,
           ip_address,
           user_agent,
@@ -182,10 +176,13 @@ serve(async (req) => {
           is_active,
           created_at,
           updated_at
-        `)
-        .eq('user_id', user.id)
-        .gte('updated_at', oneHourAgo)
-        .order('created_at', { ascending: false })
+        `, {
+        eq: { user_id: user.id },
+        gte: { updated_at: oneHourAgo },
+        order: { column: 'created_at', ascending: false }
+      });
+      const userSessions = sessionsResult.data;
+      const sessionsError = sessionsResult.success ? null : { message: sessionsResult.error };
 
       if (sessionsError) {
         console.error('Error fetching user sessions:', sessionsError)

@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0'
+import { api } from '../_shared/api-wrapper.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,10 +21,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
+  const supabase = api.getClient()
 
   try {
     const { action, email, password, user_id, ip_address, user_agent }: AuthRequest = await req.json()
@@ -47,8 +44,10 @@ serve(async (req) => {
 
           // Get security settings from database - with proper fallbacks
           console.log('About to call get_security_settings RPC...');
-          const { data: securitySettings, error: settingsError } = await supabase.rpc('get_security_settings');
-          console.log('Security settings RPC result:', { data: securitySettings, error: settingsError });
+          const securitySettingsResult = await api.rpc('get_security_settings');
+          console.log('Security settings RPC result:', securitySettingsResult);
+          const securitySettings = securitySettingsResult.data;
+          const settingsError = securitySettingsResult.success ? null : { message: securitySettingsResult.error };
           
           let maxAttempts = 2; // Safe default that matches your DB
           
@@ -94,10 +93,11 @@ serve(async (req) => {
 
           // Check current failed attempts WITHIN the lockout time window only
           const lockoutWindowStart = new Date(Date.now() - lockoutDurationMinutes * 60 * 1000);
-          const { data: recentFailedAttemptsData } = await supabase.rpc('get_failed_attempts_count_since', {
+          const recentAttemptsResult = await api.rpc('get_failed_attempts_count_since', {
             email_address: cleanEmail,
             since_time: lockoutWindowStart.toISOString()
           });
+          const recentFailedAttemptsData = recentAttemptsResult.success ? recentAttemptsResult.data : 0;
           
           const currentAttempts = recentFailedAttemptsData || 0;
           
@@ -130,7 +130,7 @@ serve(async (req) => {
             console.error('Auth error:', authError);
             
             // Record failed attempt
-            await supabase.from('login_attempts').insert({
+            await api.insert('login_attempts', {
               email: cleanEmail,
               ip_address: ip_address,
               user_agent: user_agent,
@@ -170,7 +170,7 @@ serve(async (req) => {
           console.log('Login successful for:', cleanEmail);
           
           // Record successful attempt and clean up old failed attempts
-          await supabase.from('login_attempts').insert({
+          await api.insert('login_attempts', {
             email: cleanEmail,
             ip_address: ip_address,
             user_agent: user_agent,
@@ -178,7 +178,7 @@ serve(async (req) => {
           });
 
           // Clean up old failed attempts for this email (older than 24 hours)
-          await supabase.rpc('cleanup_old_login_attempts');
+          await api.rpc('cleanup_old_login_attempts');
 
           return new Response(
             JSON.stringify({
@@ -214,16 +214,17 @@ serve(async (req) => {
 
         try {
           // Check if user's session is still valid
-          const { data: securityStatus, error: statusError } = await supabase
-            .from('user_security_status')
-            .select('session_expires_at, is_banned, ban_reason')
-            .eq('user_id', user_id)
-            .single();
+          const securityStatusResult = await api.select('user_security_status', 'session_expires_at, is_banned, ban_reason', {
+            eq: { user_id },
+            single: true
+          });
+          const securityStatus = securityStatusResult.data;
+          const statusError = securityStatusResult.success ? null : { message: securityStatusResult.error };
 
           if (statusError) {
             console.log('No security status found, creating new one with 24h expiry');
             // Create a new security status with 24-hour expiry
-            await supabase.from('user_security_status').upsert({
+            await api.upsert('user_security_status', {
               user_id: user_id,
               session_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
               failed_login_count: 0,
@@ -260,12 +261,12 @@ serve(async (req) => {
             
             // Instead of immediately invalidating, extend the session for active users
             const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-            await supabase.from('user_security_status')
-              .update({
-                session_expires_at: newExpiry.toISOString(),
-                updated_at: now.toISOString()
-              })
-              .eq('user_id', user_id);
+            await api.update('user_security_status', {
+              session_expires_at: newExpiry.toISOString(),
+              updated_at: now.toISOString()
+            }, {
+              eq: { user_id }
+            });
             
             console.log(`Session extended for user ${user_id} until ${newExpiry}`);
             
@@ -337,9 +338,10 @@ serve(async (req) => {
 
         try {
           // Use the database function to validate password
-          const { data: validationResult, error: validationError } = await supabase.rpc('validate_password_policy', {
+          const validationResult = await api.rpc('validate_password_policy', {
             _password: password
           });
+          const validationError = validationResult.success ? null : { message: validationResult.error };
 
           if (validationError) {
             console.error('Password validation error:', validationError);
@@ -352,8 +354,8 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({
               validation: {
-                valid: validationResult?.[0]?.valid || false,
-                errors: validationResult?.[0]?.errors || []
+                valid: validationResult.data?.[0]?.valid || false,
+                errors: validationResult.data?.[0]?.errors || []
               }
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -379,10 +381,9 @@ serve(async (req) => {
         console.log(`Resetting failed attempts for: ${cleanEmail}`);
         
         // Clear all failed login attempts for this email
-        await supabase.from('login_attempts')
-          .delete()
-          .eq('email', cleanEmail)
-          .eq('success', false);
+        await api.delete('login_attempts', {
+          eq: { email: cleanEmail, success: false }
+        });
           
         console.log(`Failed attempts cleared for: ${cleanEmail}`);
 
