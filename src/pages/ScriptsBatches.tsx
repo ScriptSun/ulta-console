@@ -350,12 +350,12 @@ export default function ScriptsBatches() {
     
     try {
       // Both activation and deactivation now use direct database updates
-      const currentUser = await supabase.auth.getUser();
+      const currentUser = await api.getCurrentUser();
       const response = await api
         .from('script_batches')
         .update({ 
           active_version: newStatus,
-          updated_by: currentUser.data.user?.id,
+          updated_by: currentUser.data?.id,
           updated_at: new Date().toISOString()
         })
         .eq('id', batch.id);

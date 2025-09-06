@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 
 interface NewBatchDrawerProps {
   open: boolean;
@@ -169,7 +169,7 @@ export function NewBatchDrawer({ open, onOpenChange, onSuccess, editBatch }: New
         sampleInputs = { example: 'test_value' };
       }
 
-      const { data, error } = await supabase.functions.invoke('validate-batch', {
+      const response = await api.invokeFunction('validate-batch', {
         body: {
           batch_name: batchName,
           inputs: sampleInputs,
@@ -177,15 +177,15 @@ export function NewBatchDrawer({ open, onOpenChange, onSuccess, editBatch }: New
         }
       });
 
-      if (error) {
+      if (response.error) {
         setValidationResult({
           status: 'error',
-          message: `Validation failed: ${error.message}`
+          message: `Validation failed: ${response.error}`
         });
-      } else if (data) {
+      } else if (response.data) {
         setValidationResult({
-          status: data.status,
-          message: data.status === 'ok' ? data.message : data.reason
+          status: response.data.status,
+          message: response.data.status === 'ok' ? response.data.message : response.data.reason
         });
       }
     } catch (error) {

@@ -15,7 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
-import { supabase } from '@/integrations/supabase/client'
+import { api } from '@/lib/api-wrapper';
 import { useState, useEffect } from 'react'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 
@@ -36,45 +36,31 @@ export function TopBar() {
   useEffect(() => {
     if (!user) return;
 
-    const subscription = supabase
-      .channel('profile_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'admin_profiles',
-          filter: `id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('Profile updated:', payload);
-          // Reload profile when it changes
-          loadUserProfile();
-        }
-      )
-      .subscribe();
+    // Note: Real-time subscription would go here if API wrapper supports it
+    // For now, we'll just load the profile once
+    // TODO: Implement real-time profile updates through API wrapper
 
     return () => {
-      subscription.unsubscribe();
+      // No cleanup needed without subscription
     };
   }, [user]);
 
   const loadUserProfile = async () => {
     try {
-      const { data, error } = await supabase
+      const response = await api
         .from('admin_profiles')
         .select('avatar_url, full_name')
         .eq('id', user?.id)
         .maybeSingle();
 
-      if (data) {
-        if (data.avatar_url) {
-          setAvatarUrl(data.avatar_url);
+      if (response.success && response.data) {
+        if (response.data.avatar_url) {
+          setAvatarUrl(response.data.avatar_url);
         } else {
           setAvatarUrl(''); // Clear avatar if removed
         }
-        if (data.full_name) {
-          setFullName(data.full_name);
+        if (response.data.full_name) {
+          setFullName(response.data.full_name);
         }
       }
     } catch (error) {

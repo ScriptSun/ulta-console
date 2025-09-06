@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { 
   Brain, 
   Save, 
@@ -105,15 +105,15 @@ export function AvailableModelsTab() {
 
   const loadSettings = async () => {
     try {
-      const { data, error } = await supabase
+      const response = await api
         .from('system_settings')
         .select('*')
         .in('setting_key', ['ai.models', 'ai.defaults.global']);
 
-      if (error) throw error;
+      if (!response.success) throw new Error(response.error);
 
-      const modelsData = data?.find(s => s.setting_key === 'ai.models')?.setting_value as string[] | undefined;
-      const defaultsData = data?.find(s => s.setting_key === 'ai.defaults.global')?.setting_value as any;
+      const modelsData = response.data?.find(s => s.setting_key === 'ai.models')?.setting_value as string[] | undefined;
+      const defaultsData = response.data?.find(s => s.setting_key === 'ai.defaults.global')?.setting_value as any;
 
       if (modelsData || defaultsData) {
         setSettings({
@@ -135,7 +135,7 @@ export function AvailableModelsTab() {
   const saveSettings = async () => {
     setLoading(true);
     try {
-      await supabase
+      const response = await api
         .from('system_settings')
         .upsert([
           {
@@ -148,9 +148,9 @@ export function AvailableModelsTab() {
               default_models: settings.default_models,
             }
           }
-        ], {
-          onConflict: 'setting_key'
-        });
+        ]);
+
+      if (!response.success) throw new Error(response.error);
 
       toast({
         title: 'Settings Saved',
@@ -203,7 +203,7 @@ export function AvailableModelsTab() {
   const testModel = async (modelValue: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-router', {
+      const response = await api.invokeFunction('ai-router', {
         body: {
           model: modelValue,
           messages: [{ role: 'user', content: 'Hello! Please respond with "Model test successful."' }],
@@ -211,7 +211,7 @@ export function AvailableModelsTab() {
         }
       });
 
-      if (error) throw error;
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: 'Model Test Successful',
