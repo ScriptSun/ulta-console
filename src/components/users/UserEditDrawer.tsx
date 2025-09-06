@@ -30,6 +30,7 @@ interface UserEditDrawerProps {
 }
 
 export function UserEditDrawer({ user, open, onOpenChange, onUserUpdated }: UserEditDrawerProps) {
+  console.log('UserEditDrawer render - user:', user, 'open:', open);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
@@ -213,9 +214,11 @@ export function UserEditDrawer({ user, open, onOpenChange, onUserUpdated }: User
 
   if (!user) return null;
 
+  console.log('About to render Sheet with open:', open, 'user:', user?.email);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[65%] overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:w-[65%] overflow-y-auto bg-background z-50">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />

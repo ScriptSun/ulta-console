@@ -52,12 +52,14 @@ export default function Users() {
 
   const handleEditUser = (user: User) => {
     console.log('Editing user:', user);
+    console.log('Setting editDrawerOpen to true');
     toast({
       title: 'Opening Edit Panel',
       description: `Editing ${user.full_name || user.email}`,
     });
     setSelectedUser(user);
     setEditDrawerOpen(true);
+    console.log('Edit drawer state should now be:', true);
   };
 
   const handleDeleteUser = async (user: User) => {
@@ -106,6 +108,22 @@ export default function Users() {
         description="Manage users and their access to agents and features"
         actions={actions}
       />
+
+      {/* Debug section - temporary */}
+      <div className="p-4 bg-yellow-100 border border-yellow-300 rounded">
+        <p>Debug: editDrawerOpen = {String(editDrawerOpen)}</p>
+        <p>Debug: selectedUser = {selectedUser?.email || 'none'}</p>
+        <Button 
+          onClick={() => {
+            console.log('Force opening drawer');
+            setSelectedUser({ id: 'test', email: 'test@example.com', full_name: 'Test User', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+            setEditDrawerOpen(true);
+          }}
+          className="mt-2"
+        >
+          Force Open Drawer (Test)
+        </Button>
+      </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -169,7 +187,10 @@ export default function Users() {
       <UserEditDrawer
         user={selectedUser}
         open={editDrawerOpen}
-        onOpenChange={setEditDrawerOpen}
+        onOpenChange={(open) => {
+          console.log('UserEditDrawer onOpenChange called with:', open);
+          setEditDrawerOpen(open);
+        }}
         onUserUpdated={handleUserUpdated}
       />
     </div>
