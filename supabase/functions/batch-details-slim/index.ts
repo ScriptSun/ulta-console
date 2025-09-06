@@ -51,7 +51,7 @@ serve(async (req) => {
     console.log(`Getting slim batch details for: ${batch_id}`);
 
     // Get only essential batch fields - no metadata, timestamps, or audit fields
-    const batchResult = await api.selectOne('script_batches', `
+    const batchResult = await api.select('script_batches', `
       id,
       name,
       description,
@@ -61,7 +61,10 @@ serve(async (req) => {
       inputs_defaults,
       os_targets,
       key
-    `, { id: batch_id });
+    `, { 
+      eq: { id: batch_id },
+      single: true 
+    });
 
     if (!batchResult.success || !batchResult.data) {
       console.error('Error loading batch details:', batchResult.error);
