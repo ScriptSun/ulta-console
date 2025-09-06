@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { 
   Zap, 
   Save, 
@@ -141,22 +141,20 @@ export function IntelligentSelectionTab() {
 
   const loadSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('*')
-        .eq('setting_key', 'ai.intelligent_selection')
-        .maybeSingle();
+      const response = await api.selectOne('system_settings', '*', {
+        setting_key: 'ai.intelligent_selection'
+      });
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
+      if (response.success && response.data) {
+        const data = response.data;
 
-      if (data?.setting_value) {
-        const settingValue = data.setting_value as any;
-        setSettings({
-          ...settings,
-          ...settingValue
-        });
+        if (data.setting_value) {
+          const settingValue = data.setting_value as any;
+          setSettings({
+            ...settings,
+            ...settingValue
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading intelligent selection settings:', error);
@@ -171,14 +169,12 @@ export function IntelligentSelectionTab() {
   const saveSettings = async () => {
     setLoading(true);
     try {
-      await supabase
-        .from('system_settings')
-        .upsert({
-          setting_key: 'ai.intelligent_selection',
-          setting_value: settings as any,
-        }, {
-          onConflict: 'setting_key'
-        });
+      const response = await api.upsert('system_settings', {
+        setting_key: 'ai.intelligent_selection',
+        setting_value: settings as any,
+      });
+
+      if (!response.success) throw new Error(response.error);
 
       toast({
         title: 'Settings Saved',

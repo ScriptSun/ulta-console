@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { Settings, Save, Loader2, Eye, Bot } from 'lucide-react';
 
 interface GlobalConfig {
@@ -57,12 +57,12 @@ export function ModelConfigurationTab() {
 
   const loadConfiguration = async () => {
     try {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('*')
-        .in('setting_key', ['ai.defaults.global', 'ai.defaults.agents']);
+      const response = await api.select('system_settings', '*', {
+        setting_key: { in: ['ai.defaults.global', 'ai.defaults.agents'] }
+      });
 
-      if (error) throw error;
+      if (!response.success) throw new Error(response.error);
+      const data = response.data;
 
       const globalData = data?.find(s => s.setting_key === 'ai.defaults.global')?.setting_value as Partial<GlobalConfig> | undefined;
       const agentsData = data?.find(s => s.setting_key === 'ai.defaults.agents')?.setting_value as unknown as Record<string, AgentOverride> | undefined;
@@ -86,13 +86,10 @@ export function ModelConfigurationTab() {
 
   const loadAgents = async () => {
     try {
-      const { data, error } = await supabase
-        .from('agents')
-        .select('id, hostname')
-        .order('hostname');
+      const response = await api.select('agents', 'id, hostname', {});
 
-      if (error) throw error;
-      setAgents(data || []);
+      if (!response.success) throw new Error(response.error);
+      setAgents(response.data?.sort((a, b) => a.hostname.localeCompare(b.hostname)) || []);
     } catch (error) {
       console.error('Error loading agents:', error);
     }
@@ -112,9 +109,8 @@ export function ModelConfigurationTab() {
         }
       ];
 
-      await supabase
-        .from('system_settings')
-        .upsert(updates as any, { onConflict: 'setting_key' });
+      const response = await api.upsert('system_settings', updates);
+      if (!response.success) throw new Error(response.error);
 
       toast({
         title: 'Configuration Saved',

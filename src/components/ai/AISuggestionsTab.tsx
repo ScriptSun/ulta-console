@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Bot } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { useToast } from '@/hooks/use-toast';
 
 export function AISuggestionsTab() {
@@ -17,15 +17,15 @@ export function AISuggestionsTab() {
   const fetchSystemSettings = async () => {
     try {
       // Fetch AI suggestions mode from system_settings using new schema
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'ai_suggestions_mode')
-        .single();
+      const response = await api.selectOne('system_settings', 'setting_value', {
+        setting_key: 'ai_suggestions_mode'
+      });
 
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows found
-      
-      setAiSuggestionsMode(data?.setting_value as 'off' | 'show' | 'execute' || 'off');
+      if (response.success && response.data) {
+        setAiSuggestionsMode(response.data.setting_value as 'off' | 'show' | 'execute' || 'off');
+      } else {
+        setAiSuggestionsMode('off');
+      }
     } catch (error) {
       console.error('Error fetching system settings:', error);
       toast({
@@ -40,15 +40,13 @@ export function AISuggestionsTab() {
 
   const updateAiSuggestionsMode = async (mode: 'off' | 'show' | 'execute') => {
     try {
-      const { error } = await supabase
-        .from('system_settings')
-        .upsert({ 
-          setting_key: 'ai_suggestions_mode',
-          setting_value: mode,
-          description: 'AI suggestions mode configuration'
-        });
+      const response = await api.upsert('system_settings', { 
+        setting_key: 'ai_suggestions_mode',
+        setting_value: mode,
+        description: 'AI suggestions mode configuration'
+      });
 
-      if (error) throw error;
+      if (!response.success) throw new Error(response.error);
 
       setAiSuggestionsMode(mode);
       toast({
