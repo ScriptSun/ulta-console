@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,14 +39,15 @@ export default function UserEdit() {
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['user', userId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      if (!userId) throw new Error('User ID is required');
       
-      if (error) throw error;
-      return data;
+      const response = await api.selectSingle('admin_profiles', '*', { id: userId });
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch user');
+      }
+      
+      return response.data;
     },
     enabled: !!userId,
   });
@@ -57,17 +58,14 @@ export default function UserEdit() {
     queryFn: async () => {
       if (!userId) return null;
       
-      const { data, error } = await supabase
-        .from('user_security_status')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const response = await api.selectSingle('user_security_status', '*', { user_id: userId });
       
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      // Return null if no security status found (user may not have one)
+      if (!response.success) {
+        return null;
       }
       
-      return data;
+      return response.data;
     },
     enabled: !!userId,
   });
@@ -78,14 +76,18 @@ export default function UserEdit() {
     queryFn: async () => {
       if (!userId) return [];
       
-      const { data, error } = await supabase
-        .from('agents')
-        .select('id, hostname, status, agent_type, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      const response = await api.query('agents', {
+        select: 'id, hostname, status, agent_type, created_at',
+        filters: { user_id: userId },
+        orderBy: { column: 'created_at', ascending: false }
+      });
       
-      if (error) throw error;
-      return data || [];
+      if (!response.success) {
+        console.warn('Failed to fetch user agents:', response.error);
+        return [];
+      }
+      
+      return response.data || [];
     },
     enabled: !!userId,
   });
@@ -96,15 +98,19 @@ export default function UserEdit() {
     queryFn: async () => {
       if (!userId) return [];
       
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('session_start', { ascending: false })
-        .limit(5);
+      const response = await api.query('user_sessions', {
+        select: '*',
+        filters: { user_id: userId },
+        orderBy: { column: 'session_start', ascending: false },
+        limit: 5
+      });
       
-      if (error) throw error;
-      return data || [];
+      if (!response.success) {
+        console.warn('Failed to fetch user sessions:', response.error);
+        return [];
+      }
+      
+      return response.data || [];
     },
     enabled: !!userId,
   });
@@ -144,58 +150,52 @@ export default function UserEdit() {
     setIsLoading(true);
     
     try {
-      // Update user profile (assuming there's a profiles table)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
+      // Update user profile in admin_profiles table
+      const profileResponse = await api.update('admin_profiles', 
+        { id: user.id }, 
+        {
           full_name: formData.full_name,
-          updated_at: new Date().toISOString(),
-        });
+          email: formData.email,
+        }
+      );
 
-      if (profileError) {
-        console.warn('Profile update error:', profileError);
+      if (!profileResponse.success) {
+        throw new Error(profileResponse.error || 'Failed to update profile');
       }
 
       // Update user security status if needed
-      if (userSecurityStatus?.is_banned === formData.is_active) {
-        const { error: securityError } = await supabase
-          .from('user_security_status')
-          .upsert({
-            user_id: user.id,
-            email: formData.email,
-            is_banned: !formData.is_active,
-            ban_reason: formData.is_active ? null : 'Manually disabled by admin',
-            banned_at: formData.is_active ? null : new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+      const shouldUpdateSecurityStatus = userSecurityStatus?.is_banned !== !formData.is_active;
+      
+      if (shouldUpdateSecurityStatus) {
+        const securityResponse = await api.upsert('user_security_status', {
+          user_id: user.id,
+          email: formData.email,
+          is_banned: !formData.is_active,
+          ban_reason: formData.is_active ? null : 'Manually disabled by admin',
+          banned_at: formData.is_active ? null : new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
 
-        if (securityError) {
-          console.warn('Security status update error:', securityError);
+        if (!securityResponse.success) {
+          console.warn('Security status update failed:', securityResponse.error);
         }
       }
 
-      // Update email in auth.users (this would typically require admin privileges)
-      if (formData.email !== user.email) {
-        // Note: This requires service role access - typically done through an edge function
-        toast({
-          title: 'Email Update',
-          description: 'Email updates require additional verification. Contact support.',
-          variant: 'default',
-        });
-      }
-
+      // Show success message
       toast({
         title: 'Success',
         description: 'User updated successfully',
       });
 
-      // Invalidate related queries
+      // Invalidate related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['user', userId] });
+      queryClient.invalidateQueries({ queryKey: ['user-security-status', userId] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user-security-status'] });
       
-      // Navigate back to users list
-      navigate('/users');
+      // Navigate back to users list after a short delay
+      setTimeout(() => {
+        navigate('/users');
+      }, 1000);
       
     } catch (error: any) {
       console.error('Error updating user:', error);
@@ -222,25 +222,26 @@ export default function UserEdit() {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase
-        .from('user_security_status')
-        .upsert({
-          user_id: user.id,
-          email: user.email,
-          is_banned: !isBanned,
-          ban_reason: isBanned ? null : `Manually ${action}ned by admin`,
-          banned_at: isBanned ? null : new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+      const response = await api.upsert('user_security_status', {
+        user_id: user.id,
+        email: user.email,
+        is_banned: !isBanned,
+        ban_reason: isBanned ? null : `Manually ${action}ned by admin`,
+        banned_at: isBanned ? null : new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error || `Failed to ${action} user`);
+      }
 
       toast({
         title: 'Success',
         description: `User ${action}ned successfully`,
       });
 
-      queryClient.invalidateQueries({ queryKey: ['user-security-status'] });
+      // Refresh security status data
+      queryClient.invalidateQueries({ queryKey: ['user-security-status', userId] });
       
     } catch (error: any) {
       console.error(`Error ${action}ning user:`, error);

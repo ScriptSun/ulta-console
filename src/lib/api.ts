@@ -141,6 +141,21 @@ class DatabaseAPI {
   }
 
   /**
+   * Select a single row from a table (alias for selectOne)
+   * @param table - Table name
+   * @param columns - Columns to select (default: '*')
+   * @param filters - Filter conditions
+   * @returns Promise with standardized response format
+   */
+  async selectSingle<T = any>(
+    table: string, 
+    columns: string = '*', 
+    filters?: FilterObject
+  ): Promise<ApiResponse<T | null>> {
+    return this.selectOne<T>(table, columns, filters);
+  }
+
+  /**
    * Select a single row from a table
    * @param table - Table name
    * @param columns - Columns to select (default: '*')
@@ -299,6 +314,103 @@ class DatabaseAPI {
       };
     } catch (error) {
       return this.handleError(error);
+    }
+  }
+
+  /**
+   * Upsert (insert or update) data in a table
+   * @param table - Table name
+   * @param data - Data to upsert
+   * @returns Promise with standardized response format
+   * 
+   * @example
+   * const user = await api.upsert('users', { 
+   *   id: 1,
+   *   name: 'John Doe', 
+   *   email: 'john@example.com' 
+   * });
+   */
+  async upsert<T = any>(
+    table: string, 
+    data: InsertData | InsertData[]
+  ): Promise<ApiResponse<T>> {
+    try {
+      const { data: result, error } = await (supabase as any)
+        .from(table)
+        .upsert(data)
+        .select()
+        .maybeSingle();
+      
+      if (error) {
+        return this.handleError(error);
+      }
+      
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Complex query with ordering, limits, and other options
+   * @param table - Table name
+   * @param options - Query options including select, filters, orderBy, limit, etc.
+   * @returns Promise with standardized response format
+   */
+  async query<T = any>(
+    table: string,
+    options: {
+      select?: string;
+      filters?: FilterObject;
+      orderBy?: { column: string; ascending?: boolean };
+      limit?: number;
+      offset?: number;
+      single?: boolean;
+    }
+  ): Promise<ApiResponse<T[] | T>> {
+    try {
+      let query = (supabase as any).from(table).select(options.select || '*');
+      
+      // Apply filters
+      if (options.filters) {
+        query = this.applyFilters(query, options.filters);
+      }
+      
+      // Apply ordering
+      if (options.orderBy) {
+        query = query.order(options.orderBy.column, { 
+          ascending: options.orderBy.ascending ?? true 
+        });
+      }
+      
+      // Apply limit
+      if (options.limit) {
+        query = query.limit(options.limit);
+      }
+      
+      // Apply offset
+      if (options.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+      }
+      
+      // Execute query
+      const { data, error } = options.single ? 
+        await query.maybeSingle() : 
+        await query;
+      
+      if (error) {
+        return this.handleError(error);
+      }
+      
+      return { 
+        success: true, 
+        data: data as T[] | T 
+      };
+    } catch (err) {
+      return this.handleError(err);
     }
   }
 

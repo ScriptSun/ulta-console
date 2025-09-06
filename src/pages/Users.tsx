@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,36 +34,22 @@ export default function Users() {
   const { data: userStats } = useQuery({
     queryKey: ['userStats'],
     queryFn: async () => {
-      // Get total users count
-      const { count: totalUsers, error: totalError } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true });
+      // Get total users count from admin_profiles
+      const usersResponse = await api.select('admin_profiles', 'id');
+      const totalUsers = usersResponse.success ? usersResponse.data?.length || 0 : 0;
       
-      if (totalError) throw totalError;
-      
-      // Get users with agents count
-      const { data: usersWithAgents, error: agentsError } = await supabase
-        .from('users')
-        .select(`
-          id,
-          agents!agents_user_id_fkey(count)
-        `);
-      
-      if (agentsError) throw agentsError;
+      // Get agents data to calculate statistics
+      const agentsResponse = await api.select('agents', 'user_id');
+      const agentsData = agentsResponse.success ? agentsResponse.data || [] : [];
       
       // Calculate statistics
-      const usersWithActiveAgents = usersWithAgents?.filter(user => 
-        user.agents && user.agents[0]?.count > 0
-      ).length || 0;
-      
-      const totalAgents = usersWithAgents?.reduce((sum, user) => 
-        sum + (user.agents?.[0]?.count || 0), 0
-      ) || 0;
-      
-      const usersWithoutAgents = (totalUsers || 0) - usersWithActiveAgents;
+      const uniqueUserIds = new Set(agentsData.map(agent => agent.user_id));
+      const usersWithActiveAgents = uniqueUserIds.size;
+      const totalAgents = agentsData.length;
+      const usersWithoutAgents = totalUsers - usersWithActiveAgents;
       
       return {
-        totalUsers: totalUsers || 0,
+        totalUsers,
         usersWithActiveAgents,
         usersWithoutAgents,
         totalAgents
@@ -74,16 +60,26 @@ export default function Users() {
   const { data: users, isLoading, refetch } = useQuery({
     queryKey: ['users', searchEmail, dateFilter, agentCountFilter],
     queryFn: async () => {
-      let query = supabase
-        .from('users')
-        .select(`
-          *,
-          agents!agents_user_id_fkey(count)
-        `);
+      // Build filters for the API call
+      const filters: any = {};
       
+      // Add email filter
       if (searchEmail) {
-        query = query.ilike('email', `%${searchEmail}%`);
+        filters.email = `%${searchEmail}%`;
       }
+      
+      // Get users from admin_profiles
+      const usersResponse = await api.query('admin_profiles', {
+        select: '*',
+        filters,
+        orderBy: { column: 'created_at', ascending: false }
+      });
+      
+      if (!usersResponse.success) {
+        throw new Error(usersResponse.error || 'Failed to fetch users');
+      }
+      
+      let userData = usersResponse.data || [];
       
       // Apply date filter
       if (dateFilter !== 'all') {
@@ -93,42 +89,44 @@ export default function Users() {
         switch (dateFilter) {
           case 'today':
             filterDate.setHours(0, 0, 0, 0);
-            query = query.gte('created_at', filterDate.toISOString());
             break;
           case 'week':
             filterDate.setDate(now.getDate() - 7);
-            query = query.gte('created_at', filterDate.toISOString());
             break;
           case 'month':
             filterDate.setMonth(now.getMonth() - 1);
-            query = query.gte('created_at', filterDate.toISOString());
             break;
           case 'thismonth':
-            // Start of current month
             filterDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            query = query.gte('created_at', filterDate.toISOString());
             break;
           case 'year':
             filterDate.setFullYear(now.getFullYear() - 1);
-            query = query.gte('created_at', filterDate.toISOString());
             break;
           case 'thisyear':
-            // Start of current year
             filterDate = new Date(now.getFullYear(), 0, 1);
-            query = query.gte('created_at', filterDate.toISOString());
             break;
         }
+        
+        userData = userData.filter(user => 
+          new Date(user.created_at) >= filterDate
+        );
       }
       
-      const { data, error } = await query.order('created_at', { ascending: false });
+      // Get agent counts for each user
+      const agentsResponse = await api.select('agents', 'user_id');
+      const agentsData = agentsResponse.success ? agentsResponse.data || [] : [];
       
-      if (error) throw error;
+      // Count agents per user
+      const agentCounts: Record<string, number> = {};
+      agentsData.forEach(agent => {
+        agentCounts[agent.user_id] = (agentCounts[agent.user_id] || 0) + 1;
+      });
       
-      // Transform the data to include agent count and apply agent count filter
-      let transformedData = data?.map(user => ({
+      // Transform the data to include agent count
+      let transformedData = userData.map(user => ({
         ...user,
-        agent_count: user.agents?.[0]?.count || 0
-      })) || [];
+        agent_count: agentCounts[user.id] || 0
+      }));
       
       // Apply agent count filter
       if (agentCountFilter !== 'all') {
@@ -164,12 +162,11 @@ export default function Users() {
   const handleDeleteUser = async (user: User) => {
     if (window.confirm(`Are you sure you want to delete user ${user.email}?`)) {
       try {
-        const { error } = await supabase
-          .from('users')
-          .delete()
-          .eq('id', user.id);
+        const response = await api.delete('admin_profiles', { id: user.id });
 
-        if (error) throw error;
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to delete user');
+        }
 
         toast({
           title: 'Success',

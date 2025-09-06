@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,14 +15,15 @@ export default function UserDetail() {
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['user', userId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      if (!userId) throw new Error('User ID is required');
       
-      if (error) throw error;
-      return data;
+      const response = await api.selectSingle('admin_profiles', '*', { id: userId });
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch user');
+      }
+      
+      return response.data;
     },
     enabled: !!userId,
   });
@@ -30,14 +31,20 @@ export default function UserDetail() {
   const { data: userAgents, isLoading: agentsLoading } = useQuery({
     queryKey: ['user-agents', userId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('agents')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      if (!userId) return [];
       
-      if (error) throw error;
-      return data || [];
+      const response = await api.query('agents', {
+        select: '*',
+        filters: { user_id: userId },
+        orderBy: { column: 'created_at', ascending: false }
+      });
+      
+      if (!response.success) {
+        console.warn('Failed to fetch user agents:', response.error);
+        return [];
+      }
+      
+      return response.data || [];
     },
     enabled: !!userId,
   });
