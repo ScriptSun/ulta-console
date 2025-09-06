@@ -58,6 +58,7 @@ import { ThemeSelector } from '@/components/theme/ThemeSelector';
 import { ThemeCustomizer } from '@/components/theme/ThemeCustomizer';
 import { useNavigate } from 'react-router-dom';
 import { LogoFaviconManager } from '@/components/brand/LogoFaviconManager';
+import { OSTargetsManager } from '@/components/settings/OSTargetsManager';
 import { 
   ArrowRight,
   Image,
@@ -93,6 +94,16 @@ const systemSections = [
     statsLine: 'Rate limits, Timeouts, Concurrent requests',
     action: 'Configure',
     href: '/system-settings/api-limits'
+  },
+  {
+    title: 'Configure OS',
+    description: 'Manage operating system targets and versions',
+    icon: Cpu,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-100',
+    statsLine: 'OS targets, Versions, Batch script compatibility',
+    action: 'Configure',
+    id: 'os-targets'
   },
   {
     title: 'Security',
@@ -292,10 +303,10 @@ export default function SystemSettings() {
                   <div className="text-sm text-muted-foreground">
                     {section.statsLine}
                   </div>
-                  <Button 
+                   <Button 
                     variant="outline" 
                     className="w-full"
-                    onClick={() => handleSectionClick(section.title, section.href)}
+                    onClick={() => handleSectionClick((section as any).id || section.title, (section as any).href)}
                   >
                     {section.action}
                   </Button>
@@ -309,6 +320,14 @@ export default function SystemSettings() {
       {/* Logo and Favicon Manager Drawer */}
       {activeSection === 'logos-favicon' && (
         <LogoFaviconManager 
+          open={true}
+          onClose={handleCloseDrawer}
+        />
+      )}
+
+      {/* OS Targets Manager Drawer */}
+      {activeSection === 'os-targets' && (
+        <OSTargetsManager 
           open={true}
           onClose={handleCloseDrawer}
         />

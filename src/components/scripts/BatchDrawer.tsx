@@ -50,7 +50,8 @@ import {
   Link,
   Info
 } from 'lucide-react';
-import { getOSOptions, getRiskOptions, type ValidationResult } from '@/utils/scriptValidation';
+import { getRiskOptions, type ValidationResult } from '@/utils/scriptValidation';
+import { useOSTargets } from '@/hooks/useOSTargets';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -452,8 +453,8 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
 
       // Also save/update the script content if it exists
       if (scriptContent && scriptContent.trim()) {
-        // Get the first OS target or default to ubuntu
-        const currentOs = formData.os_targets[0] || 'ubuntu';
+        // Get the first OS target or default to ubuntu-22.04
+        const currentOs = formData.os_targets[0] || 'ubuntu-22.04';
         
         // Check if there's already a variant for this OS
         const existingVariant = variants.find(v => v.os === currentOs);
@@ -587,19 +588,18 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     setHasUnsavedChanges(true);
   };
 
-  const handleOSTargetToggle = (os: string) => {
-    const newTargets = formData.os_targets.includes(os)
-      ? formData.os_targets.filter(t => t !== os)
-      : [...formData.os_targets, os];
+  const handleOSTargetToggle = (osValue: string) => {
+    const newTargets = formData.os_targets.includes(osValue)
+      ? formData.os_targets.filter(t => t !== osValue)
+      : [...formData.os_targets, osValue];
     handleFormChange('os_targets', newTargets);
   };
 
   const riskOptions = getRiskOptions();
-  const osOptions = getOSOptions();
+  const { osOptions } = useOSTargets();
 
-  // OS Icons mapping
   const getOSIcon = (osValue: string) => {
-    const iconMap = {
+    const iconMap: Record<string, any> = {
       ubuntu: Monitor,
       debian: Monitor,
       almalinux: Server,
@@ -607,7 +607,10 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
       centos: Cpu,
       rhel: Server,
     };
-    return iconMap[osValue as keyof typeof iconMap] || Monitor;
+
+    // Extract the base OS name from the OS option value (e.g., "ubuntu-22.04" -> "ubuntu")
+    const baseName = osValue.split('-')[0];
+    return iconMap[baseName] || Monitor;
   };
 
   return (
@@ -837,25 +840,49 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
             <TabsContent value="script" className="space-y-4 mt-6">
               {/* OS Targets Selection */}
               <div className="space-y-2">
-                <Label>OS Targets</Label>
+                <div className="flex items-center justify-between">
+                  <Label>OS Targets</Label>
+                  <Select onValueChange={(value) => handleOSTargetToggle(value)} disabled={!canEdit}>
+                    <SelectTrigger className="w-auto">
+                      <SelectValue placeholder="Add OS Target" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {osOptions
+                        .filter(option => !formData.os_targets.includes(option.value))
+                        .map((option) => {
+                          const OSIcon = getOSIcon(option.value);
+                          return (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div className="flex items-center gap-2">
+                                <OSIcon className="h-4 w-4" />
+                                {option.label}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  {osOptions.map((os) => {
-                    const OSIcon = getOSIcon(os.value);
+                  {formData.os_targets.map((osValue) => {
+                    // Find the matching option for display
+                    const osOption = osOptions.find(opt => opt.value === osValue);
+                    const OSIcon = getOSIcon(osValue);
+                    const displayLabel = osOption?.label || osValue;
+                    
                     return (
                       <button
-                        key={os.value}
+                        key={osValue}
                         type="button"
-                        onClick={() => handleOSTargetToggle(os.value)}
+                        onClick={() => handleOSTargetToggle(osValue)}
                         disabled={!canEdit}
                         className={cn(
                           "px-3 py-1 rounded-md border text-sm transition-colors flex items-center gap-2",
-                          formData.os_targets.includes(os.value)
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-background border-border hover:bg-muted"
+                          "bg-primary text-primary-foreground border-primary"
                         )}
                       >
                         <OSIcon className="h-4 w-4" />
-                        {os.label}
+                        {displayLabel}
                       </button>
                     );
                   })}
