@@ -200,7 +200,8 @@ export function EnhancedDataTable<T extends { id: string | number }>({
                       column.label,
                       sortBy,
                       sortOrder,
-                      onSortChange
+                      onSortChange,
+                      column.key
                     )
                   ) : (
                     column.label

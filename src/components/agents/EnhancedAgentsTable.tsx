@@ -41,7 +41,7 @@ interface EnhancedAgentsTableProps {
 
 // Mock data fetch function - replace with actual API call
 const fetchAgents = async (state: ServerTableState): Promise<ServerTableResponse<Agent>> => {
-  // Simulate API delay
+  console.log('Fetching agents with state:', state);
   await new Promise(resolve => setTimeout(resolve, 500));
   
   const mockAgents: Agent[] = [
@@ -208,8 +208,20 @@ const fetchAgents = async (state: ServerTableState): Promise<ServerTableResponse
   // Apply sorting
   if (state.sortBy) {
     filteredAgents = filteredAgents.sort((a, b) => {
-      const aValue = (a as any)[state.sortBy!];
-      const bValue = (b as any)[state.sortBy!];
+      let aValue = (a as any)[state.sortBy!];
+      let bValue = (b as any)[state.sortBy!];
+      
+      // Handle date sorting for last_seen
+      if (state.sortBy === 'last_seen') {
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      }
+      
+      // Handle string sorting
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
       
       if (aValue < bValue) return state.sortOrder === 'asc' ? -1 : 1;
       if (aValue > bValue) return state.sortOrder === 'asc' ? 1 : -1;
@@ -368,12 +380,13 @@ export function EnhancedAgentsTable({
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...tableState.filters };
-    if (value === '') {
+    if (value === '' || value === 'all') {
       delete newFilters[key];
     } else {
       newFilters[key] = value;
     }
     updateFilters(newFilters);
+    console.log('Filter changed:', key, value, 'New filters:', newFilters);
   };
 
   const filterOptions = [

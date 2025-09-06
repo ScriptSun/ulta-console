@@ -35,7 +35,7 @@ export function useServerTable<T>({
 
   // Reset page when search or filters change
   useEffect(() => {
-    if (tableState.page !== 1) {
+    if (tableState.page !== 1 && (debouncedSearch !== '' || Object.keys(tableState.filters).length > 0)) {
       setTableState(prev => ({ ...prev, page: 1 }));
     }
   }, [debouncedSearch, tableState.filters]);

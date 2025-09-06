@@ -109,10 +109,11 @@ export function createSortableHeader(
   label: string,
   sortBy?: string,
   sortOrder?: 'asc' | 'desc',
-  onSort?: (sortBy: string, sortOrder: 'asc' | 'desc') => void
+  onSort?: (sortBy: string, sortOrder: 'asc' | 'desc') => void,
+  columnKey?: string
 ) {
-  const columnKey = label.toLowerCase().replace(' ', '_');
-  const isActive = sortBy === columnKey;
+  const actualKey = columnKey || label.toLowerCase().replace(/\s+/g, '_');
+  const isActive = sortBy === actualKey;
   
   return (
     <Button
@@ -120,7 +121,7 @@ export function createSortableHeader(
       onClick={() => {
         if (onSort) {
           const newOrder = isActive && sortOrder === 'asc' ? 'desc' : 'asc';
-          onSort(columnKey, newOrder);
+          onSort(actualKey, newOrder);
         }
       }}
       className="h-auto p-0 font-semibold"
