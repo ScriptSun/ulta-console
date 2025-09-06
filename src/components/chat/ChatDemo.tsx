@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText, Brain, Search, Clock, AlertCircle, Terminal, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useTheme } from 'next-themes';
 import { TaskStatusCard } from './TaskStatusCard';
 import { InputForm } from './InputForm';
@@ -973,12 +974,12 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
                  // Set action phase to planning for actions and drafts
                  setActionPhase('planning');
                 
-                // Set up needs inputs if missing params OR if action has configurable inputs
-                const hasInputSchema = data.batch_details?.inputs_schema?.properties && 
-                                      Object.keys(data.batch_details.inputs_schema.properties).length > 0;
-                
-                 if (data.batch_id && ((data.status === 'unconfirmed' && data.missing_params?.length > 0) || 
-                     (data.status === 'confirmed' && hasInputSchema))) {
+                 // Set up needs inputs if missing params OR if action has configurable inputs
+                 const hasInputSchema = data.batch_details?.inputs_schema?.properties && 
+                                       Object.keys(data.batch_details.inputs_schema.properties).length > 0;
+                 
+                  // Always check for inputs when we have a batch_id - let handleMissingParams fetch details if needed
+                  if (data.batch_id && (data.status === 'unconfirmed' || data.status === 'confirmed')) {
                    handleMissingParams(newMessage, data);
                    
                    // Show "Requesting More Data" phase during input form delay
@@ -1341,8 +1342,8 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         const hasInputSchema = jsonData.batch_details?.inputs_schema?.properties && 
                                Object.keys(jsonData.batch_details.inputs_schema.properties).length > 0;
         
-        if (jsonData.batch_id && ((jsonData.status === 'unconfirmed' && jsonData.missing_params?.length > 0) || 
-            (jsonData.status === 'confirmed' && hasInputSchema))) {
+        // Always check for inputs when we have a batch_id - let handleMissingParams fetch details if needed
+        if (jsonData.batch_id && (jsonData.status === 'unconfirmed' || jsonData.status === 'confirmed')) {
           handleMissingParams(updated[msgIndex], jsonData);
           
           // Show input form immediately  
@@ -1384,14 +1385,21 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         return;
       }
       
-      // Fallback: fetch from database
-      const { data: batchData, error: batchError } = await supabase
-        .from('script_batches')
-        .select('inputs_schema, inputs_defaults, render_config')
-        .eq('id', decision.batch_id)
-        .single();
+      // Always fetch from database to get batch details
+      const result = await api.selectOne('script_batches', 'inputs_schema, inputs_defaults, render_config', { id: decision.batch_id });
+      const batchData = result.data;
+      const batchError = result.success ? null : result.error;
 
       if (!batchError && batchData) {
+        // Check if batch has inputs - if not, skip input form
+        const hasInputs = batchData.inputs_schema?.properties && 
+                         Object.keys(batchData.inputs_schema.properties).length > 0;
+        
+        if (!hasInputs) {
+          console.log('📝 Batch has no input schema, skipping input form');
+          return;
+        }
+        
         // Merge defaults with params from router response to auto-fill fields
         const mergedDefaults = {
           ...((batchData.inputs_defaults as Record<string, any>) || {}),
@@ -1405,7 +1413,10 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
         };
         
         message.renderConfig = (batchData.render_config as unknown as RenderConfig) || { type: 'text' };
+        console.log('📋 Set up input form for batch:', decision.batch_id);
         // Don't overwrite content - it was already set correctly in router.selected
+      } else {
+        console.error('❌ Failed to fetch batch details:', batchError);
       }
     } catch (error) {
       console.error('Error setting up batch inputs:', error);
