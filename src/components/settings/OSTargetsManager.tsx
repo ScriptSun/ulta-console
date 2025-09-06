@@ -137,19 +137,21 @@ export function OSTargetsManager({ open, onClose }: OSTargetsManagerProps) {
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                <DialogTitle>Configure OS Targets</DialogTitle>
+            <div className="flex items-start justify-between">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Configure OS Targets
+                </DialogTitle>
+                <DialogDescription className="mt-1">
+                  Manage operating system targets available for batch scripts
+                </DialogDescription>
               </div>
-              <Button onClick={handleAdd} size="sm">
+              <Button onClick={handleAdd} size="sm" className="shrink-0">
                 <Plus className="h-4 w-4 mr-2" />
                 Add OS Target
               </Button>
             </div>
-            <DialogDescription>
-              Manage operating system targets available for batch scripts
-            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
