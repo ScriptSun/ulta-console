@@ -129,6 +129,11 @@ class QueryBuilder {
     return this;
   }
 
+  count(): QueryBuilder {
+    this.query = this.query.select('*', { count: 'exact', head: true });
+    return this;
+  }
+
   delete() {
     this.query = this.query.delete();
     return this;
@@ -173,6 +178,7 @@ class QueryBuilder {
 }
 
 class APIWrapper {
+  private supabase = supabase;
   /**
    * Handle and format errors consistently (internal version for QueryBuilder)
    */
@@ -458,26 +464,18 @@ class APIWrapper {
   /**
    * Get current authenticated user
    */
-  async getCurrentUser(): Promise<ApiResponse<any>> {
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (error) {
-        return this.handleError(error);
-      }
-      
-      return { success: true, data: user };
-    } catch (error) {
-      return this.handleError(error);
-    }
+  async getCurrentUser(): Promise<any> {
+    const { data: { user } } = await this.supabase.auth.getUser();
+    return user;
   }
 
   /**
-   * Sign out current user
+   * Get current session
+   */
    */
   async signOut(): Promise<ApiResponse<void>> {
     try {
-      const { error } = await supabase.auth.signOut();
+      const { error } = await this.supabase.auth.signOut();
       
       if (error) {
         return this.handleError(error);
@@ -487,6 +485,26 @@ class APIWrapper {
     } catch (error) {
       return this.handleError(error);
     }
+  }
+
+  async getCurrentSession() {
+    const { data: { session } } = await this.supabase.auth.getSession();
+    return session;
+  }
+
+  async invokeFunction(functionName: string, params?: any): Promise<{ data?: any; error?: any }> {
+    const { data, error } = await this.supabase.functions.invoke(functionName, {
+      body: params
+    });
+    return { data, error };
+  }
+
+  async signInWithOAuth(provider: string, options?: any): Promise<{ data?: any; error?: any }> {
+    const { data, error } = await this.supabase.auth.signInWithOAuth({
+      provider: provider as any,
+      options
+    });
+    return { data, error };
   }
 }
 

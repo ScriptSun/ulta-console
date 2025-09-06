@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { 
   Bell, Mail, MessageCircle, Webhook, ArrowLeft, Save, Loader2, 
   TestTube, Shield, CheckCircle, AlertCircle, Copy, Settings,
@@ -134,18 +134,17 @@ export default function NotificationSettings() {
   const loadSettings = async () => {
     try {
       // Get current user to determine customer_id
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await api.getCurrentUser();
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      // Set user's email as default test email
-      setTestEmail(user.email || 'test@example.com');
+      setTestEmail(user?.email || 'test@example.com');
 
       console.log('Loading system-wide notification settings for customer ID:', SYSTEM_CUSTOMER_ID);
 
       // Load email providers
-      const { data: emailProviders, error: emailError } = await supabase
+      const { data: emailProviders, error: emailError } = await api
         .from('email_providers')
         .select('*')
         .eq('customer_id', SYSTEM_CUSTOMER_ID)
@@ -154,7 +153,7 @@ export default function NotificationSettings() {
       if (emailError) throw emailError;
 
       // Load channel providers
-      const { data: channelProviders, error: channelError } = await supabase
+      const { data: channelProviders, error: channelError } = await api
         .from('channel_providers')
         .select('*')
         .eq('customer_id', SYSTEM_CUSTOMER_ID)
@@ -163,7 +162,7 @@ export default function NotificationSettings() {
       if (channelError) throw channelError;
 
       // Load notification settings
-      const { data: notificationSettings, error: settingsError } = await supabase
+      const { data: notificationSettings, error: settingsError } = await api
         .from('notification_settings')
         .select('*')
         .eq('customer_id', SYSTEM_CUSTOMER_ID)
@@ -203,7 +202,7 @@ export default function NotificationSettings() {
     setSaving(true);
     try {
       // Save notification settings (failover order and domain health)
-      await supabase
+      await api
         .from('notification_settings')
         .upsert({
         customer_id: SYSTEM_CUSTOMER_ID,
@@ -229,7 +228,7 @@ export default function NotificationSettings() {
 
   const toggleEmailProvider = async (type: EmailProvider['type'], enabled: boolean) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await api.getCurrentUser();
       if (!user) throw new Error('User not authenticated');
 
       const existingProvider = settings.emailProviders.find(p => p.type === type);
@@ -242,7 +241,7 @@ export default function NotificationSettings() {
       
       if (!existingProvider && enabled) {
         // Create new provider
-        const { data, error } = await supabase
+        const { data, error } = await api
           .from('email_providers')
           .insert({
             customer_id: SYSTEM_CUSTOMER_ID,
@@ -259,15 +258,17 @@ export default function NotificationSettings() {
 
         if (error) throw error;
 
-        setSettings(prev => ({
-          ...prev,
-          emailProviders: [...prev.emailProviders, {
-            ...data,
-            config: data.config as EmailProvider['config'],
-            type: data.type as EmailProvider['type'],
-            status: data.status as EmailProvider['status']
-          }]
-        }));
+        if (data?.data) {
+          setSettings(prev => ({
+            ...prev,
+            emailProviders: [...prev.emailProviders, {
+              ...data.data,
+              config: data.data.config as EmailProvider['config'],
+              type: data.data.type as EmailProvider['type'],
+              status: data.data.status as EmailProvider['status']
+            }]
+          }));
+        }
       } else if (existingProvider) {
         // Enable existing provider
         await updateEmailProvider(existingProvider.id, { enabled: true });
@@ -284,7 +285,7 @@ export default function NotificationSettings() {
 
   const toggleChannelProvider = async (type: ChannelProvider['type'], enabled: boolean) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await api.getCurrentUser();
       if (!user) throw new Error('User not authenticated');
 
       const existingProvider = settings.channelProviders.find(p => p.type === type);
@@ -297,7 +298,7 @@ export default function NotificationSettings() {
       
       if (!existingProvider && enabled) {
         // Create new provider
-        const { data, error } = await supabase
+        const { data, error } = await api
           .from('channel_providers')
           .insert({
             customer_id: SYSTEM_CUSTOMER_ID,
@@ -313,15 +314,17 @@ export default function NotificationSettings() {
 
         if (error) throw error;
 
-        setSettings(prev => ({
-          ...prev,
-          channelProviders: [...prev.channelProviders, {
-            ...data,
-            config: data.config as ChannelProvider['config'],
-            type: data.type as ChannelProvider['type'],
-            status: data.status as ChannelProvider['status']
-          }]
-        }));
+        if (data?.data) {
+          setSettings(prev => ({
+            ...prev,
+            channelProviders: [...prev.channelProviders, {
+              ...data.data,
+              config: data.data.config as ChannelProvider['config'],
+              type: data.data.type as ChannelProvider['type'],
+              status: data.data.status as ChannelProvider['status']
+            }]
+          }));
+        }
       } else if (existingProvider) {
         // Enable existing provider
         await updateChannelProvider(existingProvider.id, { enabled: true });
@@ -373,7 +376,7 @@ export default function NotificationSettings() {
   const updateEmailProvider = async (providerId: string, updates: Partial<EmailProvider>) => {
     setSavingProvider(providerId);
     try {
-      const { error } = await supabase
+      const { error } = await api
         .from('email_providers')
         .update(updates)
         .eq('id', providerId);
@@ -400,7 +403,7 @@ export default function NotificationSettings() {
 
   const updateChannelProvider = async (providerId: string, updates: Partial<ChannelProvider>) => {
     try {
-      const { error } = await supabase
+      const { error } = await api
         .from('channel_providers')
         .update(updates)
         .eq('id', providerId);
@@ -455,11 +458,9 @@ export default function NotificationSettings() {
       }
 
       // Call the test edge function
-      const { data, error } = await supabase.functions.invoke('test-notification-providers', {
-        body: {
-          providerType,
-          config
-        }
+      const { data, error } = await api.invokeFunction('test-notification-providers', {
+        providerType,
+        config
       });
 
       if (error) {
@@ -536,7 +537,7 @@ export default function NotificationSettings() {
       // Use the correct table based on provider type
       const tableName = type === 'email' ? 'email_providers' : 'channel_providers';
       
-      const { error } = await supabase
+      const { error } = await api
         .from(tableName)
         .update({ config })
         .eq('id', providerId);
@@ -1127,10 +1128,8 @@ export default function NotificationSettings() {
     setCheckingDomain(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('check-domain-health', {
-        body: {
-          domain: cleanDomain
-        }
+      const { data, error } = await api.invokeFunction('check-domain-health', {
+        domain: cleanDomain
       });
 
       if (error) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api-wrapper";
 import { ConversationTable } from "@/components/chat/ConversationTable";
 import { ConversationViewer } from "@/components/chat/ConversationViewer";
 import { Card } from "@/components/ui/card";
@@ -48,7 +48,7 @@ export default function ChatInbox() {
       setLoading(true);
       
       // Get conversations with agent info and message/event counts
-      const { data: conversationsData, error } = await supabase
+      const { data: conversationsData, error } = await api
         .from('chat_conversations')
         .select(`
           *,
@@ -67,13 +67,15 @@ export default function ChatInbox() {
       const conversationsWithCounts = await Promise.all(
         (conversationsData || []).map(async (conversation) => {
           const [messagesResult, eventsResult] = await Promise.all([
-            supabase
+            api
               .from('chat_messages')
-              .select('id', { count: 'exact' })
+              .select('id')
+              .count()
               .eq('conversation_id', conversation.id),
-            supabase
+            api
               .from('chat_events')
-              .select('id', { count: 'exact' })
+              .select('id')
+              .count()
               .eq('conversation_id', conversation.id)
           ]);
 
@@ -102,8 +104,8 @@ export default function ChatInbox() {
 
   const handleCloseConversation = async (conversationId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('chat-api/chat/close', {
-        body: { conversation_id: conversationId }
+      const { error } = await api.invokeFunction('chat-api/chat/close', {
+        conversation_id: conversationId
       });
 
       if (error) throw error;
@@ -132,7 +134,7 @@ export default function ChatInbox() {
 
   const handleTagConversation = async (conversationId: string, tags: string[]) => {
     try {
-      const { error } = await supabase
+      const { error } = await api
         .from('chat_conversations')
         .update({
           meta: { tags },

@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PolicyDrawer } from '@/components/policies/PolicyDrawer';
 import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -45,9 +45,10 @@ const useKPIData = () => {
   const activeCommands = useQuery({
     queryKey: ['activeCommands'],
     queryFn: async () => {
-      const { count } = await supabase
+      const { count } = await api
         .from('command_policies')
-        .select('*', { count: 'exact', head: true });
+        .select('*')
+        .count();
       return count || 0;
     }
   });
@@ -55,10 +56,11 @@ const useKPIData = () => {
   const confirmCommands = useQuery({
     queryKey: ['confirmCommands'],
     queryFn: async () => {
-      const { count } = await supabase
+      const { count } = await api
         .from('command_policies')
-        .select('*', { count: 'exact', head: true })
-        .eq('mode', 'confirm');
+        .select('*')
+        .eq('mode', 'confirm')
+        .count();
       return count || 0;
     }
   });
@@ -66,7 +68,7 @@ const useKPIData = () => {
   const totalScripts = useQuery({
     queryKey: ['totalScripts'],
     queryFn: async () => {
-      const { data } = await supabase.from('view_total_scripts').select('count').single();
+      const { data } = await api.from('view_total_scripts').select('count').single();
       return data?.count || 0;
     }
   });
@@ -74,10 +76,11 @@ const useKPIData = () => {
   const forbidCommands = useQuery({
     queryKey: ['forbidCommands'],
     queryFn: async () => {
-      const { count } = await supabase
+      const { count } = await api
         .from('command_policies')
-        .select('*', { count: 'exact', head: true })
-        .eq('mode', 'forbid');
+        .select('*')
+        .eq('mode', 'forbid')
+        .count();
       return count || 0;
     }
   });
@@ -86,18 +89,20 @@ const useKPIData = () => {
     queryKey: ['successRate'],
     queryFn: async () => {
       // Get successful auto/confirm executions (approved status)
-      const { count: successCount } = await supabase
+      const { count: successCount } = await api
         .from('command_confirmations')
-        .select('*', { count: 'exact', head: true })
+        .select('*')
         .in('status', ['approved', 'executed'])
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .count();
       
       // Get blocked forbid commands (rejected status)
-      const { count: blockCount } = await supabase
+      const { count: blockCount } = await api
         .from('command_confirmations')
-        .select('*', { count: 'exact', head: true })
+        .select('*')
         .eq('status', 'rejected')
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .count();
       
       const totalExecutions = (successCount || 0) + (blockCount || 0);
       
@@ -131,7 +136,7 @@ export default function CommandPolicies() {
   const fetchPolicies = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from('command_policies')
         .select('*')
         .order('policy_name');
@@ -322,7 +327,7 @@ export default function CommandPolicies() {
 
   const handleToggleActive = async (policy: CommandPolicy) => {
     try {
-      const { error } = await supabase
+      const { error } = await api
         .from('command_policies')
         .update({ 
           active: !policy.active,

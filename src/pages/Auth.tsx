@@ -11,7 +11,7 @@ import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { useEnhancedSecurity } from '@/hooks/useEnhancedSecurity';
 import { useTheme } from 'next-themes';
 import { Loader2, Mail, Lock, Building, Eye, EyeOff, ArrowLeft, Shield, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Auth = () => {
@@ -44,7 +44,7 @@ const Auth = () => {
   useEffect(() => {
     const checkSessionAndRedirect = async () => {
       if (!loading) {
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = await api.getCurrentSession();
         if (session?.user) {
           console.log('Session found, redirecting to dashboard:', session.user.email);
           navigate('/dashboard', { replace: true });
@@ -58,7 +58,7 @@ const Auth = () => {
   // Immediate redirect if already on /auth with valid session
   useEffect(() => {
     const immediateRedirect = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = await api.getCurrentSession();
       if (session?.user && window.location.pathname === '/auth') {
         console.log('Immediate redirect from auth page');
         window.location.href = '/dashboard';
@@ -178,11 +178,9 @@ const Auth = () => {
     setIsSubmitting(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('password-reset', {
-        body: {
-          email: resetEmail,
-          action: 'request'
-        }
+      const { data, error } = await api.invokeFunction('password-reset', {
+        email: resetEmail,
+        action: 'request'
       });
 
       if (error) throw error;
@@ -210,15 +208,12 @@ const Auth = () => {
     setIsSubmitting(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        }
+      const { data, error } = await api.signInWithOAuth('google', {
+        redirectTo: `${window.location.origin}/dashboard`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       });
 
       if (error) {
