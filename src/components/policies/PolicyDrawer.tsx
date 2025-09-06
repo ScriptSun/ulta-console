@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info, Eye } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { api } from '@/lib/api-wrapper';
 import { useToast } from '@/hooks/use-toast';
 
@@ -197,7 +198,8 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <ScrollArea className="flex-1">
+          <div className="p-6 space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Basic Information</h3>
@@ -394,15 +396,16 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
             </div>
           </div>
 
-          <div className="border-t pt-6 flex justify-end gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={!isFormValid()}>
-              {isEditing ? 'Update Policy' : 'Create Policy'}
-            </Button>
+            <div className="border-t pt-6 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={!isFormValid()}>
+                {isEditing ? 'Update Policy' : 'Create Policy'}
+              </Button>
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );
