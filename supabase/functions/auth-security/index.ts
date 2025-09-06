@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0';
+import { EdgeFunctionApiWrapper } from '../_shared/api-wrapper.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,10 +21,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const api = new EdgeFunctionApiWrapper();
 
     const { action, email, password, user_id, ip_address, user_agent }: AuthRequest = await req.json();
     
@@ -40,17 +37,13 @@ Deno.serve(async (req) => {
         }
 
         // Check if user exists and get their current security status
-        const { data: userCheck } = await supabase
-          .from('user_security_status')
-          .select('is_banned, ban_reason, failed_login_count')
-          .or(`email.eq.${email}`)
-          .single();
+        const userCheckResult = await api.selectOne('user_security_status', 'is_banned, ban_reason, failed_login_count', { email });
 
-        if (userCheck?.is_banned) {
+        if (userCheckResult.success && userCheckResult.data?.is_banned) {
           return new Response(
             JSON.stringify({ 
               error: 'Account is banned', 
-              ban_reason: userCheck.ban_reason,
+              ban_reason: userCheckResult.data.ban_reason,
               is_banned: true 
             }),
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -58,14 +51,14 @@ Deno.serve(async (req) => {
         }
 
         // Attempt login with Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        const { data: authData, error: authError } = await api.getClient().auth.signInWithPassword({
           email,
           password
         });
 
         if (authError) {
           // Track failed login attempt
-          const { data: trackResult } = await supabase.rpc('track_login_attempt', {
+          const trackResult = await api.rpc('track_login_attempt', {
             _email: email,
             _user_id: null,
             _success: false,
@@ -73,15 +66,15 @@ Deno.serve(async (req) => {
             _user_agent: user_agent || null
           });
 
-          const attemptsRemaining = trackResult?.[0]?.attempts_remaining || 0;
-          const isBanned = trackResult?.[0]?.is_banned || false;
+          const attemptsRemaining = trackResult.success && trackResult.data?.[0]?.attempts_remaining || 0;
+          const isBanned = trackResult.success && trackResult.data?.[0]?.is_banned || false;
 
           if (isBanned) {
             return new Response(
               JSON.stringify({ 
                 error: 'Account has been banned due to too many failed login attempts',
                 is_banned: true,
-                ban_reason: trackResult[0]?.ban_reason
+                ban_reason: trackResult.success && trackResult.data?.[0]?.ban_reason
               }),
               { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
@@ -98,7 +91,7 @@ Deno.serve(async (req) => {
 
         // Track successful login
         if (authData.user) {
-          await supabase.rpc('track_login_attempt', {
+          await api.rpc('track_login_attempt', {
             _email: email,
             _user_id: authData.user.id,
             _success: true,
@@ -126,7 +119,8 @@ Deno.serve(async (req) => {
         }
 
         // Check if user is banned
-        const { data: isBanned } = await supabase.rpc('is_user_banned', { _user_id: user_id });
+        const bannedResult = await api.rpc('is_user_banned', { _user_id: user_id });
+        const isBanned = bannedResult.success && bannedResult.data;
         
         if (isBanned) {
           return new Response(
@@ -139,8 +133,9 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Check if session is expired
-        const { data: isExpired } = await supabase.rpc('is_session_expired', { _user_id: user_id });
+        // Check if session is expired  
+        const expiredResult = await api.rpc('is_session_expired', { _user_id: user_id });
+        const isExpired = expiredResult.success && expiredResult.data;
         
         if (isExpired) {
           return new Response(
@@ -154,7 +149,8 @@ Deno.serve(async (req) => {
         }
 
         // Extend session
-        const { data: newExpiry } = await supabase.rpc('extend_user_session', { _user_id: user_id });
+        const extendResult = await api.rpc('extend_user_session', { _user_id: user_id });
+        const newExpiry = extendResult.success ? extendResult.data : null;
 
         return new Response(
           JSON.stringify({ 
@@ -173,15 +169,11 @@ Deno.serve(async (req) => {
           );
         }
 
-        const { data: securityStatus } = await supabase
-          .from('user_security_status')
-          .select('is_banned, ban_reason, banned_at, failed_login_count, session_expires_at')
-          .eq('user_id', user_id)
-          .single();
+        const statusResult = await api.selectOne('user_security_status', 'is_banned, ban_reason, banned_at, failed_login_count, session_expires_at', { user_id });
 
         return new Response(
           JSON.stringify({ 
-            security_status: securityStatus || { 
+            security_status: (statusResult.success && statusResult.data) || { 
               is_banned: false, 
               failed_login_count: 0 
             } 
@@ -198,17 +190,17 @@ Deno.serve(async (req) => {
           );
         }
 
-        const { data: unbanned, error } = await supabase.rpc('unban_user', { _user_id: user_id });
+        const unbanResult = await api.rpc('unban_user', { _user_id: user_id });
         
-        if (error) {
+        if (!unbanResult.success) {
           return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: unbanResult.error }),
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
         return new Response(
-          JSON.stringify({ success: unbanned }),
+          JSON.stringify({ success: unbanResult.data }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

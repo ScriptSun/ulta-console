@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { EdgeFunctionApiWrapper } from '../_shared/api-wrapper.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,15 +13,12 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const api = new EdgeFunctionApiWrapper();
 
     // Get the user from the request
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    const { data: { user }, error: authError } = await api.getClient().auth.getUser(token);
 
     if (authError || !user) {
       return new Response(
@@ -34,13 +31,10 @@ serve(async (req) => {
 
     if (action === 'generate_token') {
       // Check user roles directly to get customer access
-      const { data: userRoles, error: rolesError } = await supabaseClient
-        .from('user_roles')
-        .select('customer_id')
-        .eq('user_id', user.id);
+      const userRolesResult = await api.select('user_roles', 'customer_id', { user_id: user.id });
 
-      if (rolesError || !userRoles || userRoles.length === 0) {
-        console.error('No customer access for user:', user.id, rolesError);
+      if (!userRolesResult.success || !userRolesResult.data || userRolesResult.data.length === 0) {
+        console.error('No customer access for user:', user.id, userRolesResult.error);
         return new Response(
           JSON.stringify({ error: 'No customer access' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -48,7 +42,7 @@ serve(async (req) => {
       }
 
       // Use the first customer ID (users can have multiple, but we'll use the first one)
-      const customerId = userRoles[0].customer_id;
+      const customerId = userRolesResult.data[0].customer_id;
 
       // Generate a secure random token
       const tokenBytes = new Uint8Array(32);
@@ -56,19 +50,15 @@ serve(async (req) => {
       const token = Array.from(tokenBytes, byte => byte.toString(16).padStart(2, '0')).join('');
 
       // Store the token in the database
-      const { data: deploymentToken, error: tokenError } = await supabaseClient
-        .from('agent_deployment_tokens')
-        .insert({
-          customer_id: customerId,
-          token: token,
-          created_by: user.id,
-          expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15 minutes
-        })
-        .select('token, expires_at')
-        .single();
+      const tokenResult = await api.insert('agent_deployment_tokens', {
+        customer_id: customerId,
+        token: token,
+        created_by: user.id,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15 minutes
+      });
 
-      if (tokenError) {
-        console.error('Error creating deployment token:', tokenError);
+      if (!tokenResult.success) {
+        console.error('Error creating deployment token:', tokenResult.error);
         return new Response(
           JSON.stringify({ error: 'Failed to generate token' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -76,23 +66,21 @@ serve(async (req) => {
       }
 
       // Log the action
-      await supabaseClient
-        .from('audit_logs')
-        .insert({
-          customer_id: customerId,
-          actor: user.email || user.id,
-          action: 'generate_deployment_token',
-          target: 'agent_deployment',
-          meta: {
-            token_expires_at: deploymentToken.expires_at,
-            user_id: user.id
-          }
-        });
+      await api.insert('audit_logs', {
+        customer_id: customerId,
+        actor: user.email || user.id,
+        action: 'generate_deployment_token',
+        target: 'agent_deployment',
+        meta: {
+          token_expires_at: tokenResult.data.expires_at,
+          user_id: user.id
+        }
+      });
 
       return new Response(
         JSON.stringify({
-          token: deploymentToken.token,
-          expires_at: deploymentToken.expires_at
+          token: tokenResult.data.token,
+          expires_at: tokenResult.data.expires_at
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

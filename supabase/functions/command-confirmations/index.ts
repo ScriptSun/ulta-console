@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { EdgeFunctionApiWrapper } from '../_shared/api-wrapper.ts';
 
 interface CreateConfirmationRequest {
   command_id: string;
@@ -41,30 +41,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function createConfirmation(supabase: any, body: CreateConfirmationRequest): Promise<Response> {
+async function createConfirmation(api: EdgeFunctionApiWrapper, body: CreateConfirmationRequest): Promise<Response> {
   try {
     // Calculate expiration time (24 hours from now)
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     // Insert confirmation record
-    const { data, error } = await supabase
-      .from('command_confirmations')
-      .insert({
-        command_id: body.command_id,
-        policy_id: body.policy_id,
-        command_text: body.command_text,
-        params: body.params || null,
-        agent_id: body.agent_id,
-        customer_id: body.customer_id,
-        requested_by: body.customer_id, // TODO: Get actual user ID from auth context
-        expires_at: expiresAt,
-        status: 'pending'
-      })
-      .select('id, expires_at')
-      .single();
+    const insertResult = await api.insert('command_confirmations', {
+      command_id: body.command_id,
+      policy_id: body.policy_id,
+      command_text: body.command_text,
+      params: body.params || null,
+      agent_id: body.agent_id,
+      customer_id: body.customer_id,
+      requested_by: body.customer_id, // TODO: Get actual user ID from auth context
+      expires_at: expiresAt,
+      status: 'pending'
+    });
 
-    if (error) {
-      console.error('Failed to create confirmation:', error);
+    if (!insertResult.success) {
+      console.error('Failed to create confirmation:', insertResult.error);
       return new Response(JSON.stringify({ error: 'Failed to create confirmation' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -72,8 +68,8 @@ async function createConfirmation(supabase: any, body: CreateConfirmationRequest
     }
 
     const response: CreateConfirmationResponse = {
-      confirmation_id: data.id,
-      expires_at: data.expires_at
+      confirmation_id: insertResult.data.id,
+      expires_at: insertResult.data.expires_at
     };
 
     console.log('Created confirmation:', response);
@@ -95,21 +91,19 @@ async function createConfirmation(supabase: any, body: CreateConfirmationRequest
   }
 }
 
-async function approveConfirmation(supabase: any, confirmationId: string): Promise<Response> {
+async function approveConfirmation(api: EdgeFunctionApiWrapper, confirmationId: string): Promise<Response> {
   try {
     // Get the confirmation record
-    const { data: confirmation, error: fetchError } = await supabase
-      .from('command_confirmations')
-      .select('*')
-      .eq('id', confirmationId)
-      .single();
+    const confirmationResult = await api.selectOne('command_confirmations', '*', { id: confirmationId });
 
-    if (fetchError || !confirmation) {
+    if (!confirmationResult.success || !confirmationResult.data) {
       return new Response(JSON.stringify({ error: 'Confirmation not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
+    const confirmation = confirmationResult.data;
 
     // Check if confirmation is still valid
     if (confirmation.status !== 'pending') {
@@ -125,10 +119,7 @@ async function approveConfirmation(supabase: any, confirmationId: string): Promi
     // Check if confirmation has expired
     if (new Date(confirmation.expires_at) < new Date()) {
       // Mark as expired
-      await supabase
-        .from('command_confirmations')
-        .update({ status: 'expired' })
-        .eq('id', confirmationId);
+      await api.update('command_confirmations', { id: confirmationId }, { status: 'expired' });
 
       return new Response(JSON.stringify({ error: 'Confirmation has expired' }), {
         status: 400,
@@ -137,17 +128,14 @@ async function approveConfirmation(supabase: any, confirmationId: string): Promi
     }
 
     // Update confirmation status to approved
-    const { error: updateError } = await supabase
-      .from('command_confirmations')
-      .update({
-        status: 'approved',
-        approved_by: confirmation.customer_id, // TODO: Get actual user ID from auth context
-        approved_at: new Date().toISOString()
-      })
-      .eq('id', confirmationId);
+    const updateResult = await api.update('command_confirmations', { id: confirmationId }, {
+      status: 'approved',
+      approved_by: confirmation.customer_id, // TODO: Get actual user ID from auth context
+      approved_at: new Date().toISOString()
+    });
 
-    if (updateError) {
-      console.error('Failed to update confirmation:', updateError);
+    if (!updateResult.success) {
+      console.error('Failed to update confirmation:', updateResult.error);
       return new Response(JSON.stringify({ error: 'Failed to approve confirmation' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -179,21 +167,19 @@ async function approveConfirmation(supabase: any, confirmationId: string): Promi
   }
 }
 
-async function denyConfirmation(supabase: any, confirmationId: string, body: ApprovalRequest): Promise<Response> {
+async function denyConfirmation(api: EdgeFunctionApiWrapper, confirmationId: string, body: ApprovalRequest): Promise<Response> {
   try {
     // Get the confirmation record
-    const { data: confirmation, error: fetchError } = await supabase
-      .from('command_confirmations')
-      .select('*')
-      .eq('id', confirmationId)
-      .single();
+    const confirmationResult = await api.selectOne('command_confirmations', '*', { id: confirmationId });
 
-    if (fetchError || !confirmation) {
+    if (!confirmationResult.success || !confirmationResult.data) {
       return new Response(JSON.stringify({ error: 'Confirmation not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
+    const confirmation = confirmationResult.data;
 
     // Check if confirmation is still valid
     if (confirmation.status !== 'pending') {
@@ -207,18 +193,15 @@ async function denyConfirmation(supabase: any, confirmationId: string, body: App
     }
 
     // Update confirmation status to rejected
-    const { error: updateError } = await supabase
-      .from('command_confirmations')
-      .update({
-        status: 'rejected',
-        approved_by: confirmation.customer_id, // TODO: Get actual user ID from auth context
-        approved_at: new Date().toISOString(),
-        rejection_reason: body.rejection_reason || 'Denied by approver'
-      })
-      .eq('id', confirmationId);
+    const updateResult = await api.update('command_confirmations', { id: confirmationId }, {
+      status: 'rejected',
+      approved_by: confirmation.customer_id, // TODO: Get actual user ID from auth context
+      approved_at: new Date().toISOString(),
+      rejection_reason: body.rejection_reason || 'Denied by approver'
+    });
 
-    if (updateError) {
-      console.error('Failed to update confirmation:', updateError);
+    if (!updateResult.success) {
+      console.error('Failed to update confirmation:', updateResult.error);
       return new Response(JSON.stringify({ error: 'Failed to deny confirmation' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -285,10 +268,8 @@ serve(async (req) => {
   }
 
   try {
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Initialize API wrapper
+    const api = new EdgeFunctionApiWrapper();
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
@@ -307,20 +288,20 @@ serve(async (req) => {
         });
       }
 
-      return await createConfirmation(supabase, body);
+      return await createConfirmation(api, body);
     }
 
     // Route: POST /internal/commands/confirmations/{id}/approve
     if (req.method === 'POST' && pathParts.length === 5 && pathParts[4] === 'approve') {
       const confirmationId = pathParts[3];
-      return await approveConfirmation(supabase, confirmationId);
+      return await approveConfirmation(api, confirmationId);
     }
 
     // Route: POST /internal/commands/confirmations/{id}/deny
     if (req.method === 'POST' && pathParts.length === 5 && pathParts[4] === 'deny') {
       const confirmationId = pathParts[3];
       const body: ApprovalRequest = await req.json().catch(() => ({}));
-      return await denyConfirmation(supabase, confirmationId, body);
+      return await denyConfirmation(api, confirmationId, body);
     }
 
     // Route not found

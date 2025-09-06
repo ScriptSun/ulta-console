@@ -1,13 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.56.0";
+import { EdgeFunctionApiWrapper } from '../_shared/api-wrapper.ts';
 import { Logger } from "../_shared/logger.ts";
 import { corsHeaders, handleCors, jsonResponse, errorResponse } from "../_shared/cors.ts";
-
-// Initialize Supabase client with service role
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
 
 // Simple crypto utilities using Web Crypto API
 class CryptoHelper {
@@ -44,26 +38,22 @@ class CryptoHelper {
 
 // CA Helper class
 class CAHelper {
-  private supabase: any;
+  private api: EdgeFunctionApiWrapper;
 
-  constructor(supabaseClient: any) {
-    this.supabase = supabaseClient;
+  constructor() {
+    this.api = new EdgeFunctionApiWrapper();
   }
 
   async getOrCreateCA(): Promise<{ ca_pem: string; ca_key_pem: string; ca_fingerprint: string }> {
     // Check if CA already exists
-    const { data: existingCA, error } = await this.supabase
-      .from('ca_config')
-      .select('*')
-      .eq('is_active', true)
-      .single();
+    const existingCAResult = await this.api.selectOne('ca_config', '*', { is_active: true });
 
-    if (existingCA && !error) {
-      Logger.info('Using existing CA', { fingerprint: existingCA.ca_fingerprint_sha256 });
+    if (existingCAResult.success && existingCAResult.data) {
+      Logger.info('Using existing CA', { fingerprint: existingCAResult.data.ca_fingerprint_sha256 });
       return {
-        ca_pem: existingCA.ca_pem,
-        ca_key_pem: existingCA.ca_key_pem,
-        ca_fingerprint: existingCA.ca_fingerprint_sha256
+        ca_pem: existingCAResult.data.ca_pem,
+        ca_key_pem: existingCAResult.data.ca_key_pem,
+        ca_fingerprint: existingCAResult.data.ca_fingerprint_sha256
       };
     }
 
@@ -76,17 +66,15 @@ class CAHelper {
     const caFingerprint = await CryptoHelper.sha256Fingerprint(caCertPem);
 
     // Store CA in database
-    const { error: insertError } = await this.supabase
-      .from('ca_config')
-      .insert({
-        ca_pem: caCertPem,
-        ca_key_pem: caKeyPem,
-        ca_fingerprint_sha256: caFingerprint,
-        is_active: true
-      });
+    const insertResult = await this.api.insert('ca_config', {
+      ca_pem: caCertPem,
+      ca_key_pem: caKeyPem,
+      ca_fingerprint_sha256: caFingerprint,
+      is_active: true
+    });
 
-    if (insertError) {
-      Logger.error('Failed to store CA in database', insertError);
+    if (!insertResult.success) {
+      Logger.error('Failed to store CA in database', insertResult.error);
       throw new Error('Failed to create CA');
     }
 
@@ -139,18 +127,16 @@ CgKCAQEAuuWiKA=
     expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
     // Store certificate in database
-    const { error: insertError } = await this.supabase
-      .from('certificates')
-      .insert({
-        agent_id: agentId,
-        cert_pem: clientCertPem,
-        key_pem: clientKeyPem,
-        fingerprint_sha256: fingerprint,
-        expires_at: expiresAt.toISOString()
-      });
+    const insertResult = await this.api.insert('certificates', {
+      agent_id: agentId,
+      cert_pem: clientCertPem,
+      key_pem: clientKeyPem,
+      fingerprint_sha256: fingerprint,
+      expires_at: expiresAt.toISOString()
+    });
 
-    if (insertError) {
-      Logger.error('Failed to store certificate in database', insertError);
+    if (!insertResult.success) {
+      Logger.error('Failed to store certificate in database', insertResult.error);
       throw new Error('Failed to store certificate');
     }
 
@@ -193,61 +179,49 @@ CgKCAQEAuuWiKA=
     Logger.info('Revoking certificate', { certificateId, reason });
 
     // Get certificate details
-    const { data: cert, error: fetchError } = await this.supabase
-      .from('certificates')
-      .select('*')
-      .eq('id', certificateId)
-      .single();
+    const certResult = await this.api.selectOne('certificates', '*', { id: certificateId });
 
-    if (fetchError || !cert) {
-      Logger.error('Certificate not found', fetchError);
+    if (!certResult.success || !certResult.data) {
+      Logger.error('Certificate not found', certResult.error);
       throw new Error('Certificate not found');
     }
 
     // Mark certificate as revoked
-    const { error: updateError } = await this.supabase
-      .from('certificates')
-      .update({ revoked_at: new Date().toISOString() })
-      .eq('id', certificateId);
+    const updateResult = await this.api.update('certificates', { id: certificateId }, { revoked_at: new Date().toISOString() });
 
-    if (updateError) {
-      Logger.error('Failed to revoke certificate', updateError);
+    if (!updateResult.success) {
+      Logger.error('Failed to revoke certificate', updateResult.error);
       throw new Error('Failed to revoke certificate');
     }
 
     // Add to CRL
-    const { error: crlError } = await this.supabase
-      .from('certificate_revocation_list')
-      .insert({
-        certificate_id: certificateId,
-        fingerprint_sha256: cert.fingerprint_sha256,
-        reason: reason || 'unspecified',
-        revoked_by: revokedBy || 'system'
-      });
+    const crlResult = await this.api.insert('certificate_revocation_list', {
+      certificate_id: certificateId,
+      fingerprint_sha256: certResult.data.fingerprint_sha256,
+      reason: reason || 'unspecified',
+      revoked_by: revokedBy || 'system'
+    });
 
-    if (crlError) {
-      Logger.error('Failed to add certificate to CRL', crlError);
+    if (!crlResult.success) {
+      Logger.error('Failed to add certificate to CRL', crlResult.error);
       throw new Error('Failed to update CRL');
     }
 
     Logger.info('Certificate revoked successfully', { 
       certificateId, 
-      fingerprint: cert.fingerprint_sha256 
+      fingerprint: certResult.data.fingerprint_sha256 
     });
   }
 
   async getCRL(): Promise<any[]> {
-    const { data, error } = await this.supabase
-      .from('certificate_revocation_list')
-      .select('*')
-      .order('revoked_at', { ascending: false });
+    const crlResult = await this.api.select('certificate_revocation_list', '*', {}, { orderBy: { column: 'revoked_at', ascending: false } });
 
-    if (error) {
-      Logger.error('Failed to fetch CRL', error);
+    if (!crlResult.success) {
+      Logger.error('Failed to fetch CRL', crlResult.error);
       throw new Error('Failed to fetch CRL');
     }
 
-    return data || [];
+    return crlResult.data || [];
   }
 }
 
@@ -263,7 +237,7 @@ serve(async (req) => {
 
     Logger.request(method, path, { userAgent: req.headers.get('user-agent') });
 
-    const caHelper = new CAHelper(supabase);
+    const caHelper = new CAHelper();
 
     // Route handling
     switch (path) {

@@ -243,10 +243,9 @@ export function useCompanyLogo() {
         colors: {}
       };
 
-      let query = supabase.from('company_themes');
-      
       if (logoSettings.id) {
-        const { data, error } = await query
+        const { data, error } = await supabase
+          .from('company_themes')
           .update(settingsToSave)
           .eq('id', logoSettings.id)
           .select()
@@ -255,7 +254,8 @@ export function useCompanyLogo() {
         if (error) throw error;
         setLogoSettings(prev => ({ ...prev, ...settings }));
       } else {
-        const { data, error } = await query
+        const { data, error } = await supabase
+          .from('company_themes')
           .insert(settingsToSave)
           .select()
           .single();

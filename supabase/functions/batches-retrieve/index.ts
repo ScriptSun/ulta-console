@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0';
+import { EdgeFunctionApiWrapper } from '../_shared/api-wrapper.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,11 +35,8 @@ serve(async (req) => {
   }
 
   try {
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Initialize API wrapper
+    const api = new EdgeFunctionApiWrapper();
 
     const { q, os, limit = 12 }: RetrieveRequest = await req.json();
 
@@ -61,22 +58,27 @@ serve(async (req) => {
       'install_docker_compose'
     ];
 
-    // Build query - search by key, name, description and include required keys
-    let query = supabase
-      .from('script_batches')
-      .select('id, key, name, description, risk, os_targets')
-      .or(`key.ilike.%${q}%,name.ilike.%${q}%,description.ilike.%${q}%,key.in.(${requiredKeys.join(',')})`)
-      .limit(Math.min(limit, 20)); // Cap at 20 to prevent abuse
+    // Build filters for the search
+    const filters: any = {
+      or: [
+        { key: { ilike: `%${q}%` } },
+        { name: { ilike: `%${q}%` } },
+        { description: { ilike: `%${q}%` } },
+        { key: { in: requiredKeys } }
+      ]
+    };
 
-    // Filter by OS if specified
+    // Add OS filter if specified
     if (os) {
-      query = query.contains('os_targets', [os]);
+      filters.os_targets = { contains: [os] };
     }
 
-    const { data: batches, error: batchesError } = await query;
+    const batchesResult = await api.select('script_batches', 'id, key, name, description, risk, os_targets', filters, {
+      limit: Math.min(limit, 20)
+    });
 
-    if (batchesError) {
-      console.error('Error retrieving batches:', batchesError);
+    if (!batchesResult.success) {
+      console.error('Error retrieving batches:', batchesResult.error);
       return new Response(JSON.stringify({ error: 'Failed to retrieve batches' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -84,7 +86,7 @@ serve(async (req) => {
     }
 
     // Transform to candidate format
-    const candidates: BatchCandidate[] = (batches || []).map(batch => ({
+    const candidates: BatchCandidate[] = (batchesResult.data || []).map(batch => ({
       id: batch.id,
       key: batch.key,
       name: batch.name,

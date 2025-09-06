@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { EdgeFunctionApiWrapper } from '../_shared/api-wrapper.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,22 +18,16 @@ serve(async (req) => {
   }
 
   try {
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-      global: {
-        headers: { Authorization: req.headers.get('Authorization')! },
-      },
-    });
+    // Create API wrapper with user context
+    const api = new EdgeFunctionApiWrapper();
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      // Set auth header for user context
+      api.getClient().auth.setAuth(authHeader.replace('Bearer ', ''));
+    }
 
     // Get the user from the JWT token
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await api.getClient().auth.getUser();
     if (userError || !user) {
       console.log('Authentication failed:', userError);
       return new Response(
@@ -46,43 +40,41 @@ serve(async (req) => {
 
     console.log(`Checking ${permission} permission for user ${user.id} on page ${pageKey}`);
 
-    // Get user's team memberships
-    const { data: memberships, error: membershipError } = await supabase
-      .from('console_team_members')
-      .select(`
-        id,
-        role,
-        team_id,
-        console_member_page_perms(
-          page_key,
-          can_view,
-          can_edit,
-          can_delete
-        )
-      `)
-      .eq('admin_id', user.id);
+    // Get user's team memberships with permissions
+    const membershipsResult = await api.select('console_team_members', `
+      id,
+      role,
+      team_id,
+      console_member_page_perms(
+        page_key,
+        can_view,
+        can_edit,
+        can_delete
+      )
+    `, { admin_id: user.id });
 
-    if (membershipError) {
-      console.error('Error fetching memberships:', membershipError);
-      throw membershipError;
+    if (!membershipsResult.success) {
+      console.error('Error fetching memberships:', membershipsResult.error);
+      throw new Error(membershipsResult.error);
     }
+
+    const memberships = membershipsResult.data;
 
     // Get role templates
-    const { data: roleTemplates, error: templatesError } = await supabase
-      .from('console_role_templates')
-      .select('*')
-      .eq('page_key', pageKey);
+    const templatesResult = await api.select('console_role_templates', '*', { page_key: pageKey });
 
-    if (templatesError) {
-      console.error('Error fetching role templates:', templatesError);
-      throw templatesError;
+    if (!templatesResult.success) {
+      console.error('Error fetching role templates:', templatesResult.error);
+      throw new Error(templatesResult.error);
     }
+
+    const roleTemplates = templatesResult.data;
 
     let hasPermission = false;
 
     // If user has no team memberships, provide Owner-level access as fallback
     if (!memberships || memberships.length === 0) {
-      const ownerTemplate = roleTemplates?.find(t => t.role === 'Owner');
+      const ownerTemplate = roleTemplates.find(t => t.role === 'Owner');
       if (ownerTemplate) {
         switch (permission) {
           case 'view':
@@ -119,7 +111,7 @@ serve(async (req) => {
           }
         } else {
           // Fall back to role template
-          const template = roleTemplates?.find(t => t.role === membership.role);
+          const template = roleTemplates.find(t => t.role === membership.role);
           if (template) {
             switch (permission) {
               case 'view':

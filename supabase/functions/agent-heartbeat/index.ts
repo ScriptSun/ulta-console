@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0'
+import { EdgeFunctionApiWrapper } from '../_shared/api-wrapper.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,10 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    const api = new EdgeFunctionApiWrapper();
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/');
@@ -43,13 +40,9 @@ serve(async (req) => {
 
     if (req.method === 'GET') {
       // Get agent heartbeat
-      const { data: agent, error } = await supabase
-        .from('agents')
-        .select('heartbeat, last_heartbeat')
-        .eq('id', agentId)
-        .single();
+      const agentResult = await api.selectOne('agents', 'heartbeat, last_heartbeat', { id: agentId });
 
-      if (error || !agent) {
+      if (!agentResult.success || !agentResult.data) {
         return new Response(
           JSON.stringify({ error: 'Agent not found' }),
           {
@@ -61,8 +54,8 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({
-          heartbeat: agent.heartbeat,
-          last_heartbeat: agent.last_heartbeat
+          heartbeat: agentResult.data.heartbeat,
+          last_heartbeat: agentResult.data.last_heartbeat
         }),
         {
           status: 200,
@@ -94,18 +87,13 @@ serve(async (req) => {
       }
 
       // Update the agent heartbeat
-      const { data, error } = await supabase
-        .from('agents')
-        .update({
-          heartbeat: body,
-          last_heartbeat: new Date().toISOString()
-        })
-        .eq('id', agentId)
-        .select('heartbeat, last_heartbeat')
-        .single();
+      const updateResult = await api.update('agents', { id: agentId }, {
+        heartbeat: body,
+        last_heartbeat: new Date().toISOString()
+      });
 
-      if (error) {
-        console.error('Error updating heartbeat:', error);
+      if (!updateResult.success) {
+        console.error('Error updating heartbeat:', updateResult.error);
         return new Response(
           JSON.stringify({ error: 'Failed to update heartbeat' }),
           {
@@ -118,8 +106,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          heartbeat: data.heartbeat,
-          last_heartbeat: data.last_heartbeat
+          heartbeat: updateResult.data[0]?.heartbeat,
+          last_heartbeat: updateResult.data[0]?.last_heartbeat
         }),
         {
           status: 200,

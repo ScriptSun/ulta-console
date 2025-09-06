@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { EdgeFunctionApiWrapper } from '../_shared/api-wrapper.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,10 +20,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const api = new EdgeFunctionApiWrapper();
 
     const { team_id, invites } = await req.json() as BulkInviteRequest;
 
@@ -43,7 +40,7 @@ Deno.serve(async (req) => {
       
       try {
         // Find user in auth.users by email
-        const { data: authUser, error: userError } = await supabase.auth.admin.listUsers();
+        const { data: authUser, error: userError } = await api.getClient().auth.admin.listUsers();
         
         if (userError) {
           console.error(`Error fetching users: ${userError.message}`);
@@ -60,41 +57,32 @@ Deno.serve(async (req) => {
         }
 
         // Upsert admin_profiles
-        const { error: profileError } = await supabase
-          .from('admin_profiles')
-          .upsert({
-            id: user.id,
-            email: user.email,
-            full_name: user.user_metadata?.full_name || user.email
-          }, {
-            onConflict: 'id'
-          });
+        const profileResult = await api.upsert('admin_profiles', {
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || user.email
+        });
 
-        if (profileError) {
-          console.error(`Error upserting profile for ${email}: ${profileError.message}`);
-          results.push({ email, status: 'error', message: `Profile error: ${profileError.message}` });
+        if (!profileResult.success) {
+          console.error(`Error upserting profile for ${email}: ${profileResult.error}`);
+          results.push({ email, status: 'error', message: `Profile error: ${profileResult.error}` });
           continue;
         }
 
         // Check if team member already exists
-        const { data: existingMember } = await supabase
-          .from('console_team_members')
-          .select('id, role')
-          .eq('team_id', team_id)
-          .eq('admin_id', user.id)
-          .single();
+        const memberResult = await api.selectOne('console_team_members', 'id, role', { 
+          team_id, 
+          admin_id: user.id 
+        });
 
-        if (existingMember) {
+        if (memberResult.success && memberResult.data) {
           // Update role if different
-          if (existingMember.role !== role) {
-            const { error: updateError } = await supabase
-              .from('console_team_members')
-              .update({ role })
-              .eq('id', existingMember.id);
+          if (memberResult.data.role !== role) {
+            const updateResult = await api.update('console_team_members', { id: memberResult.data.id }, { role });
 
-            if (updateError) {
-              console.error(`Error updating member role for ${email}: ${updateError.message}`);
-              results.push({ email, status: 'error', message: `Update error: ${updateError.message}` });
+            if (!updateResult.success) {
+              console.error(`Error updating member role for ${email}: ${updateResult.error}`);
+              results.push({ email, status: 'error', message: `Update error: ${updateResult.error}` });
             } else {
               console.log(`Updated role for ${email} to ${role}`);
               results.push({ email, status: 'updated', message: `Role updated to ${role}` });
@@ -105,17 +93,15 @@ Deno.serve(async (req) => {
           }
         } else {
           // Insert new team member
-          const { error: memberError } = await supabase
-            .from('console_team_members')
-            .insert({
-              team_id,
-              admin_id: user.id,
-              role
-            });
+          const insertResult = await api.insert('console_team_members', {
+            team_id,
+            admin_id: user.id,
+            role
+          });
 
-          if (memberError) {
-            console.error(`Error inserting team member for ${email}: ${memberError.message}`);
-            results.push({ email, status: 'error', message: `Member error: ${memberError.message}` });
+          if (!insertResult.success) {
+            console.error(`Error inserting team member for ${email}: ${insertResult.error}`);
+            results.push({ email, status: 'error', message: `Member error: ${insertResult.error}` });
           } else {
             console.log(`Added ${email} as ${role} to team ${team_id}`);
             results.push({ email, status: 'added', message: `Added as ${role}` });

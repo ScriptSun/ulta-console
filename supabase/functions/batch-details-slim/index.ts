@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0';
+import { EdgeFunctionApiWrapper } from '../_shared/api-wrapper.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,11 +36,8 @@ serve(async (req) => {
   }
 
   try {
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Initialize API wrapper
+    const api = new EdgeFunctionApiWrapper();
 
     const { batch_id }: BatchDetailsRequest = await req.json();
 
@@ -54,24 +51,20 @@ serve(async (req) => {
     console.log(`Getting slim batch details for: ${batch_id}`);
 
     // Get only essential batch fields - no metadata, timestamps, or audit fields
-    const { data: batch, error: batchError } = await supabase
-      .from('script_batches')
-      .select(`
-        id,
-        name,
-        description,
-        risk,
-        max_timeout_sec,
-        inputs_schema,
-        inputs_defaults,
-        os_targets,
-        key
-      `)
-      .eq('id', batch_id)
-      .single();
+    const batchResult = await api.selectOne('script_batches', `
+      id,
+      name,
+      description,
+      risk,
+      max_timeout_sec,
+      inputs_schema,
+      inputs_defaults,
+      os_targets,
+      key
+    `, { id: batch_id });
 
-    if (batchError || !batch) {
-      console.error('Error loading batch details:', batchError);
+    if (!batchResult.success || !batchResult.data) {
+      console.error('Error loading batch details:', batchResult.error);
       return new Response(JSON.stringify({ error: 'Batch not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -79,24 +72,24 @@ serve(async (req) => {
     }
 
     // Compress description to max 200 characters
-    const compressedDescription = batch.description && batch.description.length > 200 
-      ? batch.description.substring(0, 197) + '...'
-      : batch.description;
+    const compressedDescription = batchResult.data.description && batchResult.data.description.length > 200 
+      ? batchResult.data.description.substring(0, 197) + '...'
+      : batchResult.data.description;
 
     // Create slim response with only essential data
     const slimBatch: SlimBatchResponse = {
-      id: batch.id,
-      name: batch.name,
+      id: batchResult.data.id,
+      name: batchResult.data.name,
       description: compressedDescription || '',
-      risk: batch.risk,
-      max_timeout_sec: batch.max_timeout_sec,
-      inputs_schema: batch.inputs_schema || {},
-      inputs_defaults: batch.inputs_defaults || {},
-      os_targets: batch.os_targets || [],
-      key: batch.key
+      risk: batchResult.data.risk,
+      max_timeout_sec: batchResult.data.max_timeout_sec,
+      inputs_schema: batchResult.data.inputs_schema || {},
+      inputs_defaults: batchResult.data.inputs_defaults || {},
+      os_targets: batchResult.data.os_targets || [],
+      key: batchResult.data.key
     };
 
-    console.log(`Retrieved slim batch details for: ${batch.name} (compressed from full payload)`);
+    console.log(`Retrieved slim batch details for: ${batchResult.data.name} (compressed from full payload)`);
 
     return new Response(JSON.stringify({
       batch: slimBatch,
