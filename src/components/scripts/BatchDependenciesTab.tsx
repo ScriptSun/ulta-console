@@ -20,7 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { useToast } from '@/hooks/use-toast';
 
 interface BatchDependency {
@@ -65,20 +65,17 @@ export function BatchDependenciesTab({ batchId, canEdit, onDependencyChange }: B
     if (!batchId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('batch_dependencies')
-        .select(`
-          *,
-          dependency_batch:script_batches!depends_on_batch_id (
-            name,
-            active_version
-          )
-        `)
-        .eq('batch_id', batchId);
+      const result = await api.select('batch_dependencies', `
+        *,
+        dependency_batch:script_batches!depends_on_batch_id (
+          name,
+          active_version
+        )
+      `, { batch_id: batchId });
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error);
 
-      const formattedDependencies = data?.map(dep => ({
+      const formattedDependencies = result.data?.map(dep => ({
         id: dep.id,
         batch_id: dep.batch_id,
         depends_on_batch_id: dep.depends_on_batch_id,
@@ -100,15 +97,12 @@ export function BatchDependenciesTab({ batchId, canEdit, onDependencyChange }: B
 
   const fetchAvailableBatches = async () => {
     try {
-      const { data, error } = await supabase
-        .from('script_batches')
-        .select('id, name, active_version')
-        .order('name');
+      const result = await api.from('script_batches').select('id, name, active_version').order('name').execute();
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error);
 
       // Filter out current batch to prevent self-dependency
-      const filtered = data?.filter(batch => batch.id !== batchId) || [];
+      const filtered = result.data?.filter(batch => batch.id !== batchId) || [];
       setAvailableBatches(filtered);
     } catch (error) {
       console.error('Error fetching available batches:', error);
@@ -125,31 +119,30 @@ export function BatchDependenciesTab({ batchId, canEdit, onDependencyChange }: B
 
     setAdding(true);
     try {
-      const { error } = await supabase
-        .from('batch_dependencies')
-        .insert({
-          batch_id: batchId,
-          depends_on_batch_id: selectedBatchId,
-          min_version: minVersion,
-        });
+      const result = await api.insert('batch_dependencies', {
+        batch_id: batchId,
+        depends_on_batch_id: selectedBatchId,
+        min_version: minVersion,
+      });
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error);
 
       // Log the dependency addition
       const selectedBatch = availableBatches.find(b => b.id === selectedBatchId);
-      const { error: auditError } = await supabase
-        .from('audit_logs')
-        .insert({
-          customer_id: (await supabase.from('script_batches').select('customer_id').eq('id', batchId).single()).data?.customer_id,
-          actor: (await supabase.auth.getUser()).data.user?.email || 'unknown',
-          action: 'batch_dependency_add',
-          target: `batch_dependency:${selectedBatch?.name}`,
-          meta: {
-            batch_id: batchId,
-            depends_on_batch_id: selectedBatchId,
-            min_version: minVersion
-          }
-        });
+      const batchResult = await api.selectOne('script_batches', 'customer_id', { id: batchId });
+      const userResult = await api.getCurrentUser();
+      
+      await api.insert('audit_logs', {
+        customer_id: batchResult.data?.customer_id,
+        actor: userResult.data?.email || 'unknown',
+        action: 'batch_dependency_add',
+        target: `batch_dependency:${selectedBatch?.name}`,
+        meta: {
+          batch_id: batchId,
+          depends_on_batch_id: selectedBatchId,
+          min_version: minVersion
+        }
+      });
 
       toast({
         title: 'Dependency Added',
@@ -178,26 +171,24 @@ export function BatchDependenciesTab({ batchId, canEdit, onDependencyChange }: B
     if (!canEdit) return;
 
     try {
-      const { error } = await supabase
-        .from('batch_dependencies')
-        .delete()
-        .eq('id', dependencyId);
+      const result = await api.delete('batch_dependencies', { id: dependencyId });
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error);
 
       // Log the dependency removal
-      const { error: auditError } = await supabase
-        .from('audit_logs')
-        .insert({
-          customer_id: (await supabase.from('script_batches').select('customer_id').eq('id', batchId).single()).data?.customer_id,
-          actor: (await supabase.auth.getUser()).data.user?.email || 'unknown',
-          action: 'batch_dependency_remove',
-          target: `batch_dependency:${dependencyName}`,
-          meta: {
-            batch_id: batchId,
-            dependency_id: dependencyId
-          }
-        });
+      const batchResult = await api.selectOne('script_batches', 'customer_id', { id: batchId });
+      const userResult = await api.getCurrentUser();
+      
+      await api.insert('audit_logs', {
+        customer_id: batchResult.data?.customer_id,
+        actor: userResult.data?.email || 'unknown',
+        action: 'batch_dependency_remove',
+        target: `batch_dependency:${dependencyName}`,
+        meta: {
+          batch_id: batchId,
+          dependency_id: dependencyId
+        }
+      });
 
       toast({
         title: 'Dependency Removed',

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0';
+import { api } from '../_shared/api-wrapper.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,18 +16,14 @@ const supabase = createClient(
 // Function to get system temperature setting
 async function getSystemTemperature(): Promise<number> {
   try {
-    const { data, error } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('setting_key', 'ai_models')
-      .single();
+    const result = await api.selectOne('system_settings', 'setting_value', { setting_key: 'ai_models' });
 
-    if (error) {
-      console.warn('Failed to load system temperature, using default:', error);
+    if (!result.success || !result.data) {
+      console.warn('Failed to load system temperature, using default:', result.error);
       return 0.7; // Default fallback
     }
 
-    const aiSettings = data?.setting_value;
+    const aiSettings = result.data.setting_value;
     if (aiSettings && typeof aiSettings === 'object' && aiSettings.temperature !== undefined) {
       return aiSettings.temperature;
     }
@@ -201,16 +198,15 @@ serve(async (req: Request) => {
       console.log(`🔍 Checking usage limits for agent: ${params.agentId}`);
       
       try {
-        const { data: limitCheck, error: limitError } = await supabase
-          .rpc('check_agent_usage_limit', {
-            _agent_id: params.agentId,
-            _usage_type: 'ai_request'
-          });
+        const limitResult = await api.rpc('check_agent_usage_limit', {
+          _agent_id: params.agentId,
+          _usage_type: 'ai_request'
+        });
 
-        if (limitError) {
-          console.error('Error checking usage limits:', limitError);
-        } else if (limitCheck && limitCheck.length > 0) {
-          const limit = limitCheck[0];
+        if (!limitResult.success) {
+          console.error('Error checking usage limits:', limitResult.error);
+        } else if (limitResult.data && limitResult.data.length > 0) {
+          const limit = limitResult.data[0];
           console.log('Usage limit check result:', limit);
           
           if (!limit.allowed) {
@@ -242,16 +238,12 @@ serve(async (req: Request) => {
     }
 
     // Load AI settings for failover models
-    const { data: settings, error: settingsError } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('setting_key', 'ai_models')
-      .single();
+    const settingsResult = await api.selectOne('system_settings', 'setting_value', { setting_key: 'ai_models' });
 
     let failoverModels = ['gpt-4o-mini', 'gpt-4o', 'claude-3-5-sonnet']; // defaults
     
-    if (!settingsError && settings?.setting_value?.default_models) {
-      failoverModels = settings.setting_value.default_models;
+    if (settingsResult.success && settingsResult.data?.setting_value?.default_models) {
+      failoverModels = settingsResult.data.setting_value.default_models;
     }
 
     const errors: Array<{ model: string; error: string }> = [];
@@ -299,7 +291,7 @@ serve(async (req: Request) => {
         // Increment agent usage counter for plan tracking
         if (params.agentId) {
           try {
-            await supabase.rpc('increment_agent_usage', {
+            const usageResult = await api.rpc('increment_agent_usage', {
               _agent_id: params.agentId,
               _usage_type: 'ai_request',
               _increment: 1

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { api } from '../_shared/api-wrapper.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -155,13 +156,9 @@ serve(async (req) => {
     console.log(`Processing execution for agent_id: ${agent_id}, task: ${decision.task}, confirm: ${confirm}`);
 
     // Get agent tenant_id for batch_runs
-    const { data: agentData, error: agentError } = await supabase
-      .from('agents')
-      .select('customer_id')
-      .eq('id', agent_id)
-      .single();
-
-    if (agentError || !agentData) {
+    const agentResult = await api.selectOne('agents', 'customer_id', { id: agent_id });
+    
+    if (!agentResult.success || !agentResult.data) {
       return new Response(JSON.stringify({
         status: 'error',
         reason: 'Agent not found'
@@ -171,7 +168,7 @@ serve(async (req) => {
       });
     }
 
-    const tenant_id = agentData.customer_id;
+    const tenant_id = agentResult.data.customer_id;
 
     // 1. Handle not_supported decisions
     if (decision.task === 'not_supported') {
@@ -221,7 +218,8 @@ serve(async (req) => {
       }
 
       // Create batch_runs entry for tracking
-      const insertData: any = {
+      const insertResult = await api.insert('batch_runs', {
+        id: run_id || undefined,
         agent_id: agent_id,
         tenant_id: tenant_id,
         status: 'running',
@@ -236,21 +234,10 @@ serve(async (req) => {
         raw_stderr: '',
         contract: null,
         parser_warning: false
-      };
+      });
 
-      // Use the existing run_id if provided, otherwise create a new one
-      if (run_id) {
-        insertData.id = run_id;
-      }
-
-      const { data: runData, error: runError } = await supabase
-        .from('batch_runs')
-        .insert(insertData)
-        .select('id')
-        .single();
-
-      if (runError) {
-        console.error('Error creating batch run:', runError);
+      if (!insertResult.success) {
+        console.error('Error creating batch run:', insertResult.error);
         return new Response(JSON.stringify({
           status: 'error',
           reason: 'Failed to create execution record'
@@ -260,11 +247,11 @@ serve(async (req) => {
         });
       }
 
-      const finalRunId = runData.id;
+      const finalRunId = insertResult.data?.[0]?.id;
 
       // Log exec event for draft action
       try {
-        await supabase.from('exec_events').insert({
+        const logResult = await api.insert('exec_events', {
           run_id: finalRunId,
           event_type: 'started',
           payload: {
@@ -282,29 +269,25 @@ serve(async (req) => {
       }
 
       // Add source metadata to the run
-      await supabase.from('batch_runs')
-        .update({
-          contract: { source: source, summary: decision.summary }
-        })
-        .eq('id', runData.id);
+      await api.update('batch_runs', { id: finalRunId }, {
+        contract: { source: source, summary: decision.summary }
+      });
 
       // Simulate execution (in real implementation, this would be handled by ws-exec)
       const execution = await simulateCommandExecution(commands);
 
       // Update the run with results
-      const updateResult = await supabase.from('batch_runs')
-        .update({
-          status: execution.exit_code === 0 ? 'completed' : 'failed',
-          finished_at: new Date().toISOString(),
-          raw_stdout: execution.stdout_tail,
-          raw_stderr: execution.stderr_tail,
-          duration_sec: Math.floor(Math.random() * 30) + 5 // Simulate 5-35 second duration
-        })
-        .eq('id', finalRunId);
+      await api.update('batch_runs', { id: finalRunId }, {
+        status: execution.exit_code === 0 ? 'completed' : 'failed',
+        finished_at: new Date().toISOString(),
+        raw_stdout: execution.stdout_tail,
+        raw_stderr: execution.stderr_tail,
+        duration_sec: Math.floor(Math.random() * 30) + 5 // Simulate 5-35 second duration
+      });
 
       // Log completion exec event
       try {
-        await supabase.from('exec_events').insert({
+        await api.insert('exec_events', {
           run_id: finalRunId,
           event_type: execution.exit_code === 0 ? 'completed' : 'failed',
           payload: {
@@ -452,13 +435,9 @@ serve(async (req) => {
 
     // 5. Handle confirmed batch (existing batch by key)
     // Look up batch by key
-    const { data: batch, error: batchError } = await supabase
-      .from('script_batches')
-      .select('id, key, name, risk, inputs_schema, inputs_defaults, preflight')
-      .eq('key', decision.task)
-      .single();
+    const batchResult = await api.selectOne('script_batches', 'id, key, name, risk, inputs_schema, inputs_defaults, preflight', { key: decision.task });
 
-    if (batchError || !batch) {
+    if (!batchResult.success || !batchResult.data) {
       return new Response(JSON.stringify({
         status: 'error',
         reason: `Batch not found: ${decision.task}`
@@ -467,6 +446,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    const batch = batchResult.data;
 
     // Handle risk-based confirmation
     if (batch.risk === 'high' && !confirm) {

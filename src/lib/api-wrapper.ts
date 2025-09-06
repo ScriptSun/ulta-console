@@ -389,6 +389,30 @@ class APIWrapper {
   }
 
   /**
+   * Upsert (insert or update) data in a table
+   */
+  async upsert<T = any>(table: string, data: InsertData | InsertData[]): Promise<ApiResponse<T[]>> {
+    if (!await this.checkAuth()) {
+      return this.handleError(new Error('Authentication required'));
+    }
+
+    try {
+      const { data: result, error } = await (supabase as any)
+        .from(table)
+        .upsert(data)
+        .select();
+
+      if (error) {
+        return this.handleError(error);
+      }
+
+      return { success: true, data: result };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
    * Get a single record (convenience method)
    */
   async selectOne<T = any>(

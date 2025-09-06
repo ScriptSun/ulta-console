@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { useEnhancedSecurity } from '@/hooks/useEnhancedSecurity';
 
 interface AuthContextType {
@@ -178,12 +179,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const assignOwnerRole = async (userId: string) => {
     try {
-      await supabase.from('user_roles').upsert({
+      const result = await api.upsert('user_roles', {
         user_id: userId,
         customer_id: '22222222-2222-2222-2222-222222222222',
         role: 'owner'
       });
-      console.log('Owner role assigned successfully');
+      if (result.success) {
+        console.log('Owner role assigned successfully');
+      } else {
+        console.warn('Error assigning owner role (non-fatal):', result.error);
+      }
     } catch (error: any) {
       console.warn('Error assigning owner role (non-fatal):', error.message);
     }

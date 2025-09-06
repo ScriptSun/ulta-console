@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0'
 import { corsHeaders, cors } from '../_shared/cors.ts'
 import { Logger } from '../_shared/logger.ts'
+import { api } from '../_shared/api-wrapper.ts'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -111,28 +112,23 @@ async function handleGetVariants(req: Request, batchId: string) {
 
   try {
     // Get all variants for the batch
-    const { data: variants, error } = await supabase
-      .from('script_batch_variants')
-      .select(`
-        id,
-        batch_id,
-        os,
-        version,
-        active,
-        sha256,
-        created_at,
-        updated_at
-      `)
-      .eq('batch_id', batchId)
-      .order('os')
-      .order('version', { ascending: false })
+    const result = await api.select('script_batch_variants', `
+      id,
+      batch_id,
+      os,
+      version,
+      active,
+      sha256,
+      created_at,
+      updated_at
+    `, { batch_id: batchId });
 
-    if (error) {
-      Logger.error('Failed to get variants', { error, batchId })
+    if (!result.success) {
+      Logger.error('Failed to get variants', { error: result.error, batchId })
       return new Response('Failed to get variants', { status: 500, headers: corsHeaders })
     }
 
-    return new Response(JSON.stringify({ variants }), {
+    return new Response(JSON.stringify({ variants: result.data }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
@@ -166,15 +162,14 @@ async function handleCreateVariant(req: Request, batchId: string) {
     const size_bytes = data.length
 
     // Get next version for this OS
-    const { data: nextVersionData, error: versionError } = await supabase
-      .rpc('get_next_variant_version', { _batch_id: batchId, _os: os })
+    const versionResult = await api.rpc('get_next_variant_version', { _batch_id: batchId, _os: os });
 
-    if (versionError) {
-      Logger.error('Failed to get next version', { error: versionError, batchId, os })
+    if (!versionResult.success) {
+      Logger.error('Failed to get next version', { error: versionResult.error, batchId, os })
       return new Response('Failed to get next version', { status: 500, headers: corsHeaders })
     }
 
-    const version = nextVersionData as number
+    const version = versionResult.data as number
 
     // Get user ID from auth header
     const supabaseAuth = createClient(
