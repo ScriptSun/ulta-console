@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Loader2, User, Mail } from 'lucide-react';
 
 interface User {
@@ -38,13 +38,16 @@ export function AssignUserToAgentDialog({ agent, open, onOpenChange, onSuccess }
   const { data: users } = useQuery({
     queryKey: ['users-for-assignment'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('email');
+      const response = await api.query('users', {
+        select: '*',
+        orderBy: { column: 'email', ascending: true }
+      });
       
-      if (error) throw error;
-      return data || [];
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+      
+      return response.data || [];
     },
     enabled: open,
   });
@@ -52,13 +55,16 @@ export function AssignUserToAgentDialog({ agent, open, onOpenChange, onSuccess }
   const { data: plans } = useQuery({
     queryKey: ['plans-for-assignment'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .order('price_cents');
+      const response = await api.query('subscription_plans', {
+        select: '*',
+        orderBy: { column: 'price_cents', ascending: true }
+      });
       
-      if (error) throw error;
-      return data || [];
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+      
+      return response.data || [];
     },
     enabled: open,
   });
@@ -78,12 +84,14 @@ export function AssignUserToAgentDialog({ agent, open, onOpenChange, onSuccess }
         updateData.plan_key = selectedPlan;
       }
 
-      const { error } = await supabase
-        .from('agents')
-        .update(updateData)
-        .eq('id', agent.id);
+      const response = await api.update('agents', 
+        { id: agent.id }, 
+        updateData
+      );
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error);
+      }
 
       toast({
         title: 'Success',

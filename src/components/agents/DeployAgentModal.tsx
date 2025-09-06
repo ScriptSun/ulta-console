@@ -29,6 +29,7 @@ import {
   CreditCard
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -161,17 +162,17 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('agent-deploy', {
-        body: { 
-          action: 'generate_token',
-          user_id: selectedUserId,
-          plan_key: plans.find(p => p.id === selectedPlanId)?.key || 'free_plan'
-        }
+      const response = await api.callFunction('agent-deploy', { 
+        action: 'generate_token',
+        user_id: selectedUserId,
+        plan_key: plans.find(p => p.id === selectedPlanId)?.key || 'free_plan'
       });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error);
+      }
 
-      setToken(data);
+      setToken(response.data);
     } catch (error) {
       console.error('Error generating token:', error);
       toast({
@@ -242,15 +243,15 @@ export function DeployAgentModal({ isOpen, onClose }: DeployAgentModalProps) {
 
     setSshDeploying(true);
     try {
-      const { data, error } = await supabase.functions.invoke('agent-deploy', {
-        body: { 
-          action: 'deploy_ssh',
-          token: token.token,
-          ssh: sshForm
-        }
+      const response = await api.callFunction('agent-deploy', { 
+        action: 'deploy_ssh',
+        token: token.token,
+        ssh: sshForm
       });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error);
+      }
 
       toast({
         title: 'Deployment Started',

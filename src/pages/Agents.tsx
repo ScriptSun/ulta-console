@@ -7,15 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/layouts/PageHeader';
 import { Loader2, Plus, Filter, Search, AlertTriangle, RefreshCw, Server, Activity, Zap, Cpu } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AgentDetailsDrawer } from '@/components/agents/AgentDetailsDrawer';
 import { AgentsTable } from '@/components/agents/AgentsTable';
 import { DeployAgentModal } from '@/components/agents/DeployAgentModal';
 import { AssignUserToAgentDialog } from '@/components/agents/AssignUserToAgentDialog';
-
-import { supabaseEnhanced, queryWithRetry, testSupabaseConnection } from '@/lib/supabaseClient';
-import { SupabaseConnectionTest } from '@/components/debug/SupabaseConnectionTest';
+import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -96,43 +93,24 @@ export default function Agents() {
     setLoading(true);
     setConnectionError(null);
     
-    // First test the connection with a simple query
-    const connectionTest = await testSupabaseConnection();
-    if (!connectionTest.success) {
-      setConnectionError(connectionTest.error || 'Connection test failed');
-      setLoading(false);
-      toast({
-        title: 'Connection Failed',
-        description: connectionTest.error,
-        variant: 'destructive',
-      });
-      return;
-    }
-    
     try {
-      // Simple query with retry logic built-in
-      const { data, error } = await supabase
-        .from('agents')
-        .select(`
-          *, 
-          heartbeat, 
-          last_heartbeat
-        `)
-        .order('created_at', { ascending: false });
+      const response = await api.query('agents', {
+        select: '*, heartbeat, last_heartbeat',
+        orderBy: { column: 'created_at', ascending: false }
+      });
 
       console.log('Agents query completed:', { 
-        success: !error, 
-        dataCount: data?.length, 
-        error: error?.message 
+        success: response.success, 
+        dataCount: response.data?.length, 
+        error: response.error 
       });
 
-      if (error) {
-        console.error('Supabase agents query error:', error);
-        setConnectionError(`Database query failed: ${error.message}`);
-        throw error;
+      if (!response.success) {
+        setConnectionError(`Database query failed: ${response.error}`);
+        throw new Error(response.error);
       }
 
-      const agentsWithStatus = (data || []).map((agent) => ({
+      const agentsWithStatus = (response.data || []).map((agent) => ({
         ...agent
       }));
 
@@ -198,19 +176,23 @@ export default function Agents() {
   const handleAgentAction = async (agentId: string, action: 'start' | 'pause' | 'stop') => {
     try {
       // Log the action to audit trail
-      await supabase.from('audit_logs').insert({
+      await api.insert('audit_logs', {
         customer_id: '22222222-2222-2222-2222-222222222222',
-        actor: 'elin@ultahost.com', // Should be from user context
+        actor: user?.email || 'system',
         action: `agent_${action}`,
         target: `agent:${agentId}`,
         meta: { agent_id: agentId, action }
       });
 
-      const { error } = await supabase.functions.invoke('agent-control', {
-        body: { agent_id: agentId, action }
+      // Call edge function for agent control
+      const response = await api.callFunction('agent-control', {
+        agent_id: agentId, 
+        action 
       });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error);
+      }
 
       toast({
         title: 'Success',
@@ -271,20 +253,19 @@ export default function Agents() {
 
     try {
       // Log the action to audit trail
-      await supabase.from('audit_logs').insert({
+      await api.insert('audit_logs', {
         customer_id: '22222222-2222-2222-2222-222222222222',
-        actor: 'elin@ultahost.com', // Should be from user context
+        actor: user?.email || 'system',
         action: 'agent_remove',
         target: `agent:${agent.id}`,
         meta: { agent_id: agent.id, agent_hostname: agent.hostname }
       });
 
-      const { error } = await supabase
-        .from('agents')
-        .delete()
-        .eq('id', agent.id);
+      const response = await api.delete('agents', { id: agent.id });
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error);
+      }
 
       toast({
         title: 'Agent Removed',
@@ -368,12 +349,6 @@ export default function Agents() {
         </Alert>
       )}
 
-      {/* Debug Panel - Show when there are connection issues */}
-      {connectionError && (
-        <div className="mb-6">
-          <SupabaseConnectionTest />
-        </div>
-      )}
 
       {/* Connection Status - Show when no agents and not loading */}
       {agents.length === 0 && !loading && (

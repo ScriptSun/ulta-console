@@ -582,6 +582,31 @@ class DatabaseAPI {
       return this.handleError(error);
     }
   }
+
+  /**
+   * Call a Supabase Edge Function
+   * @param functionName - Name of the edge function
+   * @param body - Request body to send to the function
+   * @returns Promise with standardized response format
+   */
+  async callFunction<T = any>(functionName: string, body?: any): Promise<ApiResponse<T>> {
+    try {
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body
+      });
+
+      if (error) {
+        return this.handleError(error);
+      }
+
+      return {
+        success: true,
+        data
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
 }
 
 // Export a singleton instance

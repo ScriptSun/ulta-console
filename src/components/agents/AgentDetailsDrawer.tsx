@@ -42,6 +42,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -180,15 +181,20 @@ export function AgentDetailsDrawer({ agent, isOpen, onClose, canManage, defaultT
     if (!agent || !canManage) return;
 
     try {
-      const { error } = await supabase
-        .from('agents')
-        .update({ 
+      // Get current user for updated_by field
+      const currentUser = await api.getCurrentUser();
+      
+      const response = await api.update('agents', 
+        { id: agent.id }, 
+        { 
           auto_updates_enabled: enabled,
-          updated_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .eq('id', agent.id);
+          updated_by: currentUser.data?.id
+        }
+      );
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error);
+      }
 
       toast({
         title: 'Settings Updated',
