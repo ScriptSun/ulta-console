@@ -44,6 +44,12 @@ interface EnhancedDataTableProps<T> {
   sortOrder?: 'asc' | 'desc';
   selectedRows?: T[];
   bulkActions?: BulkAction<T>[];
+  filters?: Record<string, any>;
+  filterOptions?: {
+    key: string;
+    label: string;
+    options: { value: string; label: string }[];
+  }[];
   onSearchChange?: (search: string) => void;
   onSortChange?: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
   onPageChange?: (page: number) => void;
@@ -51,6 +57,7 @@ interface EnhancedDataTableProps<T> {
   onRowSelect?: (row: T, selected: boolean) => void;
   onSelectAll?: (selected: boolean) => void;
   onRowClick?: (row: T) => void;
+  onFilterChange?: (key: string, value: string) => void;
   emptyMessage?: string;
 }
 
@@ -68,6 +75,8 @@ export function EnhancedDataTable<T extends { id: string | number }>({
   sortOrder,
   selectedRows = [],
   bulkActions = [],
+  filters = {},
+  filterOptions = [],
   onSearchChange,
   onSortChange,
   onPageChange,
@@ -75,6 +84,7 @@ export function EnhancedDataTable<T extends { id: string | number }>({
   onRowSelect,
   onSelectAll,
   onRowClick,
+  onFilterChange,
   emptyMessage = 'No data available'
 }: EnhancedDataTableProps<T>) {
   const selectedIds = new Set(selectedRows.map(row => row.id));
@@ -121,6 +131,27 @@ export function EnhancedDataTable<T extends { id: string | number }>({
               />
             </div>
           )}
+          
+          {/* Filter Controls */}
+          {filterOptions.map((filterOption) => (
+            <Select
+              key={filterOption.key}
+              value={filters[filterOption.key] || 'all'}
+              onValueChange={(value) => onFilterChange?.(filterOption.key, value === 'all' ? '' : value)}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder={filterOption.label} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All {filterOption.label}</SelectItem>
+                {filterOption.options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ))}
         </div>
 
         <div className="flex items-center gap-2">

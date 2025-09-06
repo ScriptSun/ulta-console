@@ -101,6 +101,58 @@ const fetchAuditLogs = async (state: ServerTableState): Promise<ServerTableRespo
       status: 'warning',
       details: 'Agent heartbeat delayed',
       session_id: 'sess_mno345'
+    },
+    {
+      id: '6',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      actor: 'sarah.connor@example.com',
+      action: 'agent.stop',
+      target: 'agent-003',
+      target_type: 'agent',
+      ip_address: '192.168.1.53',
+      user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      status: 'success',
+      details: 'Agent stopped by user request',
+      session_id: 'sess_pqr678'
+    },
+    {
+      id: '7',
+      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      actor: 'emma.watson@example.com',
+      action: 'user.logout',
+      target: 'emma.watson@example.com',
+      target_type: 'user',
+      ip_address: '192.168.1.54',
+      user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+      status: 'success',
+      details: 'User logged out',
+      session_id: 'sess_stu901'
+    },
+    {
+      id: '8',
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      actor: 'david.clark@example.com',
+      action: 'script.create',
+      target: 'backup-script-v2',
+      target_type: 'script',
+      ip_address: '192.168.1.55',
+      user_agent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
+      status: 'failure',
+      details: 'Script creation failed: Invalid syntax',
+      session_id: 'sess_vwx234'
+    },
+    {
+      id: '9',
+      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      actor: 'lisa.parker@example.com',
+      action: 'agent.deploy',
+      target: 'agent-004',
+      target_type: 'agent',
+      ip_address: '192.168.1.56',
+      user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      status: 'warning',
+      details: 'Agent deployed with warnings: Resource constraints detected',
+      session_id: 'sess_yzab567'
     }
   ];
 
@@ -116,14 +168,35 @@ const fetchAuditLogs = async (state: ServerTableState): Promise<ServerTableRespo
     );
   }
 
-  // Apply status filter
+  // Apply filters
   if (state.filters.status) {
     filteredLogs = filteredLogs.filter(log => log.status === state.filters.status);
   }
 
-  // Apply action filter
   if (state.filters.action) {
     filteredLogs = filteredLogs.filter(log => log.action.includes(state.filters.action));
+  }
+  
+  if (state.filters.target_type) {
+    filteredLogs = filteredLogs.filter(log => log.target_type === state.filters.target_type);
+  }
+
+  // Apply sorting
+  if (state.sortBy) {
+    filteredLogs = filteredLogs.sort((a, b) => {
+      const aValue = (a as any)[state.sortBy!];
+      const bValue = (b as any)[state.sortBy!];
+      
+      if (state.sortBy === 'timestamp') {
+        const aTime = new Date(aValue).getTime();
+        const bTime = new Date(bValue).getTime();
+        return state.sortOrder === 'asc' ? aTime - bTime : bTime - aTime;
+      }
+      
+      if (aValue < bValue) return state.sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return state.sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
   }
 
   const totalCount = filteredLogs.length;
@@ -156,6 +229,7 @@ export function EnhancedAuditTable({
     error,
     tableState,
     updateSearch,
+    updateFilters,
     updateSort,
     updatePage,
     updatePageSize,
@@ -259,6 +333,46 @@ export function EnhancedAuditTable({
     }
   };
 
+  const handleFilterChange = (key: string, value: string) => {
+    const newFilters = { ...tableState.filters };
+    if (value === '') {
+      delete newFilters[key];
+    } else {
+      newFilters[key] = value;
+    }
+    updateFilters(newFilters);
+  };
+
+  const filterOptions = [
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: 'success', label: 'Success' },
+        { value: 'failure', label: 'Failure' },
+        { value: 'warning', label: 'Warning' }
+      ]
+    },
+    {
+      key: 'action',
+      label: 'Action',
+      options: [
+        { value: 'agent', label: 'Agent Actions' },
+        { value: 'user', label: 'User Actions' },
+        { value: 'script', label: 'Script Actions' }
+      ]
+    },
+    {
+      key: 'target_type',
+      label: 'Target Type',
+      options: [
+        { value: 'agent', label: 'Agent' },
+        { value: 'user', label: 'User' },
+        { value: 'script', label: 'Script' }
+      ]
+    }
+  ];
+
   return (
     <EnhancedDataTable
       data={data}
@@ -274,6 +388,8 @@ export function EnhancedAuditTable({
       sortOrder={tableState.sortOrder}
       selectedRows={selectedRows}
       bulkActions={bulkActions}
+      filters={tableState.filters}
+      filterOptions={filterOptions}
       onSearchChange={updateSearch}
       onSortChange={updateSort}
       onPageChange={updatePage}
@@ -281,6 +397,7 @@ export function EnhancedAuditTable({
       onRowSelect={handleRowSelect}
       onSelectAll={handleSelectAll}
       onRowClick={onViewDetails}
+      onFilterChange={handleFilterChange}
       emptyMessage="No audit logs found. Try adjusting your search criteria."
     />
   );

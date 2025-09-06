@@ -92,6 +92,86 @@ const fetchAgents = async (state: ServerTableState): Promise<ServerTableResponse
       memory_usage: 3.2,
       user_name: 'mike.wilson',
       plan_name: 'Basic'
+    },
+    {
+      id: '4',
+      hostname: 'agent-004',
+      agent_type: 'web-scraper',
+      region: 'us-east-1',
+      ip_address: '192.168.1.103',
+      status: 'active',
+      os: 'Ubuntu 20.04',
+      version: '2.1.0',
+      last_seen: new Date(Date.now() - 1 * 60 * 1000).toISOString(),
+      tasks_completed: 2100,
+      cpu_usage: 32,
+      memory_usage: 1.9,
+      user_name: 'sarah.connor',
+      plan_name: 'Pro'
+    },
+    {
+      id: '5',
+      hostname: 'agent-005',
+      agent_type: 'data-processor',
+      region: 'eu-west-1',
+      ip_address: '192.168.1.104',
+      status: 'suspended',
+      os: 'CentOS 8',
+      version: '2.0.5',
+      last_seen: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      tasks_completed: 300,
+      cpu_usage: 5,
+      memory_usage: 0.8,
+      user_name: 'alex.turner',
+      plan_name: 'Basic'
+    },
+    {
+      id: '6',
+      hostname: 'agent-006',
+      agent_type: 'api-monitor',
+      region: 'us-west-2',
+      ip_address: '192.168.1.105',
+      status: 'active',
+      os: 'Windows Server 2019',
+      version: '2.1.0',
+      last_seen: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+      tasks_completed: 1850,
+      cpu_usage: 67,
+      memory_usage: 2.8,
+      user_name: 'emma.watson',
+      plan_name: 'Enterprise'
+    },
+    {
+      id: '7',
+      hostname: 'agent-007',
+      agent_type: 'web-scraper',
+      region: 'eu-west-1',
+      ip_address: '192.168.1.106',
+      status: 'inactive',
+      os: 'Ubuntu 20.04',
+      version: '2.0.5',
+      last_seen: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+      tasks_completed: 750,
+      cpu_usage: 8,
+      memory_usage: 0.5,
+      user_name: 'david.clark',
+      plan_name: 'Pro'
+    },
+    {
+      id: '8',
+      hostname: 'agent-008',
+      agent_type: 'data-processor',
+      region: 'us-east-1',
+      ip_address: '192.168.1.107',
+      status: 'error',
+      os: 'Windows Server 2019',
+      version: '2.1.0',
+      last_seen: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+      tasks_completed: 425,
+      cpu_usage: 95,
+      memory_usage: 3.5,
+      user_name: 'lisa.parker',
+      plan_name: 'Enterprise'
     }
   ];
 
@@ -108,9 +188,33 @@ const fetchAgents = async (state: ServerTableState): Promise<ServerTableResponse
     );
   }
 
-  // Apply status filter
+  // Apply filters
   if (state.filters.status) {
     filteredAgents = filteredAgents.filter(agent => agent.status === state.filters.status);
+  }
+  
+  if (state.filters.region) {
+    filteredAgents = filteredAgents.filter(agent => agent.region === state.filters.region);
+  }
+  
+  if (state.filters.os) {
+    filteredAgents = filteredAgents.filter(agent => agent.os === state.filters.os);
+  }
+  
+  if (state.filters.agent_type) {
+    filteredAgents = filteredAgents.filter(agent => agent.agent_type === state.filters.agent_type);
+  }
+
+  // Apply sorting
+  if (state.sortBy) {
+    filteredAgents = filteredAgents.sort((a, b) => {
+      const aValue = (a as any)[state.sortBy!];
+      const bValue = (b as any)[state.sortBy!];
+      
+      if (aValue < bValue) return state.sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return state.sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
   }
 
   const totalCount = filteredAgents.length;
@@ -148,6 +252,7 @@ export function EnhancedAgentsTable({
     error,
     tableState,
     updateSearch,
+    updateFilters,
     updateSort,
     updatePage,
     updatePageSize,
@@ -261,6 +366,56 @@ export function EnhancedAgentsTable({
     }
   };
 
+  const handleFilterChange = (key: string, value: string) => {
+    const newFilters = { ...tableState.filters };
+    if (value === '') {
+      delete newFilters[key];
+    } else {
+      newFilters[key] = value;
+    }
+    updateFilters(newFilters);
+  };
+
+  const filterOptions = [
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: 'active', label: 'Active' },
+        { value: 'inactive', label: 'Inactive' },
+        { value: 'suspended', label: 'Suspended' },
+        { value: 'error', label: 'Error' }
+      ]
+    },
+    {
+      key: 'region',
+      label: 'Region',
+      options: [
+        { value: 'us-east-1', label: 'US East 1' },
+        { value: 'us-west-2', label: 'US West 2' },
+        { value: 'eu-west-1', label: 'EU West 1' }
+      ]
+    },
+    {
+      key: 'os',
+      label: 'OS',
+      options: [
+        { value: 'Ubuntu 20.04', label: 'Ubuntu 20.04' },
+        { value: 'CentOS 8', label: 'CentOS 8' },
+        { value: 'Windows Server 2019', label: 'Windows Server 2019' }
+      ]
+    },
+    {
+      key: 'agent_type',
+      label: 'Type',
+      options: [
+        { value: 'web-scraper', label: 'Web Scraper' },
+        { value: 'data-processor', label: 'Data Processor' },
+        { value: 'api-monitor', label: 'API Monitor' }
+      ]
+    }
+  ];
+
   return (
     <EnhancedDataTable
       data={data}
@@ -276,6 +431,8 @@ export function EnhancedAgentsTable({
       sortOrder={tableState.sortOrder}
       selectedRows={selectedRows}
       bulkActions={bulkActions}
+      filters={tableState.filters}
+      filterOptions={filterOptions}
       onSearchChange={updateSearch}
       onSortChange={updateSort}
       onPageChange={updatePage}
@@ -283,6 +440,7 @@ export function EnhancedAgentsTable({
       onRowSelect={handleRowSelect}
       onSelectAll={handleSelectAll}
       onRowClick={onAgentClick}
+      onFilterChange={handleFilterChange}
       emptyMessage="No agents found. Try adjusting your search criteria."
     />
   );

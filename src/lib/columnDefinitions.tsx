@@ -111,19 +111,22 @@ export function createSortableHeader(
   sortOrder?: 'asc' | 'desc',
   onSort?: (sortBy: string, sortOrder: 'asc' | 'desc') => void
 ) {
+  const columnKey = label.toLowerCase().replace(' ', '_');
+  const isActive = sortBy === columnKey;
+  
   return (
     <Button
       variant="ghost"
       onClick={() => {
         if (onSort) {
-          const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
-          onSort(label.toLowerCase(), newOrder);
+          const newOrder = isActive && sortOrder === 'asc' ? 'desc' : 'asc';
+          onSort(columnKey, newOrder);
         }
       }}
       className="h-auto p-0 font-semibold"
     >
       {label}
-      <ArrowUpDown className="ml-2 h-4 w-4" />
+      <ArrowUpDown className={`ml-2 h-4 w-4 ${isActive ? 'text-primary' : ''}`} />
     </Button>
   );
 }
