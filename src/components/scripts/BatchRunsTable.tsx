@@ -20,7 +20,7 @@ import {
   Play,
   Download
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -93,31 +93,15 @@ export function BatchRunsTable({ batchId, onViewRun }: BatchRunsTableProps) {
   const loadRuns = async () => {
     setLoading(true);
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) {
-        throw new Error('No authentication token available');
+      const response = await api.invokeFunction(`script-batches/${batchId}/runs`, {
+        limit: 50
+      });
+
+      if (response.error) {
+        throw new Error(response.error || 'Failed to load runs');
       }
 
-      const response = await fetch(
-        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batchId}/runs?limit=50`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const data = await response.json();
-      setRuns(data.runs || []);
+      setRuns(response.data?.runs || []);
     } catch (error) {
       console.error('Error loading runs:', error);
       toast({

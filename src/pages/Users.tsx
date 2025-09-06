@@ -36,11 +36,11 @@ export default function Users() {
     queryFn: async () => {
       // Get total users count from admin_profiles
       const usersResponse = await api.select('admin_profiles', 'id');
-      const totalUsers = usersResponse.success ? usersResponse.data?.length || 0 : 0;
+      const totalUsers = usersResponse.data?.length || 0;
       
       // Get agents data to calculate statistics
       const agentsResponse = await api.select('agents', 'user_id');
-      const agentsData = agentsResponse.success ? agentsResponse.data || [] : [];
+      const agentsData = agentsResponse.data || [];
       
       // Calculate statistics
       const uniqueUserIds = new Set(agentsData.map(agent => agent.user_id));
@@ -69,17 +69,16 @@ export default function Users() {
       }
       
       // Get users from admin_profiles
-      const usersResponse = await api.query('admin_profiles', {
-        select: '*',
-        filters,
-        orderBy: { column: 'created_at', ascending: false }
-      });
+      const usersResponse = await api.select('admin_profiles', '*', filters);
       
-      if (!usersResponse.success) {
+      if (usersResponse.error) {
         throw new Error(usersResponse.error || 'Failed to fetch users');
       }
       
       let userData = usersResponse.data || [];
+      
+      // Sort by created_at descending
+      userData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
       // Apply date filter
       if (dateFilter !== 'all') {
@@ -114,7 +113,7 @@ export default function Users() {
       
       // Get agent counts for each user
       const agentsResponse = await api.select('agents', 'user_id');
-      const agentsData = agentsResponse.success ? agentsResponse.data || [] : [];
+      const agentsData = agentsResponse.data || [];
       
       // Count agents per user
       const agentCounts: Record<string, number> = {};
@@ -164,7 +163,7 @@ export default function Users() {
       try {
         const response = await api.delete('admin_profiles', { id: user.id });
 
-        if (!response.success) {
+        if (response.error) {
           throw new Error(response.error || 'Failed to delete user');
         }
 

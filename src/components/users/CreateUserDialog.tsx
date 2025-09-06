@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { Plus, Loader2 } from 'lucide-react';
 
 interface CreateUserDialogProps {
@@ -26,11 +26,9 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
     setIsLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .insert([formData]);
+      const response = await api.insert('users', formData);
 
-      if (error) throw error;
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: 'Success',

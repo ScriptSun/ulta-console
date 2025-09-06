@@ -52,7 +52,7 @@ import {
 } from 'lucide-react';
 import { getRiskOptions, type ValidationResult } from '@/utils/scriptValidation';
 import { useOSTargets } from '@/hooks/useOSTargets';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { RenderConfig, DEFAULT_RENDER_TEMPLATES } from '@/types/renderTypes';
@@ -228,31 +228,13 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
   const loadBatchVariants = async (batchId: string) => {
     setLoadingVariants(true);
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) {
-        throw new Error('No authentication token available');
+      const response = await api.invokeFunction(`script-batches/${batchId}/variants`, {});
+
+      if (response.error) {
+        throw new Error(response.error || 'Failed to load variants');
       }
 
-      const response = await fetch(
-        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batchId}/variants`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const data = await response.json();
-      setVariants(data?.variants || []);
+      setVariants(response.data?.variants || []);
     } catch (error) {
       console.error('Error loading variants:', error);
       toast({
@@ -269,28 +251,14 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     if (!batch?.id) return;
 
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) {
-        throw new Error('No authentication token available');
-      }
+      const response = await api.invokeFunction(`script-batches/${batch.id}/variants`, {
+        os,
+        source,
+        notes
+      });
 
-      const response = await fetch(
-        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch.id}/variants`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ os, source, notes }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      if (response.error) {
+        throw new Error(response.error || 'Failed to update variant');
       }
 
       // Reload variants to get updated list
@@ -310,28 +278,10 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     if (!batch?.id) return;
 
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) {
-        throw new Error('No authentication token available');
-      }
+      const response = await api.invokeFunction(`script-batches/${batch.id}/variants/${os}/versions`, {});
 
-      const response = await fetch(
-        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch.id}/variants/${os}/versions`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      if (response.error) {
+        throw new Error(response.error || 'Failed to create version');
       }
 
       await loadBatchVariants(batch.id);
@@ -353,28 +303,12 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     if (!batch?.id) return;
 
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) {
-        throw new Error('No authentication token available');
-      }
+      const response = await api.invokeFunction(`script-batches/${batch.id}/variants/${os}/activate`, {
+        version
+      });
 
-      const response = await fetch(
-        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batch.id}/variants/${os}/activate`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ version }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      if (response.error) {
+        throw new Error(response.error || 'Failed to activate version');
       }
 
       await loadBatchVariants(batch.id);
@@ -430,26 +364,23 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
     setLoading(true);
     try {
       // Update the batch metadata
-      const { error: batchError } = await supabase
-        .from('script_batches')
-        .update({
-          name: formData.name,
-          description: formData.description,
-          inputs_schema: formData.inputs_schema,
-          inputs_defaults: formData.inputs_defaults,
-          render_config: renderConfig as any,
-          os_targets: formData.os_targets,
-          risk: formData.risk,
-          max_timeout_sec: formData.max_timeout_sec,
-          per_agent_concurrency: formData.per_agent_concurrency,
-          per_tenant_concurrency: formData.per_tenant_concurrency,
-          auto_version: formData.auto_version,
-          preflight: {},
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', batch?.id);
+      const updateResponse = await api.update('script_batches', { id: batch?.id }, {
+        name: formData.name,
+        description: formData.description,
+        inputs_schema: formData.inputs_schema,
+        inputs_defaults: formData.inputs_defaults,
+        render_config: renderConfig as any,
+        os_targets: formData.os_targets,
+        risk: formData.risk,
+        max_timeout_sec: formData.max_timeout_sec,
+        per_agent_concurrency: formData.per_agent_concurrency,
+        per_tenant_concurrency: formData.per_tenant_concurrency,
+        auto_version: formData.auto_version,
+        preflight: {},
+        updated_at: new Date().toISOString()
+      });
 
-      if (batchError) throw batchError;
+      if (updateResponse.error) throw new Error(updateResponse.error);
 
       // Also save/update the script content if it exists
       if (scriptContent && scriptContent.trim()) {
@@ -462,36 +393,31 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
         if (existingVariant) {
           // Update existing variant if the content changed
           if (existingVariant.source !== scriptContent) {
-            const { error: variantError } = await supabase
-              .from('script_batch_variants')
-              .update({
-                source: scriptContent,
-                notes: notes || 'Draft update',
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', existingVariant.id);
+            const variantResponse = await api.update('script_batch_variants', { id: existingVariant.id }, {
+              source: scriptContent,
+              notes: notes || 'Draft update',
+              updated_at: new Date().toISOString()
+            });
               
-            if (variantError) {
-              console.warn('Failed to update variant content:', variantError);
+            if (variantResponse.error) {
+              console.warn('Failed to update variant content:', variantResponse.error);
             }
           }
         } else {
           // Create new variant for this OS
-          const { error: variantError } = await supabase
-            .from('script_batch_variants')
-            .insert({
-              batch_id: batch?.id,
-              os: currentOs,
-              version: 1,
-              sha256: validation.sha256,
-              size_bytes: validation.sizeBytes,
-              source: scriptContent,
-              notes: notes || 'Initial draft',
-              active: false
-            });
+          const variantResponse = await api.insert('script_batch_variants', {
+            batch_id: batch?.id,
+            os: currentOs,
+            version: 1,
+            sha256: validation.sha256,
+            size_bytes: validation.sizeBytes,
+            source: scriptContent,
+            notes: notes || 'Initial draft',
+            active: false
+          });
             
-          if (variantError) {
-            console.warn('Failed to create variant:', variantError);
+          if (variantResponse.error) {
+            console.warn('Failed to create variant:', variantResponse.error);
           }
         }
       }
@@ -540,23 +466,21 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('script-batches', {
-        body: {
-          action: 'activate_version',
-          batch_id: batch?.id,
-          ...formData,
-          source: scriptContent,
-          notes,
-          sha256: validation.sha256,
-          size_bytes: validation.sizeBytes
-        }
+      const response = await api.invokeFunction('script-batches', {
+        action: 'activate_version',
+        batch_id: batch?.id,
+        ...formData,
+        source: scriptContent,
+        notes,
+        sha256: validation.sha256,
+        size_bytes: validation.sizeBytes
       });
 
-      if (error) throw error;
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: 'Version Activated',
-        description: `Version ${data.version} activated successfully`,
+        description: `Version ${response.data?.version} activated successfully`,
       });
 
       // Clear draft from localStorage

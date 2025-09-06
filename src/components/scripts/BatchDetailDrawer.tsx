@@ -26,7 +26,7 @@ import { BatchDiffViewer } from './BatchDiffViewer';
 import { BatchRunsTable } from './BatchRunsTable';
 import { BatchRunDetailsDrawer } from './BatchRunDetailsDrawer';
 import { BatchVersionsTab } from './BatchVersionsTab';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -95,19 +95,21 @@ export function BatchDetailDrawer({ batch, isOpen, onClose, onSuccess, userRole 
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('script_batch_versions')
-        .select('*')
-        .eq('batch_id', batch.id)
-        .order('version', { ascending: false });
+      const response = await api.select('script_batch_versions', '*', {
+        batch_id: batch.id
+      });
 
-      if (error) throw error;
+      if (!response.success) throw new Error(response.error);
 
-      setVersions((data || []) as BatchVersion[]);
+      const data = response.data || [];
+      // Sort by version descending
+      data.sort((a, b) => b.version - a.version);
+      
+      setVersions(data as BatchVersion[]);
       
       // Set selected version to active version or latest
-      const activeVersion = (data || []).find(v => v.status === 'active') as BatchVersion | undefined;
-      const latestVersion = (data || [])[0] as BatchVersion | undefined;
+      const activeVersion = data.find(v => v.status === 'active') as BatchVersion | undefined;
+      const latestVersion = data[0] as BatchVersion | undefined;
       setSelectedVersion(activeVersion || latestVersion || null);
     } catch (error) {
       console.error('Error fetching versions:', error);
@@ -133,15 +135,13 @@ export function BatchDetailDrawer({ batch, isOpen, onClose, onSuccess, userRole 
 
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('script-batches', {
-        body: {
-          action: 'activate',
-          batch_id: batch!.id,
-          version: version.version
-        }
+      const response = await api.invokeFunction('script-batches', {
+        action: 'activate',
+        batch_id: batch!.id,
+        version: version.version
       });
 
-      if (error) throw error;
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: 'Version Activated',

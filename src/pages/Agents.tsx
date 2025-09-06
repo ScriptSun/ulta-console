@@ -12,7 +12,7 @@ import { AgentDetailsDrawer } from '@/components/agents/AgentDetailsDrawer';
 import { AgentsTable } from '@/components/agents/AgentsTable';
 import { DeployAgentModal } from '@/components/agents/DeployAgentModal';
 import { AssignUserToAgentDialog } from '@/components/agents/AssignUserToAgentDialog';
-import { api } from '@/lib/api';
+import { api } from '@/lib/api-wrapper';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -94,18 +94,15 @@ export default function Agents() {
     setConnectionError(null);
     
     try {
-      const response = await api.query('agents', {
-        select: '*, heartbeat, last_heartbeat',
-        orderBy: { column: 'created_at', ascending: false }
-      });
+      const response = await api.select('agents', '*, heartbeat, last_heartbeat');
 
       console.log('Agents query completed:', { 
-        success: response.success, 
+        success: !response.error, 
         dataCount: response.data?.length, 
         error: response.error 
       });
 
-      if (!response.success) {
+      if (response.error) {
         setConnectionError(`Database query failed: ${response.error}`);
         throw new Error(response.error);
       }
@@ -185,12 +182,12 @@ export default function Agents() {
       });
 
       // Call edge function for agent control
-      const response = await api.callFunction('agent-control', {
+      const response = await api.invokeFunction('agent-control', {
         agent_id: agentId, 
         action 
       });
 
-      if (!response.success) {
+      if (response.error) {
         throw new Error(response.error);
       }
 

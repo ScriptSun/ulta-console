@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-wrapper';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,17 +46,15 @@ export function UserEditDrawer({ user, open, onOpenChange, onUserUpdated }: User
     queryFn: async () => {
       if (!user?.id) return null;
       
-      const { data, error } = await supabase
-        .from('user_security_status')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const response = await api.selectOne('user_security_status', '*', {
+        user_id: user.id
+      });
       
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (!response.success && response.error !== 'No data found') {
+        throw new Error(response.error);
       }
       
-      return data;
+      return response.data || null;
     },
     enabled: !!user?.id && open,
   });
@@ -67,14 +65,12 @@ export function UserEditDrawer({ user, open, onOpenChange, onUserUpdated }: User
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
-        .from('agents')
-        .select('id, hostname, status, agent_type, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const response = await api.select('agents', 'id, hostname, status, agent_type, created_at', {
+        user_id: user.id
+      });
       
-      if (error) throw error;
-      return data || [];
+      if (!response.success) throw new Error(response.error);
+      return response.data || [];
     },
     enabled: !!user?.id && open,
   });
@@ -85,15 +81,16 @@ export function UserEditDrawer({ user, open, onOpenChange, onUserUpdated }: User
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('session_start', { ascending: false })
-        .limit(5);
+      const response = await api.select('user_sessions', '*', {
+        user_id: user.id
+      });
       
-      if (error) throw error;
-      return data || [];
+      if (response.error) throw new Error(response.error);
+      const data = response.data || [];
+      
+      // Sort by session_start descending and limit to 5
+      data.sort((a, b) => new Date(b.session_start).getTime() - new Date(a.session_start).getTime());
+      return data.slice(0, 5);
     },
     enabled: !!user?.id && open,
   });
@@ -134,33 +131,29 @@ export function UserEditDrawer({ user, open, onOpenChange, onUserUpdated }: User
     
     try {
       // Update user profile (assuming there's a profiles table)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          full_name: formData.full_name,
-          updated_at: new Date().toISOString(),
-        });
+      const profileResponse = await api.upsert('profiles', {
+        id: user.id,
+        full_name: formData.full_name,
+        updated_at: new Date().toISOString(),
+      });
 
-      if (profileError) {
-        console.warn('Profile update error:', profileError);
+      if (profileResponse.error) {
+        console.warn('Profile update error:', profileResponse.error);
       }
 
       // Update user security status if needed
       if (userSecurityStatus?.is_banned === formData.is_active) {
-        const { error: securityError } = await supabase
-          .from('user_security_status')
-          .upsert({
-            user_id: user.id,
-            email: formData.email,
-            is_banned: !formData.is_active,
-            ban_reason: formData.is_active ? null : 'Manually disabled by admin',
-            banned_at: formData.is_active ? null : new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+        const securityResponse = await api.upsert('user_security_status', {
+          user_id: user.id,
+          email: formData.email,
+          is_banned: !formData.is_active,
+          ban_reason: formData.is_active ? null : 'Manually disabled by admin',
+          banned_at: formData.is_active ? null : new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
 
-        if (securityError) {
-          console.warn('Security status update error:', securityError);
+        if (securityResponse.error) {
+          console.warn('Security status update error:', securityResponse.error);
         }
       }
 
@@ -211,18 +204,16 @@ export function UserEditDrawer({ user, open, onOpenChange, onUserUpdated }: User
     setIsLoading(true);
     
     try {
-      const { error } = await supabase
-        .from('user_security_status')
-        .upsert({
-          user_id: user.id,
-          email: user.email,
-          is_banned: !isBanned,
-          ban_reason: isBanned ? null : `Manually ${action}ned by admin`,
-          banned_at: isBanned ? null : new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+      const response = await api.upsert('user_security_status', {
+        user_id: user.id,
+        email: user.email,
+        is_banned: !isBanned,
+        ban_reason: isBanned ? null : `Manually ${action}ned by admin`,
+        banned_at: isBanned ? null : new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
 
-      if (error) throw error;
+      if (response.error) throw new Error(response.error);
 
       toast({
         title: 'Success',
