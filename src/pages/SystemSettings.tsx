@@ -189,20 +189,16 @@ export default function SystemSettings() {
     if (!user) return;
     
     try {
-      const { data, error } = await api
-        .from('console_team_members')
-        .select('role')
-        .eq('admin_id', user.id)
-        .maybeSingle();
+      const result = await api.selectOne('console_team_members', 'role', { admin_id: user.id });
 
-      if (error) {
-        console.error('Error checking user role:', error);
+      if (!result.success) {
+        console.error('Error checking user role:', result.error);
         return;
       }
 
-      if (data) {
-        setUserRole(data.role);
-        setIsOwnerOrAdmin(['Owner', 'Admin'].includes(data.role));
+      if (result.data) {
+        setUserRole(result.data.role);
+        setIsOwnerOrAdmin(['Owner', 'Admin'].includes(result.data.role));
       }
     } catch (error) {
       console.error('Error checking user role:', error);

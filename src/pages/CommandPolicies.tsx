@@ -123,13 +123,12 @@ export default function CommandPolicies() {
   const fetchPolicies = async () => {
     try {
       setLoading(true);
-      const { data, error } = await api
-        .from('command_policies')
-        .select('*')
-        .order('policy_name');
+      const result = await api.select('command_policies', '*', { 
+        order: { column: 'policy_name', ascending: true } 
+      });
 
-      if (error) {
-        console.error('Error fetching policies:', error);
+      if (!result.success) {
+        console.error('Error fetching policies:', result.error);
         toast({
           title: "Error",
           description: "Failed to load command policies",
@@ -138,7 +137,7 @@ export default function CommandPolicies() {
         return;
       }
 
-      setPolicies(data?.map(policy => ({
+      setPolicies(result.data?.map(policy => ({
         ...policy,
         mode: policy.mode as 'auto' | 'confirm' | 'forbid',
         match_type: policy.match_type as 'exact' | 'regex' | 'wildcard',
@@ -314,16 +313,13 @@ export default function CommandPolicies() {
 
   const handleToggleActive = async (policy: CommandPolicy) => {
     try {
-      const { error } = await api
-        .from('command_policies')
-        .update({ 
-          active: !policy.active,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', policy.id);
+      const result = await api.update('command_policies', { id: policy.id }, { 
+        active: !policy.active,
+        updated_at: new Date().toISOString()
+      });
 
-      if (error) {
-        console.error('Error toggling policy:', error);
+      if (!result.success) {
+        console.error('Error toggling policy:', result.error);
         toast({
           title: "Error",
           description: "Failed to update policy status",

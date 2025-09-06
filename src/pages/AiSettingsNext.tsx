@@ -39,20 +39,16 @@ export default function AiSettingsNext() {
     if (!user) return;
     
     try {
-      const response = await api
-        .from('console_team_members')
-        .select('role')
-        .eq('admin_id', user.id)
-        .maybeSingle();
+      const result = await api.selectOne('console_team_members', 'role', { admin_id: user.id });
 
-      if (!response.success) {
-        console.error('Error checking user role:', response.error);
+      if (!result.success) {
+        console.error('Error checking user role:', result.error);
         return;
       }
 
-      if (response.data) {
-        setUserRole(response.data.role);
-        setIsOwnerOrAdmin(['Owner', 'Admin'].includes(response.data.role));
+      if (result.data) {
+        setUserRole(result.data.role);
+        setIsOwnerOrAdmin(['Owner', 'Admin'].includes(result.data.role));
       }
     } catch (error) {
       console.error('Error checking user role:', error);
@@ -62,31 +58,23 @@ export default function AiSettingsNext() {
   const migrateOldSettings = async () => {
     try {
       // Check if migration has already been completed
-      const migrationCheck = await api
-        .from('system_settings')
-        .select('*')
-        .eq('setting_key', 'ai_migration_complete')
-        .maybeSingle();
+      const migrationResult = await api.selectOne('system_settings', '*', { setting_key: 'ai_migration_complete' });
 
-      if (migrationCheck.data) {
+      if (migrationResult.success && migrationResult.data) {
         // Migration already completed, skip
         return;
       }
 
       // Check if old ai_models setting exists
-      const oldSettingsResponse = await api
-        .from('system_settings')
-        .select('*')
-        .eq('setting_key', 'ai_models')
-        .maybeSingle();
+      const oldResult = await api.selectOne('system_settings', '*', { setting_key: 'ai_models' });
 
-      if (!oldSettingsResponse.success && oldSettingsResponse.error !== 'No data found') {
-        console.error('Error checking old settings:', oldSettingsResponse.error);
+      if (!oldResult.success && !oldResult.error?.includes('No rows found')) {
+        console.error('Error checking old settings:', oldResult.error);
         return;
       }
 
-      if (oldSettingsResponse.data) {
-        const oldValue = oldSettingsResponse.data.setting_value as any;
+      if (oldResult.success && oldResult.data) {
+        const oldValue = oldResult.data.setting_value as any;
         
         // Migrate to new storage keys
         const newKeys = [
@@ -106,25 +94,17 @@ export default function AiSettingsNext() {
         ];
 
         for (const newSetting of newKeys) {
-          await api
-            .from('system_settings')
-            .upsert({
-              setting_key: newSetting.key,
-              setting_value: newSetting.value,
-            }, {
-              onConflict: 'setting_key'
-            });
+          await api.upsert('system_settings', {
+            setting_key: newSetting.key,
+            setting_value: newSetting.value,
+          });
         }
 
         // Mark migration complete
-        await api
-          .from('system_settings')
-          .upsert({
-            setting_key: 'ai_migration_complete',
-            setting_value: { migrated_at: new Date().toISOString() }
-          }, {
-            onConflict: 'setting_key'
-          });
+        await api.upsert('system_settings', {
+          setting_key: 'ai_migration_complete',
+          setting_value: { migrated_at: new Date().toISOString() }
+        });
 
         toast({
           title: 'AI Settings Migrated',

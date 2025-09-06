@@ -95,44 +95,41 @@ export default function SecurityDashboard() {
       setLoading(true);
       
       // Fetch security events (last 24 hours)
-      const { data: eventsData, error: eventsError } = await api
-        .from('audit_logs') // Using audit_logs as fallback since security_events may not exist yet
-        .select('*')
-        .in('action', ['security_event', 'invalid_ticket', 'origin_mismatch', 'replay_attempt', 'csrf_fail'])
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const eventsResult = await api.select('audit_logs', '*', {
+        action_in: ['security_event', 'invalid_ticket', 'origin_mismatch', 'replay_attempt', 'csrf_fail'],
+        created_at_gte: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        order: { column: 'created_at', ascending: false },
+        limit: 50
+      });
 
-      if (eventsError) {
-        console.log('Security events query failed, using empty array:', eventsError);
+      if (!eventsResult.success) {
+        console.log('Security events query failed, using empty array:', eventsResult.error);
       }
 
       // Fetch audit logs (last 100)
-      const { data: auditData, error: auditError } = await api
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const auditResult = await api.select('audit_logs', '*', {
+        order: { column: 'created_at', ascending: false },
+        limit: 100
+      });
 
-      if (auditError) throw auditError;
+      if (!auditResult.success) throw new Error(auditResult.error);
 
       // Fetch widget metrics (last 7 days)
-      const { data: metricsData, error: metricsError } = await api
-        .from('widget_metrics')
-        .select('*')
-        .gte('date_bucket', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-        .order('date_bucket', { ascending: false });
+      const metricsResult = await api.select('widget_metrics', '*', {
+        date_bucket_gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        order: { column: 'date_bucket', ascending: false }
+      });
 
-      if (metricsError) throw metricsError;
+      if (!metricsResult.success) throw new Error(metricsResult.error);
 
       // Calculate dashboard stats
-      const ticketsIssued = metricsData?.filter(m => m.metric_type === 'tickets_issued')
+      const ticketsIssued = metricsResult.data?.filter(m => m.metric_type === 'tickets_issued')
         .reduce((sum, m) => sum + m.metric_value, 0) || 0;
       
-      const bootstrapSuccess = metricsData?.filter(m => m.metric_type === 'bootstrap_success')
+      const bootstrapSuccess = metricsResult.data?.filter(m => m.metric_type === 'bootstrap_success')
         .reduce((sum, m) => sum + m.metric_value, 0) || 0;
       
-      const bootstrapFailures = metricsData?.filter(m => m.metric_type === 'bootstrap_failure')
+      const bootstrapFailures = metricsResult.data?.filter(m => m.metric_type === 'bootstrap_failure')
         .reduce((sum, m) => sum + m.metric_value, 0) || 0;
       
       const successRate = (bootstrapSuccess + bootstrapFailures) > 0 
@@ -140,7 +137,7 @@ export default function SecurityDashboard() {
         : 0;
 
       // Transform audit logs to security event format
-      const transformedEvents: SecurityEvent[] = (eventsData || [])
+      const transformedEvents: SecurityEvent[] = (eventsResult.data || [])
         .filter(log => ['security_event', 'invalid_ticket', 'origin_mismatch', 'replay_attempt', 'csrf_fail'].includes(log.action))
         .map(log => {
           const meta = log.meta as any; // Type assertion for JSON data
@@ -161,13 +158,13 @@ export default function SecurityDashboard() {
         });
 
       setSecurityEvents(transformedEvents);
-      setAuditLogs(auditData || []);
-      setWidgetMetrics(metricsData || []);
+      setAuditLogs(auditResult.data || []);
+      setWidgetMetrics(metricsResult.data || []);
       setDashboardStats({
         totalTicketsIssued: ticketsIssued,
         bootstrapSuccessRate: successRate,
         securityEvents24h: transformedEvents.length,
-        activeConversations: auditData?.filter(log => 
+        activeConversations: auditResult.data?.filter(log => 
           log.action === 'chat_start' && 
           new Date(log.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
         ).length || 0

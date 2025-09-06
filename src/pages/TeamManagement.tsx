@@ -79,31 +79,29 @@ export default function TeamManagement() {
     queryKey: ['all-users', defaultCustomerId],
     queryFn: async () => {
       // Get all admin profiles
-      const { data: profiles, error: profilesError } = await api
-        .from('admin_profiles')
-        .select('id, email, full_name')
-        .order('email');
+      const profilesResult = await api.select('admin_profiles', 'id, email, full_name', {
+        order: { column: 'email', ascending: true }
+      });
 
-      if (profilesError) throw profilesError;
+      if (!profilesResult.success) throw new Error(profilesResult.error);
 
       // Get user roles for each profile
       const usersWithRoles = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          const { data: userRoles } = await api
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', profile.id)
-            .eq('customer_id', defaultCustomerId);
+        (profilesResult.data || []).map(async (profile) => {
+          const rolesResult = await api.select('user_roles', 'role', {
+            user_id: profile.id,
+            customer_id: defaultCustomerId
+          });
 
           // Map enum role to display role
-          const enumRole = userRoles?.[0]?.role || 'guest';
+          const enumRole = rolesResult.data?.[0]?.role || 'guest';
           const displayRole = ENUM_TO_DISPLAY[enumRole] || 'ReadOnly';
 
           return {
             ...profile,
             role: displayRole,
             enumRole: enumRole,
-            allRoles: userRoles || []
+            allRoles: rolesResult.data || []
           };
         })
       );
@@ -123,11 +121,9 @@ export default function TeamManagement() {
   const { data: pageAccessCounts } = useQuery({
     queryKey: ['user-page-access-counts'],
     queryFn: async () => {
-      const { data: totalPages } = await api
-        .from('console_pages')
-        .select('key');
+      const totalPagesResult = await api.select('console_pages', 'key');
 
-      const totalPagesCount = totalPages?.length || 0;
+      const totalPagesCount = totalPagesResult.data?.length || 0;
 
       if (!users) return {};
 
@@ -136,10 +132,9 @@ export default function TeamManagement() {
       await Promise.all(
         users.map(async (user) => {
           // Get explicit permissions
-          const { data: userPermissions } = await api
-            .from('user_page_permissions')
-            .select('page_key, can_view')
-            .eq('user_id', user.id);
+          const permissionsResult = await api.select('user_page_permissions', 'page_key, can_view', {
+            user_id: user.id
+          });
 
           // Get role templates for fallback
           const { data: roleTemplates } = await api
@@ -148,8 +143,8 @@ export default function TeamManagement() {
             .eq('role', user.role); // Use display role
 
           // Count accessible pages
-          const explicitPermissions = new Set(userPermissions?.map(p => p.page_key) || []);
-          const accessibleExplicit = userPermissions?.filter(p => p.can_view).length || 0;
+          const explicitPermissions = new Set(permissionsResult.data?.map(p => p.page_key) || []);
+          const accessibleExplicit = permissionsResult.data?.filter(p => p.can_view).length || 0;
           const accessibleFromRole = roleTemplates?.filter(t => 
             !explicitPermissions.has(t.page_key) && t.can_view
           ).length || 0;
@@ -218,21 +213,21 @@ export default function TeamManagement() {
   const removeUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       // Remove user role
-      const { error: roleError } = await api
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('customer_id', defaultCustomerId);
+      const roleResult = await api.delete('user_roles', {
+        user_id: userId,
+        customer_id: defaultCustomerId
+      });
 
-      if (roleError) throw roleError;
+      if (!roleResult.success) throw new Error(roleResult.error);
 
       // Remove user permissions
-      const { error: permError } = await api
-        .from('user_page_permissions')
-        .delete()
-        .eq('user_id', userId);
+      const permResult = await api.delete('user_page_permissions', {
+        user_id: userId
+      });
 
-      if (permError) throw permError;
+      if (!permResult.success) throw new Error(permResult.error);
+
+      if (!permResult.success) throw new Error(permResult.error);
     },
     onSuccess: () => {
       toast({
@@ -256,41 +251,36 @@ export default function TeamManagement() {
       if (!newEnumRole) throw new Error('Invalid role');
 
       // Delete existing roles for this user and customer
-      const { error: deleteError } = await api
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('customer_id', defaultCustomerId);
+      const deleteResult = await api.delete('user_roles', {
+        user_id: userId,
+        customer_id: defaultCustomerId
+      });
 
-      if (deleteError) throw deleteError;
+      if (!deleteResult.success) throw new Error(deleteResult.error);
 
       // Insert new role
-      const { error: insertError } = await api
-        .from('user_roles')
-        .insert({ 
+      const insertResult = await api.insert('user_roles', {
           user_id: userId, 
           customer_id: defaultCustomerId,
           role: newEnumRole
-        });
+      });
 
-      if (insertError) throw insertError;
+      if (!insertResult.success) throw new Error(insertResult.error);
 
       // Get role templates for the new display role
-      const { data: roleTemplates } = await api
-        .from('console_role_templates')
-        .select('*')
-        .eq('role', newDisplayRole);
+      const templatesResult = await api.select('console_role_templates', '*', {
+        role: newDisplayRole
+      });
 
       // Get existing explicit permissions
-      const { data: existingPermissions } = await api
-        .from('user_page_permissions')
-        .select('page_key')
-        .eq('user_id', userId);
+      const existingPermResult = await api.select('user_page_permissions', 'page_key', {
+        user_id: userId
+      });
 
-      const existingPageKeys = new Set(existingPermissions?.map(p => p.page_key) || []);
+      const existingPageKeys = new Set(existingPermResult.data?.map(p => p.page_key) || []);
 
       // Insert permissions from role templates for pages that don't have explicit permissions
-      const newPermissions = roleTemplates?.filter(template => 
+      const newPermissions = templatesResult.data?.filter(template =>
         !existingPageKeys.has(template.page_key)
       ).map(template => ({
         user_id: userId,

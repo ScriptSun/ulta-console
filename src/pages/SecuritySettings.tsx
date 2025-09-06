@@ -41,18 +41,14 @@ export default function SecuritySettings() {
   const loadSecuritySettings = async () => {
     try {
       setLoading(true);
-      const { data, error } = await api
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'security')
-        .single();
+      const result = await api.selectOne('system_settings', 'setting_value', { setting_key: 'security' });
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw error;
+      if (!result.success && !result.error?.includes('No rows found')) {
+        throw new Error(result.error);
       }
 
-      if (data?.setting_value) {
-        const savedSettings = data.setting_value as any;
+      if (result.data?.setting_value) {
+        const savedSettings = result.data.setting_value as any;
         setSettings({
           twoFactorRequired: savedSettings.twoFactorRequired || false,
           sessionTimeout: savedSettings.sessionTimeout || 24,

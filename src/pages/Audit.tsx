@@ -74,32 +74,25 @@ export default function Audit() {
   const fetchAuditLogs = async () => {
     setLoading(true);
     try {
-      let query = api
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1000);
-
+      let filters: any = {};
       if (dateFrom) {
-        query = query.gte('created_at', dateFrom.toISOString());
+        filters['created_at_gte'] = dateFrom.toISOString();
       }
-      
       if (dateTo) {
-        query = query.lte('created_at', dateTo.toISOString());
+        filters['created_at_lte'] = dateTo.toISOString();
       }
 
-      const { data, error } = await query;
+      const result = await api.select('audit_logs', '*', {
+        ...filters,
+        order: { column: 'created_at', ascending: false },
+        limit: 1000
+      });
 
-      if (error) {
-        console.error('Error fetching audit logs:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch audit logs',
-          variant: 'destructive',
-        });
-      } else {
-        setAuditLogs(data || []);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch audit logs');
       }
+
+      setAuditLogs(result.data || []);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
       toast({
