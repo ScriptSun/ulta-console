@@ -18,6 +18,8 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info, Eye } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { api } from '@/lib/api-wrapper';
+import { useToast } from '@/hooks/use-toast';
 
 interface PolicyFormData {
   policy_name: string;
@@ -69,6 +71,7 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
   const [formData, setFormData] = useState<PolicyFormData>(defaultFormData);
   const [schemaPreview, setSchemaPreview] = useState<any>(null);
   const [schemaError, setSchemaError] = useState<string>('');
+  const { toast } = useToast();
 
   const isEditing = !!policy;
 
@@ -105,11 +108,72 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    console.log('Saving policy:', formData);
-    onOpenChange(false);
-    if (onSave) {
-      onSave();
+  const handleSave = async () => {
+    if (!isFormValid()) return;
+
+    try {
+      // Parse the JSON schema
+      let parsedSchema;
+      try {
+        parsedSchema = JSON.parse(formData.param_schema);
+      } catch (error) {
+        console.error('Invalid JSON schema:', error);
+        return;
+      }
+
+      const policyData = {
+        policy_name: formData.policy_name.trim(),
+        mode: formData.mode,
+        match_type: formData.match_type,
+        match_value: formData.match_value.trim(),
+        risk: formData.risk,
+        timeout_sec: formData.timeout_sec,
+        param_schema: parsedSchema,
+        confirm_message: formData.confirm_message.trim() || null,
+        active: formData.active,
+        updated_at: new Date().toISOString()
+      };
+
+      let result;
+      if (isEditing && policy?.id) {
+        // Update existing policy
+        result = await api
+          .from('command_policies')
+          .update(policyData)
+          .eq('id', policy.id);
+      } else {
+        // Create new policy (customer_id and created_by handled by RLS)
+        result = await api
+          .from('command_policies')
+          .insert([policyData]);
+      }
+
+      if (result.error) {
+        console.error('Error saving policy:', result.error);
+        toast({
+          title: "Error",
+          description: "Failed to save policy. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: `Policy ${isEditing ? 'updated' : 'created'} successfully.`,
+      });
+
+      onOpenChange(false);
+      if (onSave) {
+        onSave();
+      }
+    } catch (error) {
+      console.error('Error saving policy:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
