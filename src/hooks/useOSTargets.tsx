@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { api, type ApiResponse } from '@/lib/api';
 
 export interface OSTarget {
   id: string;
@@ -32,15 +32,18 @@ export function useOSTargets() {
   const fetchOSTargets = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('os_targets')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
+      
+      const result = await api.query<OSTarget>('os_targets', {
+        select: '*',
+        filters: { is_active: true },
+        orderBy: { column: 'sort_order', ascending: true }
+      });
 
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error);
+      }
 
-      setOSTargets(data || []);
+      setOSTargets(Array.isArray(result.data) ? result.data : []);
     } catch (error) {
       console.error('Error fetching OS targets:', error);
       toast({
@@ -66,22 +69,26 @@ export function useOSTargets() {
 
   const addOSTarget = async (osTarget: Omit<OSTarget, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const { data, error } = await supabase
-        .from('os_targets')
-        .insert([osTarget])
-        .select()
-        .single();
+      const result = await api.insert<OSTarget>(
+        'os_targets',
+        { ...osTarget, is_active: true }
+      );
 
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error);
+      }
 
-      setOSTargets(prev => [...prev, data].sort((a, b) => a.sort_order - b.sort_order));
-      
-      toast({
-        title: 'OS target added',
-        description: `${osTarget.display_name} has been added successfully.`,
-      });
+      const newTarget = result.data;
+      if (newTarget) {
+        setOSTargets(prev => [...prev, newTarget].sort((a, b) => a.sort_order - b.sort_order));
+        
+        toast({
+          title: 'OS target added',
+          description: `${osTarget.display_name} has been added successfully.`,
+        });
+      }
 
-      return data;
+      return newTarget;
     } catch (error) {
       console.error('Error adding OS target:', error);
       toast({
@@ -95,26 +102,31 @@ export function useOSTargets() {
 
   const updateOSTarget = async (id: string, updates: Partial<OSTarget>) => {
     try {
-      const { data, error } = await supabase
-        .from('os_targets')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setOSTargets(prev => 
-        prev.map(target => target.id === id ? data : target)
-          .sort((a, b) => a.sort_order - b.sort_order)
+      const result = await api.update<OSTarget>(
+        'os_targets',
+        { id },
+        updates
       );
 
-      toast({
-        title: 'OS target updated',
-        description: 'OS target has been updated successfully.',
-      });
+      if (!result.success) {
+        throw new Error(result.error);
+      }
 
-      return data;
+      const updatedTargets = result.data;
+      if (updatedTargets && updatedTargets.length > 0) {
+        const updatedTarget = updatedTargets[0];
+        setOSTargets(prev => 
+          prev.map(target => target.id === id ? updatedTarget : target)
+            .sort((a, b) => a.sort_order - b.sort_order)
+        );
+
+        toast({
+          title: 'OS target updated',
+          description: 'OS target has been updated successfully.',
+        });
+
+        return updatedTarget;
+      }
     } catch (error) {
       console.error('Error updating OS target:', error);
       toast({
@@ -128,12 +140,15 @@ export function useOSTargets() {
 
   const deleteOSTarget = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('os_targets')
-        .update({ is_active: false })
-        .eq('id', id);
+      const result = await api.update(
+        'os_targets',
+        { id },
+        { is_active: false }
+      );
 
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error);
+      }
 
       setOSTargets(prev => prev.filter(target => target.id !== id));
       

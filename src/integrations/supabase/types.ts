@@ -2457,6 +2457,8 @@ export type Database = {
           sha256: string
           size_bytes: number
           source: string
+          updated_at: string
+          updated_by: string
           version: number
         }
         Insert: {
@@ -2471,6 +2473,8 @@ export type Database = {
           sha256: string
           size_bytes: number
           source: string
+          updated_at?: string
+          updated_by?: string
           version: number
         }
         Update: {
@@ -2485,6 +2489,8 @@ export type Database = {
           sha256?: string
           size_bytes?: number
           source?: string
+          updated_at?: string
+          updated_by?: string
           version?: number
         }
         Relationships: []
