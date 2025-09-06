@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Brain, Settings, MessageSquare, Zap, Bot } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { api } from '@/lib/api';
+import { api } from '@/lib/api-wrapper';
 import { AvailableModelsTab } from '@/components/ai/AvailableModelsTab';
 import { ModelConfigurationTab } from '@/components/ai/ModelConfigurationTab';
 import { SystemPromptTab } from '@/components/ai/SystemPromptTab';
@@ -39,7 +39,11 @@ export default function AiSettingsNext() {
     if (!user) return;
     
     try {
-      const response = await api.selectOne('console_team_members', 'role', { admin_id: user.id });
+      const response = await api
+        .from('console_team_members')
+        .select('role')
+        .eq('admin_id', user.id)
+        .maybeSingle();
 
       if (!response.success) {
         console.error('Error checking user role:', response.error);
@@ -58,7 +62,11 @@ export default function AiSettingsNext() {
   const migrateOldSettings = async () => {
     try {
       // Check if migration has already been completed
-      const migrationCheck = await api.selectOne('system_settings', '*', { setting_key: 'ai_migration_complete' });
+      const migrationCheck = await api
+        .from('system_settings')
+        .select('*')
+        .eq('setting_key', 'ai_migration_complete')
+        .maybeSingle();
 
       if (migrationCheck.data) {
         // Migration already completed, skip
@@ -66,7 +74,11 @@ export default function AiSettingsNext() {
       }
 
       // Check if old ai_models setting exists
-      const oldSettingsResponse = await api.selectOne('system_settings', '*', { setting_key: 'ai_models' });
+      const oldSettingsResponse = await api
+        .from('system_settings')
+        .select('*')
+        .eq('setting_key', 'ai_models')
+        .maybeSingle();
 
       if (!oldSettingsResponse.success && oldSettingsResponse.error !== 'No data found') {
         console.error('Error checking old settings:', oldSettingsResponse.error);
@@ -94,17 +106,25 @@ export default function AiSettingsNext() {
         ];
 
         for (const newSetting of newKeys) {
-          await api.upsert('system_settings', {
-            setting_key: newSetting.key,
-            setting_value: newSetting.value,
-          });
+          await api
+            .from('system_settings')
+            .upsert({
+              setting_key: newSetting.key,
+              setting_value: newSetting.value,
+            }, {
+              onConflict: 'setting_key'
+            });
         }
 
         // Mark migration complete
-        await api.upsert('system_settings', {
-          setting_key: 'ai_migration_complete',
-          setting_value: { migrated_at: new Date().toISOString() }
-        });
+        await api
+          .from('system_settings')
+          .upsert({
+            setting_key: 'ai_migration_complete',
+            setting_value: { migrated_at: new Date().toISOString() }
+          }, {
+            onConflict: 'setting_key'
+          });
 
         toast({
           title: 'AI Settings Migrated',
