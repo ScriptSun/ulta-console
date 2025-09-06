@@ -45,43 +45,32 @@ const useKPIData = () => {
   const activeCommands = useQuery({
     queryKey: ['activeCommands'],
     queryFn: async () => {
-      const { count } = await api
-        .from('command_policies')
-        .select('*')
-        .count();
-      return count || 0;
+      const result = await api.count('command_policies');
+      return result.success ? result.data : 0;
     }
   });
 
   const confirmCommands = useQuery({
     queryKey: ['confirmCommands'],
     queryFn: async () => {
-      const { count } = await api
-        .from('command_policies')
-        .select('*')
-        .eq('mode', 'confirm')
-        .count();
-      return count || 0;
+      const result = await api.count('command_policies', { mode: 'confirm' });
+      return result.success ? result.data : 0;
     }
   });
 
   const totalScripts = useQuery({
     queryKey: ['totalScripts'],
     queryFn: async () => {
-      const { data } = await api.from('view_total_scripts').select('count').single();
-      return data?.count || 0;
+      const result = await api.selectOne('view_total_scripts', 'count');
+      return result.success && result.data ? result.data.count : 0;
     }
   });
 
   const forbidCommands = useQuery({
     queryKey: ['forbidCommands'],
     queryFn: async () => {
-      const { count } = await api
-        .from('command_policies')
-        .select('*')
-        .eq('mode', 'forbid')
-        .count();
-      return count || 0;
+      const result = await api.count('command_policies', { mode: 'forbid' });
+      return result.success ? result.data : 0;
     }
   });
 
@@ -89,26 +78,24 @@ const useKPIData = () => {
     queryKey: ['successRate'],
     queryFn: async () => {
       // Get successful auto/confirm executions (approved status)
-      const { count: successCount } = await api
-        .from('command_confirmations')
-        .select('*')
-        .in('status', ['approved', 'executed'])
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-        .count();
+      const successResult = await api.count('command_confirmations', {
+        status: ['approved', 'executed'],
+        created_at: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() }
+      });
       
       // Get blocked forbid commands (rejected status)
-      const { count: blockCount } = await api
-        .from('command_confirmations')
-        .select('*')
-        .eq('status', 'rejected')
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-        .count();
+      const blockResult = await api.count('command_confirmations', {
+        status: 'rejected',
+        created_at: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() }
+      });
       
-      const totalExecutions = (successCount || 0) + (blockCount || 0);
+      const successCount = successResult.success ? successResult.data : 0;
+      const blockCount = blockResult.success ? blockResult.data : 0;
+      const totalExecutions = successCount + blockCount;
       
       if (totalExecutions === 0) return 0;
       
-      return Math.round((successCount || 0) / totalExecutions * 100);
+      return Math.round((successCount / totalExecutions) * 100);
     }
   });
 
