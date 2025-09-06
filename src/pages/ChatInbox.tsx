@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api-wrapper";
 import { ConversationTable } from "@/components/chat/ConversationTable";
 import { ConversationViewer } from "@/components/chat/ConversationViewer";
 import { Card } from "@/components/ui/card";
@@ -48,8 +48,7 @@ export default function ChatInbox() {
       setLoading(true);
       
       // Get conversations with agent info and message/event counts
-      const { data: conversationsData, error } = await supabase
-        .from('chat_conversations')
+      const result = await api.from('chat_conversations')
         .select(`
           *,
           agents!inner (
@@ -59,29 +58,28 @@ export default function ChatInbox() {
             version
           )
         `)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .execute();
 
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      const conversationsData = result.data;
 
       // Get message and event counts for each conversation
       const conversationsWithCounts = await Promise.all(
         (conversationsData || []).map(async (conversation) => {
           const [messagesResult, eventsResult] = await Promise.all([
-            supabase
-              .from('chat_messages')
-              .select('id', { count: 'exact' })
-              .eq('conversation_id', conversation.id),
-            supabase
-              .from('chat_events')
-              .select('id', { count: 'exact' })
-              .eq('conversation_id', conversation.id)
+            api.count('chat_messages', { conversation_id: conversation.id }),
+            api.count('chat_events', { conversation_id: conversation.id })
           ]);
 
           return {
             ...conversation,
             _count: {
-              chat_messages: messagesResult.count || 0,
-              chat_events: eventsResult.count || 0
+              chat_messages: messagesResult.success ? messagesResult.data : 0,
+              chat_events: eventsResult.success ? eventsResult.data : 0
             }
           };
         })
@@ -102,11 +100,9 @@ export default function ChatInbox() {
 
   const handleCloseConversation = async (conversationId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('chat-api', {
-        body: { 
-          action: 'close',
-          conversation_id: conversationId 
-        }
+      const { error } = await api.invokeFunction('chat-api', { 
+        action: 'close',
+        conversation_id: conversationId 
       });
 
       if (error) throw error;
@@ -135,15 +131,17 @@ export default function ChatInbox() {
 
   const handleTagConversation = async (conversationId: string, tags: string[]) => {
     try {
-      const { error } = await supabase
-        .from('chat_conversations')
-        .update({
+      const result = await api.update('chat_conversations', 
+        { id: conversationId },
+        {
           meta: { tags },
           updated_at: new Date().toISOString()
-        })
-        .eq('id', conversationId);
+        }
+      );
 
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error);
+      }
 
       toast({
         title: "Success",
