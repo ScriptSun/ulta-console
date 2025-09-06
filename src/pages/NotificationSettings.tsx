@@ -144,47 +144,41 @@ export default function NotificationSettings() {
       console.log('Loading system-wide notification settings for customer ID:', SYSTEM_CUSTOMER_ID);
 
       // Load email providers
-      const { data: emailProviders, error: emailError } = await api
-        .from('email_providers')
-        .select('*')
-        .eq('customer_id', SYSTEM_CUSTOMER_ID)
-        .order('created_at', { ascending: true });
+      const emailResult = await api.select('email_providers', '*', {
+        customer_id: SYSTEM_CUSTOMER_ID,
+        order: { column: 'created_at', ascending: true }
+      });
 
-      if (emailError) throw emailError;
+      if (!emailResult.success) throw new Error(emailResult.error);
 
       // Load channel providers
-      const { data: channelProviders, error: channelError } = await api
-        .from('channel_providers')
-        .select('*')
-        .eq('customer_id', SYSTEM_CUSTOMER_ID)
-        .order('created_at', { ascending: true });
+      const channelResult = await api.select('channel_providers', '*', {
+        customer_id: SYSTEM_CUSTOMER_ID,
+        order: { column: 'created_at', ascending: true }
+      });
 
-      if (channelError) throw channelError;
+      if (!channelResult.success) throw new Error(channelResult.error);
 
       // Load notification settings
-      const { data: notificationSettings, error: settingsError } = await api
-        .from('notification_settings')
-        .select('*')
-        .eq('customer_id', SYSTEM_CUSTOMER_ID)
-        .maybeSingle();
-
-      if (settingsError) throw settingsError;
+      const settingsResult = await api.selectOne('notification_settings', '*', { 
+        customer_id: SYSTEM_CUSTOMER_ID 
+      });
 
       setSettings({
-        emailProviders: (emailProviders || []).map(provider => ({
+        emailProviders: (emailResult.data || []).map(provider => ({
           ...provider,
           config: provider.config as EmailProvider['config'],
           type: provider.type as EmailProvider['type'],
           status: provider.status as EmailProvider['status']
         })),
-        channelProviders: (channelProviders || []).map(provider => ({
+        channelProviders: (channelResult.data || []).map(provider => ({
           ...provider,
           config: provider.config as ChannelProvider['config'],
           type: provider.type as ChannelProvider['type'],
           status: provider.status as ChannelProvider['status']
         })),
-        failoverOrder: (notificationSettings?.failover_order as string[]) || [],
-        domainHealth: (notificationSettings?.domain_health as unknown as DomainHealth[]) || []
+        failoverOrder: (settingsResult.success && settingsResult.data?.failover_order as string[]) || [],
+        domainHealth: (settingsResult.success && settingsResult.data?.domain_health as unknown as DomainHealth[]) || []
       });
     } catch (error) {
       console.error('Error loading notification settings:', error);
@@ -202,13 +196,13 @@ export default function NotificationSettings() {
     setSaving(true);
     try {
       // Save notification settings (failover order and domain health)
-      await api
-        .from('notification_settings')
-        .upsert({
+      const result = await api.upsert('notification_settings', {
         customer_id: SYSTEM_CUSTOMER_ID,
-          failover_order: settings.failoverOrder as any,
-          domain_health: settings.domainHealth as any
-        });
+        failover_order: settings.failoverOrder as any,
+        domain_health: settings.domainHealth as any
+      });
+
+      if (!result.success) throw new Error(result.error);
 
       toast({
         title: "Settings saved",

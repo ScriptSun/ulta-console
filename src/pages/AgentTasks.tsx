@@ -84,14 +84,10 @@ export default function AgentTasks() {
     const fetchData = async () => {
       try {
         // Fetch agent details
-        const agentResponse = await api
-          .from('agents')
-          .select('*')
-          .eq('id', agentId)
-          .maybeSingle();
+        const agentResult = await api.selectOne('agents', '*', { id: agentId });
 
-        if (!agentResponse.success) {
-          console.error('Error fetching agent:', agentResponse.error);
+        if (!agentResult.success) {
+          console.error('Error fetching agent:', agentResult.error);
           toast({
             title: 'Error',
             description: 'Failed to fetch agent details',
@@ -100,7 +96,7 @@ export default function AgentTasks() {
           return;
         }
 
-        if (!agentResponse.data) {
+        if (!agentResult.data) {
           console.error('Agent not found');
           toast({
             title: 'Error',
@@ -110,17 +106,16 @@ export default function AgentTasks() {
           return;
         }
 
-        setAgent(agentResponse.data);
+        setAgent(agentResult.data);
 
         // Fetch agent tasks
-        const tasksResponse = await api
-          .from('agent_tasks')
-          .select('*')
-          .eq('agent_id', agentId)
-          .order('created_at', { ascending: false });
+        const tasksResult = await api.select('agent_tasks', '*', {
+          agent_id: agentId,
+          order: { column: 'created_at', ascending: false }
+        });
 
-        if (!tasksResponse.success) {
-          console.error('Error fetching tasks:', tasksResponse.error);
+        if (!tasksResult.success) {
+          console.error('Error fetching tasks:', tasksResult.error);
           toast({
             title: 'Error',
             description: 'Failed to fetch agent tasks',
@@ -129,7 +124,7 @@ export default function AgentTasks() {
           return;
         }
 
-        setTasks(tasksResponse.data || []);
+        setTasks(tasksResult.data || []);
       } catch (error) {
         console.error('Unexpected error:', error);
         toast({

@@ -43,20 +43,16 @@ export default function AgentDetail() {
   const { data: agent, isLoading: agentLoading } = useQuery({
     queryKey: ['agent', agentId],
     queryFn: async () => {
-      const { data, error } = await api
-        .from('agents')
-        .select(`
-          *,
-          users:user_id (
-            email,
-            full_name
-          )
-        `)
-        .eq('id', agentId!)
-        .maybeSingle();
+      const result = await api.selectOne('agents', `
+        *,
+        users:user_id (
+          email,
+          full_name
+        )
+      `, { id: agentId! });
       
-      if (error) throw error;
-      return data;
+      if (!result.success) throw new Error(result.error);
+      return result.data;
     },
     enabled: !!agentId,
   });
@@ -68,11 +64,10 @@ export default function AgentDetail() {
       if (!agentId) return null;
       
       // Get current usage for today
-      const { data: usage } = await api
-        .from('agent_usage')
-        .select('usage_type, count')
-        .eq('agent_id', agentId)
-        .eq('usage_date', new Date().toISOString().split('T')[0]);
+      const usageResult = await api.select('agent_usage', 'usage_type, count', {
+        agent_id: agentId,
+        usage_date: new Date().toISOString().split('T')[0]
+      });
 
       // Mock plan data for now
       const planLimits = {
@@ -85,7 +80,7 @@ export default function AgentDetail() {
       };
 
       return {
-        usage: usage || [],
+        usage: (usageResult.success ? usageResult.data : []) || [],
         planLimits
       };
     },

@@ -61,20 +61,17 @@ export default function AccessControl() {
   const { data: teamMembers, isLoading: membersLoading } = useQuery({
     queryKey: ['console-team-members'],
     queryFn: async () => {
-      const { data, error } = await api
-        .from('console_team_members')
-        .select(`
-          *,
-          admin_profiles (
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
-        .order('role', { ascending: false });
+      const result = await api.select('console_team_members', `
+        *,
+        admin_profiles (
+          full_name,
+          email,
+          avatar_url
+        )
+      `, { order: { column: 'role', ascending: false } });
       
-      if (error) throw error;
-      return data as TeamMember[];
+      if (!result.success) throw new Error(result.error);
+      return result.data as TeamMember[];
     }
   });
 
@@ -92,14 +89,14 @@ export default function AccessControl() {
   const { data: pages } = useQuery({
     queryKey: ['console-pages'],
     queryFn: async () => {
-      const { data, error } = await api
-        .from('console_pages')
-        .select('*')
-        .order('category', { ascending: true })
-        .then(result => ({ ...result, data: result.data?.sort((a, b) => a.label.localeCompare(b.label)) }));
+      const result = await api.select('console_pages', '*', { 
+        order: { column: 'category', ascending: true } 
+      });
       
-      if (error) throw error;
-      return data as PagePermission[];
+      if (!result.success) throw new Error(result.error);
+      // Sort by label within each category
+      const sortedData = result.data?.sort((a, b) => a.label.localeCompare(b.label));
+      return sortedData as PagePermission[];
     }
   });
 
@@ -107,13 +104,12 @@ export default function AccessControl() {
   const { data: roleTemplates } = useQuery({
     queryKey: ['console-role-templates'],
     queryFn: async () => {
-      const { data, error } = await api
-        .from('console_role_templates')
-        .select('*')
-        .order('role', { ascending: false });
+      const result = await api.select('console_role_templates', '*', { 
+        order: { column: 'role', ascending: false } 
+      });
       
-      if (error) throw error;
-      return data;
+      if (!result.success) throw new Error(result.error);
+      return result.data;
     }
   });
 
@@ -121,13 +117,12 @@ export default function AccessControl() {
   const { data: reportRoleTemplates } = useQuery({
     queryKey: ['console-role-report-templates'],
     queryFn: async () => {
-      const { data, error } = await api
-        .from('console_role_report_templates')
-        .select('*')
-        .order('role', { ascending: false });
+      const result = await api.select('console_role_report_templates', '*', { 
+        order: { column: 'role', ascending: false } 
+      });
       
-      if (error) throw error;
-      return data;
+      if (!result.success) throw new Error(result.error);
+      return result.data;
     }
   });
 
@@ -135,13 +130,12 @@ export default function AccessControl() {
   const { data: reports } = useQuery({
     queryKey: ['console-reports'],
     queryFn: async () => {
-      const { data, error } = await api
-        .from('console_reports')
-        .select('*')
-        .order('category', { ascending: true });
+      const result = await api.select('console_reports', '*', { 
+        order: { column: 'category', ascending: true } 
+      });
       
-      if (error) throw error;
-      return data;
+      if (!result.success) throw new Error(result.error);
+      return result.data;
     }
   });
 
