@@ -215,13 +215,6 @@ const App = () => (
                 </RootLayout>
               </ProtectedRoute>
             } />
-            <Route path="/audit" element={
-              <ProtectedRoute>
-                <RootLayout>
-                  <Audit />
-                </RootLayout>
-              </ProtectedRoute>
-            } />
             <Route path="/batches" element={
               <ProtectedRoute>
                 <RootLayout>

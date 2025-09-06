@@ -6,25 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, User, Mail, Calendar, Bot, Activity } from 'lucide-react';
+import { ArrowLeft, User, Mail, Calendar, Bot, Activity, Globe } from 'lucide-react';
 
 export default function UserDetail() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
 
-  const { data: user, isLoading: userLoading, error: userError } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['user', userId],
     queryFn: async () => {
-      console.log('Fetching user data for ID:', userId);
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
       
-      // Create a demo user for now since we don't have real user data
-      return {
-        id: userId || '1',
-        email: 'demo@example.com',
-        full_name: 'Demo User',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      if (error) throw error;
+      return data;
     },
     enabled: !!userId,
   });
@@ -32,29 +30,14 @@ export default function UserDetail() {
   const { data: userAgents, isLoading: agentsLoading } = useQuery({
     queryKey: ['user-agents', userId],
     queryFn: async () => {
-      console.log('Fetching agents for user ID:', userId);
+      const { data, error } = await supabase
+        .from('agents')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
       
-      // Return mock data for demo
-      return [
-        {
-          id: '1',
-          hostname: 'demo-server-01',
-          status: 'active',
-          plan_key: 'premium',
-          os: 'ubuntu',
-          last_seen: new Date().toISOString(),
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '2', 
-          hostname: 'demo-server-02',
-          status: 'offline',
-          plan_key: 'standard',
-          os: 'centos',
-          last_seen: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-          created_at: new Date().toISOString()
-        }
-      ];
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!userId,
   });
@@ -72,7 +55,7 @@ export default function UserDetail() {
   const getStatusBadge = (status: string) => {
     if (status === 'offline' || status === 'terminated') {
       return (
-        <Badge variant="secondary" className="bg-red-500/10 text-red-400 border-red-500/20">
+        <Badge className="bg-red-500/10 text-red-300 border-red-500/20 hover:bg-red-500/20 transition-colors">
           Offline
         </Badge>
       );
@@ -80,15 +63,23 @@ export default function UserDetail() {
     
     if (status === 'active' || status === 'online') {
       return (
-        <Badge variant="default" className="bg-green-500/10 text-green-400 border-green-500/20">
+        <Badge className="bg-green-500/10 text-green-300 border-green-500/20 hover:bg-green-500/20 transition-colors">
           Active
         </Badge>
       );
     }
     
+    const statusConfig = {
+      error: { variant: 'destructive', label: 'Error' },
+      suspended: { variant: 'secondary', label: 'Suspended' },
+      deploying: { variant: 'outline', label: 'Deploying' },
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || { variant: 'secondary', label: status };
+    
     return (
-      <Badge variant="secondary">
-        {status}
+      <Badge variant={config.variant as any}>
+        {config.label}
       </Badge>
     );
   };
@@ -98,25 +89,6 @@ export default function UserDetail() {
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <span className="ml-2">Loading user details...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (userError) {
-    console.error('User loading error:', userError);
-    return (
-      <div className="p-6">
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-2 text-destructive">Error Loading User</h2>
-          <p className="text-muted-foreground mb-4">
-            Failed to load user details. This is a demo - showing sample data instead.
-          </p>
-          <Button onClick={() => navigate('/users')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Users
-          </Button>
         </div>
       </div>
     );
@@ -176,40 +148,36 @@ export default function UserDetail() {
               <label className="text-sm font-medium text-muted-foreground">Email</label>
               <div className="flex items-center gap-2 mt-1">
                 <Mail className="h-4 w-4" />
-                <span>{user.email}</span>
+                <p className="text-sm">{user.email}</p>
               </div>
             </div>
             <div>
               <label className="text-sm font-medium text-muted-foreground">Full Name</label>
-              <div className="flex items-center gap-2 mt-1">
-                <User className="h-4 w-4" />
-                <span>{user.full_name || 'Not provided'}</span>
-              </div>
+              <p className="text-sm mt-1">{user.full_name || 'Not provided'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-muted-foreground">Member Since</label>
               <div className="flex items-center gap-2 mt-1">
                 <Calendar className="h-4 w-4" />
-                <span>{formatDate(user.created_at)}</span>
+                <p className="text-sm">{formatDate(user.created_at)}</p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* User Agents */}
+      {/* User's Agents */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
-            User Agents ({userAgents?.length || 0})
+            Agents ({userAgents?.length || 0})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {agentsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-              <span className="ml-2">Loading agents...</span>
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : userAgents && userAgents.length > 0 ? (
             <Table>
@@ -227,7 +195,7 @@ export default function UserDetail() {
                 {userAgents.map((agent) => (
                   <TableRow key={agent.id}>
                     <TableCell>
-                      <button
+                      <button 
                         onClick={() => navigate(`/agents/${agent.id}`)}
                         className="hover:bg-muted/50 rounded transition-colors cursor-pointer"
                       >
