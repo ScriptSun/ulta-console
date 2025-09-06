@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ConversationTable } from "@/components/chat/ConversationTable";
+import { EnhancedConversationTable } from "@/components/chat/EnhancedConversationTable";
 import { ConversationViewer } from "@/components/chat/ConversationViewer";
 import { Card } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
@@ -174,11 +174,9 @@ export default function ChatInbox() {
 
       {/* Conversations Table */}
       <Card className="p-6">
-        <ConversationTable
-          conversations={conversations}
-          loading={loading}
-          onConversationSelect={setSelectedConversation}
-          onRefresh={fetchConversations}
+        <EnhancedConversationTable
+          onConversationClick={setSelectedConversation}
+          onViewDetails={setSelectedConversation}
         />
       </Card>
 
