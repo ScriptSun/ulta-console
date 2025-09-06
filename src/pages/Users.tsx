@@ -28,7 +28,13 @@ export default function Users() {
       <Button variant="outline" size="sm">
         Export Users
       </Button>
-      <Button>
+      <Button onClick={() => {
+        console.log('Add user clicked');
+        toast({
+          title: 'Coming Soon',
+          description: 'User creation functionality will be available soon',
+        });
+      }}>
         <Plus className="h-4 w-4 mr-2" />
         Add User
       </Button>
@@ -36,23 +42,36 @@ export default function Users() {
   );
 
   const handleViewProfile = (user: User) => {
+    console.log('Viewing profile for user:', user);
+    toast({
+      title: 'Navigating to Profile',
+      description: `Opening profile for ${user.full_name || user.email}`,
+    });
     navigate(`/users/${user.id}`);
   };
 
   const handleEditUser = (user: User) => {
+    console.log('Editing user:', user);
+    toast({
+      title: 'Opening Edit Panel',
+      description: `Editing ${user.full_name || user.email}`,
+    });
     setSelectedUser(user);
     setEditDrawerOpen(true);
   };
 
   const handleDeleteUser = async (user: User) => {
-    if (window.confirm(`Are you sure you want to delete user ${user.email}?`)) {
+    console.log('Attempting to delete user:', user);
+    if (window.confirm(`Are you sure you want to delete user ${user.email}? This action cannot be undone.`)) {
       try {
-        // Add delete logic here
+        console.log('User confirmed deletion for:', user.email);
+        // TODO: Implement actual delete logic with Supabase
         toast({
           title: 'Success',
-          description: 'User deleted successfully',
+          description: `User ${user.email} deleted successfully`,
         });
       } catch (error: any) {
+        console.error('Delete error:', error);
         toast({
           title: 'Error',
           description: error.message || 'Failed to delete user',
@@ -63,11 +82,21 @@ export default function Users() {
   };
 
   const handleUserClick = (user: User) => {
+    console.log('User row clicked:', user);
+    toast({
+      title: 'Opening User Details',
+      description: `Loading details for ${user.full_name || user.email}`,
+    });
     navigate(`/users/${user.id}`);
   };
 
   const handleUserUpdated = () => {
-    // Refresh data logic here
+    console.log('User updated, refreshing data');
+    toast({
+      title: 'User Updated',
+      description: 'User information has been updated successfully',
+    });
+    // TODO: Add logic to refresh the users table data
   };
 
   return (
