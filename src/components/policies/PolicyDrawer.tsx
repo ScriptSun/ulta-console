@@ -198,8 +198,8 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="flex-1">
-          <div className="p-6 space-y-6">
+        <ScrollArea className="flex-1 h-[calc(100vh-200px)]">
+          <div className="p-6 space-y-6 pb-0">
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Basic Information</h3>
@@ -394,18 +394,18 @@ export function PolicyDrawer({ open, onOpenChange, policy, onSave }: PolicyDrawe
                 </Card>
               </div>
             </div>
-          </div>
-
-            <div className="border-t pt-6 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={!isFormValid()}>
-                {isEditing ? 'Update Policy' : 'Create Policy'}
-              </Button>
             </div>
           </div>
         </ScrollArea>
+
+        <div className="border-t p-6 flex justify-end gap-3">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={!isFormValid()}>
+            {isEditing ? 'Update Policy' : 'Create Policy'}
+          </Button>
+        </div>
       </SheetContent>
     </Sheet>
   );
