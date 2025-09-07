@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, FileText, Copy, MoreVertical, Link, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { BatchDrawer } from '@/components/scripts/BatchDrawer';
 import { BatchDetailDrawer } from '@/components/scripts/BatchDetailDrawer';
 import { BatchQuickRunModal } from '@/components/scripts/BatchQuickRunModal';
 import { api } from '@/lib/api-wrapper';
@@ -75,6 +75,7 @@ const riskColors = {
 export default function ScriptsBatches() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [batches, setBatches] = useState<ScriptBatch[]>([]);
   const [filteredBatches, setFilteredBatches] = useState<ScriptBatch[]>([]);
@@ -84,7 +85,6 @@ export default function ScriptsBatches() {
   const [osFilter, setOSFilter] = useState<string>('all');
   const [riskFilter, setRiskFilter] = useState<string>('all');
   const [selectedBatch, setSelectedBatch] = useState<ScriptBatch | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [quickRunModalOpen, setQuickRunModalOpen] = useState(false);
   const [userRole, setUserRole] = useState<'viewer' | 'editor' | 'approver' | 'admin'>('admin');
@@ -303,8 +303,7 @@ export default function ScriptsBatches() {
   };
 
   const handleNewBatch = () => {
-    setSelectedBatch(null);
-    setDrawerOpen(true);
+    navigate('/scripts/batches/new');
   };
 
   const handleViewBatch = (batch: ScriptBatch) => {
@@ -313,8 +312,7 @@ export default function ScriptsBatches() {
   };
 
   const handleEditBatch = (batch: ScriptBatch) => {
-    setSelectedBatch(batch);
-    setDrawerOpen(true);
+    navigate(`/scripts/batches/${batch.id}/edit`);
   };
 
   const handleDuplicateBatch = async (batch: ScriptBatch) => {
@@ -737,15 +735,7 @@ export default function ScriptsBatches() {
         </Card>
       )}
 
-      {/* Batch Drawers */}
-      <BatchDrawer
-        batch={selectedBatch}
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onSuccess={fetchBatches}
-        userRole={userRole}
-      />
-
+      {/* Detail Drawer and Quick Run Modal */}
       <BatchDetailDrawer
         batch={selectedBatch}
         isOpen={detailDrawerOpen}

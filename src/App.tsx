@@ -28,6 +28,7 @@ import ScriptDetail from "./pages/ScriptDetail";
 import ScriptsBatches from "./pages/ScriptsBatches";
 import ScriptsSettings from "./pages/ScriptsSettings";
 import Batches from "./pages/Batches";
+import BatchEdit from "./pages/BatchEdit";
 import CommandPolicies from "./pages/CommandPolicies";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -220,6 +221,20 @@ const App = () => (
               <ProtectedRoute>
                 <RootLayout>
                   <ScriptsBatches />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/scripts/batches/new" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <BatchEdit />
+                </RootLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/scripts/batches/:batchId/edit" element={
+              <ProtectedRoute>
+                <RootLayout>
+                  <BatchEdit />
                 </RootLayout>
               </ProtectedRoute>
             } />
