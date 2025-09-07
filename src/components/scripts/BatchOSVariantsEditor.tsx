@@ -47,55 +47,54 @@ export function BatchOSVariantsEditor({
 
   // Fetch variants when component mounts or batchId changes
   useEffect(() => {
-    if (batchId) {
+    if (batchId && osTargets?.length > 0) {
       fetchVariants();
     }
-  }, [batchId]);
+  }, [batchId, osTargets?.length]);
 
   const fetchVariants = async () => {
     if (!batchId) return;
     
     setLoading(true);
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
+      // Always use direct database query for better reliability
+      const { data: directData, error: directError } = await supabase
+        .from('script_batch_variants')
+        .select(`
+          id,
+          batch_id,
+          os,
+          version,
+          sha256,
+          source,
+          notes,
+          active,
+          min_os_version,
+          created_at,
+          created_by
+        `)
+        .eq('batch_id', batchId)
+        .order('os')
+        .order('version', { ascending: false });
+
+      if (directError) {
+        console.error('Database error:', directError);
+        throw new Error(`Database error: ${directError.message}`);
+      }
+
+      // Set variants with empty array as fallback
+      setVariants((directData || []) as BatchVariant[]);
       
-      if (!token) {
-        throw new Error('No authentication token available');
-      }
-
-      const response = await fetch(
-        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batchId}/variants`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        // Fall back to direct database query if edge function fails
-        const { data: directData, error: directError } = await supabase
-          .from('script_batch_variants')
-          .select('*')
-          .eq('batch_id', batchId)
-          .order('os')
-          .order('version', { ascending: false });
-
-        if (directError) throw directError;
-        setVariants((directData || []) as BatchVariant[]);
-        return;
-      }
-
-      const data = await response.json();
-      setVariants(data?.variants || []);
+      // Clear any previous error state
+      console.log(`Loaded ${directData?.length || 0} variants for batch ${batchId}`);
+      
     } catch (error) {
       console.error('Error fetching variants:', error);
+      // Set empty array on error to prevent undefined state
+      setVariants([]);
       toast({
         title: 'Error',
-        description: 'Failed to load OS variants',
+        description: error instanceof Error ? error.message : 'Failed to load batch variants',
         variant: 'destructive',
       });
     } finally {
@@ -140,49 +139,49 @@ echo "Running on ${os}"
 `;
       }
 
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) {
-        throw new Error('No authentication token available');
+      // Calculate SHA256 and size
+      const encoder = new TextEncoder();
+      const data = encoder.encode(source);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const sha256 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const size_bytes = data.length;
+
+      // Use direct database insertion for reliability
+      const { data: newVariant, error } = await supabase
+        .from('script_batch_variants')
+        .insert({
+          batch_id: batchId,
+          os,
+          source,
+          notes: variantNotes[os] || `Initial ${os} variant`,
+          min_os_version: null,
+          version: 1,
+          active: false,
+          sha256,
+          size_bytes
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error:', error);
+        throw new Error(`Failed to create variant: ${error.message}`);
       }
-
-      const response = await fetch(
-        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batchId}/variants`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            os,
-            source,
-            notes: variantNotes[os] || `Initial ${os} variant`,
-            min_os_version: null
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const data = await response.json();
 
       toast({
         title: 'Variant Created',
         description: `${os.charAt(0).toUpperCase() + os.slice(1)} variant created successfully`,
       });
 
-      fetchVariants();
+      // Refresh variants
+      await fetchVariants();
       onSuccess?.();
     } catch (error) {
       console.error('Error creating variant:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create variant',
+        description: error instanceof Error ? error.message : 'Failed to create variant',
         variant: 'destructive',
       });
     } finally {
@@ -215,50 +214,64 @@ echo "Running on ${os}"
 
     setLoading(true);
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) {
-        throw new Error('No authentication token available');
-      }
+      // Get next version number
+      const { data: existingVersions } = await supabase
+        .from('script_batch_variants')
+        .select('version')
+        .eq('batch_id', batchId)
+        .eq('os', os)
+        .order('version', { ascending: false })
+        .limit(1);
 
-      const response = await fetch(
-        `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/script-batches/${batchId}/variants/${os}/versions`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            source,
-            notes: notes || `Version for ${os}`,
-            min_os_version: null
-          }),
-        }
-      );
+      const nextVersion = (existingVersions?.[0]?.version || 0) + 1;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      // Calculate SHA256 and size
+      const encoder = new TextEncoder();
+      const data = encoder.encode(source);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const sha256 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const size_bytes = data.length;
+
+      // Create new version using direct database insertion
+      const { data: newVersion, error } = await supabase
+        .from('script_batch_variants')
+        .insert({
+          batch_id: batchId,
+          os,
+          source,
+          notes: notes || `Version ${nextVersion} for ${os}`,
+          min_os_version: null,
+          version: nextVersion,
+          active: false,
+          sha256,
+          size_bytes
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error:', error);
+        throw new Error(`Failed to create version: ${error.message}`);
       }
 
       toast({
         title: 'Version Created',
-        description: `New version created for ${os}`,
+        description: `Version ${nextVersion} created for ${os}`,
       });
 
       // Clear local state
       setVariantSources(prev => ({ ...prev, [os]: '' }));
       setVariantNotes(prev => ({ ...prev, [os]: '' }));
       
-      fetchVariants();
+      // Refresh variants
+      await fetchVariants();
       onSuccess?.();
     } catch (error) {
       console.error('Error creating version:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create version',
+        description: error instanceof Error ? error.message : 'Failed to create version',
         variant: 'destructive',
       });
     } finally {
@@ -266,8 +279,9 @@ echo "Running on ${os}"
     }
   };
 
-  const currentVariant = getVariantStatus(selectedOs);
-  const missingOSes = osTargets.filter(os => getVariantStatus(os).status === 'missing');
+  // Safe variable access with null checks
+  const currentVariant = selectedOs ? getVariantStatus(selectedOs) : { status: 'missing', version: null, variant: null };
+  const missingOSes = osTargets?.filter(os => getVariantStatus(os).status === 'missing') || [];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -295,12 +309,26 @@ echo "Running on ${os}"
     }
   };
 
+  // Handle loading and empty states
   if (loading && variants.length === 0) {
     return (
       <Card>
         <CardContent className="py-8">
           <div className="text-center text-muted-foreground">
-            Loading OS variants...
+            Loading batch variants...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Handle case where no OS targets are provided
+  if (!osTargets?.length) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="text-center text-muted-foreground">
+            No OS targets configured for this batch
           </div>
         </CardContent>
       </Card>
