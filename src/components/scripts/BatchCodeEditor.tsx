@@ -118,12 +118,12 @@ export function BatchCodeEditor({
                 </pre>
               </div>
             )}
-            <div className="flex-1">
+            <div className="flex-1 w-full">
               <Textarea
                 value={content}
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder="#!/bin/bash\n\n# Your bash script here...\necho 'Hello, World!'"
-                className="h-[480px] max-h-[480px] font-mono text-sm leading-6 border-0 resize-none focus-visible:ring-0 overflow-y-auto"
+                className="h-[480px] max-h-[480px] w-full font-mono text-sm leading-6 border-0 resize-none focus-visible:ring-0 overflow-y-auto"
                 readOnly={readOnly}
               />
             </div>
