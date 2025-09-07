@@ -451,21 +451,28 @@ echo "Running on ${os}"
                       />
                       
                       {canEdit && (
-                        <div className="mt-4 space-y-2">
-                          <textarea
-                            value={variantNotes[os] || ''}
-                            onChange={(e) => handleNotesChange(e.target.value)}
-                            placeholder="Version notes..."
-                            className="w-full p-2 border rounded-md resize-none"
-                            rows={2}
-                          />
-                          <Button
-                            onClick={() => handleCreateVersion(os)}
-                            size="sm"
-                            disabled={!variantSources[os] || loading}
-                          >
-                            Create New Version
-                          </Button>
+                        <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border space-y-3">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-foreground">
+                              Version Notes
+                            </label>
+                            <textarea
+                              value={variantNotes[os] || ''}
+                              onChange={(e) => handleNotesChange(e.target.value)}
+                              placeholder="Describe changes in this version..."
+                              className="w-full p-3 bg-background border border-input rounded-md resize-none text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                              rows={2}
+                            />
+                          </div>
+                          <div className="flex justify-end">
+                            <Button
+                              onClick={() => handleCreateVersion(os)}
+                              disabled={!variantSources[os] || loading}
+                              className="w-full sm:w-auto"
+                            >
+                              Create New Version
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </CardContent>
