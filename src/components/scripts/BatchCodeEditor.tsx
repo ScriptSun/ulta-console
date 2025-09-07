@@ -64,6 +64,31 @@ export function BatchCodeEditor({
 
   return (
     <div className={cn('space-y-6', className)}>
+      {/* SHA256 Hash Section - Top */}
+      {validation.sha256 && (
+        <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Hash className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">SHA256 Hash</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-sm font-mono bg-background/50 px-3 py-1 rounded border text-foreground">
+                {validation.sha256.substring(0, 16)}...
+              </code>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(validation.sha256!)}
+                className="border-primary/20 text-primary hover:bg-primary/10"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Editor Header */}
       <div className="flex items-center justify-between p-4 bg-muted/30 border border-border rounded-lg">
         <div className="flex items-center gap-3">
@@ -78,24 +103,6 @@ export function BatchCodeEditor({
               </Badge>
             )}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {validation.sha256 && (
-            <div className="flex items-center gap-2">
-              <Hash className="h-3 w-3 text-muted-foreground" />
-              <code className="text-xs font-mono bg-muted px-2 py-1 rounded text-foreground">
-                {validation.sha256.substring(0, 8)}...
-              </code>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => copyToClipboard(validation.sha256!)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 
