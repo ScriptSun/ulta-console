@@ -89,22 +89,6 @@ export function BatchCodeEditor({
         </div>
       )}
 
-      {/* Editor Header */}
-      <div className="flex items-center justify-between p-4 bg-muted/30 border border-border rounded-lg">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-            <FileText className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div>
-            {readOnly && (
-              <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
-                <Eye className="h-3 w-3 mr-1" />
-                Read Only
-              </Badge>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Code Editor */}
       <Card className="bg-card border-border overflow-hidden">
