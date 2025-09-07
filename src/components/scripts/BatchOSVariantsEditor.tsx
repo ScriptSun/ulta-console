@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, Plus, Copy, FileText } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Plus, Copy, FileText, Hash } from 'lucide-react';
 import { BatchCodeEditor } from './BatchCodeEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -336,151 +336,250 @@ echo "Running on ${os}"
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header with missing variants indicator */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium">OS Variants</h3>
-          {missingOSes.length > 0 && (
-            <Badge variant="outline" className="text-orange-600 border-orange-200">
-              {missingOSes.length} missing
-            </Badge>
-          )}
+    <div className="space-y-8">
+      {/* Modern Header */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-2xl blur-xl" />
+        <div className="relative bg-card/40 backdrop-blur-sm border border-border/50 rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <FileText className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold tracking-tight">OS Variants</h3>
+                <p className="text-sm text-muted-foreground">Manage platform-specific script variants</p>
+              </div>
+            </div>
+            {missingOSes.length > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-200/30 rounded-full">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <span className="text-sm font-medium text-orange-700">{missingOSes.length} variants missing</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* OS Variant Tabs */}
-      <Tabs value={selectedOs} onValueChange={setSelectedOs}>
-        <TabsList className="w-full">
-          {osTargets.map(os => {
-            const status = getVariantStatus(os);
-            return (
-              <TabsTrigger key={os} value={os} className="relative flex-1">
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(status.status)}
-                  <span className="capitalize">{os}</span>
-                  {status.version && (
-                    <Badge variant="outline" className="text-xs">
-                      v{status.version}
-                    </Badge>
-                  )}
-                </div>
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+      {/* Modern OS Variant Tabs */}
+      <Tabs value={selectedOs} onValueChange={setSelectedOs} className="w-full">
+        <div className="relative mb-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-muted/20 to-muted/5 rounded-2xl" />
+          <TabsList className="relative grid w-full grid-cols-auto gap-2 p-2 bg-card/60 backdrop-blur-sm border border-border/50 rounded-2xl">
+            {osTargets.map(os => {
+              const status = getVariantStatus(os);
+              return (
+                <TabsTrigger 
+                  key={os} 
+                  value={os} 
+                  className="relative flex-1 px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-secondary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-1.5 rounded-lg ${
+                      status.status === 'active' ? 'bg-emerald-500/20' :
+                      status.status === 'draft' ? 'bg-blue-500/20' : 'bg-orange-500/20'
+                    }`}>
+                      {getStatusIcon(status.status)}
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium capitalize">{os}</span>
+                      {status.version && (
+                        <span className="text-xs opacity-75">v{status.version}</span>
+                      )}
+                    </div>
+                  </div>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </div>
 
         {osTargets.map(os => {
           const status = getVariantStatus(os);
           
           return (
-            <TabsContent key={os} value={os} className="space-y-4">
+            <TabsContent key={os} value={os} className="space-y-6 mt-0">
               {status.status === 'missing' ? (
-                <Card>
-                  <CardContent className="p-6 text-center">
-                    <AlertTriangle className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-                    <h4 className="font-medium text-orange-900 mb-1">
-                      No {os.charAt(0).toUpperCase() + os.slice(1)} variant
-                    </h4>
-                    <p className="text-sm text-orange-700 mb-4">
-                      This OS is targeted but has no script variant
-                    </p>
-                    {canEdit && (
-                      <div className="flex justify-center gap-2">
-                        <Button 
-                          onClick={() => handleCreateVariant(os)}
-                          size="sm"
-                          disabled={loading}
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          Create Variant
-                        </Button>
-                        {variants.length > 0 && (
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-yellow-500/10 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <Card className="relative bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-orange-200/30 rounded-3xl overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-yellow-400" />
+                    <CardContent className="p-12 text-center">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-yellow-500/20 rounded-full blur-2xl" />
+                        <div className="relative h-20 w-20 mx-auto mb-6 bg-gradient-to-br from-orange-400 to-yellow-400 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/25">
+                          <AlertTriangle className="h-10 w-10 text-white" />
+                        </div>
+                      </div>
+                      <h4 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent mb-3">
+                        No {os.charAt(0).toUpperCase() + os.slice(1)} Variant
+                      </h4>
+                      <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
+                        This OS is targeted but has no script variant. Create one to ensure compatibility across all platforms.
+                      </p>
+                      {canEdit && (
+                        <div className="flex justify-center gap-4">
                           <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              const sourceOs = variants[0]?.os;
-                              if (sourceOs) handleCreateVariant(os, sourceOs);
-                            }}
+                            onClick={() => handleCreateVariant(os)}
+                            size="lg"
                             disabled={loading}
+                            className="px-8 py-3 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-lg shadow-primary/25 transition-all duration-300 hover:scale-105"
                           >
-                            <Copy className="h-3 w-3 mr-1" />
-                            Copy from {variants[0]?.os}
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Variant
                           </Button>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {/* Current Variant Info */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm capitalize">
-                          {os} v{status.version}
-                        </CardTitle>
-                        <Badge className={getStatusColor(status.status)}>
-                          {status.status === 'active' ? 'Active' : 'Draft'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">SHA256:</span>
-                        <p className="font-mono text-xs mt-1 p-2 bg-muted rounded break-all">
-                          {status.variant?.sha256}
-                        </p>
-                      </div>
+                          {variants.length > 0 && (
+                            <Button 
+                              variant="outline" 
+                              size="lg"
+                              onClick={() => {
+                                const sourceOs = variants[0]?.os;
+                                if (sourceOs) handleCreateVariant(os, sourceOs);
+                              }}
+                              disabled={loading}
+                              className="px-8 py-3 border-2 border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy from {variants[0]?.os}
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
-
-                  {/* Script Source Editor */}
-                  <div className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-sm">Script Source</CardTitle>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Modern Current Variant Info */}
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <Card className="relative bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-3xl overflow-hidden">
+                      <div className={`absolute top-0 left-0 right-0 h-1 ${
+                        status.status === 'active' 
+                          ? 'bg-gradient-to-r from-emerald-400 to-green-400' 
+                          : 'bg-gradient-to-r from-blue-400 to-cyan-400'
+                      }`} />
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${
+                              status.status === 'active' 
+                                ? 'bg-gradient-to-br from-emerald-500 to-green-500' 
+                                : 'bg-gradient-to-br from-blue-500 to-cyan-500'
+                            } shadow-lg`}>
+                              <span className="text-white font-bold text-lg capitalize">{os[0]}</span>
+                            </div>
+                            <div>
+                              <CardTitle className="text-xl font-semibold capitalize">
+                                {os} v{status.version}
+                              </CardTitle>
+                              <p className="text-sm text-muted-foreground">Script variant configuration</p>
+                            </div>
+                          </div>
+                          <div className={`px-4 py-2 rounded-full font-medium text-sm ${
+                            status.status === 'active'
+                              ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-700 border border-emerald-200/50'
+                              : 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-700 border border-blue-200/50'
+                          }`}>
+                            {status.status === 'active' ? '✓ Active' : '◐ Draft'}
+                          </div>
+                        </div>
                       </CardHeader>
-                      <CardContent>
-                        <BatchCodeEditor
-                          content={variantSources[os] || status.variant?.source || ''}
-                          onChange={handleSourceChange}
-                          readOnly={!canEdit}
-                        />
+                      <CardContent className="space-y-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Hash className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-muted-foreground">SHA256 Hash</span>
+                          </div>
+                          <div className="relative group/hash">
+                            <div className="bg-gradient-to-r from-muted/50 to-muted/30 p-4 rounded-2xl border border-border/30">
+                              <code className="font-mono text-xs break-all text-foreground/80 leading-relaxed">
+                                {status.variant?.sha256}
+                              </code>
+                            </div>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
-                    
-                    {canEdit && (
-                      <Card className="border-dashed bg-muted/20">
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                <FileText className="h-4 w-4" />
-                                Version Notes
-                              </label>
-                              <textarea
-                                value={variantNotes[os] || ''}
-                                onChange={(e) => handleNotesChange(e.target.value)}
-                                placeholder="Describe changes in this version..."
-                                className="w-full min-h-[80px] p-3 bg-background/50 border border-input rounded-md resize-y text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-                                rows={3}
-                              />
+                  </div>
+
+                  {/* Modern Script Source Editor */}
+                  <div className="space-y-6">
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-primary/5 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <Card className="relative bg-gradient-to-br from-card/95 to-card/70 backdrop-blur-sm border border-border/50 rounded-3xl overflow-hidden">
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent to-primary" />
+                        <CardHeader className="pb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-accent to-primary flex items-center justify-center">
+                              <FileText className="h-5 w-5 text-primary-foreground" />
                             </div>
-                            <div className="flex justify-end pt-2">
-                              <Button
-                                onClick={() => handleCreateVersion(os)}
-                                disabled={!variantSources[os] || loading}
-                                className="px-6"
-                              >
-                                Create New Version
-                              </Button>
+                            <div>
+                              <CardTitle className="text-lg font-semibold">Script Source</CardTitle>
+                              <p className="text-sm text-muted-foreground">Edit your bash script code</p>
                             </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pb-6">
+                          <div className="relative rounded-2xl overflow-hidden border border-border/30 bg-gradient-to-br from-muted/20 to-muted/5">
+                            <BatchCodeEditor
+                              content={variantSources[os] || status.variant?.source || ''}
+                              onChange={handleSourceChange}
+                              readOnly={!canEdit}
+                            />
                           </div>
                         </CardContent>
                       </Card>
+                    </div>
+                    
+                    {canEdit && (
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-accent/10 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <Card className="relative bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border-2 border-dashed border-primary/30 rounded-3xl overflow-hidden">
+                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-secondary to-accent" />
+                          <CardContent className="p-8">
+                            <div className="space-y-6">
+                              <div className="flex items-center gap-3 mb-6">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center">
+                                  <FileText className="h-5 w-5 text-primary-foreground" />
+                                </div>
+                                <div>
+                                  <h4 className="text-lg font-semibold">Create New Version</h4>
+                                  <p className="text-sm text-muted-foreground">Document your changes and create a new version</p>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="block text-sm font-semibold text-foreground mb-3">
+                                    Version Notes
+                                  </label>
+                                  <div className="relative">
+                                    <textarea
+                                      value={variantNotes[os] || ''}
+                                      onChange={(e) => handleNotesChange(e.target.value)}
+                                      placeholder="Describe the changes in this version..."
+                                      className="w-full min-h-[100px] p-4 bg-gradient-to-br from-background/90 to-background/70 backdrop-blur-sm border border-border/50 rounded-2xl resize-y text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-300"
+                                      rows={4}
+                                    />
+                                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-secondary/5 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                  </div>
+                                </div>
+                                <div className="flex justify-end pt-4">
+                                  <Button
+                                    onClick={() => handleCreateVersion(os)}
+                                    disabled={!variantSources[os] || loading}
+                                    size="lg"
+                                    className="px-8 py-3 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-lg shadow-primary/25 transition-all duration-300 hover:scale-105"
+                                  >
+                                    Create New Version
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
                     )}
                   </div>
                 </div>
