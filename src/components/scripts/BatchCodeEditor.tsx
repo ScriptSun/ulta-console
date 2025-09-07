@@ -108,12 +108,12 @@ export function BatchCodeEditor({
       </div>
 
       {/* Code Editor */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="flex">
+      <Card className="w-full">
+        <CardContent className="p-0 w-full">
+          <div className="flex w-full min-h-[480px]">
             {showLineNumbers && (
-              <div className="bg-muted/50 p-4 min-w-[60px] text-right border-r">
-                <pre className="text-xs text-muted-foreground font-mono leading-6">
+              <div className="bg-muted/50 p-4 w-[60px] flex-shrink-0 text-right border-r">
+                <pre className="text-xs text-muted-foreground font-mono leading-6 whitespace-pre">
                   {getLineNumbers()}
                 </pre>
               </div>
@@ -123,7 +123,7 @@ export function BatchCodeEditor({
                 value={content}
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder="#!/bin/bash\n\n# Your bash script here...\necho 'Hello, World!'"
-                className="h-[480px] max-h-[480px] w-full font-mono text-sm leading-6 border-0 resize-none focus-visible:ring-0 overflow-y-auto"
+                className="h-[480px] max-h-[480px] w-full min-w-0 font-mono text-sm leading-6 border-0 resize-none focus-visible:ring-0 overflow-y-auto rounded-none p-4"
                 readOnly={readOnly}
               />
             </div>
