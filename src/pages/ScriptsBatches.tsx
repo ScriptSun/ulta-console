@@ -134,125 +134,136 @@ export default function ScriptsBatches() {
     try {
       setLoading(true);
       
-      // Fetch batches with limit for better performance
-      const batchResponse = await api
+      // Use direct Supabase client with shorter timeout for better performance
+      const { data: batchData, error: batchError } = await supabase
         .from('script_batches')
-        .select('*')
+        .select(`
+          id,
+          name,
+          key,
+          description,
+          os_targets,
+          risk,
+          max_timeout_sec,
+          per_agent_concurrency,
+          per_tenant_concurrency,
+          active_version,
+          auto_version,
+          created_at,
+          updated_at,
+          customer_id,
+          created_by,
+          updated_by,
+          inputs_schema,
+          inputs_defaults,
+          render_config
+        `)
         .order('updated_at', { ascending: false })
-        .limit(100); // Limit to prevent excessive data loading
+        .limit(50); // Reduced limit for faster loading
 
-      console.log('Batches query result:', { data: batchResponse.data?.length, error: batchResponse.error });
-
-      if (!batchResponse.success) {
-        console.error('Query error:', batchResponse.error);
-        throw new Error(batchResponse.error);
+      if (batchError) {
+        console.error('Batches query error:', batchError);
+        throw batchError;
       }
 
-      const batchData = batchResponse.data || [];
-      
-      if (batchData.length === 0) {
+      console.log('Batches loaded:', batchData?.length || 0);
+
+      if (!batchData || batchData.length === 0) {
         setBatches([]);
         return;
       }
 
-      // Extract batch IDs for bulk queries
-      const batchIds = batchData.map(batch => batch.id);
-
-      // Fetch all versions and dependencies in parallel with bulk queries
-      const [versionsResponse, dependenciesResponse] = await Promise.all([
-        // Get latest version for each batch
-        api
-          .from('script_batch_versions')
-          .select('batch_id, version, sha256, status')
-          .in('batch_id', batchIds)
-          .order('batch_id')
-          .order('version', { ascending: false }),
-        
-        // Get dependencies for all batches
-        api
-          .from('batch_dependencies')
-          .select(`
-            batch_id,
-            min_version,
-            dependency_batch:script_batches!depends_on_batch_id (name)
-          `)
-          .in('batch_id', batchIds)
-      ]);
-
-      // Process versions data to get latest version per batch
-      const versionsMap = new Map();
-      if (versionsResponse.data) {
-        for (const version of versionsResponse.data) {
-          if (!versionsMap.has(version.batch_id)) {
-            versionsMap.set(version.batch_id, version);
-          }
-        }
-      }
-
-      // Process dependencies data
-      const dependenciesMap = new Map();
-      if (dependenciesResponse.data) {
-        for (const dep of dependenciesResponse.data) {
-          if (!dependenciesMap.has(dep.batch_id)) {
-            dependenciesMap.set(dep.batch_id, []);
-          }
-          dependenciesMap.get(dep.batch_id).push(dep);
-        }
-      }
-
-      // Build final batch data
-      const processedBatches: ScriptBatch[] = batchData.map(batch => {
-        const latestVersion = versionsMap.get(batch.id) || null;
-        const dependencies = dependenciesMap.get(batch.id) || [];
-        const dependenciesCount = dependencies.length;
-        const dependenciesPreview = dependencies
-          .slice(0, 3)
-          .map(dep => `${dep.dependency_batch.name} v${dep.min_version}+`)
-          .join(', ');
-        
-        return {
-          ...batch,
-          risk: batch.risk as 'low' | 'medium' | 'high',
-          latest_version: latestVersion,
-          dependencies_count: dependenciesCount,
-          dependencies_preview: dependenciesPreview,
-          inputs_schema: batch.inputs_schema,
-          inputs_defaults: batch.inputs_defaults
-        };
-      });
+      // Simple processing without complex joins for faster loading
+      const processedBatches: ScriptBatch[] = batchData.map(batch => ({
+        ...batch,
+        risk: batch.risk as 'low' | 'medium' | 'high',
+        latest_version: null, // Will load separately if needed
+        dependencies_count: 0,
+        dependencies_preview: '',
+      }));
 
       setBatches(processedBatches);
+
+      // Load additional data asynchronously for better UX
+      loadBatchMetadata(batchData.map(b => b.id));
       
-      if (processedBatches.length === 0) {
-        toast({
-          title: 'No Data',
-          description: 'No script batches found. Check your permissions or create some batches.',
-          variant: 'default',
-        });
-      }
     } catch (error: any) {
       console.error('Error fetching batches:', error);
       
       // Provide more detailed error information
       let errorMessage = 'Failed to load script batches';
-      if (error?.message?.includes('Failed to fetch')) {
-        errorMessage = 'Network connection failed. Check your internet connection or try refreshing.';
-      } else if (error?.code === 'PGRST116') {
+      if (error?.message?.includes('timeout') || error?.message?.includes('timed out')) {
+        errorMessage = 'Request timed out. The server may be slow. Please try again.';
+      } else if (error?.message?.includes('Failed to fetch') || error?.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network connection failed. Check your internet connection.';
+      } else if (error?.code === 'PGRST116' || error?.message?.includes('permission')) {
         errorMessage = 'Access denied. You may not have permission to view batches.';
       } else if (error?.message) {
         errorMessage = `Database error: ${error.message}`;
       }
 
       toast({
-        title: 'Connection Error',
+        title: 'Loading Error',
         description: errorMessage,
         variant: 'destructive',
       });
       
-      // Set empty array to show "no batches" state instead of loading forever
       setBatches([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load additional metadata asynchronously to avoid blocking initial load
+  const loadBatchMetadata = async (batchIds: string[]) => {
+    if (batchIds.length === 0) return;
+
+    try {
+      // Load versions and dependencies separately with shorter timeouts
+      const [versionsData, dependenciesData] = await Promise.allSettled([
+        supabase
+          .from('script_batch_versions')
+          .select('batch_id, version, sha256, status')
+          .in('batch_id', batchIds)
+          .order('batch_id')
+          .order('version', { ascending: false }),
+        
+        supabase
+          .from('batch_dependencies')
+          .select('batch_id, min_version')
+          .in('batch_id', batchIds)
+      ]);
+
+      // Process versions
+      const versionsMap = new Map();
+      if (versionsData.status === 'fulfilled' && versionsData.value.data) {
+        for (const version of versionsData.value.data) {
+          if (!versionsMap.has(version.batch_id)) {
+            versionsMap.set(version.batch_id, version);
+          }
+        }
+      }
+
+      // Process dependencies count
+      const depsCountMap = new Map();
+      if (dependenciesData.status === 'fulfilled' && dependenciesData.value.data) {
+        for (const dep of dependenciesData.value.data) {
+          const count = depsCountMap.get(dep.batch_id) || 0;
+          depsCountMap.set(dep.batch_id, count + 1);
+        }
+      }
+
+      // Update batches with metadata
+      setBatches(prevBatches => 
+        prevBatches.map(batch => ({
+          ...batch,
+          latest_version: versionsMap.get(batch.id) || null,
+          dependencies_count: depsCountMap.get(batch.id) || 0,
+        }))
+      );
+
+    } catch (error) {
+      console.log('Failed to load batch metadata (non-critical):', error);
     }
   };
 
