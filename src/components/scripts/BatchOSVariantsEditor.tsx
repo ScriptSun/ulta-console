@@ -504,7 +504,7 @@ echo "Running on ${os}"
                   </div>
 
                   {/* Modern Script Source Editor */}
-                  <div className="space-y-6">
+                  <div className="space-y-8">
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-primary/5 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       <Card className="relative bg-gradient-to-br from-card/95 to-card/70 backdrop-blur-sm border border-border/50 rounded-3xl overflow-hidden">
@@ -520,12 +520,13 @@ echo "Running on ${os}"
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent className="pb-6">
-                          <div className="relative rounded-2xl overflow-hidden border border-border/30 bg-gradient-to-br from-muted/20 to-muted/5">
+                        <CardContent className="p-6">
+                          <div className="w-full">
                             <BatchCodeEditor
                               content={variantSources[os] || status.variant?.source || ''}
                               onChange={handleSourceChange}
                               readOnly={!canEdit}
+                              className="w-full"
                             />
                           </div>
                         </CardContent>
@@ -533,7 +534,7 @@ echo "Running on ${os}"
                     </div>
                     
                     {canEdit && (
-                      <div className="relative group">
+                      <div className="relative group mt-8">
                         <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-accent/10 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         <Card className="relative bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border-2 border-dashed border-primary/30 rounded-3xl overflow-hidden">
                           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-secondary to-accent" />
