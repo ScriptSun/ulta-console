@@ -609,6 +609,10 @@ export default function BatchEdit() {
               osTargets={formData.os_targets}
               canEdit={canEdit}
               canActivate={canActivate}
+              onOSTargetsChange={(newTargets) => {
+                setFormData(prev => ({ ...prev, os_targets: newTargets }));
+                setHasUnsavedChanges(true);
+              }}
             />
           ) : (
             <Card>

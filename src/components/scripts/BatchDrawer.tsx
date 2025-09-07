@@ -830,6 +830,9 @@ export function BatchDrawer({ batch, isOpen, onClose, onSuccess, userRole }: Bat
                     setHasUnsavedChanges(false);
                     onSuccess();
                   }}
+                  onOSTargetsChange={(newTargets) => {
+                    handleFormChange('os_targets', newTargets);
+                  }}
                 />
               ) : (
                 <div className="space-y-4">

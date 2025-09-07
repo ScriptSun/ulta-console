@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, CheckCircle, Plus, Copy, FileText, Hash } from 'lucide-react';
 import { BatchCodeEditor } from './BatchCodeEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useOSTargets } from '@/hooks/useOSTargets';
 
 interface BatchVariant {
   id: string;
@@ -28,6 +30,7 @@ interface BatchOSVariantsEditorProps {
   canEdit: boolean;
   canActivate: boolean;
   onSuccess?: () => void;
+  onOSTargetsChange?: (newTargets: string[]) => void;
 }
 
 export function BatchOSVariantsEditor({ 
@@ -35,22 +38,30 @@ export function BatchOSVariantsEditor({
   osTargets, 
   canEdit, 
   canActivate, 
-  onSuccess 
+  onSuccess,
+  onOSTargetsChange 
 }: BatchOSVariantsEditorProps) {
   const [variants, setVariants] = useState<BatchVariant[]>([]);
   const [selectedOs, setSelectedOs] = useState<string>(osTargets[0] || '');
   const [loading, setLoading] = useState(false);
   const [variantSources, setVariantSources] = useState<Record<string, string>>({});
   const [variantNotes, setVariantNotes] = useState<Record<string, string>>({});
+  const [currentOSTargets, setCurrentOSTargets] = useState<string[]>(osTargets);
   
   const { toast } = useToast();
+  const { osTargets: availableOSTargets, osOptions } = useOSTargets();
+
+  // Update current OS targets when props change
+  useEffect(() => {
+    setCurrentOSTargets(osTargets);
+  }, [osTargets]);
 
   // Fetch variants when component mounts or batchId changes
   useEffect(() => {
-    if (batchId && osTargets?.length > 0) {
+    if (batchId && currentOSTargets?.length > 0) {
       fetchVariants();
     }
-  }, [batchId, osTargets?.length]);
+  }, [batchId, currentOSTargets?.length]);
 
   const fetchVariants = async () => {
     if (!batchId) return;
@@ -279,9 +290,23 @@ echo "Running on ${os}"
     }
   };
 
+  const handleAddOSTarget = (newOSTarget: string) => {
+    if (!currentOSTargets.includes(newOSTarget)) {
+      const updatedTargets = [...currentOSTargets, newOSTarget];
+      setCurrentOSTargets(updatedTargets);
+      onOSTargetsChange?.(updatedTargets);
+      setSelectedOs(newOSTarget);
+    }
+  };
+
   // Safe variable access with null checks
   const currentVariant = selectedOs ? getVariantStatus(selectedOs) : { status: 'missing', version: null, variant: null };
-  const missingOSes = osTargets?.filter(os => getVariantStatus(os).status === 'missing') || [];
+  const missingOSes = currentOSTargets?.filter(os => getVariantStatus(os).status === 'missing') || [];
+  
+  // Get available OS options that aren't already added
+  const availableToAdd = osOptions.filter(option => 
+    !currentOSTargets.includes(option.value)
+  );
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -310,12 +335,32 @@ echo "Running on ${os}"
   }
 
   // Handle case where no OS targets are provided
-  if (!osTargets?.length) {
+  if (!currentOSTargets?.length) {
     return (
       <Card className="bg-card border-border">
         <CardContent className="py-8">
-          <div className="text-center text-muted-foreground">
-            No OS targets configured for this batch
+          <div className="text-center space-y-4">
+            <div className="text-muted-foreground">
+              No OS targets configured for this batch
+            </div>
+            {canEdit && availableToAdd.length > 0 && (
+              <div className="flex justify-center gap-4 items-center">
+                <Select onValueChange={handleAddOSTarget}>
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Add OS target" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableToAdd.map((os) => (
+                      <SelectItem key={os.value} value={os.value}>
+                        <div className="flex items-center gap-2">
+                          <span className="capitalize">{os.display_name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -338,22 +383,43 @@ echo "Running on ${os}"
               </p>
             </div>
           </div>
-          {missingOSes.length > 0 && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-warning/10 border border-warning/20 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-warning" />
-              <span className="text-sm font-semibold text-warning">
-                {missingOSes.length} variant{missingOSes.length > 1 ? 's' : ''} missing
-              </span>
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            {missingOSes.length > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-warning/10 border border-warning/20 rounded-lg">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <span className="text-sm font-semibold text-warning">
+                  {missingOSes.length} variant{missingOSes.length > 1 ? 's' : ''} missing
+                </span>
+              </div>
+            )}
+            {canEdit && availableToAdd.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Select onValueChange={handleAddOSTarget}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Add OS variant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableToAdd.map((os) => (
+                      <SelectItem key={os.value} value={os.value}>
+                        <div className="flex items-center gap-2">
+                          <Plus className="h-3 w-3" />
+                          <span className="capitalize">{os.display_name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Enhanced OS Tabs Section */}
       <Tabs value={selectedOs} onValueChange={setSelectedOs} className="w-full">
         <div className="p-2 bg-muted/20 border border-border rounded-xl">
-          <TabsList className="grid w-full bg-transparent gap-1" style={{ gridTemplateColumns: `repeat(${osTargets.length}, 1fr)` }}>
-            {osTargets.map(os => {
+          <TabsList className="grid w-full bg-transparent gap-1" style={{ gridTemplateColumns: `repeat(${currentOSTargets.length}, 1fr)` }}>
+            {currentOSTargets.map(os => {
               const status = getVariantStatus(os);
               return (
                 <TabsTrigger 
@@ -382,7 +448,7 @@ echo "Running on ${os}"
         </div>
 
         {/* Tab Content */}
-        {osTargets.map(os => {
+        {currentOSTargets.map(os => {
           const status = getVariantStatus(os);
           
           return (
