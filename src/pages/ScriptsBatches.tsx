@@ -134,11 +134,12 @@ export default function ScriptsBatches() {
     try {
       setLoading(true);
       
-      // First, fetch batches without requiring versions
+      // Fetch batches with limit for better performance
       const batchResponse = await api
         .from('script_batches')
         .select('*')
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .limit(100); // Limit to prevent excessive data loading
 
       console.log('Batches query result:', { data: batchResponse.data?.length, error: batchResponse.error });
 
@@ -147,38 +148,69 @@ export default function ScriptsBatches() {
         throw new Error(batchResponse.error);
       }
 
-      const batchData = batchResponse.data;
-
-      // Now fetch version information and dependencies for each batch
-      const processedBatches: ScriptBatch[] = [];
+      const batchData = batchResponse.data || [];
       
-      for (const batch of batchData || []) {
-        const versionsResponse = await api
-          .from('script_batch_versions')
-          .select('version, sha256, status')
-          .eq('batch_id', batch.id)
-          .order('version', { ascending: false });
+      if (batchData.length === 0) {
+        setBatches([]);
+        return;
+      }
 
-        // Fetch dependencies count and preview
-        const dependenciesResponse = await api
+      // Extract batch IDs for bulk queries
+      const batchIds = batchData.map(batch => batch.id);
+
+      // Fetch all versions and dependencies in parallel with bulk queries
+      const [versionsResponse, dependenciesResponse] = await Promise.all([
+        // Get latest version for each batch
+        api
+          .from('script_batch_versions')
+          .select('batch_id, version, sha256, status')
+          .in('batch_id', batchIds)
+          .order('batch_id')
+          .order('version', { ascending: false }),
+        
+        // Get dependencies for all batches
+        api
           .from('batch_dependencies')
           .select(`
+            batch_id,
             min_version,
             dependency_batch:script_batches!depends_on_batch_id (name)
           `)
-          .eq('batch_id', batch.id)
-          .limit(3);
+          .in('batch_id', batchIds)
+      ]);
 
-        const versions = versionsResponse.data;
-        const dependencies = dependenciesResponse.data;
+      // Process versions data to get latest version per batch
+      const versionsMap = new Map();
+      if (versionsResponse.data) {
+        for (const version of versionsResponse.data) {
+          if (!versionsMap.has(version.batch_id)) {
+            versionsMap.set(version.batch_id, version);
+          }
+        }
+      }
 
-        const latestVersion = versions?.[0] || null;
-        const dependenciesCount = dependencies?.length || 0;
-        const dependenciesPreview = dependencies?.map(dep => 
-          `${dep.dependency_batch.name} v${dep.min_version}+`
-        ).join(', ') || '';
+      // Process dependencies data
+      const dependenciesMap = new Map();
+      if (dependenciesResponse.data) {
+        for (const dep of dependenciesResponse.data) {
+          if (!dependenciesMap.has(dep.batch_id)) {
+            dependenciesMap.set(dep.batch_id, []);
+          }
+          dependenciesMap.get(dep.batch_id).push(dep);
+        }
+      }
+
+      // Build final batch data
+      const processedBatches: ScriptBatch[] = batchData.map(batch => {
+        const latestVersion = versionsMap.get(batch.id) || null;
+        const dependencies = dependenciesMap.get(batch.id) || [];
+        const dependenciesCount = dependencies.length;
+        const dependenciesPreview = dependencies
+          .slice(0, 3)
+          .map(dep => `${dep.dependency_batch.name} v${dep.min_version}+`)
+          .join(', ');
         
-        processedBatches.push({
+        return {
           ...batch,
           risk: batch.risk as 'low' | 'medium' | 'high',
           latest_version: latestVersion,
@@ -186,8 +218,8 @@ export default function ScriptsBatches() {
           dependencies_preview: dependenciesPreview,
           inputs_schema: batch.inputs_schema,
           inputs_defaults: batch.inputs_defaults
-        });
-      }
+        };
+      });
 
       setBatches(processedBatches);
       
