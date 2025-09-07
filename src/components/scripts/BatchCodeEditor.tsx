@@ -37,7 +37,6 @@ export function BatchCodeEditor({
     warnings: [],
     sizeBytes: 0
   });
-  const [showLineNumbers, setShowLineNumbers] = useState(true);
 
   const validateContent = useCallback(async (content: string) => {
     const result = await validateScript({ content });
@@ -63,11 +62,6 @@ export function BatchCodeEditor({
     }
   };
 
-  const getLineNumbers = () => {
-    const lines = content.split('\n');
-    return lines.map((_, index) => index + 1).join('\n');
-  };
-
   return (
     <div className={cn('space-y-6', className)}>
       {/* Editor Header */}
@@ -77,9 +71,8 @@ export function BatchCodeEditor({
             <FileText className="h-4 w-4 text-primary-foreground" />
           </div>
           <div>
-            <span className="font-semibold text-foreground">Script Editor</span>
             {readOnly && (
-              <Badge variant="secondary" className="ml-2 bg-secondary text-secondary-foreground">
+              <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
                 <Eye className="h-3 w-3 mr-1" />
                 Read Only
               </Badge>
@@ -87,15 +80,6 @@ export function BatchCodeEditor({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowLineNumbers(!showLineNumbers)}
-            className="border-border text-foreground hover:bg-accent"
-          >
-            <LineChart className="h-3 w-3 mr-1" />
-            Line Numbers
-          </Button>
           {validation.sha256 && (
             <div className="flex items-center gap-2">
               <Hash className="h-3 w-3 text-muted-foreground" />
@@ -119,13 +103,6 @@ export function BatchCodeEditor({
       <Card className="bg-card border-border overflow-hidden">
         <CardContent className="p-0">
           <div className="flex w-full min-h-[300px]">
-            {showLineNumbers && (
-              <div className="bg-muted/20 p-4 w-16 flex-shrink-0 text-right border-r border-border">
-                <pre className="text-xs text-muted-foreground font-mono leading-6 whitespace-pre select-none">
-                  {getLineNumbers()}
-                </pre>
-              </div>
-            )}
             <div className="flex-1 relative">
               <Textarea
                 value={content}
