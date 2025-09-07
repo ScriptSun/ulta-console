@@ -109,21 +109,21 @@ export function BatchCodeEditor({
 
       {/* Code Editor */}
       <Card className="w-full">
-        <CardContent className="p-0 w-full">
-          <div className="flex w-full min-h-[480px]">
+        <CardContent className="p-0">
+          <div className="flex w-full h-[240px]">
             {showLineNumbers && (
-              <div className="bg-muted/50 p-4 w-[60px] flex-shrink-0 text-right border-r">
-                <pre className="text-xs text-muted-foreground font-mono leading-6 whitespace-pre">
+              <div className="bg-muted/50 p-3 w-[50px] flex-shrink-0 text-right border-r">
+                <pre className="text-xs text-muted-foreground font-mono leading-5 whitespace-pre">
                   {getLineNumbers()}
                 </pre>
               </div>
             )}
-            <div className="flex-1 w-full">
+            <div className="flex-1 min-w-0">
               <Textarea
                 value={content}
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder="#!/bin/bash\n\n# Your bash script here...\necho 'Hello, World!'"
-                className="h-[480px] max-h-[480px] w-full min-w-0 font-mono text-sm leading-6 border-0 resize-none focus-visible:ring-0 overflow-y-auto rounded-none p-4"
+                className="h-[240px] w-full font-mono text-sm leading-5 border-0 resize-none focus-visible:ring-0 overflow-y-auto rounded-none p-3"
                 readOnly={readOnly}
               />
             </div>
