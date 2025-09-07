@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, Plus, Copy } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Plus, Copy, FileText } from 'lucide-react';
 import { BatchCodeEditor } from './BatchCodeEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -438,45 +438,51 @@ echo "Running on ${os}"
                   </Card>
 
                   {/* Script Source Editor */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Script Source</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <BatchCodeEditor
-                        content={variantSources[os] || status.variant?.source || ''}
-                        onChange={handleSourceChange}
-                        readOnly={!canEdit}
-                        className="h-96"
-                      />
-                      
-                      {canEdit && (
-                        <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border space-y-3">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground">
-                              Version Notes
-                            </label>
-                            <textarea
-                              value={variantNotes[os] || ''}
-                              onChange={(e) => handleNotesChange(e.target.value)}
-                              placeholder="Describe changes in this version..."
-                              className="w-full p-3 bg-background border border-input rounded-md resize-none text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                              rows={2}
-                            />
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">Script Source</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <BatchCodeEditor
+                          content={variantSources[os] || status.variant?.source || ''}
+                          onChange={handleSourceChange}
+                          readOnly={!canEdit}
+                        />
+                      </CardContent>
+                    </Card>
+                    
+                    {canEdit && (
+                      <Card className="border-dashed bg-muted/20">
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                <FileText className="h-4 w-4" />
+                                Version Notes
+                              </label>
+                              <textarea
+                                value={variantNotes[os] || ''}
+                                onChange={(e) => handleNotesChange(e.target.value)}
+                                placeholder="Describe changes in this version..."
+                                className="w-full min-h-[80px] p-3 bg-background/50 border border-input rounded-md resize-y text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                                rows={3}
+                              />
+                            </div>
+                            <div className="flex justify-end pt-2">
+                              <Button
+                                onClick={() => handleCreateVersion(os)}
+                                disabled={!variantSources[os] || loading}
+                                className="px-6"
+                              >
+                                Create New Version
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex justify-end">
-                            <Button
-                              onClick={() => handleCreateVersion(os)}
-                              disabled={!variantSources[os] || loading}
-                              className="w-full sm:w-auto"
-                            >
-                              Create New Version
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
                 </div>
               )}
             </TabsContent>
