@@ -323,196 +323,224 @@ echo "Running on ${os}"
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center">
-                <FileText className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <CardTitle className="text-foreground">OS Script Variants</CardTitle>
-                <p className="text-muted-foreground">
-                  Manage platform-specific script implementations
-                </p>
-              </div>
+    <div className="space-y-8">
+      {/* Modern Header Section */}
+      <div className="bg-gradient-to-r from-card to-muted/30 border border-border rounded-xl p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-xl bg-primary flex items-center justify-center shadow-lg">
+              <FileText className="h-7 w-7 text-primary-foreground" />
             </div>
-            {missingOSes.length > 0 && (
-              <Badge variant="outline" className="text-warning border-warning">
-                {missingOSes.length} missing
-              </Badge>
-            )}
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">OS Script Variants</h2>
+              <p className="text-muted-foreground text-lg">
+                Manage platform-specific script implementations
+              </p>
+            </div>
           </div>
-        </CardHeader>
-      </Card>
+          {missingOSes.length > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-warning/10 border border-warning/20 rounded-lg">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <span className="text-sm font-semibold text-warning">
+                {missingOSes.length} variant{missingOSes.length > 1 ? 's' : ''} missing
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
 
-      {/* OS Tabs Section */}
+      {/* Enhanced OS Tabs Section */}
       <Tabs value={selectedOs} onValueChange={setSelectedOs} className="w-full">
-        <TabsList className="grid w-full bg-muted border-border" style={{ gridTemplateColumns: `repeat(${osTargets.length}, 1fr)` }}>
-          {osTargets.map(os => {
-            const status = getVariantStatus(os);
-            return (
-              <TabsTrigger 
-                key={os} 
-                value={os} 
-                className="data-[state=active]:bg-card data-[state=active]:text-foreground text-muted-foreground"
-              >
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(status.status)}
-                  <span className="capitalize font-medium">{os}</span>
-                  {status.version && (
-                    <Badge variant="secondary" className="text-xs bg-secondary text-secondary-foreground">
-                      v{status.version}
-                    </Badge>
-                  )}
-                </div>
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+        <div className="p-2 bg-muted/20 border border-border rounded-xl">
+          <TabsList className="grid w-full bg-transparent gap-1" style={{ gridTemplateColumns: `repeat(${osTargets.length}, 1fr)` }}>
+            {osTargets.map(os => {
+              const status = getVariantStatus(os);
+              return (
+                <TabsTrigger 
+                  key={os} 
+                  value={os} 
+                  className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border text-muted-foreground hover:text-foreground transition-all duration-200 rounded-lg p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-md ${
+                      status.status === 'active' ? 'bg-success/20' :
+                      status.status === 'draft' ? 'bg-primary/20' : 'bg-warning/20'
+                    }`}>
+                      {getStatusIcon(status.status)}
+                    </div>
+                    <div className="text-left">
+                      <div className="font-semibold capitalize">{os}</div>
+                      {status.version && (
+                        <div className="text-xs opacity-70">v{status.version}</div>
+                      )}
+                    </div>
+                  </div>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </div>
 
         {/* Tab Content */}
         {osTargets.map(os => {
           const status = getVariantStatus(os);
           
           return (
-            <TabsContent key={os} value={os} className="space-y-6 mt-6">
+            <TabsContent key={os} value={os} className="space-y-8 mt-8">
               {status.status === 'missing' ? (
                 /* Missing Variant State */
-                <Card className="bg-card border-border">
-                  <CardContent className="p-8 text-center">
-                    <div className="h-16 w-16 mx-auto mb-4 rounded-lg bg-warning/10 border border-warning/20 flex items-center justify-center">
-                      <AlertTriangle className="h-8 w-8 text-warning" />
-                    </div>
-                    <h4 className="text-lg font-semibold text-foreground mb-2">
-                      No {os.charAt(0).toUpperCase() + os.slice(1)} Variant
-                    </h4>
-                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      This OS is targeted but has no script variant. Create one to ensure compatibility.
-                    </p>
-                    {canEdit && (
-                      <div className="flex justify-center gap-3">
-                        <Button 
-                          onClick={() => handleCreateVariant(os)}
-                          disabled={loading}
-                          className="bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Create Variant
-                        </Button>
-                        {variants.length > 0 && (
-                          <Button 
-                            variant="outline" 
-                            onClick={() => {
-                              const sourceOs = variants[0]?.os;
-                              if (sourceOs) handleCreateVariant(os, sourceOs);
-                            }}
-                            disabled={loading}
-                            className="border-border text-foreground hover:bg-accent"
-                          >
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copy from {variants[0]?.os}
-                          </Button>
-                        )}
+                <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-2 border-dashed border-warning/30">
+                  <CardContent className="p-12 text-center">
+                    <div className="max-w-md mx-auto space-y-6">
+                      <div className="relative">
+                        <div className="h-20 w-20 mx-auto rounded-2xl bg-warning/20 border border-warning/30 flex items-center justify-center">
+                          <AlertTriangle className="h-10 w-10 text-warning" />
+                        </div>
                       </div>
-                    )}
+                      <div className="space-y-3">
+                        <h3 className="text-2xl font-bold text-foreground">
+                          Missing {os.charAt(0).toUpperCase() + os.slice(1)} Variant
+                        </h3>
+                        <p className="text-muted-foreground text-lg leading-relaxed">
+                          This operating system is targeted but lacks a script variant. Create one now to ensure seamless cross-platform deployment.
+                        </p>
+                      </div>
+                      {canEdit && (
+                        <div className="flex justify-center gap-4 pt-4">
+                          <Button 
+                            onClick={() => handleCreateVariant(os)}
+                            disabled={loading}
+                            size="lg"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg px-8"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Variant
+                          </Button>
+                          {variants.length > 0 && (
+                            <Button 
+                              variant="outline" 
+                              onClick={() => {
+                                const sourceOs = variants[0]?.os;
+                                if (sourceOs) handleCreateVariant(os, sourceOs);
+                              }}
+                              disabled={loading}
+                              size="lg"
+                              className="border-border text-foreground hover:bg-accent px-8"
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy from {variants[0]?.os}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-6">
-                  {/* Current Variant Info */}
-                  <Card className="bg-card border-border">
-                    <CardHeader>
+                <div className="space-y-8">
+                  {/* Enhanced Current Variant Info */}
+                  <Card className="bg-gradient-to-br from-card to-muted/10 border border-border shadow-lg">
+                    <CardHeader className="pb-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${
+                          <div className={`h-16 w-16 rounded-2xl flex items-center justify-center shadow-lg ${
                             status.status === 'active' 
                               ? 'bg-success text-success-foreground' 
                               : 'bg-primary text-primary-foreground'
                           }`}>
-                            <span className="font-bold text-lg capitalize">{os[0]}</span>
+                            <span className="font-bold text-2xl capitalize">{os[0]}</span>
                           </div>
-                          <div>
-                            <CardTitle className="text-foreground capitalize">
+                          <div className="space-y-1">
+                            <CardTitle className="text-2xl text-foreground capitalize">
                               {os} v{status.version}
                             </CardTitle>
-                            <p className="text-muted-foreground">Script variant configuration</p>
+                            <p className="text-muted-foreground text-lg">Script variant configuration</p>
                           </div>
                         </div>
                         <Badge 
                           variant={status.status === 'active' ? 'default' : 'secondary'}
-                          className={status.status === 'active' 
+                          className={`px-4 py-2 text-sm font-semibold ${status.status === 'active' 
                             ? 'bg-success text-success-foreground' 
                             : 'bg-secondary text-secondary-foreground'
-                          }
+                          }`}
                         >
                           {status.status === 'active' ? '✓ Active' : '◐ Draft'}
                         </Badge>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div>
+                    <CardContent className="space-y-4">
+                      <div className="p-4 bg-muted/30 rounded-lg border border-border">
                         <div className="flex items-center gap-2 mb-3">
-                          <Hash className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium text-muted-foreground">SHA256 Hash</span>
+                          <Hash className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-sm font-semibold text-foreground">SHA256 Hash</span>
                         </div>
-                        <div className="bg-muted/50 p-3 rounded-md border border-border">
-                          <code className="font-mono text-xs break-all text-foreground">
-                            {status.variant?.sha256}
-                          </code>
-                        </div>
+                        <code className="font-mono text-xs break-all text-foreground block p-2 bg-background rounded border border-border">
+                          {status.variant?.sha256}
+                        </code>
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Script Source Editor */}
-                  <Card className="bg-card border-border">
-                    <CardHeader>
-                      <CardTitle className="text-foreground flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
+                  {/* Enhanced Script Source Editor */}
+                  <Card className="bg-card border border-border shadow-lg">
+                    <CardHeader className="border-b border-border bg-muted/20">
+                      <CardTitle className="text-foreground flex items-center gap-3 text-xl">
+                        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                          <FileText className="h-4 w-4 text-primary-foreground" />
+                        </div>
                         Script Source Editor
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6">
-                      <BatchCodeEditor
-                        content={variantSources[os] || status.variant?.source || ''}
-                        onChange={handleSourceChange}
-                        readOnly={!canEdit}
-                      />
+                    <CardContent className="p-0">
+                      <div className="p-6">
+                        <BatchCodeEditor
+                          content={variantSources[os] || status.variant?.source || ''}
+                          onChange={handleSourceChange}
+                          readOnly={!canEdit}
+                          className="border-0"
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                   
-                  {/* Create New Version Section */}
+                  {/* Enhanced Create New Version Section */}
                   {canEdit && (
-                    <Card className="bg-card border-2 border-dashed border-border">
-                      <CardHeader>
-                        <CardTitle className="text-foreground flex items-center gap-2">
-                          <Plus className="h-5 w-5" />
-                          Create New Version
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-2">
-                            Version Notes
-                          </label>
-                          <textarea
-                            value={variantNotes[os] || ''}
-                            onChange={(e) => handleNotesChange(e.target.value)}
-                            placeholder="Describe changes in this version..."
-                            className="w-full min-h-[100px] p-3 bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-y"
-                            rows={4}
-                          />
+                    <Card className="bg-gradient-to-br from-muted/20 to-muted/5 border-2 border-dashed border-primary/30 shadow-lg">
+                      <CardHeader className="border-b border-dashed border-primary/20">
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-md">
+                            <Plus className="h-6 w-6 text-primary-foreground" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-foreground text-xl">Create New Version</CardTitle>
+                            <p className="text-muted-foreground">Document your changes and create a deployable version</p>
+                          </div>
                         </div>
-                        <div className="flex justify-end">
+                      </CardHeader>
+                      <CardContent className="space-y-6 p-6">
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold text-foreground">
+                            Version Documentation
+                          </label>
+                          <div className="relative">
+                            <textarea
+                              value={variantNotes[os] || ''}
+                              onChange={(e) => handleNotesChange(e.target.value)}
+                              placeholder="Document the changes, improvements, and deployment notes for this version..."
+                              className="w-full min-h-[120px] p-4 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-y shadow-inner"
+                              rows={5}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end pt-2">
                           <Button
                             onClick={() => handleCreateVersion(os)}
                             disabled={!variantSources[os] || loading}
-                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                            size="lg"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg px-8"
                           >
-                            Create New Version
+                            <Plus className="h-4 w-4 mr-2" />
+                            Deploy New Version
                           </Button>
                         </div>
                       </CardContent>
