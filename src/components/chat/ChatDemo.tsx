@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText, Brain, Search, Clock, AlertCircle, Terminal, BookOpen } from 'lucide-react';
+import { MessageCircle, X, Copy, Settings, Send, Plus, ChevronDown, ChevronUp, CheckCircle, Play, FileText, Brain, Search, Clock, AlertCircle, Terminal, BookOpen, Monitor } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { api } from '@/lib/api';
@@ -15,6 +15,7 @@ import { TaskStatusCard } from './TaskStatusCard';
 import { InputForm } from './InputForm';
 import { PreflightBlockCard } from './PreflightBlockCard';
 import { ApiLogsViewer } from './ApiLogsViewer';
+import { ServerScreenViewer } from './ServerScreenViewer';
 import { CustomShellCard } from './CustomShellCard';
 import { ProposedBatchScriptCard } from './ProposedBatchScriptCard';
 import { QuickInputChips } from './QuickInputChips';
@@ -183,6 +184,7 @@ export const ChatDemo: React.FC<ChatDemoProps> = ({ currentRoute = '', forceEnab
   const [conversationOnly, setConversationOnly] = useState(false);
   const [apiLogs, setApiLogs] = useState<any[]>([]);
   const [logViewerOpen, setLogViewerOpen] = useState(false);
+  const [screenViewerOpen, setScreenViewerOpen] = useState(false);
   const [isConnectedToOpenAI, setIsConnectedToOpenAI] = useState(false);
   const [openAIConnectionStatus, setOpenAIConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   
@@ -2242,6 +2244,19 @@ Please proceed with creating and executing this batch script.`;
                     </Button>
                   </ChatDocumentation>
                   
+                  {/* Server Screen Viewer Button */}
+                  {selectedAgent && selectedAgentDetails && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setScreenViewerOpen(true)}
+                      title="View Server Screen Activity"
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950"
+                    >
+                      <Monitor className="w-4 h-4" />
+                    </Button>
+                  )}
+                  
                   {/* Connect to OpenAI Button */}
                   {selectedAgent && selectedAgentDetails && (
                     <Button
@@ -3251,6 +3266,14 @@ Please proceed with creating and executing this batch script.`;
         open={logViewerOpen}
         onOpenChange={setLogViewerOpen}
         logs={apiLogs}
+      />
+      
+      {/* Server Screen Viewer */}
+      <ServerScreenViewer 
+        isOpen={screenViewerOpen}
+        onClose={() => setScreenViewerOpen(false)}
+        agentId={selectedAgent}
+        agentHostname={selectedAgentDetails?.hostname}
       />
     </>
   );
