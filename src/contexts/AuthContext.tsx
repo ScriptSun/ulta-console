@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { api } from '@/lib/api-wrapper';
 import { useEnhancedSecurity } from '@/hooks/useEnhancedSecurity';
+import { buildApiUrl, apiEndpoints, supabaseConfig } from '@/lib/supabaseConfig';
 
 interface AuthContextType {
   user: User | null;
@@ -199,10 +200,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       // Test connection first
-      const connectionTest = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/rest/v1/', {
+      const connectionTest = await fetch(buildApiUrl(`${apiEndpoints.rest}/`), {
         method: 'HEAD',
         headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk'
+          'apikey': supabaseConfig.anonKey
         },
         signal: AbortSignal.timeout(5000)
       }).catch(() => null);

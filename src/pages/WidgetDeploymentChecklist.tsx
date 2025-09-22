@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertTriangle, Copy, ExternalLink, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabaseConfig } from '@/lib/supabaseConfig';
 
 interface ChecklistItem {
   id: string;
@@ -132,7 +133,7 @@ Frame URL: https://widget.ultaai.com/widget/frame.html`
   style-src 'self' 'unsafe-inline' https://widget.ultaai.com;
   font-src 'self' https://widget.ultaai.com data:;
   img-src 'self' https: data:;
-  connect-src 'self' https://widget.ultaai.com https://lfsdqyvvboapsyeauchm.supabase.co;
+  connect-src 'self' https://widget.ultaai.com ${supabaseConfig.url};
   frame-ancestors *;
   frame-src 'self' https://widget.ultaai.com;`
         },
@@ -142,7 +143,7 @@ Frame URL: https://widget.ultaai.com/widget/frame.html`
           description: "Allow widget domain in main app CSP if needed",
           critical: false,
           code: `frame-src 'self' https://widget.ultaai.com;
-connect-src 'self' https://widget.ultaai.com https://lfsdqyvvboapsyeauchm.supabase.co;`
+connect-src 'self' https://widget.ultaai.com ${supabaseConfig.url};`
         },
         {
           id: "test-csp",

@@ -10,9 +10,16 @@
   // Test if window.UltaAIWidget exists
   console.log('🚨 UltaAIWidget object:', window.UltaAIWidget);
   
+  // Get Supabase URL from environment or meta tags
+  function getSupabaseUrl() {
+    // Try to get from meta tags first
+    const urlMeta = document.querySelector('meta[name="ultaai-supabase-url"]');
+    return urlMeta?.content || window.ULTAAI_SUPABASE_URL || 'http://localhost:54321';
+  }
+  
   // Configuration
   const CONFIG = {
-    API_BASE_URL: 'https://lfsdqyvvboapsyeauchm.supabase.co',
+    API_BASE_URL: getSupabaseUrl(),
     WIDGET_API_ENDPOINT: '/functions/v1/widget-api'
   };
   

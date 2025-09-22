@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { buildApiUrl, apiEndpoints, supabaseConfig } from '@/lib/supabaseConfig';
 
 const WidgetTest = () => {
   const [testResults, setTestResults] = useState<any[]>([]);
@@ -19,7 +20,7 @@ const WidgetTest = () => {
       {
         name: 'Direct Supabase API Test',
         test: async () => {
-          const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/widget-api', {
+          const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/widget-api`), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -51,7 +52,7 @@ const WidgetTest = () => {
       {
         name: 'CORS Preflight Test',
         test: async () => {
-          const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/widget-api', {
+          const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/widget-api`), {
             method: 'OPTIONS',
             headers: {
               'Access-Control-Request-Method': 'POST',
@@ -72,7 +73,7 @@ const WidgetTest = () => {
           try {
             // Load the SDK script
             const script = document.createElement('script');
-            script.src = 'https://lfsdqyvvboapsyeauchm.supabase.co/sdk/v1.js';
+            script.src = `${supabaseConfig.url}/sdk/v1.js`;
             script.onload = () => console.log('SDK loaded successfully');
             script.onerror = (e) => console.error('SDK failed to load:', e);
             
@@ -102,7 +103,7 @@ const WidgetTest = () => {
     setLoading(false);
   };
 
-  const embedCode = `<script src="https://lfsdqyvvboapsyeauchm.supabase.co/sdk/v1.js"></script>
+  const embedCode = `<script src="${supabaseConfig.url}/sdk/v1.js"></script>
 <script>
   UltaAIWidget.load('${siteKey}');
 </script>`;

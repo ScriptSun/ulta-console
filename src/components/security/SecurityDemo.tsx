@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Shield, Lock, Eye, EyeOff, CheckCircle, AlertTriangle, Info, UserX, RotateCcw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { buildApiUrl, apiEndpoints } from '@/lib/supabaseConfig';
 
 export function SecurityDemo() {
   const { validatePassword, performSecureLogin } = useEnhancedSecurity();
@@ -72,7 +73,7 @@ export function SecurityDemo() {
   const handleResetAttempts = async () => {
     try {
       const session = await supabase.auth.getSession();
-      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/auth-security-enhanced`, {
+      const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/auth-security-enhanced`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

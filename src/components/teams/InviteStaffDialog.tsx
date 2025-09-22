@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { buildApiUrl, apiEndpoints } from '@/lib/supabaseConfig';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +33,7 @@ export function InviteStaffDialog({ open, onOpenChange, team, onInvite }: Invite
 
   const createInviteMutation = useMutation({
     mutationFn: async ({ teamId, email, role }: { teamId: string; email: string; role: string }) => {
-      const url = `https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/console-invites`;
+      const url = buildApiUrl(`${apiEndpoints.functions}/console-invites`);
       const { data: session } = await supabase.auth.getSession();
       
       const response = await fetch(url, {

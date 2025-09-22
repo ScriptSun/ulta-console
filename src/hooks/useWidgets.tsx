@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { buildApiUrl, apiEndpoints } from '@/lib/supabaseConfig';
 
 export interface WidgetTheme {
   // Colors
@@ -97,7 +98,7 @@ export function useWidgets() {
       }
 
       // Call the widget admin API with proper API path
-      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/widget-admin-api/api/admin/widgets`, {
+      const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/widget-admin-api/api/admin/widgets`), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -141,7 +142,7 @@ export function useWidgets() {
 
       // Call the widget admin API with proper API path
       console.log('Calling widget-admin-api...');
-      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/widget-admin-api/api/admin/widgets`, {
+      const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/widget-admin-api/api/admin/widgets`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -196,7 +197,7 @@ export function useWidgets() {
       }
 
       // Call the widget admin API with proper API path  
-      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/widget-admin-api/api/admin/widgets/${widgetId}`, {
+      const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/widget-admin-api/api/admin/widgets/${widgetId}`), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,

@@ -909,9 +909,10 @@ const handleSendMessage = async (message: string) => {
                   code={`// src/integrations/supabase/client.ts
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { supabaseConfig } from '@/lib/supabaseConfig';
 
-const SUPABASE_URL = "https://lfsdqyvvboapsyeauchm.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+const SUPABASE_URL = supabaseConfig.url;
+const SUPABASE_PUBLISHABLE_KEY = supabaseConfig.anonKey;
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {

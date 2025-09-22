@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { testSupabaseConnection } from '@/lib/supabaseClient';
+import { buildApiUrl, apiEndpoints, supabaseConfig } from '@/lib/supabaseConfig';
+import { supabase } from '@/integrations/supabase/client';
 
 export function SupabaseConnectionTest() {
   const [testResults, setTestResults] = useState<any[]>([]);
@@ -82,9 +84,9 @@ export function SupabaseConnectionTest() {
     setTestResults([...results]);
 
     try {
-      const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/rest/v1/agents?select=id&limit=1', {
+      const response = await fetch(buildApiUrl(`${apiEndpoints.rest}/agents?select=id&limit=1`), {
         headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'apikey': supabaseConfig.anonKey,
           'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
           'Content-Type': 'application/json'
         }

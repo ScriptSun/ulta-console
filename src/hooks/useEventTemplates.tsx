@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { EmailTemplate, EventInfo } from '@/types/eventTypes';
+import { buildApiUrl, apiEndpoints, supabaseConfig } from '@/lib/supabaseConfig';
 
 export function useEventTemplates() {
   const { toast } = useToast();
@@ -18,19 +19,19 @@ export function useEventTemplates() {
     try {
       // Load templates and events in parallel
       const [templatesResult, eventsResult] = await Promise.all([
-        fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates', {
+        fetch(buildApiUrl(`${apiEndpoints.functions}/api-templates/api/templates`), {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+            'apikey': supabaseConfig.anonKey,
             'Content-Type': 'application/json'
           }
         }).then(res => res.json()),
-        fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-notify-events/api/notify/events', {
+        fetch(buildApiUrl(`${apiEndpoints.functions}/api-notify-events/api/notify/events`), {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+            'apikey': supabaseConfig.anonKey,
             'Content-Type': 'application/json'
           }
         }).then(res => res.json())
@@ -54,11 +55,11 @@ export function useEventTemplates() {
     setSaving(true);
     try {
       const session = await supabase.auth.getSession();
-      const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates', {
+      const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/api-templates/api/templates`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.data.session?.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'apikey': supabaseConfig.anonKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(template)
@@ -101,11 +102,11 @@ export function useEventTemplates() {
     setSaving(true);
     try {
       const session = await supabase.auth.getSession();
-      const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates/duplicate', {
+      const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/api-templates/api/templates/duplicate`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.data.session?.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'apikey': supabaseConfig.anonKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ templateId })
@@ -138,11 +139,11 @@ export function useEventTemplates() {
     setSaving(true);
     try {
       const session = await supabase.auth.getSession();
-      const response = await fetch(`https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates/${templateId}`, {
+      const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/api-templates/api/templates/${templateId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.data.session?.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'apikey': supabaseConfig.anonKey,
           'Content-Type': 'application/json'
         }
       });
@@ -178,11 +179,11 @@ export function useEventTemplates() {
     setSaving(true);
     try {
       const session = await supabase.auth.getSession();
-      const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates/test', {
+      const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/api-templates/api/templates/test`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.data.session?.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'apikey': supabaseConfig.anonKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ templateId, to, variables })
@@ -212,11 +213,11 @@ export function useEventTemplates() {
     setSaving(true);
     try {
       const session = await supabase.auth.getSession();
-      const response = await fetch('https://lfsdqyvvboapsyeauchm.supabase.co/functions/v1/api-templates/api/templates/seed', {
+      const response = await fetch(buildApiUrl(`${apiEndpoints.functions}/api-templates/api/templates/seed`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.data.session?.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk',
+          'apikey': supabaseConfig.anonKey,
           'Content-Type': 'application/json'
         }
       });
