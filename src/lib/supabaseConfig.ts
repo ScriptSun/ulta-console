@@ -1,14 +1,14 @@
-// TEMPORARY FIX: Force production URL
+// Centralized Supabase configuration
 export const supabaseConfig = {
-  url: "https://lfsdqyvvboapsyeauchm.supabase.co",
-  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmc2RxeXZ2Ym9hcHN5ZWF1Y2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjA3ODYsImV4cCI6MjA3MTg5Njc4Nn0.8lE_UEjrIviFz6nygL7HocGho-aUG9YH1NCi6y_CrFk"
+  url: import.meta.env.VITE_SUPABASE_URL,
+  anonKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 };
 
 // Debug environment variables
-console.log('🔧 Supabase Config Debug (FORCED PRODUCTION):', {
+console.log('🔧 Supabase Config Debug:', {
   VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
   configUrl: supabaseConfig.url,
-  FORCED_MODE: true
+  ENV_LOADED: true
 });
 
 // Helper function to build API URLs
